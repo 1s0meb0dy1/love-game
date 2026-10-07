@@ -17,45 +17,53 @@
         body { 
             font-family: 'Product Sans', 'Google Sans', sans-serif; 
             overflow-x: hidden;
-            background-color: #050204; 
+            background-color: #030102; /* Максимально темный фон */
             color: white; 
             -webkit-tap-highlight-color: transparent;
             touch-action: pan-y;
         }
 
-        /* Романтичный, глубокий фон */
+        /* Более темный, глубокий романтичный фон */
         .romantic-bg {
-            background: radial-gradient(circle at 50% 30%, rgba(120, 20, 60, 0.15) 0%, rgba(15, 10, 20, 1) 70%);
+            background: radial-gradient(circle at 50% -20%, rgba(60, 5, 20, 0.15) 0%, #030102 80%);
             background-attachment: fixed;
         }
 
-        /* Стекломорфизм (премиальный стиль) */
+        /* Стекломорфизм */
         .glass-panel { 
-            background: rgba(30, 15, 25, 0.4); 
+            background: rgba(15, 8, 12, 0.6); 
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 200, 220, 0.08); 
+            border: 1px solid rgba(255, 200, 220, 0.05); 
             border-radius: 1.75rem;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
         }
 
-        /* Кнопки главного меню */
+        /* Кнопки */
         .btn-romantic {
-            background: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
-            box-shadow: 0 4px 15px rgba(225, 29, 72, 0.4);
+            background: linear-gradient(135deg, #be123c 0%, #881337 100%);
+            box-shadow: 0 4px 20px rgba(159, 18, 57, 0.4);
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .btn-romantic:active { transform: scale(0.95); box-shadow: 0 2px 8px rgba(225, 29, 72, 0.4); }
+        .btn-romantic:active { transform: scale(0.95); box-shadow: 0 2px 10px rgba(159, 18, 57, 0.4); }
+
+        .btn-ghost {
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.15);
+            color: rgba(255,255,255,0.7);
+            transition: all 0.3s ease;
+        }
+        .btn-ghost:active { transform: scale(0.95); background: rgba(255,255,255,0.05); }
         
         .cat-btn-active {
-            background: rgba(255, 255, 255, 0.12);
-            border: 1px solid rgba(255, 200, 220, 0.4);
-            box-shadow: 0 0 15px rgba(255, 200, 220, 0.1);
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 200, 220, 0.3);
+            box-shadow: 0 0 15px rgba(255, 200, 220, 0.05);
             transform: scale(0.98);
         }
         .cat-btn-inactive {
             background: rgba(255, 255, 255, 0.02);
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.03);
         }
 
         /* Анимации */
@@ -72,40 +80,77 @@
             45% { transform: scale(1.15); }
         }
 
+        /* Анимация зеленой галочки */
+        .checkmark-circle {
+            stroke-dasharray: 166;
+            stroke-dashoffset: 166;
+            stroke-width: 2;
+            stroke-miterlimit: 10;
+            stroke: #10b981;
+            fill: none;
+            animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+        }
+        .checkmark {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            display: block;
+            stroke-width: 2;
+            stroke: #fff;
+            stroke-miterlimit: 10;
+            margin: 10% auto;
+            box-shadow: inset 0px 0px 0px #10b981;
+            animation: fill .4s ease-in-out .4s forwards, scale .3s ease-in-out .9s both;
+        }
+        .checkmark-check {
+            transform-origin: 50% 50%;
+            stroke-dasharray: 48;
+            stroke-dashoffset: 48;
+            animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.8s forwards;
+        }
+        @keyframes stroke { 100% { stroke-dashoffset: 0; } }
+        @keyframes scale { 0%, 100% { transform: none; } 50% { transform: scale3d(1.1, 1.1, 1); } }
+        @keyframes fill { 100% { box-shadow: inset 0px 0px 0px 30px #10b981; } }
+
+        /* Эффект печати AI */
+        .ai-cursor::after {
+            content: '|';
+            animation: blink 1s step-end infinite;
+        }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
         /* Цвета сложностей */
-        .diff-easy { color: #34d399; } /* Изумрудный / Зеленый */
-        .diff-med  { color: #fbbf24; } /* Янтарный / Оранжевый */
-        .diff-hard { color: #fb7185; } /* Розово-красный */
-        
-        .bg-diff-easy { background: rgba(52, 211, 153, 0.15); border: 1px solid rgba(52, 211, 153, 0.3); }
-        .bg-diff-med  { background: rgba(251, 191, 36, 0.15); border: 1px solid rgba(251, 191, 36, 0.3); }
-        .bg-diff-hard { background: rgba(251, 113, 133, 0.15); border: 1px solid rgba(251, 113, 133, 0.3); }
+        .diff-easy { color: #34d399; }
+        .diff-med  { color: #fbbf24; }
+        .diff-hard { color: #fb7185; }
+        .bg-diff-easy { background: rgba(52, 211, 153, 0.1); border: 1px solid rgba(52, 211, 153, 0.2); }
+        .bg-diff-med  { background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.2); }
+        .bg-diff-hard { background: rgba(251, 113, 133, 0.1); border: 1px solid rgba(251, 113, 133, 0.2); }
 
         /* Кастомный скролл */
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body class="romantic-bg">
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect } = React;
+        const { useState, useEffect, useRef } = React;
 
-        // Ссылка на базу
         const GIST_URL = "https://gist.githubusercontent.com/1s0meb0dy1/9d890bde848f3a2c5464c7c1729fe17a/raw/questions.json";
 
         const CATEGORIES = [
-            { id: "family", name: "Семья", icon: "👨‍👩‍👧‍👦", color: "from-blue-900/40 to-slate-950" },
-            { id: "intimacy", name: "Интим", icon: "🔥", color: "from-rose-900/40 to-slate-950" },
-            { id: "future", name: "Будущее", icon: "🎯", color: "from-teal-900/40 to-slate-950" },
-            { id: "secrets", name: "Секреты", icon: "🤫", color: "from-fuchsia-900/40 to-slate-950" },
-            { id: "romance", name: "Романтика", icon: "❤️", color: "from-pink-900/40 to-slate-950" },
-            { id: "past", name: "Прошлое", icon: "🕰️", color: "from-amber-900/40 to-slate-950" },
-            { id: "values", name: "Ценности", icon: "⚖️", color: "from-indigo-900/40 to-slate-950" },
-            { id: "fears", name: "Страхи", icon: "👻", color: "from-stone-800/60 to-slate-950" },
-            { id: "money", name: "Деньги", icon: "💰", color: "from-emerald-900/40 to-slate-950" },
-            { id: "life", name: "Быт", icon: "🏠", color: "from-orange-900/40 to-slate-950" }
+            { id: "family", name: "Семья", icon: "👨‍👩‍👧‍👦", color: "from-blue-950/30 to-[#030102]" },
+            { id: "intimacy", name: "Интим", icon: "🔞", color: "from-rose-950/30 to-[#030102]" },
+            { id: "future", name: "Будущее", icon: "🎯", color: "from-teal-950/30 to-[#030102]" },
+            { id: "secrets", name: "Секреты", icon: "🤫", color: "from-fuchsia-950/30 to-[#030102]" },
+            { id: "romance", name: "Романтика", icon: "❤️", color: "from-pink-950/30 to-[#030102]" },
+            { id: "past", name: "Прошлое", icon: "⏳", color: "from-amber-950/30 to-[#030102]" },
+            { id: "values", name: "Ценности", icon: "⚖️", color: "from-indigo-950/30 to-[#030102]" },
+            { id: "fears", name: "Страхи", icon: "👻", color: "from-stone-900/40 to-[#030102]" },
+            { id: "money", name: "Деньги", icon: "💰", color: "from-emerald-950/30 to-[#030102]" },
+            { id: "life", name: "Быт", icon: "🏠", color: "from-orange-950/30 to-[#030102]" }
         ];
 
         const DIFFICULTIES = [
@@ -114,10 +159,28 @@
             { id: "Глубокие", name: "Глубокие", classText: "diff-hard", classBg: "bg-diff-hard" }
         ];
 
-        // Компонент анимированного счетчика
+        // Умный генератор ситуаций (pseudo-AI)
+        const generateSmartSituation = (qText, catId) => {
+            const intros = {
+                family: ["Вы собрались за ужином после долгого и напряженного дня", "Представь, мы организовываем большой семейный праздник, всё идет наперекосяк"],
+                intimacy: ["В момент глубокой ночи, когда мы остались абсолютно одни и никуда не спешим", "Представь, что мы сняли номер в уединенном отеле, свет приглушен"],
+                future: ["Мы стоим на пороге принятия решения, которое изменит наши жизни навсегда", "Через 5 лет мы оборачиваемся назад и понимаем, что именно сегодня тот самый день"],
+                secrets: ["Мы играем в игру 'правда или действие', атмосфера становится серьезной", "Представь, что я случайно нашел(ла) твой старый личный дневник"],
+                romance: ["Во время нашей идеальной прогулки, когда вокруг ни души", "Представь, что мы оказались под сильным дождем без зонта и спрятались под навесом"],
+                past: ["Мы случайно наткнулись на коробку с твоими старыми, детскими вещами", "Представь, что мы встретили человека из твоего прошлого, о котором ты давно забыл(а)"],
+                values: ["Мы оказались в центре серьезного спора в кругу друзей, мнения разделились", "Представь ситуацию, где тебе предлагают огромную выгоду в обмен на предательство идеалов"],
+                fears: ["Происходит именно то, чего ты всегда подсознательно избегал(а)", "Мы застряли вдали от цивилизации, без связи и без четкого плана действий"],
+                money: ["Нам на счет внезапно падает сумма, о которой мы могли только мечтать", "Представь, что мы потеряли почти все сбережения из-за системного сбоя"],
+                life: ["Мы делаем тяжелый ремонт в квартире, кругом хаос, пыль и усталость", "В доме отключили свет и воду на двое суток, наши телефоны почти разряжены"]
+            };
+            const catIntros = intros[catId] || ["Происходит неожиданное событие, которое застает нас врасплох"];
+            const selectedIntro = catIntros[Math.floor(Math.random() * catIntros.length)];
+            const cleanQuestion = qText.replace(/^№\s*\d+\.\s*/, '');
+            return `${selectedIntro}. И в этой атмосфере возникает мысль: «${cleanQuestion}».\n\nЧто ты почувствуешь в первую секунду? Какие будут твои первые реальные действия? Как мы справимся с этим вместе?`;
+        };
+
         const AnimatedCounter = ({ target }) => {
             const [count, setCount] = useState(0);
-            
             useEffect(() => {
                 if (target === 0) return;
                 let current = 0;
@@ -129,33 +192,42 @@
                 }, stepTime);
                 return () => clearInterval(timer);
             }, [target]);
-
             return <span>{count}</span>;
         };
 
-        // Иконки SVG
         const Icons = {
             Play: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
             Menu: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>,
             Back: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>,
             Next: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>,
             Sparkles: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>,
-            Check: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+            List: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>,
+            Plus: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
         };
 
         function App() {
             const [db, setDb] = useState([]);
             const [isLoading, setIsLoading] = useState(true);
-            const [screen, setScreen] = useState('menu'); // menu, game, summary
+            const [screen, setScreen] = useState('menu'); // menu, game, summary, cat_list, q_list, add_q
             const [selectedCats, setSelectedCats] = useState(CATEGORIES.map(c => c.id));
             const [selectedDiffs, setSelectedDiffs] = useState(DIFFICULTIES.map(d => d.id));
             
             const [gameQuestions, setGameQuestions] = useState([]);
             const [currentIndex, setCurrentIndex] = useState(0);
+            
+            // AI State
             const [showAiPopup, setShowAiPopup] = useState(false);
+            const [aiText, setAiText] = useState("");
+            const [isAiTyping, setIsAiTyping] = useState(false);
+
+            // DB Nav State
+            const [viewCategory, setViewCategory] = useState(null);
+            
+            // Add Q State
+            const [addForm, setAddForm] = useState({ text: '', cat: 'family', diff: 'Простые' });
+            const [addSuccess, setAddSuccess] = useState(null);
 
             useEffect(() => {
-                // Добавляем ?t= timestamp, чтобы всегда качать самую свежую базу без кэша
                 fetch(GIST_URL + "?t=" + new Date().getTime())
                     .then(res => res.json())
                     .then(data => {
@@ -183,62 +255,91 @@
 
             const startGame = () => {
                 let filtered = db.filter(q => selectedCats.includes(q.categoryId) && selectedDiffs.includes(q.level));
-                if (filtered.length === 0) return alert("По этим параметрам нет вопросов. Выберите другие темы или сложности! ❤️");
-
-                // Перемешивание
+                if (filtered.length === 0) return alert("По этим параметрам нет вопросов. Выберите другие! ❤️");
                 for (let i = filtered.length - 1; i > 0; i--) {
                     const j = Math.floor(Math.random() * (i + 1));
                     [filtered[i], filtered[j]] = [filtered[j], filtered[i]];
                 }
-
                 setGameQuestions(filtered);
                 setCurrentIndex(0);
                 setScreen('game');
             };
 
-            const goToSummary = () => {
-                setScreen('summary');
+            const generateAI = () => {
+                setShowAiPopup(true);
+                setAiText("Синтезирую ситуацию...");
+                setIsAiTyping(true);
+                
+                setTimeout(() => {
+                    const q = gameQuestions[currentIndex];
+                    const fullText = generateSmartSituation(q.text, q.categoryId);
+                    setAiText("");
+                    
+                    let i = 0;
+                    const typingInterval = setInterval(() => {
+                        setAiText(fullText.substring(0, i + 1));
+                        i++;
+                        if (i >= fullText.length) {
+                            clearInterval(typingInterval);
+                            setIsAiTyping(false);
+                        }
+                    }, 25); // Скорость печати
+                }, 1000); // Задержка "поиска"
+            };
+
+            const handleAddQuestion = (e) => {
+                e.preventDefault();
+                if (!addForm.text.trim()) return;
+                
+                const newId = 'v_local_' + Math.random().toString(36).substr(2, 6);
+                const newQ = {
+                    id: newId,
+                    categoryId: addForm.cat,
+                    level: addForm.diff,
+                    text: `№ ${db.length + 1}. ${addForm.text.trim()}`
+                };
+                
+                setDb([...db, newQ]);
+                setAddSuccess(newId);
             };
 
             if (isLoading) {
                 return (
                     <div className="min-h-[100dvh] w-full flex flex-col items-center justify-center fade-in">
-                        <div className="text-6xl mb-6 heart-pulse text-rose-500 drop-shadow-[0_0_20px_rgba(225,29,72,0.6)]">🤍</div>
-                        <p className="text-rose-200/70 font-medium uppercase text-xs tracking-[0.3em]">Синхронизация...</p>
+                        <div className="text-6xl mb-6 heart-pulse text-[#be123c] drop-shadow-[0_0_25px_rgba(190,18,60,0.6)]">🤍</div>
+                        <p className="text-white/40 font-bold uppercase text-[10px] tracking-[0.4em]">Синхронизация</p>
                     </div>
                 );
             }
 
-            // Экран МЕНЮ
+            // МЕНЮ
             if (screen === 'menu') {
                 const availableCount = db.filter(q => selectedCats.includes(q.categoryId) && selectedDiffs.includes(q.level)).length;
-
                 return (
-                    <div className="min-h-[100dvh] w-full flex flex-col items-center justify-center p-5 slide-up">
-                        
+                    <div className="min-h-[100dvh] w-full flex flex-col items-center justify-center p-4 md:p-6 slide-up">
                         <div className="text-center mb-8 flex-shrink-0">
                             <h1 className="text-5xl font-bold mb-3 flex items-center justify-center gap-3 text-white tracking-tight">
                                 <span>Влад</span>
-                                <span className="text-3xl text-rose-500 heart-pulse drop-shadow-[0_0_15px_rgba(225,29,72,0.5)]">❤️</span>
+                                <span className="text-3xl text-[#be123c] heart-pulse drop-shadow-[0_0_15px_rgba(190,18,60,0.5)]">❤️</span>
                                 <span>Ира</span>
                             </h1>
-                            <p className="text-rose-200/60 text-xs uppercase tracking-[0.2em] font-light">Давай узнаем друг друга еще раз</p>
+                            <p className="text-white/40 text-[10px] font-bold uppercase tracking-[0.25em]">Давай узнаем друг друга еще раз</p>
                         </div>
 
-                        <div className="w-full max-w-md glass-panel p-6 sm:p-8 flex flex-col gap-8">
+                        <div className="w-full max-w-md glass-panel p-6 flex flex-col gap-8">
                             
                             {/* Выбор тем */}
-                            <div>
-                                <h2 className="text-xs font-bold text-center uppercase tracking-widest text-rose-100/70 mb-4">Выбери темы</h2>
-                                <div className="grid grid-cols-2 gap-3">
+                            <div className="w-full overflow-hidden">
+                                <h2 className="text-[10px] font-bold text-center uppercase tracking-widest text-white/50 mb-4">Темы вопросов</h2>
+                                <div className="flex overflow-x-auto gap-3 pb-2 pt-1 px-1 no-scrollbar snap-x touch-pan-x">
                                     {CATEGORIES.map(cat => (
                                         <button 
                                             key={cat.id}
                                             onClick={() => toggleCategory(cat.id)}
-                                            className={`p-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-all duration-300 ${selectedCats.includes(cat.id) ? 'cat-btn-active text-white' : 'cat-btn-inactive text-white/50 hover:text-white/80'}`}
+                                            className={`flex-shrink-0 px-5 py-3.5 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-all duration-300 snap-center ${selectedCats.includes(cat.id) ? 'cat-btn-active text-white' : 'cat-btn-inactive text-white/40 hover:text-white/60'}`}
                                         >
                                             <span className="text-lg">{cat.icon}</span> 
-                                            <span className="truncate">{cat.name}</span>
+                                            <span>{cat.name}</span>
                                         </button>
                                     ))}
                                 </div>
@@ -246,41 +347,49 @@
 
                             {/* Выбор сложности */}
                             <div>
-                                <h2 className="text-xs font-bold text-center uppercase tracking-widest text-rose-100/70 mb-4">Сложности вопросов</h2>
-                                <div className="flex flex-wrap justify-center gap-3">
+                                <h2 className="text-[10px] font-bold text-center uppercase tracking-widest text-white/50 mb-4">Сложность вопросов</h2>
+                                <div className="flex flex-wrap justify-center gap-2.5">
                                     {DIFFICULTIES.map(diff => {
                                         const isActive = selectedDiffs.includes(diff.id);
                                         return (
                                             <button 
                                                 key={diff.id}
                                                 onClick={() => toggleDiff(diff.id)}
-                                                className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all duration-300 ${isActive ? diff.classBg + ' ' + diff.classText : 'bg-black/20 text-white/40 border border-white/5 hover:border-white/20'}`}
+                                                className={`px-5 py-2.5 rounded-full text-[11px] font-bold uppercase tracking-widest transition-all duration-300 ${isActive ? diff.classBg + ' ' + diff.classText : 'bg-black/20 text-white/30 border border-white/5'}`}
                                             >
                                                 {diff.name}
                                             </button>
                                         );
                                     })}
                                 </div>
+                                <button 
+                                    onClick={() => setScreen('cat_list')} 
+                                    className="w-full mt-5 py-3.5 rounded-xl btn-ghost flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-widest"
+                                >
+                                    <Icons.List /> Список вопросов
+                                </button>
                             </div>
 
                             {/* Статистика и Кнопка */}
-                            <div className="flex flex-col gap-5 pt-2 border-t border-white/10">
-                                <div className="flex justify-around items-center px-2">
-                                    <div className="flex flex-col items-center gap-1">
-                                        <span className="text-3xl font-light text-white">{selectedCats.length}</span>
-                                        <span className="uppercase text-[9px] font-bold tracking-widest text-rose-200/50">Темы</span>
+                            <div className="flex flex-col gap-6 pt-6 border-t border-white/5">
+                                <div className="text-center w-full mb-[-10px]">
+                                    <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-white/30">Вы выбрали</span>
+                                </div>
+                                <div className="flex justify-around items-center px-4">
+                                    <div className="flex flex-col items-center gap-1.5">
+                                        <span className="text-4xl font-light text-white leading-none">{selectedCats.length}</span>
+                                        <span className="uppercase text-[9px] font-bold tracking-widest text-white/40">Тем(ы)</span>
                                     </div>
                                     <div className="h-10 w-px bg-white/10"></div>
-                                    <div className="flex flex-col items-center gap-1">
-                                        <span className="text-3xl font-light text-white">{availableCount}</span>
-                                        <span className="uppercase text-[9px] font-bold tracking-widest text-rose-200/50">Вопросов</span>
+                                    <div className="flex flex-col items-center gap-1.5">
+                                        <span className="text-4xl font-light text-white leading-none">{availableCount}</span>
+                                        <span className="uppercase text-[9px] font-bold tracking-widest text-white/40">Вопросов</span>
                                     </div>
                                 </div>
-
                                 <button 
                                     onClick={startGame}
                                     disabled={availableCount === 0}
-                                    className="w-full py-4 rounded-xl text-white font-bold text-sm uppercase tracking-[0.15em] btn-romantic disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-2"
+                                    className="w-full py-4.5 rounded-xl text-white font-bold text-sm uppercase tracking-[0.2em] btn-romantic disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-2"
                                 >
                                     <Icons.Play /> Начать игру
                                 </button>
@@ -290,61 +399,53 @@
                 );
             }
 
-            // Экран ИГРЫ
+            // ИГРА
             if (screen === 'game') {
                 const currentQ = gameQuestions[currentIndex];
                 const categoryInfo = CATEGORIES.find(c => c.id === currentQ.categoryId) || CATEGORIES[0];
                 const diffInfo = DIFFICULTIES.find(d => d.id === currentQ.level) || DIFFICULTIES[0];
-                
                 const textParts = currentQ.text.match(/(№\s*\d+\.\s*)(.*)/);
                 const cleanText = textParts ? textParts[2] : currentQ.text;
 
                 return (
                     <div className={`min-h-[100dvh] w-full flex flex-col bg-gradient-to-br ${categoryInfo.color} transition-colors duration-1000 fade-in`}>
-                        
-                        {/* Шапка */}
                         <div className="flex justify-between items-center p-5 md:p-8 flex-shrink-0">
-                            <div className="bg-black/40 backdrop-blur-sm border border-white/10 text-white/90 font-bold px-5 py-2 rounded-full text-xs tracking-widest shadow-lg">
+                            <div className="bg-[#030102]/60 backdrop-blur-md border border-white/5 text-white/80 font-bold px-5 py-2 rounded-full text-[11px] tracking-widest shadow-xl">
                                 {currentIndex + 1} / {gameQuestions.length}
                             </div>
-                            <button onClick={goToSummary} className="flex items-center gap-2 text-white/80 text-[10px] font-bold uppercase tracking-widest px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 transition-all border border-white/5">
+                            <button onClick={() => setScreen('summary')} className="flex items-center gap-2 text-white/70 text-[10px] font-bold uppercase tracking-widest px-4 py-2 rounded-full bg-white/5 hover:bg-white/10 active:scale-95 transition-all border border-white/5">
                                 <Icons.Menu /> Меню
                             </button>
                         </div>
 
-                        {/* Карточка вопроса */}
                         <div className="flex-1 flex flex-col items-center justify-center p-5 overflow-y-auto no-scrollbar">
                             <div className="w-full max-w-lg flex flex-col items-center slide-up" key={currentIndex}>
-                                
-                                <div className="glass-panel px-6 py-3 rounded-2xl mb-8 flex flex-col items-center gap-2 shadow-[0_8px_30px_rgba(0,0,0,0.2)]">
-                                    <span className="text-white/40 text-[9px] uppercase tracking-[0.25em] font-bold">Текущий вопрос</span>
-                                    <div className="flex items-center gap-3 text-xs font-bold uppercase tracking-widest text-white/90">
-                                        <span className="text-lg">{categoryInfo.icon}</span>
+                                <div className="glass-panel px-6 py-3.5 rounded-[1.25rem] mb-10 flex flex-col items-center gap-2 shadow-2xl">
+                                    <span className="text-white/40 text-[9px] uppercase tracking-[0.25em] font-bold">Вопрос {currentIndex + 1}</span>
+                                    <div className="flex items-center gap-3 text-[11px] font-bold uppercase tracking-widest text-white/90">
+                                        <span className="text-base">{categoryInfo.icon}</span>
                                         <span>{categoryInfo.name}</span>
-                                        <span className="w-1 h-1 rounded-full bg-white/30"></span>
+                                        <span className="w-1 h-1 rounded-full bg-white/20"></span>
                                         <span className={diffInfo.classText}>{diffInfo.name}</span>
                                     </div>
                                 </div>
-                                
-                                <h2 className="text-2xl md:text-3xl font-medium text-center leading-snug mb-12 text-white drop-shadow-md px-2">
+                                <h2 className="text-2xl md:text-3xl font-medium text-center leading-relaxed mb-12 text-white/95 px-2">
                                     {cleanText}
                                 </h2>
-
                                 <button 
-                                    onClick={() => setShowAiPopup(true)}
-                                    className="bg-white/10 hover:bg-white/20 border border-white/20 px-6 py-3 rounded-full text-white text-xs font-bold uppercase tracking-widest active:scale-95 transition-all flex items-center gap-2 shadow-lg"
+                                    onClick={generateAI}
+                                    className="bg-white/5 hover:bg-white/10 border border-white/10 px-6 py-3.5 rounded-full text-white/80 text-[11px] font-bold uppercase tracking-widest active:scale-95 transition-all flex items-center gap-2"
                                 >
-                                    <Icons.Sparkles /> Ситуация
+                                    <Icons.Sparkles /> Сгенерировать ситуацию
                                 </button>
                             </div>
                         </div>
 
-                        {/* Навигация */}
                         <div className="p-5 md:p-8 flex gap-4 flex-shrink-0">
                             <button 
                                 onClick={() => setCurrentIndex(prev => prev - 1)}
                                 disabled={currentIndex === 0}
-                                className="flex-1 py-4 rounded-xl font-bold text-white/80 glass-panel disabled:opacity-30 active:scale-95 transition-all uppercase tracking-widest text-[10px] flex items-center justify-center gap-2"
+                                className="flex-1 py-4.5 rounded-xl font-bold text-white/70 glass-panel disabled:opacity-20 active:scale-95 transition-all uppercase tracking-widest text-[10px] flex items-center justify-center gap-2"
                             >
                                 <Icons.Back /> Назад
                             </button>
@@ -353,28 +454,27 @@
                                     if (currentIndex < gameQuestions.length - 1) {
                                         setCurrentIndex(prev => prev + 1);
                                     } else {
-                                        goToSummary();
+                                        setScreen('summary');
                                     }
                                 }}
-                                className="flex-[2] py-4 rounded-xl font-bold text-white btn-romantic active:scale-95 uppercase tracking-widest text-xs flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(225,29,72,0.4)]"
+                                className="flex-[2] py-4.5 rounded-xl font-bold text-white btn-romantic active:scale-95 uppercase tracking-widest text-[11px] flex items-center justify-center gap-2"
                             >
                                 {currentIndex === gameQuestions.length - 1 ? "Итоги" : "Далее"} <Icons.Next />
                             </button>
                         </div>
 
-                        {/* Попап "Ситуация" */}
                         {showAiPopup && (
-                            <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-5 z-50 fade-in">
-                                <div className="glass-panel p-8 w-full max-w-sm rounded-[2rem] border-white/20">
-                                    <h3 className="font-bold text-sm uppercase tracking-widest text-rose-300 flex items-center gap-2 mb-6">
-                                        <Icons.Sparkles /> Ситуация
+                            <div className="fixed inset-0 bg-[#030102]/90 backdrop-blur-xl flex items-center justify-center p-5 z-50 fade-in">
+                                <div className="glass-panel p-8 w-full max-w-sm rounded-[2rem] border-white/10">
+                                    <h3 className="font-bold text-xs uppercase tracking-widest text-[#be123c] flex items-center gap-2 mb-6">
+                                        <Icons.Sparkles /> AI Ситуация
                                     </h3>
-                                    <div className="text-white/90 text-sm bg-black/40 p-5 rounded-2xl border border-white/5 font-light leading-relaxed mb-8">
-                                        Представь, что эта ситуация произошла с нами прямо сейчас. Опиши свои первые мысли, эмоции и действия. Как бы мы справились с этим вместе?
+                                    <div className={`text-white/80 text-sm bg-black/60 p-6 rounded-2xl border border-white/5 font-light leading-relaxed mb-8 min-h-[150px] ${isAiTyping ? 'ai-cursor' : ''}`}>
+                                        {aiText}
                                     </div>
                                     <button 
                                         onClick={() => setShowAiPopup(false)}
-                                        className="w-full py-4 bg-white/10 hover:bg-white/20 rounded-xl text-white font-bold uppercase tracking-widest text-xs active:scale-95 transition-all"
+                                        className="w-full py-4 bg-white/5 hover:bg-white/10 rounded-xl text-white/80 font-bold uppercase tracking-widest text-[10px] active:scale-95 transition-all border border-white/10"
                                     >
                                         Закрыть
                                     </button>
@@ -385,53 +485,202 @@
                 );
             }
 
-            // Экран ИТОГОВ (SUMMARY)
+            // ИТОГИ (SUMMARY)
             if (screen === 'summary') {
-                // Считаем сколько вопросов пользователь прошел (до текущего индекса)
-                // Если мы на индексе 5, значит ответили на 5 вопросов (0, 1, 2, 3, 4).
-                // Но если мы завершили игру, то ответили на все.
-                const isFinished = currentIndex === gameQuestions.length - 1;
-                const answeredQuestions = gameQuestions.slice(0, isFinished ? gameQuestions.length : currentIndex);
-                
-                const countEasy = answeredQuestions.filter(q => q.level === 'Простые').length;
-                const countMed = answeredQuestions.filter(q => q.level === 'Средние').length;
-                const countHard = answeredQuestions.filter(q => q.level === 'Глубокие').length;
-                const total = answeredQuestions.length;
+                const answered = gameQuestions.slice(0, currentIndex === gameQuestions.length - 1 ? gameQuestions.length : currentIndex);
+                const cEasy = answered.filter(q => q.level === 'Простые').length;
+                const cMed = answered.filter(q => q.level === 'Средние').length;
+                const cHard = answered.filter(q => q.level === 'Глубокие').length;
 
                 return (
-                    <div className="min-h-[100dvh] w-full flex flex-col items-center justify-center p-5 slide-up bg-gradient-to-br from-slate-900 via-slate-950 to-black">
-                        
-                        <div className="text-7xl mb-8 heart-pulse drop-shadow-[0_0_30px_rgba(225,29,72,0.8)]">❤️</div>
-                        
-                        <div className="text-center mb-10">
-                            <h1 className="text-3xl font-bold mb-2 text-white">Вы ответили на</h1>
-                            <div className="text-5xl font-light text-rose-400 mt-4"><AnimatedCounter target={total} /></div>
-                            <p className="text-white/50 text-xs uppercase tracking-widest mt-2">вопросов</p>
+                    <div className="min-h-[100dvh] w-full flex flex-col items-center justify-center p-5 slide-up">
+                        <div className="text-6xl mb-8 heart-pulse drop-shadow-[0_0_25px_rgba(190,18,60,0.6)]">❤️</div>
+                        <div className="text-center mb-12">
+                            <h1 className="text-2xl font-bold mb-3 text-white/90">Вы ответили на</h1>
+                            <div className="text-6xl font-light text-[#be123c] mt-2"><AnimatedCounter target={answered.length} /></div>
+                            <p className="text-white/30 text-[10px] font-bold uppercase tracking-widest mt-4">вопросов</p>
                         </div>
-
                         <div className="w-full max-w-sm glass-panel p-6 flex flex-col gap-4 mb-10">
-                            <div className="flex justify-between items-center p-4 bg-black/30 rounded-xl border border-emerald-500/20">
-                                <span className="font-bold text-xs uppercase tracking-widest text-emerald-400">Легких</span>
-                                <span className="text-2xl font-light text-white"><AnimatedCounter target={countEasy} /></span>
+                            <div className="flex justify-between items-center p-4 bg-black/40 rounded-xl border border-[#34d399]/20">
+                                <span className="font-bold text-[10px] uppercase tracking-widest diff-easy">Легких</span>
+                                <span className="text-xl font-light text-white"><AnimatedCounter target={cEasy} /></span>
                             </div>
-                            <div className="flex justify-between items-center p-4 bg-black/30 rounded-xl border border-amber-500/20">
-                                <span className="font-bold text-xs uppercase tracking-widest text-amber-400">Средних</span>
-                                <span className="text-2xl font-light text-white"><AnimatedCounter target={countMed} /></span>
+                            <div className="flex justify-between items-center p-4 bg-black/40 rounded-xl border border-[#fbbf24]/20">
+                                <span className="font-bold text-[10px] uppercase tracking-widest diff-med">Средних</span>
+                                <span className="text-xl font-light text-white"><AnimatedCounter target={cMed} /></span>
                             </div>
-                            <div className="flex justify-between items-center p-4 bg-black/30 rounded-xl border border-rose-500/20">
-                                <span className="font-bold text-xs uppercase tracking-widest text-rose-400">Глубоких</span>
-                                <span className="text-2xl font-light text-white"><AnimatedCounter target={countHard} /></span>
+                            <div className="flex justify-between items-center p-4 bg-black/40 rounded-xl border border-[#fb7185]/20">
+                                <span className="font-bold text-[10px] uppercase tracking-widest diff-hard">Глубоких</span>
+                                <span className="text-xl font-light text-white"><AnimatedCounter target={cHard} /></span>
                             </div>
                         </div>
-
                         <div className="w-full max-w-sm">
                             <button 
                                 onClick={() => setScreen('menu')}
-                                className="w-full py-4 rounded-xl text-white font-bold text-sm uppercase tracking-[0.15em] btn-romantic flex items-center justify-center gap-2"
+                                className="w-full py-4.5 rounded-xl text-white font-bold text-[11px] uppercase tracking-[0.2em] btn-romantic flex items-center justify-center gap-2"
                             >
                                 <Icons.Check /> Завершить
                             </button>
                         </div>
+                    </div>
+                );
+            }
+
+            // СПИСОК КАТЕГОРИЙ (БАЗА ДАННЫХ)
+            if (screen === 'cat_list') {
+                return (
+                    <div className="min-h-[100dvh] w-full flex flex-col p-5 fade-in max-w-lg mx-auto">
+                        <div className="flex items-center gap-4 mb-8 pt-4">
+                            <button onClick={() => setScreen('menu')} className="p-3 bg-white/5 rounded-full hover:bg-white/10 text-white/70">
+                                <Icons.Back />
+                            </button>
+                            <h2 className="text-xl font-bold text-white tracking-wide">База вопросов</h2>
+                        </div>
+                        <div className="flex-1 overflow-y-auto no-scrollbar flex flex-col gap-3 pb-24">
+                            {CATEGORIES.map(cat => {
+                                const count = db.filter(q => q.categoryId === cat.id).length;
+                                return (
+                                    <button key={cat.id} onClick={() => { setViewCategory(cat.id); setScreen('q_list'); }}
+                                        className="glass-panel p-5 flex items-center justify-between hover:bg-white/5 transition-colors text-left"
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            <span className="text-2xl">{cat.icon}</span>
+                                            <div>
+                                                <div className="font-bold text-sm text-white/90">{cat.name}</div>
+                                                <div className="text-[10px] uppercase tracking-widest text-white/40 mt-1">{count} вопросов</div>
+                                            </div>
+                                        </div>
+                                        <Icons.Next />
+                                    </button>
+                                );
+                            })}
+                        </div>
+                        <div className="fixed bottom-5 left-5 right-5 max-w-lg mx-auto">
+                            <button onClick={() => setScreen('add_q')} className="w-full py-4.5 rounded-xl font-bold text-xs uppercase tracking-widest btn-romantic flex items-center justify-center gap-2 shadow-2xl">
+                                <Icons.Plus /> Добавить вопрос
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+
+            // СПИСОК ВОПРОСОВ В КАТЕГОРИИ
+            if (screen === 'q_list') {
+                const cat = CATEGORIES.find(c => c.id === viewCategory);
+                const qs = db.filter(q => q.categoryId === viewCategory);
+                
+                return (
+                    <div className="min-h-[100dvh] w-full flex flex-col p-5 fade-in max-w-2xl mx-auto">
+                        <div className="flex items-center gap-4 mb-6 pt-4 flex-shrink-0">
+                            <button onClick={() => setScreen('cat_list')} className="p-3 bg-white/5 rounded-full hover:bg-white/10 text-white/70">
+                                <Icons.Back />
+                            </button>
+                            <div>
+                                <h2 className="text-lg font-bold text-white tracking-wide flex items-center gap-2">
+                                    {cat.icon} {cat.name}
+                                </h2>
+                                <div className="text-[10px] uppercase tracking-widest text-white/40 mt-1">{qs.length} вопросов</div>
+                            </div>
+                        </div>
+                        <div className="flex-1 overflow-y-auto no-scrollbar flex flex-col gap-6 pb-24">
+                            {DIFFICULTIES.map(diff => {
+                                const diffQs = qs.filter(q => q.level === diff.id);
+                                if (diffQs.length === 0) return null;
+                                return (
+                                    <div key={diff.id}>
+                                        <h3 className={`text-[10px] font-bold uppercase tracking-widest mb-3 pl-2 ${diff.classText}`}>{diff.name} ({diffQs.length})</h3>
+                                        <div className="flex flex-col gap-2">
+                                            {diffQs.map(q => (
+                                                <div key={q.id} className="glass-panel p-4 text-sm font-light text-white/80 leading-relaxed border-white/5">
+                                                    {q.text}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                        <div className="fixed bottom-5 left-5 right-5 max-w-2xl mx-auto">
+                            <button onClick={() => setScreen('add_q')} className="w-full py-4.5 rounded-xl font-bold text-xs uppercase tracking-widest btn-romantic flex items-center justify-center gap-2 shadow-2xl">
+                                <Icons.Plus /> Добавить вопрос
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+
+            // ФОРМА ДОБАВЛЕНИЯ
+            if (screen === 'add_q') {
+                return (
+                    <div className="min-h-[100dvh] w-full flex flex-col p-5 fade-in max-w-lg mx-auto">
+                        <div className="flex items-center gap-4 mb-8 pt-4">
+                            <button onClick={() => setScreen('cat_list')} className="p-3 bg-white/5 rounded-full hover:bg-white/10 text-white/70">
+                                <Icons.Back />
+                            </button>
+                            <h2 className="text-xl font-bold text-white tracking-wide">Новый вопрос</h2>
+                        </div>
+
+                        {addSuccess ? (
+                            <div className="flex-1 flex flex-col items-center justify-center slide-up">
+                                <div className="glass-panel p-8 w-full flex flex-col items-center text-center">
+                                    <svg className="checkmark mb-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+                                        <circle className="checkmark-circle" cx="26" cy="26" r="25" fill="none"/>
+                                        <path className="checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+                                    </svg>
+                                    <h3 className="text-lg font-bold text-white mb-2">Успешно добавлен!</h3>
+                                    <p className="text-xs text-white/50 mb-8">ID: {addSuccess}</p>
+                                    <button onClick={() => { setAddSuccess(null); setAddForm({ text: '', cat: 'family', diff: 'Простые' }); }} className="btn-ghost px-6 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest">
+                                        Добавить еще
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <form onSubmit={handleAddQuestion} className="flex-1 flex flex-col gap-6 slide-up">
+                                <div>
+                                    <label className="block text-[10px] font-bold uppercase tracking-widest text-white/50 mb-3 ml-1">Текст вопроса</label>
+                                    <textarea 
+                                        required
+                                        value={addForm.text}
+                                        onChange={e => setAddForm({...addForm, text: e.target.value})}
+                                        className="w-full glass-panel p-5 text-sm text-white/90 placeholder-white/20 outline-none resize-none h-32 focus:border-rose-500/50 transition-colors"
+                                        placeholder="Напишите ваш глубокий или веселый вопрос..."
+                                    ></textarea>
+                                </div>
+                                
+                                <div>
+                                    <label className="block text-[10px] font-bold uppercase tracking-widest text-white/50 mb-3 ml-1">Тема вопроса</label>
+                                    <select 
+                                        value={addForm.cat}
+                                        onChange={e => setAddForm({...addForm, cat: e.target.value})}
+                                        className="w-full glass-panel p-4 text-sm text-white/90 outline-none appearance-none bg-transparent"
+                                        style={{ backgroundColor: "rgba(15,8,12,0.9)" }}
+                                    >
+                                        {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-[10px] font-bold uppercase tracking-widest text-white/50 mb-3 ml-1">Сложность</label>
+                                    <select 
+                                        value={addForm.diff}
+                                        onChange={e => setAddForm({...addForm, diff: e.target.value})}
+                                        className="w-full glass-panel p-4 text-sm text-white/90 outline-none appearance-none"
+                                        style={{ backgroundColor: "rgba(15,8,12,0.9)" }}
+                                    >
+                                        {DIFFICULTIES.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                                    </select>
+                                </div>
+
+                                <div className="mt-auto pb-5 flex gap-4">
+                                    <button type="button" onClick={() => setScreen('cat_list')} className="flex-1 py-4.5 rounded-xl btn-ghost text-[10px] font-bold uppercase tracking-widest">
+                                        Отмена
+                                    </button>
+                                    <button type="submit" className="flex-[2] py-4.5 rounded-xl btn-romantic text-white text-[11px] font-bold uppercase tracking-widest flex items-center justify-center gap-2">
+                                        <Icons.Plus /> Сохранить
+                                    </button>
+                                </div>
+                            </form>
+                        )}
                     </div>
                 );
             }
