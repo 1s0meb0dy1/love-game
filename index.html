@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Игра для Влада и Иры ❤️</title>
+    <title>Влад & Ира ❤️</title>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -12,78 +12,101 @@
     <style>
         body { 
             font-family: 'Montserrat', sans-serif; 
-            overflow: hidden; /* Предотвращаем скролл от частиц */
-            background-color: #0f172a; 
+            overflow: hidden; 
+            background-color: #0b0f19; 
             color: white; 
             -webkit-tap-highlight-color: transparent;
         }
         
-        /* Стили стекломорфизма */
+        /* Стили стекломорфизма (Glassmorphism) */
         .glass-panel { 
-            background: rgba(20, 25, 40, 0.4); 
-            backdrop-filter: blur(16px); 
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.1); 
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+            background: rgba(25, 20, 35, 0.4); 
+            backdrop-filter: blur(20px); 
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.15); 
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
         }
         
         .glass-button-active {
-            background: rgba(255, 255, 255, 0.9);
+            background: rgba(255, 255, 255, 0.95);
             color: #0f172a;
-            box-shadow: 0 0 20px rgba(255, 255, 255, 0.5), inset 0 0 10px rgba(255, 255, 255, 0.8);
+            box-shadow: 0 0 25px rgba(255, 255, 255, 0.6), inset 0 0 10px rgba(255, 255, 255, 0.8);
             border: 1px solid rgba(255, 255, 255, 1);
+            transform: scale(1.02);
         }
 
         .glass-button-inactive {
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(255, 255, 255, 0.03);
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        /* Анимации */
-        .fade-in-up { animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        /* Анимации UI */
+        .fade-in-up { animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         .scale-in { animation: scaleIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .pulse-heart { animation: heartbeat 1.5s infinite; }
         
         @keyframes fadeInUp { 
-            from { opacity: 0; transform: translateY(20px); } 
+            from { opacity: 0; transform: translateY(25px); } 
             to { opacity: 1; transform: translateY(0); } 
         }
         @keyframes scaleIn {
-            from { opacity: 0; transform: scale(0.95); }
+            from { opacity: 0; transform: scale(0.92); }
             to { opacity: 1; transform: scale(1); }
         }
+        @keyframes heartbeat {
+            0% { transform: scale(1); }
+            15% { transform: scale(1.25); }
+            30% { transform: scale(1); }
+            45% { transform: scale(1.15); }
+            60% { transform: scale(1); }
+        }
 
-        /* Плавающие частицы */
-        .particle {
+        /* Анимированный романтический фон */
+        .bg-gradient-animate {
+            background-size: 200% 200%;
+            animation: gradientMove 15s ease infinite;
+        }
+        @keyframes gradientMove {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .romantic-particle {
             position: absolute;
-            bottom: -10%;
-            pointer-events: none;
-            opacity: 0;
-            animation: floatUp linear infinite;
+            color: rgba(255, 255, 255, 0.3);
+            filter: drop-shadow(0 0 8px rgba(255,255,255,0.5));
+            animation: floatUp 10s linear infinite, sway 3s ease-in-out infinite alternate;
             z-index: 0;
-        }
-        @keyframes floatUp {
-            0% { transform: translateY(0) rotate(0deg) scale(0.8); opacity: 0; }
-            10% { opacity: 0.5; }
-            90% { opacity: 0.5; }
-            100% { transform: translateY(-120vh) rotate(360deg) scale(1.2); opacity: 0; }
+            pointer-events: none;
         }
 
-        /* Декоративные светящиеся шары */
+        @keyframes floatUp {
+            0% { transform: translateY(110vh) scale(0.5); opacity: 0; }
+            10% { opacity: 0.6; }
+            90% { opacity: 0.6; }
+            100% { transform: translateY(-10vh) scale(1.2); opacity: 0; }
+        }
+        @keyframes sway {
+            0% { margin-left: -20px; }
+            100% { margin-left: 20px; }
+        }
+
         .glow-orb {
             position: absolute;
             border-radius: 50%;
-            filter: blur(80px);
+            filter: blur(90px);
             opacity: 0.4;
             z-index: 0;
             animation: pulseGlow 8s ease-in-out infinite alternate;
         }
         @keyframes pulseGlow {
             0% { transform: scale(1) translate(0, 0); opacity: 0.3; }
-            100% { transform: scale(1.2) translate(20px, -20px); opacity: 0.6; }
+            100% { transform: scale(1.3) translate(30px, -30px); opacity: 0.6; }
         }
     </style>
 </head>
-<body>
+<body class="bg-gradient-animate bg-gradient-to-br from-slate-950 via-black to-slate-900">
     <div id="root"></div>
 
     <script type="text/babel">
@@ -92,43 +115,43 @@
         const GIST_URL = "https://gist.githubusercontent.com/1s0meb0dy1/9d890bde848f3a2c5464c7c1729fe17a/raw/2bbc9a4eb6f2d9a7d2225821b57b82fba6b51ed4/questions.json";
 
         const CATEGORIES = [
-            { id: "family", name: "Семья", icon: "👨‍👩‍👧‍👦", color: "from-blue-900 via-slate-900 to-black" },
-            { id: "intimacy", name: "Интим", icon: "🔥", color: "from-red-950 via-rose-900 to-black" },
-            { id: "future", name: "Будущее", icon: "🎯", color: "from-emerald-950 via-teal-900 to-black" },
-            { id: "secrets", name: "Секреты", icon: "🤫", color: "from-purple-950 via-fuchsia-900 to-black" },
+            { id: "family", name: "Семья", icon: "👨‍👩‍👧‍👦", color: "from-blue-950 via-slate-900 to-black" },
+            { id: "intimacy", name: "Интим", icon: "🔥", color: "from-red-950 via-rose-950 to-black" },
+            { id: "future", name: "Будущее", icon: "🎯", color: "from-emerald-950 via-teal-950 to-black" },
+            { id: "secrets", name: "Секреты", icon: "🤫", color: "from-fuchsia-950 via-purple-950 to-black" },
             { id: "romance", name: "Романтика", icon: "❤️", color: "from-pink-950 via-rose-900 to-black" },
-            { id: "past", name: "Прошлое", icon: "🕰️", color: "from-yellow-950 via-amber-900 to-black" },
-            { id: "values", name: "Ценности", icon: "⚖️", color: "from-indigo-950 via-blue-900 to-black" },
-            { id: "fears", name: "Страхи", icon: "👻", color: "from-slate-900 via-gray-900 to-black" },
-            { id: "money", name: "Деньги", icon: "💰", color: "from-green-950 via-emerald-900 to-black" },
-            { id: "life", name: "Быт", icon: "🏠", color: "from-orange-950 via-amber-900 to-black" }
+            { id: "past", name: "Прошлое", icon: "🕰️", color: "from-amber-950 via-orange-950 to-black" },
+            { id: "values", name: "Ценности", icon: "⚖️", color: "from-indigo-950 via-blue-950 to-black" },
+            { id: "fears", name: "Страхи", icon: "👻", color: "from-slate-900 via-gray-950 to-black" },
+            { id: "money", name: "Деньги", icon: "💰", color: "from-green-950 via-emerald-950 to-black" },
+            { id: "life", name: "Быт", icon: "🏠", color: "from-orange-950 via-red-950 to-black" }
         ];
 
-        // Компонент декоративного фона
-        const BackgroundEffects = ({ activeColor = "bg-pink-500", particleIcon = "✨" }) => {
-            const particles = useMemo(() => Array.from({ length: 15 }).map((_, i) => ({
+        // Улучшенный анимированный фон с сердечками
+        const BackgroundEffects = ({ activeColor = "bg-pink-600", shape = "♥" }) => {
+            const particles = useMemo(() => Array.from({ length: 20 }).map((_, i) => ({
                 id: i,
                 left: `${Math.random() * 100}%`,
-                animationDuration: `${10 + Math.random() * 15}s`,
-                animationDelay: `${Math.random() * 5}s`,
-                fontSize: `${10 + Math.random() * 20}px`
+                animationDuration: `${12 + Math.random() * 10}s`,
+                animationDelay: `${Math.random() * 10}s`,
+                swayDuration: `${2 + Math.random() * 3}s`,
+                fontSize: `${12 + Math.random() * 24}px`,
+                opacity: 0.2 + Math.random() * 0.4
             })), []);
 
             return (
                 <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                    {/* Светящиеся сферы */}
-                    <div className={`glow-orb w-64 h-64 top-[-10%] left-[-10%] ${activeColor}`}></div>
-                    <div className={`glow-orb w-80 h-80 bottom-[-10%] right-[-10%] ${activeColor}`}></div>
+                    <div className={`glow-orb w-72 h-72 top-[-10%] left-[-10%] ${activeColor}`}></div>
+                    <div className={`glow-orb w-96 h-96 bottom-[-10%] right-[-10%] ${activeColor}`}></div>
                     
-                    {/* Частицы */}
                     {particles.map(p => (
-                        <div key={p.id} className="particle" style={{
+                        <div key={p.id} className="romantic-particle" style={{
                             left: p.left,
-                            animationDuration: p.animationDuration,
-                            animationDelay: p.animationDelay,
-                            fontSize: p.fontSize
+                            animation: `floatUp ${p.animationDuration} linear infinite ${p.animationDelay}, sway ${p.swayDuration} ease-in-out infinite alternate`,
+                            fontSize: p.fontSize,
+                            color: `rgba(255,255,255, ${p.opacity})`
                         }}>
-                            {particleIcon}
+                            {shape}
                         </div>
                     ))}
                 </div>
@@ -143,14 +166,19 @@
             const [gameQuestions, setGameQuestions] = useState([]);
             const [currentIndex, setCurrentIndex] = useState(0);
             const [showAiPopup, setShowAiPopup] = useState(false);
-            const [animationKey, setAnimationKey] = useState(0); // Для перезапуска анимаций карточки
+            const [animationKey, setAnimationKey] = useState(0);
 
             useEffect(() => {
                 fetch(GIST_URL)
                     .then(res => res.json())
                     .then(data => {
-                        setDb(data);
-                        setTimeout(() => setIsLoading(false), 800); // Небольшая задержка для красоты
+                        // Автоматическая нумерация добавляется здесь, если её нет в JSON
+                        const numberedData = data.map((q, index) => {
+                            const hasNumber = q.text.startsWith("№");
+                            return { ...q, text: hasNumber ? q.text : `№ ${index + 1}. ${q.text}` };
+                        });
+                        setDb(numberedData);
+                        setTimeout(() => setIsLoading(false), 1200); // Чуть дольше для наслаждения загрузкой
                     })
                     .catch(err => {
                         console.error(err);
@@ -167,7 +195,7 @@
 
             const startGame = () => {
                 let filtered = db.filter(q => selectedCats.includes(q.categoryId));
-                if (filtered.length === 0) return alert("Выберите хотя бы одну тему для разговора! ✨");
+                if (filtered.length === 0) return alert("Выберите хотя бы одну тему! ❤️");
 
                 for (let i = filtered.length - 1; i > 0; i--) {
                     const j = Math.floor(Math.random() * (i + 1));
@@ -192,11 +220,11 @@
 
             if (isLoading) {
                 return (
-                    <div className="min-h-screen flex flex-col items-center justify-center bg-slate-950">
-                        <BackgroundEffects activeColor="bg-pink-600" particleIcon="🤍" />
+                    <div className="min-h-screen flex flex-col items-center justify-center relative">
+                        <BackgroundEffects activeColor="bg-pink-600" shape="♥" />
                         <div className="relative z-10 flex flex-col items-center scale-in">
-                            <div className="animate-pulse text-7xl mb-6 drop-shadow-[0_0_20px_rgba(255,255,255,0.5)]">🤍</div>
-                            <p className="text-slate-300 font-light tracking-widest uppercase text-sm">Синхронизация...</p>
+                            <div className="pulse-heart text-7xl mb-6 drop-shadow-[0_0_25px_rgba(255,255,255,0.7)] text-pink-500">🤍</div>
+                            <p className="text-white/70 font-light tracking-[0.3em] uppercase text-xs">Загрузка любви...</p>
                         </div>
                     </div>
                 );
@@ -204,25 +232,31 @@
 
             if (screen === 'menu') {
                 return (
-                    <div className="relative min-h-screen flex flex-col items-center justify-center p-6 bg-slate-950">
-                        <BackgroundEffects activeColor="bg-violet-600" particleIcon="✨" />
+                    <div className="relative min-h-screen flex flex-col items-center justify-center p-6">
+                        <BackgroundEffects activeColor="bg-violet-600" shape="✨" />
                         
                         <div className="relative z-10 text-center mb-8 fade-in-up" style={{animationDelay: '0.1s'}}>
-                            <h1 className="text-5xl font-bold mb-3 tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-pink-300 via-white to-violet-300">
-                                Влад & Ира
+                            <h1 className="text-5xl font-bold mb-3 tracking-tight flex items-center justify-center gap-3">
+                                <span>Влад</span>
+                                <span className="text-3xl pulse-heart text-pink-500 drop-shadow-[0_0_15px_rgba(236,72,153,0.8)]">❤️</span>
+                                <span>Ира</span>
                             </h1>
-                            <p className="text-slate-400 font-light tracking-wide">Узнаем друг друга еще глубже</p>
+                            <p className="text-white/60 font-light tracking-widest text-sm uppercase">Узнаем друг друга глубже</p>
                         </div>
 
-                        <div className="relative z-10 w-full max-w-md glass-panel rounded-[2rem] p-7 fade-in-up" style={{animationDelay: '0.2s'}}>
-                            <h2 className="text-sm font-semibold mb-5 text-center tracking-widest uppercase text-slate-300">Выбери темы</h2>
+                        <div className="relative z-10 w-full max-w-md glass-panel rounded-[2.5rem] p-8 fade-in-up shadow-[0_0_40px_rgba(0,0,0,0.5)]" style={{animationDelay: '0.2s'}}>
+                            <div className="flex items-center justify-center gap-2 mb-6">
+                                <div className="h-px bg-white/20 w-12"></div>
+                                <h2 className="text-xs font-bold text-center tracking-[0.2em] uppercase text-white/80">Выбери темы</h2>
+                                <div className="h-px bg-white/20 w-12"></div>
+                            </div>
                             
                             <div className="grid grid-cols-2 gap-3 mb-8">
                                 {CATEGORIES.map(cat => (
                                     <button 
                                         key={cat.id}
                                         onClick={() => toggleCategory(cat.id)}
-                                        className={`p-3 rounded-2xl text-sm font-medium transition-all duration-300 flex items-center justify-center gap-2 transform active:scale-95 ${selectedCats.includes(cat.id) ? 'glass-button-active' : 'glass-button-inactive text-slate-300 hover:bg-white/10'}`}
+                                        className={`p-3.5 rounded-[1.25rem] text-sm font-medium transition-all duration-300 flex items-center justify-center gap-2 transform active:scale-95 ${selectedCats.includes(cat.id) ? 'glass-button-active' : 'glass-button-inactive text-white/70 hover:bg-white/10'}`}
                                     >
                                         <span className="text-xl drop-shadow-md">{cat.icon}</span> 
                                         <span>{cat.name}</span>
@@ -230,25 +264,27 @@
                                 ))}
                             </div>
 
-                            <div className="flex justify-between items-center text-xs font-medium text-slate-400 mb-8 px-2">
+                            <div className="flex justify-between items-center text-xs font-medium text-white/50 mb-8 px-4 py-3 bg-black/20 rounded-2xl border border-white/5">
                                 <div className="flex flex-col items-center">
-                                    <span className="text-2xl text-white font-bold">{selectedCats.length}</span>
-                                    <span className="uppercase tracking-wider mt-1">Категорий</span>
+                                    <span className="text-2xl text-white font-bold drop-shadow-md">{selectedCats.length}</span>
+                                    <span className="uppercase tracking-wider mt-1 text-[10px]">Категорий</span>
                                 </div>
-                                <div className="h-8 w-px bg-white/20"></div>
+                                <div className="h-10 w-px bg-white/10"></div>
                                 <div className="flex flex-col items-center">
-                                    <span className="text-2xl text-white font-bold">{db.filter(q => selectedCats.includes(q.categoryId)).length}</span>
-                                    <span className="uppercase tracking-wider mt-1">Вопросов</span>
+                                    <span className="text-2xl text-white font-bold drop-shadow-md">{db.filter(q => selectedCats.includes(q.categoryId)).length}</span>
+                                    <span className="uppercase tracking-wider mt-1 text-[10px]">Вопросов</span>
                                 </div>
                             </div>
 
                             <button 
                                 onClick={startGame}
                                 disabled={selectedCats.length === 0}
-                                className="relative overflow-hidden w-full py-4 rounded-2xl bg-white text-slate-900 font-bold text-lg disabled:opacity-50 disabled:bg-slate-700 disabled:text-slate-400 active:scale-95 transition-all duration-300 shadow-[0_0_30px_rgba(255,255,255,0.3)] hover:shadow-[0_0_40px_rgba(255,255,255,0.5)] group"
+                                className="relative overflow-hidden w-full py-4 rounded-2xl bg-white text-slate-900 font-bold text-lg disabled:opacity-30 active:scale-95 transition-all duration-300 shadow-[0_0_30px_rgba(255,255,255,0.4)] hover:shadow-[0_0_40px_rgba(255,255,255,0.6)] group"
                             >
-                                <div className="absolute inset-0 bg-gradient-to-r from-pink-500/20 to-violet-500/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                                <span className="relative z-10">Начать игру</span>
+                                <div className="absolute inset-0 bg-gradient-to-r from-pink-500/10 to-violet-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                <span className="relative z-10 flex items-center justify-center gap-2">
+                                    Начать игру <span className="text-xl group-hover:translate-x-1 transition-transform">→</span>
+                                </span>
                             </button>
                         </div>
                     </div>
@@ -258,5 +294,124 @@
             if (screen === 'game') {
                 const currentQ = gameQuestions[currentIndex];
                 const categoryInfo = CATEGORIES.find(c => c.id === currentQ.categoryId) || CATEGORIES[0];
+                
+                // Извлекаем номер из текста, если он там есть (формат "№ 5. Текст")
+                const textParts = currentQ.text.match(/(№\s*\d+\.\s*)(.*)/);
+                const cleanText = textParts ? textParts[2] : currentQ.text;
+                // Номер вопроса для UI берется из индекса игры, чтобы они шли по порядку 1, 2, 3...
+                const gameQuestionNumber = currentIndex + 1;
 
                 return (
+                    <div className={`relative min-h-screen flex flex-col transition-colors duration-1000 bg-gradient-animate bg-gradient-to-br ${categoryInfo.color}`}>
+                        <BackgroundEffects activeColor="bg-white/10" shape={categoryInfo.icon} />
+                        
+                        {/* Header */}
+                        <div className="relative z-10 flex justify-between items-center p-6 fade-in-up">
+                            <div className="glass-panel text-white/90 font-semibold px-5 py-2 rounded-full text-xs tracking-widest shadow-lg">
+                                {gameQuestionNumber} / {gameQuestions.length}
+                            </div>
+                            <button onClick={exitToMenu} className="text-white/70 text-[10px] font-bold tracking-widest uppercase px-5 py-2 rounded-full glass-panel hover:bg-white/20 active:scale-95 transition-all">
+                                В МЕНЮ
+                            </button>
+                        </div>
+
+                        {/* Main Question Card */}
+                        <div className="relative z-10 flex-1 flex flex-col items-center justify-center p-6 w-full max-w-xl mx-auto">
+                            <div key={animationKey} className="w-full flex flex-col items-center scale-in">
+                                
+                                {/* Блок информации о вопросе */}
+                                <div className="glass-panel px-6 py-3 rounded-2xl mb-8 flex flex-col items-center gap-2 border-white/20 shadow-[0_10px_30px_rgba(0,0,0,0.3)] backdrop-blur-md">
+                                    <span className="text-white/50 text-[9px] uppercase tracking-[0.2em] font-semibold">
+                                        Вопрос {gameQuestionNumber}
+                                    </span>
+                                    <div className="flex items-center gap-3 text-xs md:text-sm font-bold tracking-widest uppercase text-white/90 drop-shadow-md">
+                                        <span className="text-lg">{categoryInfo.icon}</span>
+                                        <span className="bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70">{categoryInfo.name}</span>
+                                        <span className="w-1 h-1 rounded-full bg-white/40"></span>
+                                        <span className={
+                                            currentQ.level === "Простые" ? "text-emerald-300" :
+                                            currentQ.level === "Средние" ? "text-amber-300" : "text-rose-400"
+                                        }>
+                                            {currentQ.level}
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                                {/* Текст вопроса */}
+                                <h2 className="text-2xl md:text-3xl font-medium text-center leading-relaxed mb-12 text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)] px-2">
+                                    {cleanText}
+                                </h2>
+
+                                {/* ИИ Кнопка */}
+                                <button 
+                                    onClick={() => setShowAiPopup(true)}
+                                    className="glass-panel px-6 py-3.5 rounded-full text-white/90 text-sm font-medium active:scale-95 transition-all flex items-center gap-2 hover:bg-white/10 shadow-lg group border-white/20"
+                                >
+                                    <span className="text-lg group-hover:rotate-12 transition-transform">✨</span> 
+                                    <span className="tracking-wide">Придумать ситуацию</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Navigation Footer */}
+                        <div className="relative z-10 p-6 flex gap-4 fade-in-up pb-8">
+                            <button 
+                                onClick={() => changeQuestion(-1)}
+                                disabled={currentIndex === 0}
+                                className="flex-1 py-4 rounded-2xl font-bold text-white/80 glass-panel disabled:opacity-20 active:scale-95 transition-all uppercase tracking-widest text-xs"
+                            >
+                                Назад
+                            </button>
+                            <button 
+                                onClick={() => {
+                                    if (currentIndex < gameQuestions.length - 1) {
+                                        changeQuestion(1);
+                                    } else {
+                                        alert("Вы ответили на все вопросы в этой игре! Возвращаемся в меню. ❤️");
+                                        setScreen('menu');
+                                    }
+                                }}
+                                className="flex-[2] py-4 rounded-2xl font-bold text-slate-900 bg-white shadow-[0_0_30px_rgba(255,255,255,0.6)] active:scale-95 transition-all uppercase tracking-widest text-xs flex items-center justify-center gap-2"
+                            >
+                                {currentIndex === gameQuestions.length - 1 ? "Завершить" : "Далее"} 
+                                {currentIndex !== gameQuestions.length - 1 && <span className="text-lg">→</span>}
+                            </button>
+                        </div>
+
+                        {/* AI POP-UP */}
+                        {showAiPopup && (
+                            <div className="fixed inset-0 bg-black/60 backdrop-blur-xl flex items-center justify-center p-6 z-50 scale-in">
+                                <div className="glass-panel border-white/20 rounded-[2.5rem] p-8 w-full max-w-sm shadow-2xl relative overflow-hidden bg-slate-900/60">
+                                    <div className="absolute top-[-50px] right-[-50px] w-40 h-40 bg-pink-500/20 rounded-full blur-3xl"></div>
+                                    <div className="absolute bottom-[-50px] left-[-50px] w-40 h-40 bg-violet-500/20 rounded-full blur-3xl"></div>
+                                    
+                                    <div className="relative z-10">
+                                        <div className="flex justify-between items-center mb-6">
+                                            <h3 className="font-bold text-lg uppercase tracking-widest flex items-center gap-2 text-white/90">
+                                                <span className="text-2xl text-pink-400">✨</span> Ситуация
+                                            </h3>
+                                            <button onClick={() => setShowAiPopup(false)} className="text-white/40 hover:text-white p-2 text-3xl transition-colors leading-none">&times;</button>
+                                        </div>
+                                        <div className="text-white/80 mb-8 leading-relaxed text-sm bg-black/30 p-6 rounded-2xl border border-white/10 shadow-inner font-light">
+                                            Представь, что эта ситуация произошла с нами прямо сейчас. Опиши свои первые мысли, эмоции и действия. Как бы мы справились с этим вместе?
+                                        </div>
+                                        <button 
+                                            onClick={() => setShowAiPopup(false)}
+                                            className="w-full py-4 glass-panel rounded-2xl text-white font-bold tracking-widest uppercase text-xs active:scale-95 transition-all flex items-center justify-center gap-2 hover:bg-white/20"
+                                        >
+                                            <span className="text-lg">↩</span> Вернуться
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                );
+            }
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
