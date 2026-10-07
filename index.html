@@ -8,52 +8,149 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Montserrat', sans-serif; overflow-x: hidden; background-color: #0f172a; color: white; }
-        .glass-panel { background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2); }
-        .fade-in { animation: fadeIn 0.4s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        body { 
+            font-family: 'Montserrat', sans-serif; 
+            overflow: hidden; /* Предотвращаем скролл от частиц */
+            background-color: #0f172a; 
+            color: white; 
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        /* Стили стекломорфизма */
+        .glass-panel { 
+            background: rgba(20, 25, 40, 0.4); 
+            backdrop-filter: blur(16px); 
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1); 
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        .glass-button-active {
+            background: rgba(255, 255, 255, 0.9);
+            color: #0f172a;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.5), inset 0 0 10px rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(255, 255, 255, 1);
+        }
+
+        .glass-button-inactive {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Анимации */
+        .fade-in-up { animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .scale-in { animation: scaleIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        
+        @keyframes fadeInUp { 
+            from { opacity: 0; transform: translateY(20px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+        @keyframes scaleIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* Плавающие частицы */
+        .particle {
+            position: absolute;
+            bottom: -10%;
+            pointer-events: none;
+            opacity: 0;
+            animation: floatUp linear infinite;
+            z-index: 0;
+        }
+        @keyframes floatUp {
+            0% { transform: translateY(0) rotate(0deg) scale(0.8); opacity: 0; }
+            10% { opacity: 0.5; }
+            90% { opacity: 0.5; }
+            100% { transform: translateY(-120vh) rotate(360deg) scale(1.2); opacity: 0; }
+        }
+
+        /* Декоративные светящиеся шары */
+        .glow-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.4;
+            z-index: 0;
+            animation: pulseGlow 8s ease-in-out infinite alternate;
+        }
+        @keyframes pulseGlow {
+            0% { transform: scale(1) translate(0, 0); opacity: 0.3; }
+            100% { transform: scale(1.2) translate(20px, -20px); opacity: 0.6; }
+        }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect } = React;
+        const { useState, useEffect, useMemo } = React;
 
-        // Ваша ссылка на базу вопросов!
         const GIST_URL = "https://gist.githubusercontent.com/1s0meb0dy1/9d890bde848f3a2c5464c7c1729fe17a/raw/2bbc9a4eb6f2d9a7d2225821b57b82fba6b51ed4/questions.json";
 
         const CATEGORIES = [
-            { id: "family", name: "Семья", icon: "👨‍👩‍👧‍👦", color: "from-blue-900 to-slate-900" },
-            { id: "intimacy", name: "Интим", icon: "🔥", color: "from-red-900 to-slate-900" },
-            { id: "future", name: "Будущее", icon: "🎯", color: "from-emerald-900 to-slate-900" },
-            { id: "secrets", name: "Секреты", icon: "🤫", color: "from-purple-900 to-slate-900" },
-            { id: "romance", name: "Романтика", icon: "❤️", color: "from-pink-900 to-slate-900" },
-            { id: "past", name: "Прошлое", icon: "🕰️", color: "from-yellow-900 to-slate-900" },
-            { id: "values", name: "Ценности", icon: "⚖️", color: "from-indigo-900 to-slate-900" },
-            { id: "fears", name: "Страхи", icon: "👻", color: "from-gray-800 to-slate-900" },
-            { id: "money", name: "Деньги", icon: "💰", color: "from-green-900 to-slate-900" },
-            { id: "life", name: "Быт", icon: "🏠", color: "from-orange-900 to-slate-900" }
+            { id: "family", name: "Семья", icon: "👨‍👩‍👧‍👦", color: "from-blue-900 via-slate-900 to-black" },
+            { id: "intimacy", name: "Интим", icon: "🔥", color: "from-red-950 via-rose-900 to-black" },
+            { id: "future", name: "Будущее", icon: "🎯", color: "from-emerald-950 via-teal-900 to-black" },
+            { id: "secrets", name: "Секреты", icon: "🤫", color: "from-purple-950 via-fuchsia-900 to-black" },
+            { id: "romance", name: "Романтика", icon: "❤️", color: "from-pink-950 via-rose-900 to-black" },
+            { id: "past", name: "Прошлое", icon: "🕰️", color: "from-yellow-950 via-amber-900 to-black" },
+            { id: "values", name: "Ценности", icon: "⚖️", color: "from-indigo-950 via-blue-900 to-black" },
+            { id: "fears", name: "Страхи", icon: "👻", color: "from-slate-900 via-gray-900 to-black" },
+            { id: "money", name: "Деньги", icon: "💰", color: "from-green-950 via-emerald-900 to-black" },
+            { id: "life", name: "Быт", icon: "🏠", color: "from-orange-950 via-amber-900 to-black" }
         ];
+
+        // Компонент декоративного фона
+        const BackgroundEffects = ({ activeColor = "bg-pink-500", particleIcon = "✨" }) => {
+            const particles = useMemo(() => Array.from({ length: 15 }).map((_, i) => ({
+                id: i,
+                left: `${Math.random() * 100}%`,
+                animationDuration: `${10 + Math.random() * 15}s`,
+                animationDelay: `${Math.random() * 5}s`,
+                fontSize: `${10 + Math.random() * 20}px`
+            })), []);
+
+            return (
+                <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                    {/* Светящиеся сферы */}
+                    <div className={`glow-orb w-64 h-64 top-[-10%] left-[-10%] ${activeColor}`}></div>
+                    <div className={`glow-orb w-80 h-80 bottom-[-10%] right-[-10%] ${activeColor}`}></div>
+                    
+                    {/* Частицы */}
+                    {particles.map(p => (
+                        <div key={p.id} className="particle" style={{
+                            left: p.left,
+                            animationDuration: p.animationDuration,
+                            animationDelay: p.animationDelay,
+                            fontSize: p.fontSize
+                        }}>
+                            {particleIcon}
+                        </div>
+                    ))}
+                </div>
+            );
+        };
 
         function App() {
             const [db, setDb] = useState([]);
             const [isLoading, setIsLoading] = useState(true);
-            const [screen, setScreen] = useState('menu'); // menu, game
+            const [screen, setScreen] = useState('menu');
             const [selectedCats, setSelectedCats] = useState([]);
-            
             const [gameQuestions, setGameQuestions] = useState([]);
             const [currentIndex, setCurrentIndex] = useState(0);
             const [showAiPopup, setShowAiPopup] = useState(false);
+            const [animationKey, setAnimationKey] = useState(0); // Для перезапуска анимаций карточки
 
             useEffect(() => {
                 fetch(GIST_URL)
                     .then(res => res.json())
                     .then(data => {
                         setDb(data);
-                        setIsLoading(false);
+                        setTimeout(() => setIsLoading(false), 800); // Небольшая задержка для красоты
                     })
                     .catch(err => {
                         console.error(err);
@@ -63,19 +160,15 @@
             }, []);
 
             const toggleCategory = (catId) => {
-                if (selectedCats.includes(catId)) {
-                    setSelectedCats(selectedCats.filter(id => id !== catId));
-                } else {
-                    setSelectedCats([...selectedCats, catId]);
-                }
+                setSelectedCats(prev => 
+                    prev.includes(catId) ? prev.filter(id => id !== catId) : [...prev, catId]
+                );
             };
 
             const startGame = () => {
-                // Фильтруем вопросы по выбранным категориям
                 let filtered = db.filter(q => selectedCats.includes(q.categoryId));
-                if (filtered.length === 0) return alert("Выберите хотя бы одну тему!");
+                if (filtered.length === 0) return alert("Выберите хотя бы одну тему для разговора! ✨");
 
-                // Алгоритм Фишера-Йейтса (перемешивание случайным образом)
                 for (let i = filtered.length - 1; i > 0; i--) {
                     const j = Math.floor(Math.random() * (i + 1));
                     [filtered[i], filtered[j]] = [filtered[j], filtered[i]];
@@ -86,55 +179,76 @@
                 setScreen('game');
             };
 
+            const changeQuestion = (direction) => {
+                setAnimationKey(prev => prev + 1);
+                setCurrentIndex(prev => prev + direction);
+            };
+
             const exitToMenu = () => {
-                if (confirm("Вы уверены, что хотите выйти в меню? Текущий прогресс вопросов сбросится.")) {
+                if (confirm("Выйти в меню? Прогресс текущей игры сбросится.")) {
                     setScreen('menu');
                 }
             };
 
             if (isLoading) {
                 return (
-                    <div className="min-h-screen flex flex-col items-center justify-center">
-                        <div className="animate-pulse text-6xl mb-4">🤍</div>
-                        <p className="text-slate-400">Синхронизация сердец...</p>
+                    <div className="min-h-screen flex flex-col items-center justify-center bg-slate-950">
+                        <BackgroundEffects activeColor="bg-pink-600" particleIcon="🤍" />
+                        <div className="relative z-10 flex flex-col items-center scale-in">
+                            <div className="animate-pulse text-7xl mb-6 drop-shadow-[0_0_20px_rgba(255,255,255,0.5)]">🤍</div>
+                            <p className="text-slate-300 font-light tracking-widest uppercase text-sm">Синхронизация...</p>
+                        </div>
                     </div>
                 );
             }
 
             if (screen === 'menu') {
                 return (
-                    <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-gradient-to-br from-slate-900 to-black">
-                        <div className="text-center mb-10 fade-in">
-                            <h1 className="text-4xl font-bold mb-2">Влад & Ира</h1>
-                            <p className="text-slate-400 text-sm">Узнаем друг друга еще глубже</p>
+                    <div className="relative min-h-screen flex flex-col items-center justify-center p-6 bg-slate-950">
+                        <BackgroundEffects activeColor="bg-violet-600" particleIcon="✨" />
+                        
+                        <div className="relative z-10 text-center mb-8 fade-in-up" style={{animationDelay: '0.1s'}}>
+                            <h1 className="text-5xl font-bold mb-3 tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-pink-300 via-white to-violet-300">
+                                Влад & Ира
+                            </h1>
+                            <p className="text-slate-400 font-light tracking-wide">Узнаем друг друга еще глубже</p>
                         </div>
 
-                        <div className="w-full max-w-md glass-panel rounded-3xl p-6 fade-in shadow-2xl">
-                            <h2 className="text-lg font-semibold mb-4 text-center">Выбери темы для разговора</h2>
+                        <div className="relative z-10 w-full max-w-md glass-panel rounded-[2rem] p-7 fade-in-up" style={{animationDelay: '0.2s'}}>
+                            <h2 className="text-sm font-semibold mb-5 text-center tracking-widest uppercase text-slate-300">Выбери темы</h2>
                             
-                            <div className="grid grid-cols-2 gap-3 mb-6">
+                            <div className="grid grid-cols-2 gap-3 mb-8">
                                 {CATEGORIES.map(cat => (
                                     <button 
                                         key={cat.id}
                                         onClick={() => toggleCategory(cat.id)}
-                                        className={`p-3 rounded-2xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${selectedCats.includes(cat.id) ? 'bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.4)]' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}
+                                        className={`p-3 rounded-2xl text-sm font-medium transition-all duration-300 flex items-center justify-center gap-2 transform active:scale-95 ${selectedCats.includes(cat.id) ? 'glass-button-active' : 'glass-button-inactive text-slate-300 hover:bg-white/10'}`}
                                     >
-                                        <span className="text-lg">{cat.icon}</span> {cat.name}
+                                        <span className="text-xl drop-shadow-md">{cat.icon}</span> 
+                                        <span>{cat.name}</span>
                                     </button>
                                 ))}
                             </div>
 
-                            <div className="text-center text-slate-400 text-sm mb-6">
-                                Выбрано категорий: <span className="font-bold text-white">{selectedCats.length}</span><br/>
-                                Вопросов в игре: <span className="font-bold text-white">{db.filter(q => selectedCats.includes(q.categoryId)).length}</span>
+                            <div className="flex justify-between items-center text-xs font-medium text-slate-400 mb-8 px-2">
+                                <div className="flex flex-col items-center">
+                                    <span className="text-2xl text-white font-bold">{selectedCats.length}</span>
+                                    <span className="uppercase tracking-wider mt-1">Категорий</span>
+                                </div>
+                                <div className="h-8 w-px bg-white/20"></div>
+                                <div className="flex flex-col items-center">
+                                    <span className="text-2xl text-white font-bold">{db.filter(q => selectedCats.includes(q.categoryId)).length}</span>
+                                    <span className="uppercase tracking-wider mt-1">Вопросов</span>
+                                </div>
                             </div>
 
                             <button 
                                 onClick={startGame}
                                 disabled={selectedCats.length === 0}
-                                className="w-full py-4 rounded-full bg-gradient-to-r from-pink-500 to-violet-500 text-white font-bold text-lg disabled:opacity-50 active:scale-95 transition-transform"
+                                className="relative overflow-hidden w-full py-4 rounded-2xl bg-white text-slate-900 font-bold text-lg disabled:opacity-50 disabled:bg-slate-700 disabled:text-slate-400 active:scale-95 transition-all duration-300 shadow-[0_0_30px_rgba(255,255,255,0.3)] hover:shadow-[0_0_40px_rgba(255,255,255,0.5)] group"
                             >
-                                Начать игру
+                                <div className="absolute inset-0 bg-gradient-to-r from-pink-500/20 to-violet-500/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                <span className="relative z-10">Начать игру</span>
                             </button>
                         </div>
                     </div>
@@ -146,88 +260,3 @@
                 const categoryInfo = CATEGORIES.find(c => c.id === currentQ.categoryId) || CATEGORIES[0];
 
                 return (
-                    <div className={`min-h-screen flex flex-col transition-colors duration-700 bg-gradient-to-br ${categoryInfo.color}`}>
-                        {/* Header */}
-                        <div className="flex justify-between items-center p-6 fade-in">
-                            <div className="text-slate-300 font-semibold bg-black/30 px-3 py-1 rounded-full text-sm">
-                                {currentIndex + 1} / {gameQuestions.length}
-                            </div>
-                            <button onClick={exitToMenu} className="text-slate-300 text-sm font-medium px-3 py-1 rounded-full active:bg-white/10 transition-colors">
-                                В меню
-                            </button>
-                        </div>
-
-                        {/* Main Question Card */}
-                        <div className="flex-1 flex flex-col items-center justify-center p-6 fade-in">
-                            <div className="text-6xl mb-6 drop-shadow-lg">{categoryInfo.icon}</div>
-                            <div className="text-sm font-medium tracking-widest uppercase text-white/50 mb-4">{categoryInfo.name} • {currentQ.level}</div>
-                            
-                            <h2 className="text-2xl md:text-3xl font-semibold text-center leading-relaxed mb-10 text-white drop-shadow-md">
-                                {currentQ.text}
-                            </h2>
-
-                            {/* ИИ Кнопка */}
-                            <button 
-                                onClick={() => setShowAiPopup(true)}
-                                className="px-4 py-2 rounded-full border border-white/20 text-white/70 text-sm hover:bg-white/10 active:bg-white/20 transition-colors flex items-center gap-2"
-                            >
-                                ✨ Придумать ситуацию
-                            </button>
-                        </div>
-
-                        {/* Navigation Footer */}
-                        <div className="p-6 flex gap-4 fade-in pb-10">
-                            <button 
-                                onClick={() => setCurrentIndex(prev => prev - 1)}
-                                disabled={currentIndex === 0}
-                                className="flex-1 py-4 rounded-2xl font-semibold text-white bg-white/10 border border-white/10 disabled:opacity-30 active:scale-95 transition-all"
-                            >
-                                Назад
-                            </button>
-                            <button 
-                                onClick={() => {
-                                    if (currentIndex < gameQuestions.length - 1) {
-                                        setCurrentIndex(prev => prev + 1);
-                                    } else {
-                                        alert("Вы ответили на все вопросы из выбранных категорий! ❤️");
-                                        setScreen('menu');
-                                    }
-                                }}
-                                className="flex-[2] py-4 rounded-2xl font-bold text-slate-900 bg-white active:scale-95 transition-all shadow-xl"
-                            >
-                                {currentIndex === gameQuestions.length - 1 ? "Завершить" : "Далее"}
-                            </button>
-                        </div>
-
-                        {/* AI POP-UP */}
-                        {showAiPopup && (
-                            <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-6 z-50 fade-in">
-                                <div className="bg-slate-900 border border-white/10 rounded-3xl p-6 w-full max-w-sm">
-                                    <div className="flex justify-between items-center mb-4">
-                                        <h3 className="font-bold text-lg flex items-center gap-2">✨ Ситуация от ИИ</h3>
-                                        <button onClick={() => setShowAiPopup(false)} className="text-slate-400 p-2 text-xl">&times;</button>
-                                    </div>
-                                    <p className="text-slate-300 mb-6 leading-relaxed text-sm">
-                                        Представь, что эта ситуация произошла с нами прямо сейчас. Опиши свои первые мысли, эмоции и действия. Как бы мы справились с этим вместе?
-                                        <br/><br/>
-                                        <span className="text-white/50 text-xs">(Примечание: Прямая генерация через API требует скрытого ключа. Для безопасности ключа, используйте это как общий вектор для фантазии).</span>
-                                    </p>
-                                    <button 
-                                        onClick={() => setShowAiPopup(false)}
-                                        className="w-full py-3 bg-white/10 rounded-xl text-white font-medium flex items-center justify-center gap-2"
-                                    >
-                                        ← К вопросу
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                );
-            }
-        }
-
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
-    </script>
-</body>
-</html>
