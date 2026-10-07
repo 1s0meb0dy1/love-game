@@ -4,87 +4,159 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Влад & Ира ❤️</title>
+    <!-- React & Tailwind -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Подключение Google Sans -->
     <style>
+        @import url('https://fonts.cdnfonts.com/css/google-sans');
+        
         body { 
-            font-family: 'Montserrat', sans-serif; 
-            overflow: hidden; /* Запрещаем скролл всей страницы */
-            background-color: #0b0f19; 
+            font-family: 'Product Sans', 'Google Sans', sans-serif; 
+            overflow-x: hidden;
+            background-color: #050204; 
             color: white; 
             -webkit-tap-highlight-color: transparent;
-            touch-action: pan-y; /* Защита от случайных зумов */
+            touch-action: pan-y;
         }
-        
-        /* Легкий и быстрый UI */
+
+        /* Романтичный, глубокий фон */
+        .romantic-bg {
+            background: radial-gradient(circle at 50% 30%, rgba(120, 20, 60, 0.15) 0%, rgba(15, 10, 20, 1) 70%);
+            background-attachment: fixed;
+        }
+
+        /* Стекломорфизм (премиальный стиль) */
         .glass-panel { 
-            background: rgba(25, 20, 35, 0.6); 
-            backdrop-filter: blur(8px); /* Легкий блюр, не тормозит телефон */
-            -webkit-backdrop-filter: blur(8px);
-            border: 1px solid rgba(255, 255, 255, 0.1); 
-            border-radius: 1.5rem;
+            background: rgba(30, 15, 25, 0.4); 
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 200, 220, 0.08); 
+            border-radius: 1.75rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
         }
+
+        /* Кнопки главного меню */
+        .btn-romantic {
+            background: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
+            box-shadow: 0 4px 15px rgba(225, 29, 72, 0.4);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn-romantic:active { transform: scale(0.95); box-shadow: 0 2px 8px rgba(225, 29, 72, 0.4); }
         
-        .glass-button-active {
-            background: rgba(255, 255, 255, 0.95);
-            color: #0f172a;
-            border: 1px solid rgba(255, 255, 255, 1);
+        .cat-btn-active {
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 200, 220, 0.4);
+            box-shadow: 0 0 15px rgba(255, 200, 220, 0.1);
             transform: scale(0.98);
         }
-
-        .glass-button-inactive {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+        .cat-btn-inactive {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
-        /* Только одна простая анимация появления для экранов */
-        .fade-in { animation: fadeIn 0.3s ease-out forwards; }
-        @keyframes fadeIn { 
-            from { opacity: 0; } 
-            to { opacity: 1; } 
+        /* Анимации */
+        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        .slide-up { animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .heart-pulse { animation: heartPulse 1.8s infinite ease-in-out; }
+        
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes heartPulse {
+            0%, 100% { transform: scale(1); }
+            15% { transform: scale(1.2); }
+            30% { transform: scale(1); }
+            45% { transform: scale(1.15); }
         }
 
-        /* Скрываем скроллбар для длинных вопросов, если они есть */
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        /* Цвета сложностей */
+        .diff-easy { color: #34d399; } /* Изумрудный / Зеленый */
+        .diff-med  { color: #fbbf24; } /* Янтарный / Оранжевый */
+        .diff-hard { color: #fb7185; } /* Розово-красный */
+        
+        .bg-diff-easy { background: rgba(52, 211, 153, 0.15); border: 1px solid rgba(52, 211, 153, 0.3); }
+        .bg-diff-med  { background: rgba(251, 191, 36, 0.15); border: 1px solid rgba(251, 191, 36, 0.3); }
+        .bg-diff-hard { background: rgba(251, 113, 133, 0.15); border: 1px solid rgba(251, 113, 133, 0.3); }
+
+        /* Кастомный скролл */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
     </style>
 </head>
-<body class="bg-slate-950">
+<body class="romantic-bg">
     <div id="root"></div>
 
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        // Идеальная ссылка, которая всегда отдает свежую версию базы
-        const GIST_URL = "https://gist.githubusercontent.com/1s0meb0dy1/9d890bde848f3a2c5464c7c1729fe17a/raw/3835a8717ee00b7fcc3274a15047d7d45b3e88c8/questions.json";
+        // Ссылка на базу
+        const GIST_URL = "https://gist.githubusercontent.com/1s0meb0dy1/9d890bde848f3a2c5464c7c1729fe17a/raw/questions.json";
 
         const CATEGORIES = [
-            { id: "family", name: "Семья", icon: "👨‍👩‍👧‍👦", color: "from-blue-950 to-slate-950" },
-            { id: "intimacy", name: "Интим", icon: "🔥", color: "from-rose-950 to-slate-950" },
-            { id: "future", name: "Будущее", icon: "🎯", color: "from-teal-950 to-slate-950" },
-            { id: "secrets", name: "Секреты", icon: "🤫", color: "from-purple-950 to-slate-950" },
-            { id: "romance", name: "Романтика", icon: "❤️", color: "from-pink-950 to-slate-950" },
-            { id: "past", name: "Прошлое", icon: "🕰️", color: "from-amber-950 to-slate-950" },
-            { id: "values", name: "Ценности", icon: "⚖️", color: "from-indigo-950 to-slate-950" },
-            { id: "fears", name: "Страхи", icon: "👻", color: "from-gray-900 to-slate-950" },
-            { id: "money", name: "Деньги", icon: "💰", color: "from-emerald-950 to-slate-950" },
-            { id: "life", name: "Быт", icon: "🏠", color: "from-orange-950 to-slate-950" }
+            { id: "family", name: "Семья", icon: "👨‍👩‍👧‍👦", color: "from-blue-900/40 to-slate-950" },
+            { id: "intimacy", name: "Интим", icon: "🔥", color: "from-rose-900/40 to-slate-950" },
+            { id: "future", name: "Будущее", icon: "🎯", color: "from-teal-900/40 to-slate-950" },
+            { id: "secrets", name: "Секреты", icon: "🤫", color: "from-fuchsia-900/40 to-slate-950" },
+            { id: "romance", name: "Романтика", icon: "❤️", color: "from-pink-900/40 to-slate-950" },
+            { id: "past", name: "Прошлое", icon: "🕰️", color: "from-amber-900/40 to-slate-950" },
+            { id: "values", name: "Ценности", icon: "⚖️", color: "from-indigo-900/40 to-slate-950" },
+            { id: "fears", name: "Страхи", icon: "👻", color: "from-stone-800/60 to-slate-950" },
+            { id: "money", name: "Деньги", icon: "💰", color: "from-emerald-900/40 to-slate-950" },
+            { id: "life", name: "Быт", icon: "🏠", color: "from-orange-900/40 to-slate-950" }
         ];
+
+        const DIFFICULTIES = [
+            { id: "Простые", name: "Легкие", classText: "diff-easy", classBg: "bg-diff-easy" },
+            { id: "Средние", name: "Средние", classText: "diff-med", classBg: "bg-diff-med" },
+            { id: "Глубокие", name: "Глубокие", classText: "diff-hard", classBg: "bg-diff-hard" }
+        ];
+
+        // Компонент анимированного счетчика
+        const AnimatedCounter = ({ target }) => {
+            const [count, setCount] = useState(0);
+            
+            useEffect(() => {
+                if (target === 0) return;
+                let current = 0;
+                const stepTime = Math.abs(Math.floor(1000 / target));
+                const timer = setInterval(() => {
+                    current += 1;
+                    setCount(current);
+                    if (current >= target) clearInterval(timer);
+                }, stepTime);
+                return () => clearInterval(timer);
+            }, [target]);
+
+            return <span>{count}</span>;
+        };
+
+        // Иконки SVG
+        const Icons = {
+            Play: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
+            Menu: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>,
+            Back: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>,
+            Next: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>,
+            Sparkles: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>,
+            Check: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+        };
 
         function App() {
             const [db, setDb] = useState([]);
             const [isLoading, setIsLoading] = useState(true);
-            const [screen, setScreen] = useState('menu');
-            const [selectedCats, setSelectedCats] = useState([]);
+            const [screen, setScreen] = useState('menu'); // menu, game, summary
+            const [selectedCats, setSelectedCats] = useState(CATEGORIES.map(c => c.id));
+            const [selectedDiffs, setSelectedDiffs] = useState(DIFFICULTIES.map(d => d.id));
+            
             const [gameQuestions, setGameQuestions] = useState([]);
             const [currentIndex, setCurrentIndex] = useState(0);
             const [showAiPopup, setShowAiPopup] = useState(false);
 
             useEffect(() => {
-                fetch(GIST_URL)
+                // Добавляем ?t= timestamp, чтобы всегда качать самую свежую базу без кэша
+                fetch(GIST_URL + "?t=" + new Date().getTime())
                     .then(res => res.json())
                     .then(data => {
                         const numberedData = data.map((q, index) => {
@@ -102,15 +174,18 @@
             }, []);
 
             const toggleCategory = (catId) => {
-                setSelectedCats(prev => 
-                    prev.includes(catId) ? prev.filter(id => id !== catId) : [...prev, catId]
-                );
+                setSelectedCats(prev => prev.includes(catId) ? prev.filter(id => id !== catId) : [...prev, catId]);
+            };
+
+            const toggleDiff = (diffId) => {
+                setSelectedDiffs(prev => prev.includes(diffId) ? prev.filter(id => id !== diffId) : [...prev, diffId]);
             };
 
             const startGame = () => {
-                let filtered = db.filter(q => selectedCats.includes(q.categoryId));
-                if (filtered.length === 0) return alert("Выберите хотя бы одну тему! ❤️");
+                let filtered = db.filter(q => selectedCats.includes(q.categoryId) && selectedDiffs.includes(q.level));
+                if (filtered.length === 0) return alert("По этим параметрам нет вопросов. Выберите другие темы или сложности! ❤️");
 
+                // Перемешивание
                 for (let i = filtered.length - 1; i > 0; i--) {
                     const j = Math.floor(Math.random() * (i + 1));
                     [filtered[i], filtered[j]] = [filtered[j], filtered[i]];
@@ -121,176 +196,242 @@
                 setScreen('game');
             };
 
-            const exitToMenu = () => {
-                if (confirm("Выйти в меню? Прогресс текущей игры сбросится.")) {
-                    setScreen('menu');
-                }
+            const goToSummary = () => {
+                setScreen('summary');
             };
 
             if (isLoading) {
                 return (
-                    <div className="h-[100dvh] w-full flex flex-col items-center justify-center bg-slate-950">
-                        <div className="text-5xl mb-4 text-pink-500">🤍</div>
-                        <p className="text-white/70 font-medium uppercase text-xs tracking-widest">Загрузка...</p>
+                    <div className="min-h-[100dvh] w-full flex flex-col items-center justify-center fade-in">
+                        <div className="text-6xl mb-6 heart-pulse text-rose-500 drop-shadow-[0_0_20px_rgba(225,29,72,0.6)]">🤍</div>
+                        <p className="text-rose-200/70 font-medium uppercase text-xs tracking-[0.3em]">Синхронизация...</p>
                     </div>
                 );
             }
 
+            // Экран МЕНЮ
             if (screen === 'menu') {
+                const availableCount = db.filter(q => selectedCats.includes(q.categoryId) && selectedDiffs.includes(q.level)).length;
+
                 return (
-                    // Использование h-[100dvh] гарантирует идеальное размещение в 1 экран без скролла на мобильных
-                    <div className="h-[100dvh] w-full flex flex-col items-center justify-center p-4 bg-gradient-to-br from-slate-900 to-black fade-in">
+                    <div className="min-h-[100dvh] w-full flex flex-col items-center justify-center p-5 slide-up">
                         
-                        {/* Заголовок */}
-                        <div className="text-center mb-4 flex-shrink-0">
-                            <h1 className="text-4xl font-bold mb-1 flex items-center justify-center gap-2">
+                        <div className="text-center mb-8 flex-shrink-0">
+                            <h1 className="text-5xl font-bold mb-3 flex items-center justify-center gap-3 text-white tracking-tight">
                                 <span>Влад</span>
-                                <span className="text-2xl text-pink-500">❤️</span>
+                                <span className="text-3xl text-rose-500 heart-pulse drop-shadow-[0_0_15px_rgba(225,29,72,0.5)]">❤️</span>
                                 <span>Ира</span>
                             </h1>
-                            <p className="text-white/60 text-[10px] uppercase tracking-widest">Узнаем друг друга глубже</p>
+                            <p className="text-rose-200/60 text-xs uppercase tracking-[0.2em] font-light">Давай узнаем друг друга еще раз</p>
                         </div>
 
-                        {/* Основная панель */}
-                        <div className="w-full max-w-sm glass-panel p-5 flex flex-col flex-shrink-0">
+                        <div className="w-full max-w-md glass-panel p-6 sm:p-8 flex flex-col gap-8">
                             
-                            <h2 className="text-xs font-bold text-center uppercase text-white/80 mb-4">Выбери темы</h2>
-                            
-                            {/* Компактная сетка категорий */}
-                            <div className="grid grid-cols-2 gap-2 mb-4">
-                                {CATEGORIES.map(cat => (
-                                    <button 
-                                        key={cat.id}
-                                        onClick={() => toggleCategory(cat.id)}
-                                        className={`p-2.5 rounded-xl text-xs md:text-sm font-medium flex items-center justify-center gap-1.5 transition-colors ${selectedCats.includes(cat.id) ? 'glass-button-active' : 'glass-button-inactive text-white/80'}`}
-                                    >
-                                        <span className="text-base">{cat.icon}</span> 
-                                        <span className="truncate">{cat.name}</span>
-                                    </button>
-                                ))}
-                            </div>
-
-                            {/* Информационный блок */}
-                            <div className="flex justify-between items-center px-4 py-2 bg-black/30 rounded-xl mb-4">
-                                <div className="flex flex-col items-center">
-                                    <span className="text-lg font-bold text-white">{selectedCats.length}</span>
-                                    <span className="uppercase text-[9px] text-white/60">Тем</span>
-                                </div>
-                                <div className="h-6 w-px bg-white/20"></div>
-                                <div className="flex flex-col items-center">
-                                    <span className="text-lg font-bold text-white">{db.filter(q => selectedCats.includes(q.categoryId)).length}</span>
-                                    <span className="uppercase text-[9px] text-white/60">Вопросов</span>
+                            {/* Выбор тем */}
+                            <div>
+                                <h2 className="text-xs font-bold text-center uppercase tracking-widest text-rose-100/70 mb-4">Выбери темы</h2>
+                                <div className="grid grid-cols-2 gap-3">
+                                    {CATEGORIES.map(cat => (
+                                        <button 
+                                            key={cat.id}
+                                            onClick={() => toggleCategory(cat.id)}
+                                            className={`p-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-all duration-300 ${selectedCats.includes(cat.id) ? 'cat-btn-active text-white' : 'cat-btn-inactive text-white/50 hover:text-white/80'}`}
+                                        >
+                                            <span className="text-lg">{cat.icon}</span> 
+                                            <span className="truncate">{cat.name}</span>
+                                        </button>
+                                    ))}
                                 </div>
                             </div>
 
-                            <button 
-                                onClick={startGame}
-                                disabled={selectedCats.length === 0}
-                                className="w-full py-3.5 rounded-xl bg-white text-black font-bold text-sm uppercase tracking-wide disabled:opacity-40 active:scale-95 transition-transform"
-                            >
-                                Начать игру
-                            </button>
+                            {/* Выбор сложности */}
+                            <div>
+                                <h2 className="text-xs font-bold text-center uppercase tracking-widest text-rose-100/70 mb-4">Сложности вопросов</h2>
+                                <div className="flex flex-wrap justify-center gap-3">
+                                    {DIFFICULTIES.map(diff => {
+                                        const isActive = selectedDiffs.includes(diff.id);
+                                        return (
+                                            <button 
+                                                key={diff.id}
+                                                onClick={() => toggleDiff(diff.id)}
+                                                className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all duration-300 ${isActive ? diff.classBg + ' ' + diff.classText : 'bg-black/20 text-white/40 border border-white/5 hover:border-white/20'}`}
+                                            >
+                                                {diff.name}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Статистика и Кнопка */}
+                            <div className="flex flex-col gap-5 pt-2 border-t border-white/10">
+                                <div className="flex justify-around items-center px-2">
+                                    <div className="flex flex-col items-center gap-1">
+                                        <span className="text-3xl font-light text-white">{selectedCats.length}</span>
+                                        <span className="uppercase text-[9px] font-bold tracking-widest text-rose-200/50">Темы</span>
+                                    </div>
+                                    <div className="h-10 w-px bg-white/10"></div>
+                                    <div className="flex flex-col items-center gap-1">
+                                        <span className="text-3xl font-light text-white">{availableCount}</span>
+                                        <span className="uppercase text-[9px] font-bold tracking-widest text-rose-200/50">Вопросов</span>
+                                    </div>
+                                </div>
+
+                                <button 
+                                    onClick={startGame}
+                                    disabled={availableCount === 0}
+                                    className="w-full py-4 rounded-xl text-white font-bold text-sm uppercase tracking-[0.15em] btn-romantic disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-2"
+                                >
+                                    <Icons.Play /> Начать игру
+                                </button>
+                            </div>
                         </div>
                     </div>
                 );
             }
 
+            // Экран ИГРЫ
             if (screen === 'game') {
                 const currentQ = gameQuestions[currentIndex];
                 const categoryInfo = CATEGORIES.find(c => c.id === currentQ.categoryId) || CATEGORIES[0];
+                const diffInfo = DIFFICULTIES.find(d => d.id === currentQ.level) || DIFFICULTIES[0];
                 
                 const textParts = currentQ.text.match(/(№\s*\d+\.\s*)(.*)/);
                 const cleanText = textParts ? textParts[2] : currentQ.text;
-                const gameQuestionNumber = currentIndex + 1;
 
                 return (
-                    <div className={`h-[100dvh] w-full flex flex-col bg-gradient-to-br ${categoryInfo.color} fade-in`}>
+                    <div className={`min-h-[100dvh] w-full flex flex-col bg-gradient-to-br ${categoryInfo.color} transition-colors duration-1000 fade-in`}>
                         
                         {/* Шапка */}
-                        <div className="flex justify-between items-center p-4 flex-shrink-0">
-                            <div className="bg-black/30 text-white/90 font-bold px-4 py-1.5 rounded-full text-xs">
-                                {gameQuestionNumber} / {gameQuestions.length}
+                        <div className="flex justify-between items-center p-5 md:p-8 flex-shrink-0">
+                            <div className="bg-black/40 backdrop-blur-sm border border-white/10 text-white/90 font-bold px-5 py-2 rounded-full text-xs tracking-widest shadow-lg">
+                                {currentIndex + 1} / {gameQuestions.length}
                             </div>
-                            <button onClick={exitToMenu} className="text-white/80 text-[10px] font-bold uppercase px-3 py-1.5 rounded-full bg-white/10 active:bg-white/20">
-                                Меню
+                            <button onClick={goToSummary} className="flex items-center gap-2 text-white/80 text-[10px] font-bold uppercase tracking-widest px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 transition-all border border-white/5">
+                                <Icons.Menu /> Меню
                             </button>
                         </div>
 
-                        {/* Карточка вопроса (гибкая область, занимает всё доступное место) */}
-                        <div className="flex-1 flex flex-col items-center justify-center p-4 overflow-y-auto no-scrollbar">
-                            <div className="w-full max-w-sm flex flex-col items-center">
+                        {/* Карточка вопроса */}
+                        <div className="flex-1 flex flex-col items-center justify-center p-5 overflow-y-auto no-scrollbar">
+                            <div className="w-full max-w-lg flex flex-col items-center slide-up" key={currentIndex}>
                                 
-                                <div className="glass-panel px-4 py-2 rounded-xl mb-6 flex flex-col items-center gap-1">
-                                    <span className="text-white/50 text-[10px] uppercase font-bold">Вопрос {gameQuestionNumber}</span>
-                                    <div className="flex items-center gap-2 text-xs font-bold uppercase text-white/90">
-                                        <span className="text-sm">{categoryInfo.icon}</span>
+                                <div className="glass-panel px-6 py-3 rounded-2xl mb-8 flex flex-col items-center gap-2 shadow-[0_8px_30px_rgba(0,0,0,0.2)]">
+                                    <span className="text-white/40 text-[9px] uppercase tracking-[0.25em] font-bold">Текущий вопрос</span>
+                                    <div className="flex items-center gap-3 text-xs font-bold uppercase tracking-widest text-white/90">
+                                        <span className="text-lg">{categoryInfo.icon}</span>
                                         <span>{categoryInfo.name}</span>
-                                        <span className="w-1 h-1 rounded-full bg-white/40"></span>
-                                        <span className={
-                                            currentQ.level === "Простые" ? "text-emerald-400" :
-                                            currentQ.level === "Средние" ? "text-amber-400" : "text-rose-400"
-                                        }>
-                                            {currentQ.level}
-                                        </span>
+                                        <span className="w-1 h-1 rounded-full bg-white/30"></span>
+                                        <span className={diffInfo.classText}>{diffInfo.name}</span>
                                     </div>
                                 </div>
                                 
-                                <h2 className="text-xl md:text-2xl font-medium text-center leading-snug mb-8 text-white px-2">
+                                <h2 className="text-2xl md:text-3xl font-medium text-center leading-snug mb-12 text-white drop-shadow-md px-2">
                                     {cleanText}
                                 </h2>
 
                                 <button 
                                     onClick={() => setShowAiPopup(true)}
-                                    className="glass-panel px-5 py-2.5 rounded-full text-white/90 text-xs font-bold uppercase active:scale-95 transition-transform flex items-center gap-2"
+                                    className="bg-white/10 hover:bg-white/20 border border-white/20 px-6 py-3 rounded-full text-white text-xs font-bold uppercase tracking-widest active:scale-95 transition-all flex items-center gap-2 shadow-lg"
                                 >
-                                    <span>✨</span> Ситуация
+                                    <Icons.Sparkles /> Ситуация
                                 </button>
                             </div>
                         </div>
 
-                        {/* Навигация (подвал) */}
-                        <div className="p-4 flex gap-3 flex-shrink-0 mb-2">
+                        {/* Навигация */}
+                        <div className="p-5 md:p-8 flex gap-4 flex-shrink-0">
                             <button 
                                 onClick={() => setCurrentIndex(prev => prev - 1)}
                                 disabled={currentIndex === 0}
-                                className="flex-1 py-3.5 rounded-xl font-bold text-white/80 glass-panel disabled:opacity-20 active:scale-95 uppercase text-xs"
+                                className="flex-1 py-4 rounded-xl font-bold text-white/80 glass-panel disabled:opacity-30 active:scale-95 transition-all uppercase tracking-widest text-[10px] flex items-center justify-center gap-2"
                             >
-                                Назад
+                                <Icons.Back /> Назад
                             </button>
                             <button 
                                 onClick={() => {
                                     if (currentIndex < gameQuestions.length - 1) {
                                         setCurrentIndex(prev => prev + 1);
                                     } else {
-                                        alert("Вы ответили на все вопросы! ❤️");
-                                        setScreen('menu');
+                                        goToSummary();
                                     }
                                 }}
-                                className="flex-[2] py-3.5 rounded-xl font-bold text-black bg-white active:scale-95 uppercase text-xs"
+                                className="flex-[2] py-4 rounded-xl font-bold text-white btn-romantic active:scale-95 uppercase tracking-widest text-xs flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(225,29,72,0.4)]"
                             >
-                                {currentIndex === gameQuestions.length - 1 ? "Завершить" : "Далее"} 
+                                {currentIndex === gameQuestions.length - 1 ? "Итоги" : "Далее"} <Icons.Next />
                             </button>
                         </div>
 
-                        {/* AI POP-UP */}
+                        {/* Попап "Ситуация" */}
                         {showAiPopup && (
-                            <div className="fixed inset-0 bg-slate-950/90 flex items-center justify-center p-4 z-50 fade-in">
-                                <div className="glass-panel p-6 w-full max-w-sm rounded-2xl">
-                                    <div className="flex justify-between items-center mb-4">
-                                        <h3 className="font-bold text-sm uppercase text-white">✨ Ситуация</h3>
-                                    </div>
-                                    <div className="text-white/80 mb-6 text-sm bg-black/40 p-4 rounded-xl leading-relaxed">
+                            <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-5 z-50 fade-in">
+                                <div className="glass-panel p-8 w-full max-w-sm rounded-[2rem] border-white/20">
+                                    <h3 className="font-bold text-sm uppercase tracking-widest text-rose-300 flex items-center gap-2 mb-6">
+                                        <Icons.Sparkles /> Ситуация
+                                    </h3>
+                                    <div className="text-white/90 text-sm bg-black/40 p-5 rounded-2xl border border-white/5 font-light leading-relaxed mb-8">
                                         Представь, что эта ситуация произошла с нами прямо сейчас. Опиши свои первые мысли, эмоции и действия. Как бы мы справились с этим вместе?
                                     </div>
                                     <button 
                                         onClick={() => setShowAiPopup(false)}
-                                        className="w-full py-3 bg-white/20 rounded-xl text-white font-bold uppercase text-xs active:bg-white/30"
+                                        className="w-full py-4 bg-white/10 hover:bg-white/20 rounded-xl text-white font-bold uppercase tracking-widest text-xs active:scale-95 transition-all"
                                     >
-                                        Вернуться
+                                        Закрыть
                                     </button>
                                 </div>
                             </div>
                         )}
+                    </div>
+                );
+            }
+
+            // Экран ИТОГОВ (SUMMARY)
+            if (screen === 'summary') {
+                // Считаем сколько вопросов пользователь прошел (до текущего индекса)
+                // Если мы на индексе 5, значит ответили на 5 вопросов (0, 1, 2, 3, 4).
+                // Но если мы завершили игру, то ответили на все.
+                const isFinished = currentIndex === gameQuestions.length - 1;
+                const answeredQuestions = gameQuestions.slice(0, isFinished ? gameQuestions.length : currentIndex);
+                
+                const countEasy = answeredQuestions.filter(q => q.level === 'Простые').length;
+                const countMed = answeredQuestions.filter(q => q.level === 'Средние').length;
+                const countHard = answeredQuestions.filter(q => q.level === 'Глубокие').length;
+                const total = answeredQuestions.length;
+
+                return (
+                    <div className="min-h-[100dvh] w-full flex flex-col items-center justify-center p-5 slide-up bg-gradient-to-br from-slate-900 via-slate-950 to-black">
+                        
+                        <div className="text-7xl mb-8 heart-pulse drop-shadow-[0_0_30px_rgba(225,29,72,0.8)]">❤️</div>
+                        
+                        <div className="text-center mb-10">
+                            <h1 className="text-3xl font-bold mb-2 text-white">Вы ответили на</h1>
+                            <div className="text-5xl font-light text-rose-400 mt-4"><AnimatedCounter target={total} /></div>
+                            <p className="text-white/50 text-xs uppercase tracking-widest mt-2">вопросов</p>
+                        </div>
+
+                        <div className="w-full max-w-sm glass-panel p-6 flex flex-col gap-4 mb-10">
+                            <div className="flex justify-between items-center p-4 bg-black/30 rounded-xl border border-emerald-500/20">
+                                <span className="font-bold text-xs uppercase tracking-widest text-emerald-400">Легких</span>
+                                <span className="text-2xl font-light text-white"><AnimatedCounter target={countEasy} /></span>
+                            </div>
+                            <div className="flex justify-between items-center p-4 bg-black/30 rounded-xl border border-amber-500/20">
+                                <span className="font-bold text-xs uppercase tracking-widest text-amber-400">Средних</span>
+                                <span className="text-2xl font-light text-white"><AnimatedCounter target={countMed} /></span>
+                            </div>
+                            <div className="flex justify-between items-center p-4 bg-black/30 rounded-xl border border-rose-500/20">
+                                <span className="font-bold text-xs uppercase tracking-widest text-rose-400">Глубоких</span>
+                                <span className="text-2xl font-light text-white"><AnimatedCounter target={countHard} /></span>
+                            </div>
+                        </div>
+
+                        <div className="w-full max-w-sm">
+                            <button 
+                                onClick={() => setScreen('menu')}
+                                className="w-full py-4 rounded-xl text-white font-bold text-sm uppercase tracking-[0.15em] btn-romantic flex items-center justify-center gap-2"
+                            >
+                                <Icons.Check /> Завершить
+                            </button>
+                        </div>
                     </div>
                 );
             }
