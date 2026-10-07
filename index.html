@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Игра для Влада и Иры ❤️</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Montserrat', sans-serif; overflow-x: hidden; background-color: #0f172a; color: white; }
+        .glass-panel { background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2); }
+        .fade-in { animation: fadeIn 0.4s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Ваша ссылка на базу вопросов!
+        const GIST_URL = "https://gist.githubusercontent.com/1s0meb0dy1/9d890bde848f3a2c5464c7c1729fe17a/raw/2bbc9a4eb6f2d9a7d2225821b57b82fba6b51ed4/questions.json";
+
+        const CATEGORIES = [
+            { id: "family", name: "Семья", icon: "👨‍👩‍👧‍👦", color: "from-blue-900 to-slate-900" },
+            { id: "intimacy", name: "Интим", icon: "🔥", color: "from-red-900 to-slate-900" },
+            { id: "future", name: "Будущее", icon: "🎯", color: "from-emerald-900 to-slate-900" },
+            { id: "secrets", name: "Секреты", icon: "🤫", color: "from-purple-900 to-slate-900" },
+            { id: "romance", name: "Романтика", icon: "❤️", color: "from-pink-900 to-slate-900" },
+            { id: "past", name: "Прошлое", icon: "🕰️", color: "from-yellow-900 to-slate-900" },
+            { id: "values", name: "Ценности", icon: "⚖️", color: "from-indigo-900 to-slate-900" },
+            { id: "fears", name: "Страхи", icon: "👻", color: "from-gray-800 to-slate-900" },
+            { id: "money", name: "Деньги", icon: "💰", color: "from-green-900 to-slate-900" },
+            { id: "life", name: "Быт", icon: "🏠", color: "from-orange-900 to-slate-900" }
+        ];
+
+        function App() {
+            const [db, setDb] = useState([]);
+            const [isLoading, setIsLoading] = useState(true);
+            const [screen, setScreen] = useState('menu'); // menu, game
+            const [selectedCats, setSelectedCats] = useState([]);
+            
+            const [gameQuestions, setGameQuestions] = useState([]);
+            const [currentIndex, setCurrentIndex] = useState(0);
+            const [showAiPopup, setShowAiPopup] = useState(false);
+
+            useEffect(() => {
+                fetch(GIST_URL)
+                    .then(res => res.json())
+                    .then(data => {
+                        setDb(data);
+                        setIsLoading(false);
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        setDb([{ text: "Ошибка загрузки вопросов. Проверьте ссылку.", categoryId: "family", level: "Простые" }]);
+                        setIsLoading(false);
+                    });
+            }, []);
+
+            const toggleCategory = (catId) => {
+                if (selectedCats.includes(catId)) {
+                    setSelectedCats(selectedCats.filter(id => id !== catId));
+                } else {
+                    setSelectedCats([...selectedCats, catId]);
+                }
+            };
+
+            const startGame = () => {
+                // Фильтруем вопросы по выбранным категориям
+                let filtered = db.filter(q => selectedCats.includes(q.categoryId));
+                if (filtered.length === 0) return alert("Выберите хотя бы одну тему!");
+
+                // Алгоритм Фишера-Йейтса (перемешивание случайным образом)
+                for (let i = filtered.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [filtered[i], filtered[j]] = [filtered[j], filtered[i]];
+                }
+
+                setGameQuestions(filtered);
+                setCurrentIndex(0);
+                setScreen('game');
+            };
+
+            const exitToMenu = () => {
+                if (confirm("Вы уверены, что хотите выйти в меню? Текущий прогресс вопросов сбросится.")) {
+                    setScreen('menu');
+                }
+            };
+
+            if (isLoading) {
+                return (
+                    <div className="min-h-screen flex flex-col items-center justify-center">
+                        <div className="animate-pulse text-6xl mb-4">🤍</div>
+                        <p className="text-slate-400">Синхронизация сердец...</p>
+                    </div>
+                );
+            }
+
+            if (screen === 'menu') {
+                return (
+                    <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-gradient-to-br from-slate-900 to-black">
+                        <div className="text-center mb-10 fade-in">
+                            <h1 className="text-4xl font-bold mb-2">Влад & Ира</h1>
+                            <p className="text-slate-400 text-sm">Узнаем друг друга еще глубже</p>
+                        </div>
+
+                        <div className="w-full max-w-md glass-panel rounded-3xl p-6 fade-in shadow-2xl">
+                            <h2 className="text-lg font-semibold mb-4 text-center">Выбери темы для разговора</h2>
+                            
+                            <div className="grid grid-cols-2 gap-3 mb-6">
+                                {CATEGORIES.map(cat => (
+                                    <button 
+                                        key={cat.id}
+                                        onClick={() => toggleCategory(cat.id)}
+                                        className={`p-3 rounded-2xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${selectedCats.includes(cat.id) ? 'bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.4)]' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}
+                                    >
+                                        <span className="text-lg">{cat.icon}</span> {cat.name}
+                                    </button>
+                                ))}
+                            </div>
+
+                            <div className="text-center text-slate-400 text-sm mb-6">
+                                Выбрано категорий: <span className="font-bold text-white">{selectedCats.length}</span><br/>
+                                Вопросов в игре: <span className="font-bold text-white">{db.filter(q => selectedCats.includes(q.categoryId)).length}</span>
+                            </div>
+
+                            <button 
+                                onClick={startGame}
+                                disabled={selectedCats.length === 0}
+                                className="w-full py-4 rounded-full bg-gradient-to-r from-pink-500 to-violet-500 text-white font-bold text-lg disabled:opacity-50 active:scale-95 transition-transform"
+                            >
+                                Начать игру
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (screen === 'game') {
+                const currentQ = gameQuestions[currentIndex];
+                const categoryInfo = CATEGORIES.find(c => c.id === currentQ.categoryId) || CATEGORIES[0];
+
+                return (
+                    <div className={`min-h-screen flex flex-col transition-colors duration-700 bg-gradient-to-br ${categoryInfo.color}`}>
+                        {/* Header */}
+                        <div className="flex justify-between items-center p-6 fade-in">
+                            <div className="text-slate-300 font-semibold bg-black/30 px-3 py-1 rounded-full text-sm">
+                                {currentIndex + 1} / {gameQuestions.length}
+                            </div>
+                            <button onClick={exitToMenu} className="text-slate-300 text-sm font-medium px-3 py-1 rounded-full active:bg-white/10 transition-colors">
+                                В меню
+                            </button>
+                        </div>
+
+                        {/* Main Question Card */}
+                        <div className="flex-1 flex flex-col items-center justify-center p-6 fade-in">
+                            <div className="text-6xl mb-6 drop-shadow-lg">{categoryInfo.icon}</div>
+                            <div className="text-sm font-medium tracking-widest uppercase text-white/50 mb-4">{categoryInfo.name} • {currentQ.level}</div>
+                            
+                            <h2 className="text-2xl md:text-3xl font-semibold text-center leading-relaxed mb-10 text-white drop-shadow-md">
+                                {currentQ.text}
+                            </h2>
+
+                            {/* ИИ Кнопка */}
+                            <button 
+                                onClick={() => setShowAiPopup(true)}
+                                className="px-4 py-2 rounded-full border border-white/20 text-white/70 text-sm hover:bg-white/10 active:bg-white/20 transition-colors flex items-center gap-2"
+                            >
+                                ✨ Придумать ситуацию
+                            </button>
+                        </div>
+
+                        {/* Navigation Footer */}
+                        <div className="p-6 flex gap-4 fade-in pb-10">
+                            <button 
+                                onClick={() => setCurrentIndex(prev => prev - 1)}
+                                disabled={currentIndex === 0}
+                                className="flex-1 py-4 rounded-2xl font-semibold text-white bg-white/10 border border-white/10 disabled:opacity-30 active:scale-95 transition-all"
+                            >
+                                Назад
+                            </button>
+                            <button 
+                                onClick={() => {
+                                    if (currentIndex < gameQuestions.length - 1) {
+                                        setCurrentIndex(prev => prev + 1);
+                                    } else {
+                                        alert("Вы ответили на все вопросы из выбранных категорий! ❤️");
+                                        setScreen('menu');
+                                    }
+                                }}
+                                className="flex-[2] py-4 rounded-2xl font-bold text-slate-900 bg-white active:scale-95 transition-all shadow-xl"
+                            >
+                                {currentIndex === gameQuestions.length - 1 ? "Завершить" : "Далее"}
+                            </button>
+                        </div>
+
+                        {/* AI POP-UP */}
+                        {showAiPopup && (
+                            <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-6 z-50 fade-in">
+                                <div className="bg-slate-900 border border-white/10 rounded-3xl p-6 w-full max-w-sm">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <h3 className="font-bold text-lg flex items-center gap-2">✨ Ситуация от ИИ</h3>
+                                        <button onClick={() => setShowAiPopup(false)} className="text-slate-400 p-2 text-xl">&times;</button>
+                                    </div>
+                                    <p className="text-slate-300 mb-6 leading-relaxed text-sm">
+                                        Представь, что эта ситуация произошла с нами прямо сейчас. Опиши свои первые мысли, эмоции и действия. Как бы мы справились с этим вместе?
+                                        <br/><br/>
+                                        <span className="text-white/50 text-xs">(Примечание: Прямая генерация через API требует скрытого ключа. Для безопасности ключа, используйте это как общий вектор для фантазии).</span>
+                                    </p>
+                                    <button 
+                                        onClick={() => setShowAiPopup(false)}
+                                        className="w-full py-3 bg-white/10 rounded-xl text-white font-medium flex items-center justify-center gap-2"
+                                    >
+                                        ← К вопросу
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                );
+            }
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
