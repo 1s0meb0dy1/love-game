@@ -120,7 +120,7 @@
         const { useState, useEffect, useRef } = React;
 
         // ВАШ КЛЮЧ ИЗ GOOGLE AI STUDIO:
-        const GEMINI_API_KEY = "AIzaSyDxDhi1zR1YFaC-ZSRUbfU2fYA-sUV-cQA"; 
+        const GEMINI_API_KEY = "AQ.Ab8RN6JlrwetdJDgph_PDXCwnW1GCoUcw6jc8_iIBLEbG1dNWA"; 
 
         const GIST_URL = "https://gist.githubusercontent.com/1s0meb0dy1/9d890bde848f3a2c5464c7c1729fe17a/raw/questions.json";
 
@@ -151,15 +151,31 @@
             }
 
             let promptStr = "";
+            let maxTokens = 800; // Увеличенный лимит для развернутых ответов
+            let temperature = 0.95; // Высокая креативность, чтобы ответы не повторялись
+
             if (promptType === "situation") {
-                promptStr = `Выступай в роли креативного сценариста. Представь, что мы влюбленная пара. Придумай ОДНУ уникальную, захватывающую жизненную ситуацию (2-3 предложения), которая происходит с нами прямо сейчас. В конце ситуации органично задай мне вопрос: "${cleanQuestion}". Пиши от первого лица ("я", "мы"). Избегай слова "ситуация".`;
+                promptStr = `Ты креативный сценарист. Мы — влюбленная пара. Придумай ОДНУ абсолютно уникальную, реалистичную и захватывающую жизненную ситуацию (3-4 предложения), которая происходит с нами прямо сейчас и идеально подводит к этому вопросу: "${cleanQuestion}". Ситуация должна быть каждый раз новой, избегай шаблонных завязок. В конце органично задай мне этот вопрос от первого лица ("я", "мы"). Не используй слово "ситуация" в ответе.`;
+                maxTokens = 400;
             } else {
-                promptStr = `Выступи в роли высококвалифицированного психотерапевта и семейного психолога. Проанализируй этот вопрос для пары: "${cleanQuestion}". 
-Дай полезный и глубокий ответ. Обязательно включи:
-1) Краткое объяснение того, как работает психика/подсознание в контексте этого вопроса (почему люди так думают/поступают).
-2) Интересный научный факт или наблюдение из психологии по этой теме.
-3) Конкретный, практичный совет, как правильно поступить в такой ситуации или как паре лучше всего обсудить эту тему, чтобы стать ближе.
-Пиши лаконично, эмпатично, обращаясь к паре на "вы". Не используй списки, пиши связным красивым текстом с абзацами.`;
+                promptStr = `Выступи в роли эксперта по семейной психологии. Проанализируй этот вопрос для пары: "${cleanQuestion}".
+Дай абсолютно уникальный, развернутый и полезный ответ, опираясь на психологию и статистику. Никаких шаблонных фраз, каждый ответ должен быть новым.
+Структурируй ответ строго по этим 5 пунктам (обязательно используй эти заголовки с эмодзи и делай двойной отступ (абзац) между ними):
+
+🧠 Как лучше поступить в этой ситуации:
+(Напиши здесь детальный разбор, как паре правильно подойти к обсуждению и решению этого вопроса).
+
+💡 Интересные факты:
+(Приведи 1-2 уникальных, неочевидных факта из психологии или биологии, связанных с этой темой).
+
+📊 Статистика:
+(Приведи релевантные реальные или научно обоснованные примерные данные/проценты по этой теме в мире или в отношениях).
+
+🔗 Как это влияет на отношения:
+(Объясни, к чему приведет игнорирование или, наоборот, правильное обсуждение этого вопроса в долгосрочной перспективе).
+
+🛠️ Психологические советы:
+(Дай 2-3 практичных, применимых в жизни совета для пары).`;
             }
 
             try {
@@ -169,7 +185,7 @@
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         contents: [{ parts: [{ text: promptStr }] }],
-                        generationConfig: { temperature: 0.85, maxOutputTokens: 400 }
+                        generationConfig: { temperature: temperature, maxOutputTokens: maxTokens }
                     })
                 });
                 
@@ -184,28 +200,29 @@
         const generateLocalFallback = (promptType, cleanQuestion, catId) => {
             if (promptType === "situation") {
                 const intros = [
-                    "Мы сидим на кухне после тяжелого дня, пьем горячий чай в полной тишине", 
-                    "Мы неспешно гуляем по вечернему городу, вокруг мерцают огни витрин", 
-                    "Мы лежим в постели в выходной, за окном барабанит сильный дождь", 
-                    "Мы едем в машине по пустой трассе, тихо играет наша любимая песня"
+                    "Внезапно посреди оживленной улицы мы останавливаемся, я смотрю на тебя и вдруг решаю спросить", 
+                    "Пока мы распаковываем вещи после долгой поездки, в голове всплывает мысль", 
+                    "Мы сидим в полумраке, играет любимый трек, и атмосфера сама подталкивает задать этот вопрос"
                 ];
                 const intro = intros[Math.floor(Math.random() * intros.length)];
-                return `${intro}. Я смотрю на тебя, задумываюсь на секунду и спрашиваю: «${cleanQuestion}»\n\nЧто ты ответишь мне в этот момент?`;
+                return `${intro}:\n\n«${cleanQuestion}»\n\nЧто ты ответишь мне прямо сейчас?`;
             } else {
-                const facts = {
-                    family: "Факт: 80% наших реакций и триггеров в семье — это бессознательно скопированные паттерны из детства.",
-                    intimacy: "Факт: Откровенные разговоры о сексе повышают уровень окситоцина в мозге не меньше, чем сами физические объятия.",
-                    future: "Факт: Наш мозг воспринимает 'будущего себя' как абсолютно постороннего человека, именно поэтому нам так сложно планировать долгосрок.",
-                    secrets: "Факт: Длительное хранение секретов вызывает микро-стресс, который незаметно, но постоянно истощает префронтальную кору мозга.",
-                    romance: "Факт: Романтическая привязанность активирует в мозге те же самые центры вознаграждения, что и зависимость от сладкого.",
-                    past: "Факт: Наша память не работает как видеокамера. Мы 'перезаписываем' воспоминание заново каждый раз, когда о нем думаем.",
-                    values: "Факт: Совпадение фундаментальных ценностей удерживает пары вместе на 60% эффективнее, чем совпадение хобби и интересов.",
-                    fears: "Факт: Простое проговаривание своего страха вслух физически снижает активность миндалевидного тела мозга (центра паники).",
-                    money: "Факт: Финансовые тревоги и ссоры активируют болевые рецепторы в мозге точно так же, как реальная физическая боль.",
-                    life: "Факт: Понятная и предсказуемая бытовая рутина дает нашей психике базовое ощущение безопасности, снижая фоновую тревогу."
-                };
-                const fact = facts[catId] || "Факт: Искреннее обсуждение сложных вопросов значительно снижает уровень кортизола (гормона стресса) в организме.";
-                return `💡 Анализ психолога:\nТема «${cleanQuestion}» напрямую связана с глубинными потребностями человеческой психики в принятии и безопасности.\n\n${fact}\n\nКак работает психика: Мы часто реагируем на подобные вопросы защитными механизмами, боясь показаться уязвимыми перед партнером. Психика пытается защитить нас от возможного отвержения.\n\nСовет: Обсуждая это, используйте правило "Я-сообщений" (говорите "Я чувствую...", а не "Ты всегда делаешь..."). Постарайтесь не критиковать и не оспаривать первый ответ партнера, а просто выслушать его до конца. Это создаст между вами пространство для настоящей, глубокой близости.`;
+                return `🧠 Как лучше поступить в этой ситуации:
+Постарайтесь обсудить вопрос «${cleanQuestion}» в спокойной обстановке. Самое главное — слушать партнера без осуждения и не пытаться сразу доказать свою правоту.
+
+💡 Интересные факты:
+Искреннее обсуждение сложных или уязвимых тем синхронизирует сердцебиение у партнеров и вызывает выброс окситоцина (гормона привязанности).
+
+📊 Статистика:
+По данным психологических опросов, более 65% пар признаются, что подобные темы вызывают у них стресс, но их регулярное обсуждение снижает риск расставания на треть.
+
+🔗 Как это влияет на отношения:
+Открытость в этом вопросе создает прочный фундамент доверия. Вы учитесь быть уязвимыми друг перед другом, что переводит отношения на более зрелый уровень.
+
+🛠️ Психологические советы:
+1. Используйте "Я-сообщения" (говорите "Я чувствую...", а не "Ты всегда...").
+2. Делайте паузы, если эмоции накаляются.
+3. Поблагодарите партнера за честный ответ, даже если он не совпадает с вашим мнением.`;
             }
         };
 
@@ -248,7 +265,7 @@
             const [currentIndex, setCurrentIndex] = useState(0);
             const [answeredCount, setAnsweredCount] = useState(0); 
             
-            // Состояние для экрана AI
+            // Состояние для отдельного AI-экрана
             const [aiType, setAiType] = useState('situation'); // 'situation' или 'psych'
             const [aiContent, setAiContent] = useState('');
             const [isAiTyping, setIsAiTyping] = useState(false);
@@ -295,8 +312,9 @@
             };
 
             const triggerAI = async (type) => {
+                // Переключаем экран на AI Response
                 setAiType(type);
-                setAiContent(type === 'situation' ? "Синтезирую ситуацию..." : "Анализирую психологический паттерн...");
+                setAiContent(type === 'situation' ? "Синтезирую ситуацию..." : "Анализирую профиль...");
                 setIsAiTyping(true);
                 setScreen('ai_response');
 
@@ -307,6 +325,7 @@
                 
                 setAiContent("");
                 let i = 0;
+                // Более быстрая печать, так как текста теперь много
                 typingIntervalRef.current = setInterval(() => {
                     setAiContent(response.substring(0, i + 1));
                     i++;
@@ -314,7 +333,7 @@
                         clearInterval(typingIntervalRef.current);
                         setIsAiTyping(false);
                     }
-                }, 15);
+                }, 10);
             };
 
             const handleAddQuestion = (e) => {
@@ -509,30 +528,35 @@
                 
                 return (
                     <div className={`min-h-[100dvh] w-full flex flex-col bg-gradient-to-br ${categoryInfo.color} transition-colors duration-1000 fade-in relative z-10`}>
-                        <div className="flex items-center gap-4 mb-4 pt-8 px-5 flex-shrink-0">
+                        
+                        <div className="flex items-center gap-4 mb-2 pt-8 px-5 flex-shrink-0">
                             <button onClick={() => setScreen('game')} className="p-4 bg-white/5 rounded-full hover:bg-white/10 text-white/80 transition-all">
                                 <Icons.Back />
                             </button>
                         </div>
 
-                        <div className="flex-1 flex flex-col items-center justify-center p-5 overflow-y-auto no-scrollbar">
-                            <div className="w-full max-w-md flex flex-col items-center slide-up text-center">
-                                <div className="text-[4rem] mb-6 drop-shadow-[0_0_25px_rgba(225,29,72,0.6)] heart-pulse">❤️‍🩹</div>
-                                <h2 className={`text-2xl font-bold mb-8 tracking-wide uppercase ${isSituation ? 'text-[#be123c]' : 'text-[#38bdf8]'}`}>
+                        <div className="flex-1 flex flex-col items-center p-5 overflow-y-auto no-scrollbar">
+                            <div className="w-full max-w-lg flex flex-col items-center slide-up text-center pb-10">
+                                
+                                <div className="text-[5rem] mb-6 drop-shadow-[0_0_30px_rgba(225,29,72,0.6)] heart-pulse">❤️‍🩹</div>
+                                
+                                <h2 className={`text-xl font-bold mb-8 tracking-widest uppercase ${isSituation ? 'text-[#be123c]' : 'text-[#38bdf8]'}`}>
                                     {isSituation ? "AI Ситуация" : "Анализ психолога"}
                                 </h2>
                                 
-                                <div className={`glass-panel p-8 w-full text-left text-white/90 text-base font-light leading-relaxed shadow-2xl whitespace-pre-wrap ${isAiTyping ? 'ai-cursor' : ''}`}>
+                                <div className={`glass-panel p-6 md:p-8 w-full text-left text-white/90 text-[15px] md:text-[16px] font-light leading-relaxed shadow-2xl whitespace-pre-wrap ${isAiTyping ? 'ai-cursor' : ''}`}>
                                     {aiContent}
                                 </div>
+
                             </div>
                         </div>
 
-                        <div className="p-5 md:p-8 flex gap-4 flex-shrink-0">
-                            <button onClick={() => setScreen('game')} className="w-full h-14 rounded-2xl btn-ghost flex items-center justify-center text-xs font-bold uppercase tracking-widest text-white/80 bg-white/5">
+                        <div className="p-5 md:p-8 flex gap-4 flex-shrink-0 bg-gradient-to-t from-[#0b0610] to-transparent">
+                            <button onClick={() => setScreen('game')} className="w-full h-14 rounded-2xl btn-ghost flex items-center justify-center text-[11px] font-bold uppercase tracking-widest text-white/90 bg-[#1a0b1c]/80 backdrop-blur-md border-white/20">
                                 Вернуться к вопросу
                             </button>
                         </div>
+
                     </div>
                 );
             }
