@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <!-- Этот тег убирает белые полосы в браузере телефона -->
     <meta name="theme-color" content="#1a0b1c">
     <title>Влад & Ира ❤️</title>
     <!-- React & Tailwind -->
@@ -21,7 +20,7 @@
             min-height: 100dvh;
             margin: 0;
             padding: 0;
-            background-color: #1a0b1c; /* Базовый цвет для мобилок */
+            background-color: #1a0b1c; 
             font-family: 'Product Sans', 'Google Sans', sans-serif; 
             overflow-x: hidden;
             color: white; 
@@ -29,7 +28,7 @@
             touch-action: pan-y;
         }
 
-        /* Более яркий, переливающийся темный фон */
+        /* Переливающийся темный фон */
         .animated-gradient-bg {
             background: linear-gradient(-45deg, #1f0d29, #2d1426, #141e30, #2f1322, #111111);
             background-size: 400% 400%;
@@ -54,7 +53,7 @@
             box-shadow: 0 15px 50px rgba(0, 0, 0, 0.5);
         }
 
-        /* Кнопки одинаковой высоты (h-14 = 56px) */
+        /* Кнопки одинаковой высоты */
         .btn-romantic {
             background: linear-gradient(135deg, #be123c 0%, #881337 100%);
             box-shadow: 0 6px 25px rgba(159, 18, 57, 0.35);
@@ -120,7 +119,7 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        // ВСТАВЬТЕ СЮДА ВАШ КЛЮЧ ИЗ GOOGLE AI STUDIO:
+        // ВАШ КЛЮЧ ИЗ GOOGLE AI STUDIO:
         const GEMINI_API_KEY = "AQ.Ab8RN6JlrwetdJDgph_PDXCwnW1GCoUcw6jc8_iIBLEbG1dNWA"; 
 
         const GIST_URL = "https://gist.githubusercontent.com/1s0meb0dy1/9d890bde848f3a2c5464c7c1729fe17a/raw/questions.json";
@@ -144,20 +143,23 @@
             { id: "Глубокие", name: "Глубокие", classText: "diff-hard", classBg: "bg-diff-hard" }
         ];
 
-        // Интеграция с реальным ИИ (Gemini)
         const fetchFromAI = async (promptType, questionText, catId) => {
             const cleanQuestion = questionText.replace(/^№\s*\d+\.\s*/, '');
             
-            // Если ключ не введен, используем встроенные заготовки
             if (!GEMINI_API_KEY || GEMINI_API_KEY.trim() === "") {
                 return generateLocalFallback(promptType, cleanQuestion, catId);
             }
 
             let promptStr = "";
             if (promptType === "situation") {
-                promptStr = `Представь, что мы влюбленная пара. Придумай ОДНУ короткую, интересную жизненную ситуацию (2-3 предложения), как будто она происходит с нами прямо сейчас, и в конце органично задай мне вопрос: "${cleanQuestion}". Пиши от первого лица ("я", "мы"). Будь креативным, не используй слово "ситуация".`;
+                promptStr = `Выступай в роли креативного сценариста. Представь, что мы влюбленная пара. Придумай ОДНУ уникальную, захватывающую жизненную ситуацию (2-3 предложения), которая происходит с нами прямо сейчас. В конце ситуации органично задай мне вопрос: "${cleanQuestion}". Пиши от первого лица ("я", "мы"). Избегай слова "ситуация".`;
             } else {
-                promptStr = `Выступи в роли профессионального семейного психолога. Проанализируй этот вопрос для пары: "${cleanQuestion}". Дай короткий, глубокий совет (3-4 предложения) о том, почему обсуждение этой темы важно для отношений и как правильно на него отвечать, чтобы стать ближе. Обращайся к паре на "вы".`;
+                promptStr = `Выступи в роли высококвалифицированного психотерапевта и семейного психолога. Проанализируй этот вопрос для пары: "${cleanQuestion}". 
+Дай полезный и глубокий ответ. Обязательно включи:
+1) Краткое объяснение того, как работает психика/подсознание в контексте этого вопроса (почему люди так думают/поступают).
+2) Интересный научный факт или наблюдение из психологии по этой теме.
+3) Конкретный, практичный совет, как правильно поступить в такой ситуации или как паре лучше всего обсудить эту тему, чтобы стать ближе.
+Пиши лаконично, эмпатично, обращаясь к паре на "вы". Не используй списки, пиши связным красивым текстом с абзацами.`;
             }
 
             try {
@@ -167,7 +169,7 @@
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         contents: [{ parts: [{ text: promptStr }] }],
-                        generationConfig: { temperature: 0.8, maxOutputTokens: 250 }
+                        generationConfig: { temperature: 0.85, maxOutputTokens: 350 }
                     })
                 });
                 
@@ -175,19 +177,35 @@
                 const data = await response.json();
                 return data.candidates[0].content.parts[0].text.trim();
             } catch (error) {
-                // Если API отвалилось, тоже используем локальный генератор
                 return generateLocalFallback(promptType, cleanQuestion, catId);
             }
         };
 
-        // Локальные заготовки (если нет ключа)
         const generateLocalFallback = (promptType, cleanQuestion, catId) => {
             if (promptType === "situation") {
-                const intros = ["Мы сидим на кухне после тяжелого дня, пьем чай в тишине", "Мы гуляем по вечернему городу, вокруг горят фонари", "Мы лежим в постели, за окном идет сильный дождь", "Мы едем в машине по пустой трассе, играет тихая музыка"];
+                const intros = [
+                    "Мы сидим на кухне после тяжелого дня, пьем горячий чай в полной тишине", 
+                    "Мы неспешно гуляем по вечернему городу, вокруг мерцают огни витрин", 
+                    "Мы лежим в постели в выходной, за окном барабанит сильный дождь", 
+                    "Мы едем в машине по пустой трассе, тихо играет наша любимая песня"
+                ];
                 const intro = intros[Math.floor(Math.random() * intros.length)];
-                return `${intro}. Я смотрю на тебя и вдруг задумываюсь: «${cleanQuestion}».\n\nЧто ты ответишь мне в этот момент?`;
+                return `${intro}. Я смотрю на тебя, задумываюсь на секунду и спрашиваю: «${cleanQuestion}»\n\nЧто ты ответишь мне в этот момент?`;
             } else {
-                return `💡 Мнение психолога:\nОбсуждение темы «${cleanQuestion}» помогает выявить скрытые потребности партнера.\n\nПостарайтесь ответить максимально честно, не боясь осуждения. Важно слушать партнера без попытки сразу же оспорить его мнение — просто примите его чувства как факт. Это укрепляет доверие.`;
+                const facts = {
+                    family: "Факт: 80% наших реакций и триггеров в семье — это бессознательно скопированные паттерны из детства.",
+                    intimacy: "Факт: Откровенные разговоры о сексе повышают уровень окситоцина в мозге не меньше, чем сами физические объятия.",
+                    future: "Факт: Наш мозг воспринимает 'будущего себя' как абсолютно постороннего человека, именно поэтому нам так сложно планировать долгосрок.",
+                    secrets: "Факт: Длительное хранение секретов вызывает микро-стресс, который незаметно, но постоянно истощает префронтальную кору мозга.",
+                    romance: "Факт: Романтическая привязанность активирует в мозге те же самые центры вознаграждения, что и зависимость от сладкого.",
+                    past: "Факт: Наша память не работает как видеокамера. Мы 'перезаписываем' воспоминание заново каждый раз, когда о нем думаем.",
+                    values: "Факт: Совпадение фундаментальных ценностей удерживает пары вместе на 60% эффективнее, чем совпадение хобби и интересов.",
+                    fears: "Факт: Простое проговаривание своего страха вслух физически снижает активность миндалевидного тела мозга (центра паники).",
+                    money: "Факт: Финансовые тревоги и ссоры активируют болевые рецепторы в мозге точно так же, как реальная физическая боль.",
+                    life: "Факт: Понятная и предсказуемая бытовая рутина дает нашей психике базовое ощущение безопасности, снижая фоновую тревогу."
+                };
+                const fact = facts[catId] || "Факт: Искреннее обсуждение сложных вопросов значительно снижает уровень кортизола (гормона стресса) в организме.";
+                return `💡 Анализ психолога:\nТема «${cleanQuestion}» напрямую связана с глубинными потребностями человеческой психики в принятии и безопасности.\n\n${fact}\n\nКак работает психика: Мы часто реагируем на подобные вопросы защитными механизмами, боясь показаться уязвимыми перед партнером. Психика пытается защитить нас от возможного отвержения.\n\nСовет: Обсуждая это, используйте правило "Я-сообщений" (говорите "Я чувствую...", а не "Ты всегда делаешь..."). Постарайтесь не критиковать и не оспаривать первый ответ партнера, а просто выслушать его до конца. Это создаст между вами пространство для настоящей, глубокой близости.`;
             }
         };
 
@@ -371,7 +389,7 @@
                                             <button 
                                                 key={diff.id}
                                                 onClick={() => toggleDiff(diff.id)}
-                                                className={`flex-shrink-0 px-6 h-12 rounded-full text-xs font-bold uppercase tracking-widest transition-all duration-300 snap-center ${isActive ? diff.classBg + ' ' + diff.classText : 'bg-black/20 text-white/30 border border-white/5'}`}
+                                                className={`flex-shrink-0 px-6 h-14 rounded-full text-xs font-bold uppercase tracking-widest transition-all duration-300 snap-center ${isActive ? diff.classBg + ' ' + diff.classText : 'bg-black/20 text-white/30 border border-white/5'}`}
                                             >
                                                 {diff.name}
                                             </button>
@@ -406,7 +424,7 @@
                                 <button 
                                     onClick={startGame}
                                     disabled={availableCount === 0}
-                                    className="w-full text-white font-bold text-sm uppercase tracking-[0.2em] btn-romantic disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-2 shadow-2xl rounded-2xl"
+                                    className="w-full h-14 text-white font-bold text-sm uppercase tracking-[0.2em] btn-romantic disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-2 shadow-2xl rounded-2xl"
                                 >
                                     <Icons.Play /> Начать игру
                                 </button>
