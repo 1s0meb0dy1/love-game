@@ -120,7 +120,7 @@
         const { useState, useEffect, useRef } = React;
 
         // ВАШ КЛЮЧ ИЗ GOOGLE AI STUDIO:
-        const GEMINI_API_KEY = "AIzaSyDxDhi1zR1YFaC-ZSRUbfU2fYA-sUV-cQA"; 
+        const GEMINI_API_KEY = "AQ.Ab8RN6JlrwetdJDgph_PDXCwnW1GCoUcw6jc8_iIBLEbG1dNWA"; 
 
         const GIST_URL = "https://gist.githubusercontent.com/1s0meb0dy1/9d890bde848f3a2c5464c7c1729fe17a/raw/questions.json";
 
@@ -169,7 +169,7 @@
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         contents: [{ parts: [{ text: promptStr }] }],
-                        generationConfig: { temperature: 0.85, maxOutputTokens: 350 }
+                        generationConfig: { temperature: 0.85, maxOutputTokens: 400 }
                     })
                 });
                 
@@ -248,13 +248,11 @@
             const [currentIndex, setCurrentIndex] = useState(0);
             const [answeredCount, setAnsweredCount] = useState(0); 
             
-            const [showAiPopup, setShowAiPopup] = useState(false);
-            const [aiText, setAiText] = useState("");
+            // Состояние для экрана AI
+            const [aiType, setAiType] = useState('situation'); // 'situation' или 'psych'
+            const [aiContent, setAiContent] = useState('');
             const [isAiTyping, setIsAiTyping] = useState(false);
-
-            const [showPsychPopup, setShowPsychPopup] = useState(false);
-            const [psychText, setPsychText] = useState("");
-            const [isPsychTyping, setIsPsychTyping] = useState(false);
+            const typingIntervalRef = useRef(null);
 
             const [viewCategory, setViewCategory] = useState(null);
             
@@ -297,31 +295,24 @@
             };
 
             const triggerAI = async (type) => {
-                const q = gameQuestions[currentIndex];
-                if (type === 'situation') {
-                    setShowAiPopup(true);
-                    setAiText("Синтезирую ситуацию...");
-                    setIsAiTyping(true);
-                    const response = await fetchFromAI("situation", q.text, q.categoryId);
-                    typeText(response, setAiText, setIsAiTyping);
-                } else {
-                    setShowPsychPopup(true);
-                    setPsychText("Анализирую психологический паттерн...");
-                    setIsPsychTyping(true);
-                    const response = await fetchFromAI("psych", q.text, q.categoryId);
-                    typeText(response, setPsychText, setIsPsychTyping);
-                }
-            };
+                setAiType(type);
+                setAiContent(type === 'situation' ? "Синтезирую ситуацию..." : "Анализирую психологический паттерн...");
+                setIsAiTyping(true);
+                setScreen('ai_response');
 
-            const typeText = (text, setter, setTypingStatus) => {
-                setter("");
+                const q = gameQuestions[currentIndex];
+                const response = await fetchFromAI(type, q.text, q.categoryId);
+                
+                if (typingIntervalRef.current) clearInterval(typingIntervalRef.current);
+                
+                setAiContent("");
                 let i = 0;
-                const typingInterval = setInterval(() => {
-                    setter(text.substring(0, i + 1));
+                typingIntervalRef.current = setInterval(() => {
+                    setAiContent(response.substring(0, i + 1));
                     i++;
-                    if (i >= text.length) {
-                        clearInterval(typingInterval);
-                        setTypingStatus(false);
+                    if (i >= response.length) {
+                        clearInterval(typingIntervalRef.current);
+                        setIsAiTyping(false);
                     }
                 }, 15);
             };
@@ -506,39 +497,42 @@
                                 {currentIndex === gameQuestions.length - 1 ? "Итоги" : "Далее"} <Icons.Next />
                             </button>
                         </div>
+                    </div>
+                );
+            }
 
-                        {/* Попапы ИИ */}
-                        {showAiPopup && (
-                            <div className="fixed inset-0 bg-[#0b0610]/95 backdrop-blur-xl flex items-center justify-center p-5 z-50 fade-in">
-                                <div className="glass-panel p-8 w-full max-w-sm rounded-[2rem] border-white/10 shadow-2xl">
-                                    <h3 className="font-bold text-xs uppercase tracking-widest text-[#be123c] flex items-center gap-2 mb-6">
-                                        <Icons.Sparkles /> AI Ситуация
-                                    </h3>
-                                    <div className={`text-white/90 text-[15px] bg-black/60 p-6 rounded-2xl border border-white/5 font-light leading-relaxed mb-8 min-h-[160px] shadow-inner whitespace-pre-wrap ${isAiTyping ? 'ai-cursor' : ''}`}>
-                                        {aiText}
-                                    </div>
-                                    <button onClick={() => setShowAiPopup(false)} className="w-full h-14 bg-white/5 hover:bg-white/10 rounded-2xl text-white/80 font-bold uppercase tracking-widest text-xs active:scale-95 transition-all border border-white/10">
-                                        Закрыть
-                                    </button>
+            // НОВЫЙ ЭКРАН AI-ОТВЕТА
+            if (screen === 'ai_response') {
+                const currentQ = gameQuestions[currentIndex];
+                const categoryInfo = CATEGORIES.find(c => c.id === currentQ?.categoryId) || CATEGORIES[0];
+                const isSituation = aiType === 'situation';
+                
+                return (
+                    <div className={`min-h-[100dvh] w-full flex flex-col bg-gradient-to-br ${categoryInfo.color} transition-colors duration-1000 fade-in relative z-10`}>
+                        <div className="flex items-center gap-4 mb-4 pt-8 px-5 flex-shrink-0">
+                            <button onClick={() => setScreen('game')} className="p-4 bg-white/5 rounded-full hover:bg-white/10 text-white/80 transition-all">
+                                <Icons.Back />
+                            </button>
+                        </div>
+
+                        <div className="flex-1 flex flex-col items-center justify-center p-5 overflow-y-auto no-scrollbar">
+                            <div className="w-full max-w-md flex flex-col items-center slide-up text-center">
+                                <div className="text-[4rem] mb-6 drop-shadow-[0_0_25px_rgba(225,29,72,0.6)] heart-pulse">❤️‍🩹</div>
+                                <h2 className={`text-2xl font-bold mb-8 tracking-wide uppercase ${isSituation ? 'text-[#be123c]' : 'text-[#38bdf8]'}`}>
+                                    {isSituation ? "AI Ситуация" : "Анализ психолога"}
+                                </h2>
+                                
+                                <div className={`glass-panel p-8 w-full text-left text-white/90 text-base font-light leading-relaxed shadow-2xl whitespace-pre-wrap ${isAiTyping ? 'ai-cursor' : ''}`}>
+                                    {aiContent}
                                 </div>
                             </div>
-                        )}
+                        </div>
 
-                        {showPsychPopup && (
-                            <div className="fixed inset-0 bg-[#0b0610]/95 backdrop-blur-xl flex items-center justify-center p-5 z-50 fade-in">
-                                <div className="glass-panel p-8 w-full max-w-sm rounded-[2rem] border-[#0ea5e9]/20 shadow-2xl">
-                                    <h3 className="font-bold text-xs uppercase tracking-widest text-[#38bdf8] flex items-center gap-2 mb-6">
-                                        <Icons.Bulb /> Анализ психолога
-                                    </h3>
-                                    <div className={`text-white/90 text-[15px] bg-[#0ea5e9]/5 p-6 rounded-2xl border border-[#0ea5e9]/10 font-light leading-relaxed mb-8 min-h-[160px] shadow-inner whitespace-pre-wrap ${isPsychTyping ? 'ai-cursor' : ''}`}>
-                                        {psychText}
-                                    </div>
-                                    <button onClick={() => setShowPsychPopup(false)} className="w-full h-14 bg-white/5 hover:bg-white/10 rounded-2xl text-white/80 font-bold uppercase tracking-widest text-xs active:scale-95 transition-all border border-white/10">
-                                        Закрыть
-                                    </button>
-                                </div>
-                            </div>
-                        )}
+                        <div className="p-5 md:p-8 flex gap-4 flex-shrink-0">
+                            <button onClick={() => setScreen('game')} className="w-full h-14 rounded-2xl btn-ghost flex items-center justify-center text-xs font-bold uppercase tracking-widest text-white/80 bg-white/5">
+                                Вернуться к вопросу
+                            </button>
+                        </div>
                     </div>
                 );
             }
