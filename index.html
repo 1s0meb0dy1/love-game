@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- Этот тег убирает белые полосы в браузере телефона -->
+    <meta name="theme-color" content="#1a0b1c">
     <title>Влад & Ира ❤️</title>
     <!-- React & Tailwind -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
@@ -14,21 +16,26 @@
     <style>
         @import url('https://fonts.cdnfonts.com/css/google-sans');
         
-        body { 
+        html, body {
+            height: 100%;
+            min-height: 100dvh;
+            margin: 0;
+            padding: 0;
+            background-color: #1a0b1c; /* Базовый цвет для мобилок */
             font-family: 'Product Sans', 'Google Sans', sans-serif; 
             overflow-x: hidden;
-            background-color: #0b090f;
             color: white; 
             -webkit-tap-highlight-color: transparent;
             touch-action: pan-y;
         }
 
-        /* Переливающийся темный фон */
+        /* Более яркий, переливающийся темный фон */
         .animated-gradient-bg {
-            background: linear-gradient(-45deg, #0d0614, #1a0b1c, #090e17, #1c0914, #050505);
+            background: linear-gradient(-45deg, #1f0d29, #2d1426, #141e30, #2f1322, #111111);
             background-size: 400% 400%;
-            animation: gradientShift 20s ease infinite;
-            background-attachment: fixed;
+            animation: gradientShift 15s ease infinite;
+            min-height: 100dvh;
+            width: 100%;
         }
 
         @keyframes gradientShift {
@@ -39,19 +46,20 @@
 
         /* Стекломорфизм */
         .glass-panel { 
-            background: rgba(12, 8, 15, 0.65); 
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.04); 
+            background: rgba(18, 10, 24, 0.65); 
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.06); 
             border-radius: 1.75rem;
-            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.6);
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.5);
         }
 
-        /* Массивные основные Кнопки */
+        /* Кнопки одинаковой высоты (h-14 = 56px) */
         .btn-romantic {
             background: linear-gradient(135deg, #be123c 0%, #881337 100%);
             box-shadow: 0 6px 25px rgba(159, 18, 57, 0.35);
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            height: 56px;
         }
         .btn-romantic:active { transform: scale(0.96); box-shadow: 0 2px 10px rgba(159, 18, 57, 0.5); }
 
@@ -60,18 +68,19 @@
             border: 1px solid rgba(255,255,255,0.15);
             color: rgba(255,255,255,0.8);
             transition: all 0.3s ease;
+            height: 56px;
         }
         .btn-ghost:active { transform: scale(0.96); background: rgba(255,255,255,0.08); }
         
         .cat-btn-active {
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255, 200, 220, 0.2);
-            box-shadow: 0 0 20px rgba(255, 200, 220, 0.05);
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 200, 220, 0.3);
+            box-shadow: 0 0 20px rgba(255, 200, 220, 0.1);
             transform: scale(0.98);
         }
         .cat-btn-inactive {
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid rgba(255, 255, 255, 0.02);
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.03);
         }
 
         /* Анимации */
@@ -81,14 +90,8 @@
         
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes heartPulse {
-            0%, 100% { transform: scale(1); }
-            15% { transform: scale(1.15); }
-            30% { transform: scale(1); }
-            45% { transform: scale(1.1); }
-        }
+        @keyframes heartPulse { 0%, 100% { transform: scale(1); } 15% { transform: scale(1.15); } 30% { transform: scale(1); } 45% { transform: scale(1.1); } }
 
-        /* Анимация галочки */
         .checkmark-circle { stroke-dasharray: 166; stroke-dashoffset: 166; stroke-width: 2; stroke-miterlimit: 10; stroke: #10b981; fill: none; animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards; }
         .checkmark { width: 64px; height: 64px; border-radius: 50%; display: block; stroke-width: 2; stroke: #fff; stroke-miterlimit: 10; margin: 10% auto; box-shadow: inset 0px 0px 0px #10b981; animation: fill .4s ease-in-out .4s forwards, scale .3s ease-in-out .9s both; }
         .checkmark-check { transform-origin: 50% 50%; stroke-dasharray: 48; stroke-dashoffset: 48; animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.8s forwards; }
@@ -96,7 +99,6 @@
         @keyframes scale { 0%, 100% { transform: none; } 50% { transform: scale3d(1.1, 1.1, 1); } }
         @keyframes fill { 100% { box-shadow: inset 0px 0px 0px 35px #10b981; } }
 
-        /* Эффект печати AI */
         .ai-cursor::after { content: '|'; animation: blink 1s step-end infinite; }
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 
@@ -104,34 +106,36 @@
         .diff-easy { color: #34d399; }
         .diff-med  { color: #fbbf24; }
         .diff-hard { color: #fb7185; }
-        .bg-diff-easy { background: rgba(52, 211, 153, 0.1); border: 1px solid rgba(52, 211, 153, 0.2); }
-        .bg-diff-med  { background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.2); }
-        .bg-diff-hard { background: rgba(251, 113, 133, 0.1); border: 1px solid rgba(251, 113, 133, 0.2); }
+        .bg-diff-easy { background: rgba(52, 211, 153, 0.15); border: 1px solid rgba(52, 211, 153, 0.3); }
+        .bg-diff-med  { background: rgba(251, 191, 36, 0.15); border: 1px solid rgba(251, 191, 36, 0.3); }
+        .bg-diff-hard { background: rgba(251, 113, 133, 0.15); border: 1px solid rgba(251, 113, 133, 0.3); }
 
-        /* Кастомный скролл */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
-<body class="animated-gradient-bg">
-    <div id="root"></div>
+<body>
+    <div id="root" class="animated-gradient-bg"></div>
 
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
+        // ВСТАВЬТЕ СЮДА ВАШ КЛЮЧ ИЗ GOOGLE AI STUDIO:
+        const GEMINI_API_KEY = "AQ.Ab8RN6JlrwetdJDgph_PDXCwnW1GCoUcw6jc8_iIBLEbG1dNWA"; 
+
         const GIST_URL = "https://gist.githubusercontent.com/1s0meb0dy1/9d890bde848f3a2c5464c7c1729fe17a/raw/questions.json";
 
         const CATEGORIES = [
-            { id: "family", name: "Семья", icon: "👨‍👩‍👧‍👦", color: "from-blue-950/20 to-transparent" },
-            { id: "intimacy", name: "Интим", icon: "🔞", color: "from-rose-950/20 to-transparent" },
-            { id: "future", name: "Будущее", icon: "🎯", color: "from-teal-950/20 to-transparent" },
-            { id: "secrets", name: "Секреты", icon: "🤫", color: "from-fuchsia-950/20 to-transparent" },
-            { id: "romance", name: "Романтика", icon: "❤️", color: "from-pink-950/20 to-transparent" },
-            { id: "past", name: "Прошлое", icon: "⏳", color: "from-amber-950/20 to-transparent" },
-            { id: "values", name: "Ценности", icon: "⚖️", color: "from-indigo-950/20 to-transparent" },
-            { id: "fears", name: "Страхи", icon: "👻", color: "from-stone-900/30 to-transparent" },
-            { id: "money", name: "Деньги", icon: "💰", color: "from-emerald-950/20 to-transparent" },
-            { id: "life", name: "Быт", icon: "🏠", color: "from-orange-950/20 to-transparent" }
+            { id: "family", name: "Семья", icon: "👨‍👩‍👧‍👦", color: "from-blue-950/40 to-transparent" },
+            { id: "intimacy", name: "Интим", icon: "🔞", color: "from-rose-950/40 to-transparent" },
+            { id: "future", name: "Будущее", icon: "🎯", color: "from-teal-950/40 to-transparent" },
+            { id: "secrets", name: "Секреты", icon: "🤫", color: "from-fuchsia-950/40 to-transparent" },
+            { id: "romance", name: "Романтика", icon: "❤️", color: "from-pink-950/40 to-transparent" },
+            { id: "past", name: "Прошлое", icon: "⏳", color: "from-amber-950/40 to-transparent" },
+            { id: "values", name: "Ценности", icon: "⚖️", color: "from-indigo-950/40 to-transparent" },
+            { id: "fears", name: "Страхи", icon: "👻", color: "from-stone-800/50 to-transparent" },
+            { id: "money", name: "Деньги", icon: "💰", color: "from-emerald-950/40 to-transparent" },
+            { id: "life", name: "Быт", icon: "🏠", color: "from-orange-950/40 to-transparent" }
         ];
 
         const DIFFICULTIES = [
@@ -140,56 +144,59 @@
             { id: "Глубокие", name: "Глубокие", classText: "diff-hard", classBg: "bg-diff-hard" }
         ];
 
-        // Ситуации (как было)
-        const generateSmartSituation = (qText, catId) => {
-            const intros = {
-                family: ["Вы собрались за ужином после долгого и напряженного дня", "Представь, мы организовываем большой семейный праздник, всё идет наперекосяк"],
-                intimacy: ["В момент глубокой ночи, когда мы остались абсолютно одни и никуда не спешим", "Представь, что мы сняли номер в уединенном отеле, свет приглушен"],
-                future: ["Мы стоим на пороге принятия решения, которое изменит наши жизни навсегда", "Через 5 лет мы оборачиваемся назад и понимаем, что именно сегодня тот самый день"],
-                secrets: ["Мы играем в игру 'правда или действие', атмосфера становится серьезной", "Представь, что я случайно нашел(ла) твой старый личный дневник"],
-                romance: ["Во время нашей идеальной прогулки, когда вокруг ни души", "Представь, что мы оказались под сильным дождем без зонта и спрятались под навесом"],
-                past: ["Мы случайно наткнулись на коробку с твоими старыми, детскими вещами", "Представь, что мы встретили человека из твоего прошлого, о котором ты давно забыл(а)"],
-                values: ["Мы оказались в центре серьезного спора в кругу друзей, мнения разделились", "Представь ситуацию, где тебе предлагают огромную выгоду в обмен на предательство идеалов"],
-                fears: ["Происходит именно то, чего ты всегда подсознательно избегал(а)", "Мы застряли вдали от цивилизации, без связи и без четкого плана действий"],
-                money: ["Нам на счет внезапно падает сумма, о которой мы могли только мечтать", "Представь, что мы потеряли почти все сбережения из-за системного сбоя"],
-                life: ["Мы делаем тяжелый ремонт в квартире, кругом хаос, пыль и усталость", "В доме отключили свет и воду на двое суток, наши телефоны почти разряжены"]
-            };
-            const catIntros = intros[catId] || ["Происходит неожиданное событие, которое застает нас врасплох"];
-            const selectedIntro = catIntros[Math.floor(Math.random() * catIntros.length)];
-            const cleanQuestion = qText.replace(/^№\s*\d+\.\s*/, '');
-            return `${selectedIntro}. И в этой атмосфере возникает мысль: «${cleanQuestion}».\n\nЧто ты почувствуешь в первую секунду? Какие будут твои первые реальные действия? Как мы справимся с этим вместе?`;
+        // Интеграция с реальным ИИ (Gemini)
+        const fetchFromAI = async (promptType, questionText, catId) => {
+            const cleanQuestion = questionText.replace(/^№\s*\d+\.\s*/, '');
+            
+            // Если ключ не введен, используем встроенные заготовки
+            if (!GEMINI_API_KEY || GEMINI_API_KEY.trim() === "") {
+                return generateLocalFallback(promptType, cleanQuestion, catId);
+            }
+
+            let promptStr = "";
+            if (promptType === "situation") {
+                promptStr = `Представь, что мы влюбленная пара. Придумай ОДНУ короткую, интересную жизненную ситуацию (2-3 предложения), как будто она происходит с нами прямо сейчас, и в конце органично задай мне вопрос: "${cleanQuestion}". Пиши от первого лица ("я", "мы"). Будь креативным, не используй слово "ситуация".`;
+            } else {
+                promptStr = `Выступи в роли профессионального семейного психолога. Проанализируй этот вопрос для пары: "${cleanQuestion}". Дай короткий, глубокий совет (3-4 предложения) о том, почему обсуждение этой темы важно для отношений и как правильно на него отвечать, чтобы стать ближе. Обращайся к паре на "вы".`;
+            }
+
+            try {
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+                const response = await fetch(url, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: promptStr }] }],
+                        generationConfig: { temperature: 0.8, maxOutputTokens: 250 }
+                    })
+                });
+                
+                if (!response.ok) throw new Error("API Limit");
+                const data = await response.json();
+                return data.candidates[0].content.parts[0].text.trim();
+            } catch (error) {
+                // Если API отвалилось, тоже используем локальный генератор
+                return generateLocalFallback(promptType, cleanQuestion, catId);
+            }
         };
 
-        // Совет Психолога (Новая функция)
-        const generateSmartAdvice = (qText, catId) => {
-            const intros = {
-                family: ["С точки зрения семейной психотерапии, эта тема выявляет скрытые сценарии.", "Детские психологи отмечают, что подобные ситуации формируют базовое доверие к миру."],
-                intimacy: ["В современной сексологии считается, что обсуждение подобных тем снимает до 80% внутреннего напряжения.", "Как сексолог могу сказать: здесь нет 'правильного' и 'неправильного', есть только то, что подходит вашей паре."],
-                future: ["Когнитивно-поведенческая терапия рекомендует при мыслях о будущем фокусироваться на зоне своего контроля.", "Тревога о будущем — естественный механизм мозга. Психотерапевты советуют переводить страхи в пошаговые планы."],
-                secrets: ["Секреты часто маскируют страх отвержения. Психоанализ учит нас смотреть в корень этого стыда.", "Психологи считают, что признание в таких вещах работает как мощный катарсис, освобождая огромное количество энергии."],
-                romance: ["В эмоционально-фокусированной терапии такие моменты называют 'точками создания привязанности'.", "Романтика с точки зрения нейробиологии — это коктейль окситоцина и дофамина. Обсуждая это, вы заново запускаете их выработку."],
-                past: ["Опыт прошлого часто формирует наши когнитивные искажения сегодня. Взгляните на эту ситуацию глазами взрослого себя.", "Травмы прошлого, согласно гештальт-терапии, нужно не просто вспомнить, а правильно 'закрыть' в настоящем."],
-                values: ["Столкновение ценностей — главная причина экзистенциальных кризисов по Виктору Франклу.", "Психотерапевты рекомендуют в таких вопросах использовать 'Я-сообщения', чтобы не переходить на личности."],
-                fears: ["Страх иррационален, и логика тут не работает. Метод экспозиции советует смотреть страху в лицо вместе.", "Тревога любит изоляцию. Разделяя этот страх с партнером, вы лишаете его половины силы."],
-                money: ["Финансовая психология доказывает, что деньги — это чаще всего вопрос базовой безопасности, а не цифр.", "Конфликты из-за денег часто маскируют невысказанные потребности в признании и власти."],
-                life: ["Бытовые ссоры — это верхушка айсберга. За невымытой чашкой часто скрывается крик: 'Ты меня не ценишь!'.", "Совместный быт — это про постоянный компромисс. Психологи советуют воспринимать дом не как поле боя, а как общую зона восстановления."]
-            };
-            const catIntros = intros[catId] || ["Психологический подход к этому вопросу заключается в том, чтобы не оценивать друг друга."];
-            const selectedIntro = catIntros[Math.floor(Math.random() * catIntros.length)];
-            const cleanQuestion = qText.replace(/^№\s*\d+\.\s*/, '');
-            
-            return `${selectedIntro}\n\n💡 Совет для пары:\nОбсуждая вопрос «${cleanQuestion}», попробуйте отказаться от оценок. Слушайте не для того, чтобы ответить, а для того, чтобы понять.\n\nЗадайте партнеру уточняющий вопрос: "Что именно ты чувствуешь, когда думаешь об этом?" — и просто примите его эмоцию как факт, без попытки сразу же всё 'починить'.`;
+        // Локальные заготовки (если нет ключа)
+        const generateLocalFallback = (promptType, cleanQuestion, catId) => {
+            if (promptType === "situation") {
+                const intros = ["Мы сидим на кухне после тяжелого дня, пьем чай в тишине", "Мы гуляем по вечернему городу, вокруг горят фонари", "Мы лежим в постели, за окном идет сильный дождь", "Мы едем в машине по пустой трассе, играет тихая музыка"];
+                const intro = intros[Math.floor(Math.random() * intros.length)];
+                return `${intro}. Я смотрю на тебя и вдруг задумываюсь: «${cleanQuestion}».\n\nЧто ты ответишь мне в этот момент?`;
+            } else {
+                return `💡 Мнение психолога:\nОбсуждение темы «${cleanQuestion}» помогает выявить скрытые потребности партнера.\n\nПостарайтесь ответить максимально честно, не боясь осуждения. Важно слушать партнера без попытки сразу же оспорить его мнение — просто примите его чувства как факт. Это укрепляет доверие.`;
+            }
         };
 
         const AnimatedCounter = ({ target }) => {
             const [count, setCount] = useState(0);
             useEffect(() => {
-                if (!target || target === 0) {
-                    setCount(0);
-                    return;
-                }
+                if (!target || target === 0) { setCount(0); return; }
                 let current = 0;
-                const stepTime = Math.abs(Math.floor(1500 / target)); 
+                const stepTime = Math.abs(Math.floor(1200 / target)); 
                 const timer = setInterval(() => {
                     current += 1;
                     setCount(current);
@@ -223,7 +230,6 @@
             const [currentIndex, setCurrentIndex] = useState(0);
             const [answeredCount, setAnsweredCount] = useState(0); 
             
-            // Popups
             const [showAiPopup, setShowAiPopup] = useState(false);
             const [aiText, setAiText] = useState("");
             const [isAiTyping, setIsAiTyping] = useState(false);
@@ -251,7 +257,7 @@
                     })
                     .catch(err => {
                         console.error(err);
-                        setDb([{ text: "Ошибка загрузки вопросов. Проверьте ссылку.", categoryId: "family", level: "Простые" }]);
+                        setDb([{ text: "Ошибка загрузки вопросов.", categoryId: "family", level: "Простые" }]);
                         setIsLoading(false);
                     });
             }, []);
@@ -272,72 +278,47 @@
                 setScreen('game');
             };
 
-            const generateAI = () => {
-                setShowAiPopup(true);
-                setAiText("Синтезирую ситуацию...");
-                setIsAiTyping(true);
-                
-                setTimeout(() => {
-                    const q = gameQuestions[currentIndex];
-                    const fullText = generateSmartSituation(q.text, q.categoryId);
-                    setAiText("");
-                    
-                    let i = 0;
-                    const typingInterval = setInterval(() => {
-                        setAiText(fullText.substring(0, i + 1));
-                        i++;
-                        if (i >= fullText.length) {
-                            clearInterval(typingInterval);
-                            setIsAiTyping(false);
-                        }
-                    }, 25);
-                }, 800);
+            const triggerAI = async (type) => {
+                const q = gameQuestions[currentIndex];
+                if (type === 'situation') {
+                    setShowAiPopup(true);
+                    setAiText("Синтезирую ситуацию...");
+                    setIsAiTyping(true);
+                    const response = await fetchFromAI("situation", q.text, q.categoryId);
+                    typeText(response, setAiText, setIsAiTyping);
+                } else {
+                    setShowPsychPopup(true);
+                    setPsychText("Анализирую психологический паттерн...");
+                    setIsPsychTyping(true);
+                    const response = await fetchFromAI("psych", q.text, q.categoryId);
+                    typeText(response, setPsychText, setIsPsychTyping);
+                }
             };
 
-            const generatePsych = () => {
-                setShowPsychPopup(true);
-                setPsychText("Анализирую паттерны...");
-                setIsPsychTyping(true);
-                
-                setTimeout(() => {
-                    const q = gameQuestions[currentIndex];
-                    const fullText = generateSmartAdvice(q.text, q.categoryId);
-                    setPsychText("");
-                    
-                    let i = 0;
-                    const typingInterval = setInterval(() => {
-                        setPsychText(fullText.substring(0, i + 1));
-                        i++;
-                        if (i >= fullText.length) {
-                            clearInterval(typingInterval);
-                            setIsPsychTyping(false);
-                        }
-                    }, 20);
-                }, 800);
+            const typeText = (text, setter, setTypingStatus) => {
+                setter("");
+                let i = 0;
+                const typingInterval = setInterval(() => {
+                    setter(text.substring(0, i + 1));
+                    i++;
+                    if (i >= text.length) {
+                        clearInterval(typingInterval);
+                        setTypingStatus(false);
+                    }
+                }, 15);
             };
 
             const handleAddQuestion = (e) => {
                 e.preventDefault();
                 if (!addForm.text.trim()) return;
-                
                 const newId = 'v_local_' + Math.random().toString(36).substr(2, 6);
-                const newQ = {
-                    id: newId,
-                    categoryId: addForm.cat,
-                    level: addForm.diff,
-                    text: `№ ${db.length + 1}. ${addForm.text.trim()}`
-                };
-                
+                const newQ = { id: newId, categoryId: addForm.cat, level: addForm.diff, text: `№ ${db.length + 1}. ${addForm.text.trim()}` };
                 setDb([...db, newQ]);
                 setAddSuccess(newId);
             };
 
             const goToSummary = (fromFinishButton = false) => {
-                if (fromFinishButton) {
-                    setAnsweredCount(currentIndex + 1);
-                } else {
-                    setAnsweredCount(currentIndex);
-                }
+                setAnsweredCount(fromFinishButton ? currentIndex + 1 : currentIndex);
                 setScreen('summary');
             };
 
@@ -354,8 +335,8 @@
             if (screen === 'menu') {
                 const availableCount = db.filter(q => selectedCats.includes(q.categoryId) && selectedDiffs.includes(q.level)).length;
                 return (
-                    <div className="min-h-[100dvh] w-full flex flex-col items-center justify-center p-4 md:p-6 slide-up">
-                        <div className="text-center mb-8 flex-shrink-0">
+                    <div className="min-h-[100dvh] w-full flex flex-col items-center justify-center p-4 md:p-6 slide-up relative z-10">
+                        <div className="text-center mb-6 flex-shrink-0">
                             <h1 className="text-5xl font-bold mb-3 flex items-center justify-center gap-3 text-white tracking-tight">
                                 <span>Влад</span>
                                 <span className="text-4xl text-[#be123c] heart-pulse drop-shadow-[0_0_20px_rgba(190,18,60,0.6)]">❤️</span>
@@ -365,10 +346,8 @@
                         </div>
 
                         <div className="w-full max-w-md glass-panel p-6 flex flex-col gap-8">
-                            
-                            {/* Темы (Сетка) */}
                             <div>
-                                <h2 className="text-[14px] md:text-[15px] font-bold text-center uppercase tracking-widest text-white/50 mb-5">Темы вопросов</h2>
+                                <h2 className="text-[15px] md:text-base font-bold text-center uppercase tracking-widest text-white/50 mb-5">Темы вопросов</h2>
                                 <div className="grid grid-cols-2 gap-3">
                                     {CATEGORIES.map(cat => (
                                         <button 
@@ -383,9 +362,8 @@
                                 </div>
                             </div>
 
-                            {/* Сложность (Скролл в линию) */}
                             <div className="w-full overflow-hidden">
-                                <h2 className="text-[14px] md:text-[15px] font-bold text-center uppercase tracking-widest text-white/50 mb-5">Сложность вопросов</h2>
+                                <h2 className="text-[15px] md:text-base font-bold text-center uppercase tracking-widest text-white/50 mb-5">Сложность вопросов</h2>
                                 <div className="flex overflow-x-auto gap-3 pb-2 pt-1 px-1 no-scrollbar snap-x touch-pan-x">
                                     {DIFFICULTIES.map(diff => {
                                         const isActive = selectedDiffs.includes(diff.id);
@@ -393,7 +371,7 @@
                                             <button 
                                                 key={diff.id}
                                                 onClick={() => toggleDiff(diff.id)}
-                                                className={`flex-shrink-0 px-6 py-3.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all duration-300 snap-center ${isActive ? diff.classBg + ' ' + diff.classText : 'bg-black/20 text-white/30 border border-white/5'}`}
+                                                className={`flex-shrink-0 px-6 h-12 rounded-full text-xs font-bold uppercase tracking-widest transition-all duration-300 snap-center ${isActive ? diff.classBg + ' ' + diff.classText : 'bg-black/20 text-white/30 border border-white/5'}`}
                                             >
                                                 {diff.name}
                                             </button>
@@ -402,16 +380,15 @@
                                 </div>
                                 <button 
                                     onClick={() => setScreen('cat_list')} 
-                                    className="w-full mt-5 py-5 rounded-2xl btn-ghost flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-widest"
+                                    className="w-full mt-5 rounded-2xl btn-ghost flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-widest"
                                 >
                                     <Icons.List /> Список вопросов
                                 </button>
                             </div>
 
-                            {/* Статистика и Кнопка старта */}
                             <div className="flex flex-col gap-6 pt-6 border-t border-white/5 relative">
                                 <div className="absolute left-0 right-0 top-[-10px] text-center">
-                                    <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 bg-[#100a14] px-4 py-1.5 rounded-full border border-white/5">Вы выбрали</span>
+                                    <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 bg-[#140b19] px-4 py-1.5 rounded-full border border-white/5">Вы выбрали</span>
                                 </div>
                                 
                                 <div className="grid grid-cols-[1fr_auto_1fr] items-center px-2 mt-4">
@@ -429,7 +406,7 @@
                                 <button 
                                     onClick={startGame}
                                     disabled={availableCount === 0}
-                                    className="w-full py-6 rounded-2xl text-white font-bold text-sm uppercase tracking-[0.2em] btn-romantic disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-2 shadow-2xl"
+                                    className="w-full text-white font-bold text-sm uppercase tracking-[0.2em] btn-romantic disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-2 shadow-2xl rounded-2xl"
                                 >
                                     <Icons.Play /> Начать игру
                                 </button>
@@ -448,9 +425,9 @@
                 const cleanText = textParts ? textParts[2] : currentQ.text;
 
                 return (
-                    <div className={`min-h-[100dvh] w-full flex flex-col bg-gradient-to-br ${categoryInfo.color} transition-colors duration-1000 fade-in`}>
+                    <div className={`min-h-[100dvh] w-full flex flex-col bg-gradient-to-br ${categoryInfo.color} transition-colors duration-1000 fade-in relative z-10`}>
                         <div className="flex justify-between items-center p-5 md:p-8 flex-shrink-0">
-                            <div className="bg-[#030102]/60 backdrop-blur-md border border-white/5 text-white/80 font-bold px-6 py-2.5 rounded-full text-xs tracking-widest shadow-xl">
+                            <div className="bg-[#0b0610]/60 backdrop-blur-md border border-white/5 text-white/80 font-bold px-6 py-2.5 rounded-full text-xs tracking-widest shadow-xl">
                                 {currentIndex + 1} / {gameQuestions.length}
                             </div>
                             <button onClick={() => goToSummary(false)} className="flex items-center gap-2 text-white/80 text-[11px] font-bold uppercase tracking-widest px-5 py-2.5 rounded-full bg-white/5 hover:bg-white/10 active:scale-95 transition-all border border-white/5">
@@ -469,20 +446,20 @@
                                         <span className={diffInfo.classText}>{diffInfo.name}</span>
                                     </div>
                                 </div>
-                                <h2 className="text-2xl md:text-[28px] font-medium text-center leading-snug mb-10 text-white/95 px-2">
+                                <h2 className="text-[26px] md:text-[30px] font-medium text-center leading-snug mb-10 text-white/95 px-2">
                                     {cleanText}
                                 </h2>
                                 
-                                <div className="flex flex-col gap-3 w-full max-w-[280px]">
+                                <div className="flex flex-col gap-3 w-full max-w-[300px]">
                                     <button 
-                                        onClick={generateAI}
-                                        className="bg-white/5 hover:bg-white/10 border border-white/10 px-6 py-4 rounded-full text-white/80 text-[11px] font-bold uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2 shadow-xl"
+                                        onClick={() => triggerAI('situation')}
+                                        className="h-14 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-white/80 text-[11px] font-bold uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2 shadow-xl"
                                     >
                                         <Icons.Sparkles /> Сгенерировать ситуацию
                                     </button>
                                     <button 
-                                        onClick={generatePsych}
-                                        className="bg-[#0ea5e9]/10 hover:bg-[#0ea5e9]/20 border border-[#0ea5e9]/30 px-6 py-4 rounded-full text-[#38bdf8] text-[11px] font-bold uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2 shadow-xl"
+                                        onClick={() => triggerAI('psych')}
+                                        className="h-14 bg-[#0ea5e9]/10 hover:bg-[#0ea5e9]/20 border border-[#0ea5e9]/30 rounded-full text-[#38bdf8] text-[11px] font-bold uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2 shadow-xl"
                                     >
                                         <Icons.Bulb /> Совет психолога
                                     </button>
@@ -494,7 +471,7 @@
                             <button 
                                 onClick={() => setCurrentIndex(prev => prev - 1)}
                                 disabled={currentIndex === 0}
-                                className="flex-1 py-6 rounded-2xl font-bold text-white/80 glass-panel disabled:opacity-20 active:scale-95 transition-all uppercase tracking-widest text-xs flex items-center justify-center gap-2"
+                                className="flex-1 h-14 rounded-2xl font-bold text-white/80 glass-panel disabled:opacity-20 active:scale-95 transition-all uppercase tracking-widest text-xs flex items-center justify-center gap-2"
                             >
                                 <Icons.Back /> Назад
                             </button>
@@ -506,46 +483,39 @@
                                         goToSummary(true);
                                     }
                                 }}
-                                className="flex-[2] py-6 rounded-2xl font-bold text-white btn-romantic active:scale-95 uppercase tracking-widest text-sm flex items-center justify-center gap-2 shadow-2xl"
+                                className="flex-[2] h-14 rounded-2xl font-bold text-white btn-romantic active:scale-95 uppercase tracking-widest text-sm flex items-center justify-center gap-2 shadow-2xl"
                             >
                                 {currentIndex === gameQuestions.length - 1 ? "Итоги" : "Далее"} <Icons.Next />
                             </button>
                         </div>
 
-                        {/* Попап: Ситуация */}
+                        {/* Попапы ИИ */}
                         {showAiPopup && (
-                            <div className="fixed inset-0 bg-[#08050a]/95 backdrop-blur-xl flex items-center justify-center p-5 z-50 fade-in">
+                            <div className="fixed inset-0 bg-[#0b0610]/95 backdrop-blur-xl flex items-center justify-center p-5 z-50 fade-in">
                                 <div className="glass-panel p-8 w-full max-w-sm rounded-[2rem] border-white/10 shadow-2xl">
                                     <h3 className="font-bold text-xs uppercase tracking-widest text-[#be123c] flex items-center gap-2 mb-6">
                                         <Icons.Sparkles /> AI Ситуация
                                     </h3>
-                                    <div className={`text-white/90 text-sm bg-black/60 p-6 rounded-2xl border border-white/5 font-light leading-relaxed mb-8 min-h-[160px] shadow-inner whitespace-pre-wrap ${isAiTyping ? 'ai-cursor' : ''}`}>
+                                    <div className={`text-white/90 text-[15px] bg-black/60 p-6 rounded-2xl border border-white/5 font-light leading-relaxed mb-8 min-h-[160px] shadow-inner whitespace-pre-wrap ${isAiTyping ? 'ai-cursor' : ''}`}>
                                         {aiText}
                                     </div>
-                                    <button 
-                                        onClick={() => setShowAiPopup(false)}
-                                        className="w-full py-5 bg-white/5 hover:bg-white/10 rounded-2xl text-white/80 font-bold uppercase tracking-widest text-xs active:scale-95 transition-all border border-white/10"
-                                    >
+                                    <button onClick={() => setShowAiPopup(false)} className="w-full h-14 bg-white/5 hover:bg-white/10 rounded-2xl text-white/80 font-bold uppercase tracking-widest text-xs active:scale-95 transition-all border border-white/10">
                                         Закрыть
                                     </button>
                                 </div>
                             </div>
                         )}
 
-                        {/* Попап: Совет Психолога */}
                         {showPsychPopup && (
-                            <div className="fixed inset-0 bg-[#08050a]/95 backdrop-blur-xl flex items-center justify-center p-5 z-50 fade-in">
+                            <div className="fixed inset-0 bg-[#0b0610]/95 backdrop-blur-xl flex items-center justify-center p-5 z-50 fade-in">
                                 <div className="glass-panel p-8 w-full max-w-sm rounded-[2rem] border-[#0ea5e9]/20 shadow-2xl">
                                     <h3 className="font-bold text-xs uppercase tracking-widest text-[#38bdf8] flex items-center gap-2 mb-6">
                                         <Icons.Bulb /> Анализ психолога
                                     </h3>
-                                    <div className={`text-white/90 text-sm bg-[#0ea5e9]/5 p-6 rounded-2xl border border-[#0ea5e9]/10 font-light leading-relaxed mb-8 min-h-[160px] shadow-inner whitespace-pre-wrap ${isPsychTyping ? 'ai-cursor' : ''}`}>
+                                    <div className={`text-white/90 text-[15px] bg-[#0ea5e9]/5 p-6 rounded-2xl border border-[#0ea5e9]/10 font-light leading-relaxed mb-8 min-h-[160px] shadow-inner whitespace-pre-wrap ${isPsychTyping ? 'ai-cursor' : ''}`}>
                                         {psychText}
                                     </div>
-                                    <button 
-                                        onClick={() => setShowPsychPopup(false)}
-                                        className="w-full py-5 bg-white/5 hover:bg-white/10 rounded-2xl text-white/80 font-bold uppercase tracking-widest text-xs active:scale-95 transition-all border border-white/10"
-                                    >
+                                    <button onClick={() => setShowPsychPopup(false)} className="w-full h-14 bg-white/5 hover:bg-white/10 rounded-2xl text-white/80 font-bold uppercase tracking-widest text-xs active:scale-95 transition-all border border-white/10">
                                         Закрыть
                                     </button>
                                 </div>
@@ -563,15 +533,13 @@
                 const cHard = answered.filter(q => q.level === 'Глубокие').length;
 
                 return (
-                    <div className="min-h-[100dvh] w-full flex flex-col items-center justify-center p-5 slide-up">
+                    <div className="min-h-[100dvh] w-full flex flex-col items-center justify-center p-5 slide-up relative z-10">
                         <div className="text-[5rem] mb-10 heart-pulse drop-shadow-[0_0_40px_rgba(190,18,60,0.8)]">❤️</div>
-                        
                         <div className="text-center mb-12">
                             <h1 className="text-3xl font-bold mb-4 text-white/90">Вы ответили на</h1>
                             <div className="text-7xl font-light text-[#be123c] mt-2"><AnimatedCounter target={answered.length} /></div>
                             <p className="text-white/40 text-[11px] font-bold uppercase tracking-[0.25em] mt-4">вопросов</p>
                         </div>
-                        
                         <div className="w-full max-w-sm glass-panel p-6 flex flex-col gap-4 mb-12">
                             <div className="flex justify-between items-center p-5 bg-black/40 rounded-xl border border-[#34d399]/20">
                                 <span className="font-bold text-xs uppercase tracking-widest diff-easy">Легких</span>
@@ -586,12 +554,8 @@
                                 <span className="text-2xl font-light text-white"><AnimatedCounter target={cHard} /></span>
                             </div>
                         </div>
-
                         <div className="w-full max-w-sm">
-                            <button 
-                                onClick={() => setScreen('menu')}
-                                className="w-full py-6 rounded-2xl text-white font-bold text-sm uppercase tracking-[0.2em] btn-romantic flex items-center justify-center gap-2 shadow-2xl"
-                            >
+                            <button onClick={() => setScreen('menu')} className="w-full h-14 rounded-2xl text-white font-bold text-sm uppercase tracking-[0.2em] btn-romantic flex items-center justify-center gap-2 shadow-2xl">
                                 <Icons.Check /> Завершить игру
                             </button>
                         </div>
@@ -602,7 +566,7 @@
             // СПИСОК КАТЕГОРИЙ
             if (screen === 'cat_list') {
                 return (
-                    <div className="min-h-[100dvh] w-full flex flex-col p-5 fade-in max-w-lg mx-auto">
+                    <div className="min-h-[100dvh] w-full flex flex-col p-5 fade-in max-w-lg mx-auto relative z-10">
                         <div className="flex items-center gap-4 mb-8 pt-4">
                             <button onClick={() => setScreen('menu')} className="p-4 bg-white/5 rounded-full hover:bg-white/10 text-white/80 transition-all">
                                 <Icons.Back />
@@ -613,9 +577,7 @@
                             {CATEGORIES.map(cat => {
                                 const count = db.filter(q => q.categoryId === cat.id).length;
                                 return (
-                                    <button key={cat.id} onClick={() => { setViewCategory(cat.id); setScreen('q_list'); }}
-                                        className="glass-panel p-6 flex items-center justify-between hover:bg-white/5 transition-colors text-left"
-                                    >
+                                    <button key={cat.id} onClick={() => { setViewCategory(cat.id); setScreen('q_list'); }} className="glass-panel p-6 flex items-center justify-between hover:bg-white/5 transition-colors text-left">
                                         <div className="flex items-center gap-5">
                                             <span className="text-3xl">{cat.icon}</span>
                                             <div>
@@ -629,7 +591,7 @@
                             })}
                         </div>
                         <div className="fixed bottom-6 left-5 right-5 max-w-lg mx-auto">
-                            <button onClick={() => setScreen('add_q')} className="w-full py-5 rounded-2xl font-bold text-sm uppercase tracking-widest btn-romantic flex items-center justify-center gap-2 shadow-2xl">
+                            <button onClick={() => setScreen('add_q')} className="w-full h-14 rounded-2xl font-bold text-sm uppercase tracking-widest btn-romantic flex items-center justify-center gap-2 shadow-2xl">
                                 <Icons.Plus /> Добавить вопрос
                             </button>
                         </div>
@@ -643,7 +605,7 @@
                 const qs = db.filter(q => q.categoryId === viewCategory);
                 
                 return (
-                    <div className="min-h-[100dvh] w-full flex flex-col p-5 fade-in max-w-2xl mx-auto">
+                    <div className="min-h-[100dvh] w-full flex flex-col p-5 fade-in max-w-2xl mx-auto relative z-10">
                         <div className="flex items-center gap-4 mb-10 pt-4 flex-shrink-0">
                             <button onClick={() => setScreen('cat_list')} className="p-4 bg-white/5 rounded-full hover:bg-white/10 text-white/80 transition-all">
                                 <Icons.Back />
@@ -661,10 +623,10 @@
                                 if (diffQs.length === 0) return null;
                                 return (
                                     <div key={diff.id}>
-                                        <h3 className={`text-xl md:text-2xl font-bold uppercase tracking-widest mb-5 pl-2 ${diff.classText}`}>{diff.name} ({diffQs.length})</h3>
+                                        <h3 className={`text-[22px] md:text-3xl font-bold uppercase tracking-widest mb-6 pl-2 ${diff.classText}`}>{diff.name} ({diffQs.length})</h3>
                                         <div className="flex flex-col gap-4">
                                             {diffQs.map(q => (
-                                                <div key={q.id} className="glass-panel p-6 text-[15px] md:text-base font-normal text-white/90 leading-relaxed border-white/5 shadow-md">
+                                                <div key={q.id} className="glass-panel p-6 text-[16px] md:text-lg font-normal text-white/90 leading-snug border-white/5 shadow-md">
                                                     {q.text}
                                                 </div>
                                             ))}
@@ -674,7 +636,7 @@
                             })}
                         </div>
                         <div className="fixed bottom-6 left-5 right-5 max-w-2xl mx-auto">
-                            <button onClick={() => setScreen('add_q')} className="w-full py-5 rounded-2xl font-bold text-sm uppercase tracking-widest btn-romantic flex items-center justify-center gap-2 shadow-2xl">
+                            <button onClick={() => setScreen('add_q')} className="w-full h-14 rounded-2xl font-bold text-sm uppercase tracking-widest btn-romantic flex items-center justify-center gap-2 shadow-2xl">
                                 <Icons.Plus /> Добавить вопрос
                             </button>
                         </div>
@@ -685,7 +647,7 @@
             // ФОРМА ДОБАВЛЕНИЯ
             if (screen === 'add_q') {
                 return (
-                    <div className="min-h-[100dvh] w-full flex flex-col p-5 fade-in max-w-lg mx-auto">
+                    <div className="min-h-[100dvh] w-full flex flex-col p-5 fade-in max-w-lg mx-auto relative z-10">
                         <div className="flex items-center gap-4 mb-8 pt-4">
                             <button onClick={() => setScreen('cat_list')} className="p-4 bg-white/5 rounded-full hover:bg-white/10 text-white/80 transition-all">
                                 <Icons.Back />
@@ -702,7 +664,7 @@
                                     </svg>
                                     <h3 className="text-2xl font-bold text-white mb-2 tracking-wide">Успешно добавлен!</h3>
                                     <p className="text-xs font-bold text-white/40 mb-10 tracking-widest uppercase">ID: {addSuccess}</p>
-                                    <button onClick={() => { setAddSuccess(null); setAddForm({ text: '', cat: 'family', diff: 'Простые' }); }} className="btn-ghost px-8 py-5 rounded-2xl text-xs font-bold uppercase tracking-widest shadow-lg w-full">
+                                    <button onClick={() => { setAddSuccess(null); setAddForm({ text: '', cat: 'family', diff: 'Простые' }); }} className="btn-ghost h-14 w-full rounded-2xl text-xs font-bold uppercase tracking-widest shadow-lg">
                                         Добавить еще
                                     </button>
                                 </div>
@@ -716,7 +678,7 @@
                                         value={addForm.text}
                                         onChange={e => setAddForm({...addForm, text: e.target.value})}
                                         className="w-full glass-panel p-6 text-base text-white/90 placeholder-white/20 outline-none resize-none h-40 focus:border-[#be123c]/50 transition-colors shadow-inner"
-                                        placeholder="Напишите ваш откровенный или глубокий вопрос..."
+                                        placeholder="Напишите ваш вопрос..."
                                     ></textarea>
                                 </div>
                                 
@@ -725,7 +687,7 @@
                                     <select 
                                         value={addForm.cat}
                                         onChange={e => setAddForm({...addForm, cat: e.target.value})}
-                                        className="w-full glass-panel p-5 text-base text-white/90 outline-none appearance-none font-medium"
+                                        className="w-full glass-panel h-14 px-5 text-base text-white/90 outline-none appearance-none font-medium"
                                         style={{ backgroundColor: "rgba(12,8,15,0.95)" }}
                                     >
                                         {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
@@ -737,7 +699,7 @@
                                     <select 
                                         value={addForm.diff}
                                         onChange={e => setAddForm({...addForm, diff: e.target.value})}
-                                        className="w-full glass-panel p-5 text-base text-white/90 outline-none appearance-none font-medium"
+                                        className="w-full glass-panel h-14 px-5 text-base text-white/90 outline-none appearance-none font-medium"
                                         style={{ backgroundColor: "rgba(12,8,15,0.95)" }}
                                     >
                                         {DIFFICULTIES.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
@@ -745,10 +707,10 @@
                                 </div>
 
                                 <div className="mt-auto pb-6 pt-4 flex gap-4">
-                                    <button type="button" onClick={() => setScreen('cat_list')} className="flex-1 py-5 rounded-2xl btn-ghost text-[11px] font-bold uppercase tracking-widest">
+                                    <button type="button" onClick={() => setScreen('cat_list')} className="flex-1 h-14 rounded-2xl btn-ghost text-[11px] font-bold uppercase tracking-widest">
                                         Назад
                                     </button>
-                                    <button type="submit" className="flex-[2] py-5 rounded-2xl btn-romantic text-white text-[12px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 shadow-xl">
+                                    <button type="submit" className="flex-[2] h-14 rounded-2xl btn-romantic text-white text-[12px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 shadow-xl">
                                         <Icons.Plus /> Сохранить
                                     </button>
                                 </div>
