@@ -53,7 +53,7 @@
             box-shadow: 0 15px 50px rgba(0, 0, 0, 0.5);
         }
 
-        /* Кнопки одинаковой высоты */
+        /* Кнопки одинаковой высоты (56px) */
         .btn-romantic {
             background: linear-gradient(135deg, #be123c 0%, #881337 100%);
             box-shadow: 0 6px 25px rgba(159, 18, 57, 0.35);
@@ -63,13 +63,15 @@
         .btn-romantic:active { transform: scale(0.96); box-shadow: 0 2px 10px rgba(159, 18, 57, 0.5); }
 
         .btn-ghost {
-            background: transparent;
+            background: rgba(255, 255, 255, 0.04);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(255,255,255,0.15);
-            color: rgba(255,255,255,0.8);
+            color: rgba(255,255,255,0.85);
             transition: all 0.3s ease;
             height: 56px;
         }
-        .btn-ghost:active { transform: scale(0.96); background: rgba(255,255,255,0.08); }
+        .btn-ghost:active { transform: scale(0.96); background: rgba(255,255,255,0.1); }
         
         .cat-btn-active {
             background: rgba(255, 255, 255, 0.1);
@@ -83,8 +85,8 @@
         }
 
         /* Анимации */
-        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
-        .slide-up { animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .fade-in { animation: fadeIn 0.35s ease-out forwards; }
+        .slide-up { animation: slideUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         .heart-pulse { animation: heartPulse 1.8s infinite ease-in-out; }
         
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -119,10 +121,10 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        // ВАШ КЛЮЧ ИЗ GOOGLE AI STUDIO:
+        // НАСТРОЙКИ БАЗЫ ДАННЫХ И AI
+        const FIREBASE_BASE_URL = "https://project-x-5e16a-default-rtdb.europe-west1.firebasedatabase.app";
+        const GIST_FALLBACK_URL = "https://gist.githubusercontent.com/1s0meb0dy1/9d890bde848f3a2c5464c7c1729fe17a/raw/questions.json";
         const GEMINI_API_KEY = "AQ.Ab8RN6JlrwetdJDgph_PDXCwnW1GCoUcw6jc8_iIBLEbG1dNWA"; 
-
-        const GIST_URL = "https://gist.githubusercontent.com/1s0meb0dy1/9d890bde848f3a2c5464c7c1729fe17a/raw/questions.json";
 
         const CATEGORIES = [
             { id: "family", name: "Семья", icon: "👨‍👩‍👧‍👦", color: "from-blue-950/40 to-transparent" },
@@ -143,87 +145,109 @@
             { id: "Глубокие", name: "Глубокие", classText: "diff-hard", classBg: "bg-diff-hard" }
         ];
 
+        // Двухконтурный генератор реального ИИ (гарантирует уникальный ответ при каждом клике)
         const fetchFromAI = async (promptType, questionText, catId) => {
-            const cleanQuestion = questionText.replace(/^№\s*\d+\.\s*/, '');
-            
-            if (!GEMINI_API_KEY || GEMINI_API_KEY.trim() === "") {
-                return generateLocalFallback(promptType, cleanQuestion, catId);
-            }
+            const cleanQuestion = questionText.replace(/^№\s*\d+\.\s*/, '').trim();
+            const randomSeed = Math.floor(Math.random() * 10000000);
+            const catObj = CATEGORIES.find(c => c.id === catId);
+            const catName = catObj ? catObj.name : "Отношения";
 
-            let promptStr = "";
-            let maxTokens = 800; // Увеличенный лимит для развернутых ответов
-            let temperature = 0.95; // Высокая креативность, чтобы ответы не повторялись
+            let systemPrompt = "";
+            let userPrompt = "";
 
             if (promptType === "situation") {
-                promptStr = `Ты креативный сценарист. Мы — влюбленная пара. Придумай ОДНУ абсолютно уникальную, реалистичную и захватывающую жизненную ситуацию (3-4 предложения), которая происходит с нами прямо сейчас и идеально подводит к этому вопросу: "${cleanQuestion}". Ситуация должна быть каждый раз новой, избегай шаблонных завязок. В конце органично задай мне этот вопрос от первого лица ("я", "мы"). Не используй слово "ситуация" в ответе.`;
-                maxTokens = 400;
+                systemPrompt = "Ты креативный сценарист и психолог отношений. Пиши живо, реалистично, без шаблонов и повторений.";
+                userPrompt = `Контекст: Мы пара (Влад и Ира). Текущий вопрос из категории "${catName}": "${cleanQuestion}".
+Сгенерируй абсолютно новый, уникальный ответ строго по этому вопросу (код уникальности: ${randomSeed}), разделенный на 2 блока с отступами:
+
+🎬 Моделирование ситуации:
+(Придумай 1 реалистичную, жизненную или интригующую ситуацию из 3-4 предложений, которая происходит с нами прямо сейчас и органично подводит к вопросу "${cleanQuestion}". Пиши от первого лица "мы").
+
+👩👨 Как бы ответили большинство девушек и парней:
+(Напиши развернуто и честно: как на этот конкретный вопрос или ситуацию обычно реагируют и отвечают большинство девушек, а как — большинство парней, и почему их взгляды могут совпадать или различаться).`;
             } else {
-                promptStr = `Выступи в роли эксперта по семейной психологии. Проанализируй этот вопрос для пары: "${cleanQuestion}".
-Дай абсолютно уникальный, развернутый и полезный ответ, опираясь на психологию и статистику. Никаких шаблонных фраз, каждый ответ должен быть новым.
-Структурируй ответ строго по этим 5 пунктам (обязательно используй эти заголовки с эмодзи и делай двойной отступ (абзац) между ними):
+                systemPrompt = "Ты практикующий семейный психотерапевт, сексолог и аналитик. Каждый твой разбор глубокий, конкретный и привязан строго к заданному вопросу.";
+                userPrompt = `Проанализируй конкретный вопрос для пары (Влад и Ира) из категории "${catName}": "${cleanQuestion}".
+Сгенерируй абсолютно новый, уникальный профессиональный разбор именно этого вопроса (код уникальности: ${randomSeed}) строго по следующим 6 пунктам с двойными отступами между ними:
 
 🧠 Как лучше поступить в этой ситуации:
-(Напиши здесь детальный разбор, как паре правильно подойти к обсуждению и решению этого вопроса).
+(Конкретный разбор: как паре правильно подойти к обсуждению и решению именно вопроса "${cleanQuestion}").
+
+👩👨 Как обычно отвечают большинство девушек и парней:
+(Объективный разбор: что чаще всего думают, чувствуют и отвечают на этот вопрос большинство девушек, а что — большинство парней).
 
 💡 Интересные факты:
-(Приведи 1-2 уникальных, неочевидных факта из психологии или биологии, связанных с этой темой).
+(1-2 научных факта из психологии, нейробиологии или социологии строго по теме вопроса).
 
 📊 Статистика:
-(Приведи релевантные реальные или научно обоснованные примерные данные/проценты по этой теме в мире или в отношениях).
+(Реальные или научно обоснованные статистические данные и проценты по теме вопроса "${cleanQuestion}").
 
 🔗 Как это влияет на отношения:
-(Объясни, к чему приведет игнорирование или, наоборот, правильное обсуждение этого вопроса в долгосрочной перспективе).
+(К чему приводит замалчивание этой темы и что дает паре честный ответ).
 
 🛠️ Психологические советы:
-(Дай 2-3 практичных, применимых в жизни совета для пары).`;
+(2-3 практических совета, как обсудить этот вопрос без обид и стать ближе).`;
             }
 
+            // Контур 1: Прямой запрос к Gemini API (если ключ валидный AIza...)
+            if (GEMINI_API_KEY && GEMINI_API_KEY.startsWith("AIza")) {
+                try {
+                    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+                    const response = await fetch(url, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: systemPrompt + "\n\n" + userPrompt }] }],
+                            generationConfig: { temperature: 0.95, maxOutputTokens: 900 }
+                        })
+                    });
+                    if (response.ok) {
+                        const data = await response.json();
+                        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+                        if (text) return text.trim();
+                    }
+                } catch (e) {
+                    console.warn("Gemini direct call failed, switching to neural gateway...", e);
+                }
+            }
+
+            // Контур 2: Реальный нейросетевой шлюз (OpenAI/Mistral через Pollinations AI — работает без привязки к ключу)
             try {
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
-                const response = await fetch(url, {
+                const response = await fetch("https://text.pollinations.ai/openai", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        contents: [{ parts: [{ text: promptStr }] }],
-                        generationConfig: { temperature: temperature, maxOutputTokens: maxTokens }
+                        model: "openai",
+                        seed: randomSeed,
+                        temperature: 0.9,
+                        messages: [
+                            { role: "system", content: systemPrompt },
+                            { role: "user", content: userPrompt }
+                        ]
                     })
                 });
-                
-                if (!response.ok) throw new Error("API Limit");
-                const data = await response.json();
-                return data.candidates[0].content.parts[0].text.trim();
-            } catch (error) {
-                return generateLocalFallback(promptType, cleanQuestion, catId);
+                if (response.ok) {
+                    const data = await response.json();
+                    const content = data?.choices?.[0]?.message?.content;
+                    if (content) return content.trim();
+                }
+            } catch (e) {
+                console.warn("Primary neural gateway failed, trying GET fallback...", e);
             }
-        };
 
-        const generateLocalFallback = (promptType, cleanQuestion, catId) => {
-            if (promptType === "situation") {
-                const intros = [
-                    "Внезапно посреди оживленной улицы мы останавливаемся, я смотрю на тебя и вдруг решаю спросить", 
-                    "Пока мы распаковываем вещи после долгой поездки, в голове всплывает мысль", 
-                    "Мы сидим в полумраке, играет любимый трек, и атмосфера сама подталкивает задать этот вопрос"
-                ];
-                const intro = intros[Math.floor(Math.random() * intros.length)];
-                return `${intro}:\n\n«${cleanQuestion}»\n\nЧто ты ответишь мне прямо сейчас?`;
-            } else {
-                return `🧠 Как лучше поступить в этой ситуации:
-Постарайтесь обсудить вопрос «${cleanQuestion}» в спокойной обстановке. Самое главное — слушать партнера без осуждения и не пытаться сразу доказать свою правоту.
-
-💡 Интересные факты:
-Искреннее обсуждение сложных или уязвимых тем синхронизирует сердцебиение у партнеров и вызывает выброс окситоцина (гормона привязанности).
-
-📊 Статистика:
-По данным психологических опросов, более 65% пар признаются, что подобные темы вызывают у них стресс, но их регулярное обсуждение снижает риск расставания на треть.
-
-🔗 Как это влияет на отношения:
-Открытость в этом вопросе создает прочный фундамент доверия. Вы учитесь быть уязвимыми друг перед другом, что переводит отношения на более зрелый уровень.
-
-🛠️ Психологические советы:
-1. Используйте "Я-сообщения" (говорите "Я чувствую...", а не "Ты всегда...").
-2. Делайте паузы, если эмоции накаляются.
-3. Поблагодарите партнера за честный ответ, даже если он не совпадает с вашим мнением.`;
+            // Контур 3: Резервный GET-запрос к нейросети
+            try {
+                const fallbackUrl = `https://text.pollinations.ai/${encodeURIComponent(systemPrompt + "\n" + userPrompt)}?seed=${randomSeed}&model=openai`;
+                const response = await fetch(fallbackUrl);
+                if (response.ok) {
+                    const text = await response.text();
+                    if (text && text.length > 40) return text.trim();
+                }
+            } catch (e) {
+                console.error("All AI endpoints unreachable:", e);
             }
+
+            return `Не удалось связаться с нейросетью (проверьте интернет-соединение).\n\nПопробуйте нажать кнопку еще раз для вопроса:\n«${cleanQuestion}»`;
         };
 
         const AnimatedCounter = ({ target }) => {
@@ -231,7 +255,7 @@
             useEffect(() => {
                 if (!target || target === 0) { setCount(0); return; }
                 let current = 0;
-                const stepTime = Math.abs(Math.floor(1200 / target)); 
+                const stepTime = Math.max(5, Math.floor(1000 / target)); 
                 const timer = setInterval(() => {
                     current += 1;
                     setCount(current);
@@ -245,17 +269,20 @@
         const Icons = {
             Play: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
             Menu: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>,
-            Back: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>,
-            Next: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>,
-            Sparkles: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>,
+            Back: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>,
+            Next: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>,
+            Sparkles: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>,
             List: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>,
             Plus: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>,
             Check: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>,
-            Bulb: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
+            Bulb: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>,
+            Edit: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>,
+            Trash: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
         };
 
         function App() {
             const [db, setDb] = useState([]);
+            const [dbSubPath, setDbSubPath] = useState(""); // "" или "/questions"
             const [isLoading, setIsLoading] = useState(true);
             const [screen, setScreen] = useState('menu'); 
             const [selectedCats, setSelectedCats] = useState(CATEGORIES.map(c => c.id));
@@ -264,35 +291,114 @@
             const [gameQuestions, setGameQuestions] = useState([]);
             const [currentIndex, setCurrentIndex] = useState(0);
             const [answeredCount, setAnsweredCount] = useState(0); 
-            
-            // Состояние для отдельного AI-экрана
-            const [aiType, setAiType] = useState('situation'); // 'situation' или 'psych'
+            const [showEndGameConfirm, setShowEndGameConfirm] = useState(false);
+
+            // Состояние для AI-экрана
+            const [aiType, setAiType] = useState('situation');
             const [aiContent, setAiContent] = useState('');
             const [isAiTyping, setIsAiTyping] = useState(false);
             const typingIntervalRef = useRef(null);
 
             const [viewCategory, setViewCategory] = useState(null);
             
+            // Добавление вопроса
             const [addForm, setAddForm] = useState({ text: '', cat: 'family', diff: 'Простые' });
-            const [addSuccess, setAddSuccess] = useState(null);
+            const [addStatus, setAddStatus] = useState(null); // { ok: bool, msg: string, id?: string }
+            const [isSaving, setIsSaving] = useState(false);
 
-            useEffect(() => {
-                fetch(GIST_URL + "?t=" + new Date().getTime())
-                    .then(res => res.json())
-                    .then(data => {
-                        const numberedData = data.map((q, index) => {
-                            if (!q || !q.text) return null;
-                            const hasNumber = q.text.startsWith("№");
-                            return { ...q, text: hasNumber ? q.text : `№ ${index + 1}. ${q.text}` };
-                        }).filter(Boolean);
-                        setDb(numberedData);
-                        setIsLoading(false); 
-                    })
-                    .catch(err => {
-                        console.error(err);
-                        setDb([{ text: "Ошибка загрузки вопросов.", categoryId: "family", level: "Простые" }]);
-                        setIsLoading(false);
+            // Редактирование и удаление вопроса
+            const [editingQuestion, setEditingQuestion] = useState(null);
+            const [editForm, setEditForm] = useState({ text: '', cat: 'family', diff: 'Простые' });
+            const [returnScreen, setReturnScreen] = useState('menu');
+            const [confirmModal, setConfirmModal] = useState(null); // { action: 'save' | 'delete', title: string }
+            const [resultModal, setResultModal] = useState(null);   // { ok: bool, msg: string, afterCloseScreen?: string }
+
+            // Форматирование сырых данных из базы с сохранением постоянных номеров и ID
+            const parseDatabaseObject = (rawObj) => {
+                const entries = Object.entries(rawObj);
+                let autoNum = 1;
+                const parsed = [];
+
+                for (let i = 0; i < entries.length; i++) {
+                    const [dbKey, item] = entries[i];
+                    if (!item || typeof item !== 'object' || !item.text) continue;
+
+                    const matchNum = String(item.text).match(/^№\s*(\d+)\.\s*(.*)/s);
+                    const cleanText = matchNum ? matchNum[2].trim() : String(item.text).trim();
+                    const permanentNum = item.num ? Number(item.num) : (matchNum ? Number(matchNum[1]) : autoNum);
+                    if (permanentNum >= autoNum) autoNum = permanentNum + 1;
+
+                    parsed.push({
+                        dbKey: String(dbKey),
+                        id: item.id || `q_${ permanentNum }`,
+                        num: permanentNum,
+                        categoryId: item.categoryId || "family",
+                        level: item.level || "Простые",
+                        cleanText: cleanText,
+                        text: `№ ${permanentNum}. ${cleanText}`
                     });
+                }
+                return parsed;
+            };
+
+            // Загрузка из Firebase (с авто-импортом из Gist, если база пустая)
+            useEffect(() => {
+                const initDatabase = async () => {
+                    try {
+                        const res = await fetch(`${FIREBASE_BASE_URL}/.json?t=${Date.now()}`);
+                        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                        const data = await res.json();
+
+                        if (data) {
+                            // Проверяем, лежат ли вопросы в корне или внутри узла /questions
+                            if (data.questions && typeof data.questions === 'object') {
+                                setDbSubPath("/questions");
+                                setDb(parseDatabaseObject(data.questions));
+                            } else {
+                                setDbSubPath("");
+                                setDb(parseDatabaseObject(data));
+                            }
+                            setIsLoading(false);
+                        } else {
+                            // Если база в Firebase еще пустая — автоматически переносим вопросы из Gist
+                            const gistRes = await fetch(`${GIST_FALLBACK_URL}?t=${Date.now()}`);
+                            const gistData = await gistRes.json();
+                            const formattedForFirebase = gistData.map((q, idx) => {
+                                const m = String(q.text).match(/^№\s*(\d+)\.\s*(.*)/s);
+                                const cText = m ? m[2].trim() : String(q.text).trim();
+                                return {
+                                    id: q.id || `v_init_${idx + 1}`,
+                                    num: idx + 1,
+                                    categoryId: q.categoryId || "family",
+                                    level: q.level || "Простые",
+                                    text: cText
+                                };
+                            });
+
+                            // Записываем в Firebase
+                            await fetch(`${FIREBASE_BASE_URL}/.json`, {
+                                method: "PUT",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify(formattedForFirebase)
+                            });
+
+                            setDbSubPath("");
+                            setDb(parseDatabaseObject(formattedForFirebase));
+                            setIsLoading(false);
+                        }
+                    } catch (err) {
+                        console.error("Firebase load error, falling back to Gist:", err);
+                        try {
+                            const gistRes = await fetch(`${GIST_FALLBACK_URL}?t=${Date.now()}`);
+                            const gistData = await gistRes.json();
+                            setDb(parseDatabaseObject(gistData));
+                        } catch (e) {
+                            setDb([]);
+                        }
+                        setIsLoading(false);
+                    }
+                };
+                initDatabase();
             }, []);
 
             const toggleCategory = (catId) => setSelectedCats(prev => prev.includes(catId) ? prev.filter(id => id !== catId) : [...prev, catId]);
@@ -312,20 +418,18 @@
             };
 
             const triggerAI = async (type) => {
-                // Переключаем экран на AI Response
                 setAiType(type);
-                setAiContent(type === 'situation' ? "Синтезирую ситуацию..." : "Анализирую профиль...");
+                setAiContent(type === 'situation' ? "Моделирую уникальную ситуацию..." : "Формирую психологический разбор...");
                 setIsAiTyping(true);
                 setScreen('ai_response');
 
                 const q = gameQuestions[currentIndex];
-                const response = await fetchFromAI(type, q.text, q.categoryId);
+                const response = await fetchFromAI(type, q.cleanText || q.text, q.categoryId);
                 
                 if (typingIntervalRef.current) clearInterval(typingIntervalRef.current);
                 
                 setAiContent("");
                 let i = 0;
-                // Более быстрая печать, так как текста теперь много
                 typingIntervalRef.current = setInterval(() => {
                     setAiContent(response.substring(0, i + 1));
                     i++;
@@ -333,19 +437,180 @@
                         clearInterval(typingIntervalRef.current);
                         setIsAiTyping(false);
                     }
-                }, 10);
+                }, 8);
             };
 
-            const handleAddQuestion = (e) => {
+            // Открытие экрана редактирования
+            const openEditScreen = (questionObj, fromScreen) => {
+                setEditingQuestion(questionObj);
+                setEditForm({
+                    text: questionObj.cleanText || questionObj.text.replace(/^№\s*\d+\.\s*/, ''),
+                    cat: questionObj.categoryId,
+                    diff: questionObj.level
+                });
+                setReturnScreen(fromScreen);
+                setConfirmModal(null);
+                setResultModal(null);
+                setScreen('edit_q');
+            };
+
+            // Добавление нового вопроса после последней строки в БД
+            const handleAddQuestion = async (e) => {
                 e.preventDefault();
-                if (!addForm.text.trim()) return;
-                const newId = 'v_local_' + Math.random().toString(36).substr(2, 6);
-                const newQ = { id: newId, categoryId: addForm.cat, level: addForm.diff, text: `№ ${db.length + 1}. ${addForm.text.trim()}` };
-                setDb([...db, newQ]);
-                setAddSuccess(newId);
+                if (!addForm.text.trim() || isSaving) return;
+                setIsSaving(true);
+
+                try {
+                    const cleanInput = addForm.text.replace(/^№\s*\d+\.\s*/, '').trim();
+                    
+                    // Вычисляем следующий номер вопроса и следующий ключ после последней строки
+                    const maxNum = db.reduce((max, item) => Math.max(max, Number(item.num) || 0), 0);
+                    const nextNum = maxNum + 1;
+
+                    const numericKeys = db.map(item => Number(item.dbKey)).filter(n => !isNaN(n));
+                    const nextDbKey = numericKeys.length > 0 ? String(Math.max(...numericKeys) + 1) : String(db.length);
+                    const newId = `v_db_${nextNum}_${Math.random().toString(36).substring(2, 6)}`;
+
+                    const payload = {
+                        id: newId,
+                        num: nextNum,
+                        categoryId: addForm.cat,
+                        level: addForm.diff,
+                        text: cleanInput
+                    };
+
+                    const res = await fetch(`${FIREBASE_BASE_URL}${dbSubPath}/${nextDbKey}.json`, {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!res.ok) {
+                        const errText = await res.text();
+                        throw new Error(`Код ответа сервера: ${res.status}. ${errText}`);
+                    }
+
+                    const createdQuestion = {
+                        ...payload,
+                        dbKey: nextDbKey,
+                        cleanText: cleanInput,
+                        text: `№ ${nextNum}. ${cleanInput}`
+                    };
+
+                    setDb(prev => [...prev, createdQuestion]);
+                    setAddStatus({
+                        ok: true,
+                        msg: `Вопрос № ${nextNum} успешно сохранен после последней строки в базе данных!`,
+                        id: newId
+                    });
+                } catch (err) {
+                    setAddStatus({
+                        ok: false,
+                        msg: `Вопрос НЕ был сохранен в базу данных. Причина: ${err.message || "Ошибка сети или правил доступа Firebase (Rules)."}`
+                    });
+                } finally {
+                    setIsSaving(false);
+                }
+            };
+
+            // Выполнение сохранения изменений в БД
+            const executeSaveEdit = async () => {
+                if (!editingQuestion || isSaving) return;
+                setIsSaving(true);
+                setConfirmModal(null);
+
+                const cleanUpdatedText = editForm.text.replace(/^№\s*\d+\.\s*/, '').trim();
+                const updatedPayload = {
+                    id: editingQuestion.id,     // ID не меняется
+                    num: editingQuestion.num,   // Номер не меняется
+                    categoryId: editForm.cat,
+                    level: editForm.diff,
+                    text: cleanUpdatedText
+                };
+
+                try {
+                    const res = await fetch(`${FIREBASE_BASE_URL}${dbSubPath}/${editingQuestion.dbKey}.json`, {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(updatedPayload)
+                    });
+
+                    if (!res.ok) {
+                        const errText = await res.text();
+                        throw new Error(`Код ${res.status}: ${errText}`);
+                    }
+
+                    const updatedObj = {
+                        ...editingQuestion,
+                        categoryId: editForm.cat,
+                        level: editForm.diff,
+                        cleanText: cleanUpdatedText,
+                        text: `№ ${editingQuestion.num}. ${cleanUpdatedText}`
+                    };
+
+                    setDb(prev => prev.map(q => q.dbKey === editingQuestion.dbKey ? updatedObj : q));
+                    setGameQuestions(prev => prev.map(q => q.dbKey === editingQuestion.dbKey ? updatedObj : q));
+                    setEditingQuestion(updatedObj);
+
+                    setResultModal({
+                        ok: true,
+                        msg: `Вопрос № ${editingQuestion.num} (ID: ${editingQuestion.id}) успешно изменен в базе данных!`,
+                        afterCloseScreen: returnScreen
+                    });
+                } catch (err) {
+                    setResultModal({
+                        ok: false,
+                        msg: `Не удалось изменить вопрос в базе данных. Причина: ${err.message || "Сбой соединения или доступ запрещен в Firebase Rules."}`
+                    });
+                } finally {
+                    setIsSaving(false);
+                }
+            };
+
+            // Выполнение удаления вопроса из БД
+            const executeDeleteQuestion = async () => {
+                if (!editingQuestion || isSaving) return;
+                setIsSaving(true);
+                setConfirmModal(null);
+
+                try {
+                    const res = await fetch(`${FIREBASE_BASE_URL}${dbSubPath}/${editingQuestion.dbKey}.json`, {
+                        method: "DELETE"
+                    });
+
+                    if (!res.ok) {
+                        const errText = await res.text();
+                        throw new Error(`Код ${res.status}: ${errText}`);
+                    }
+
+                    // Удаляем вопрос без изменения номеров и ID остальных вопросов
+                    setDb(prev => prev.filter(q => q.dbKey !== editingQuestion.dbKey));
+                    
+                    setGameQuestions(prev => {
+                        const nextList = prev.filter(q => q.dbKey !== editingQuestion.dbKey);
+                        if (currentIndex >= nextList.length && nextList.length > 0) {
+                            setCurrentIndex(nextList.length - 1);
+                        }
+                        return nextList;
+                    });
+
+                    setResultModal({
+                        ok: true,
+                        msg: `Вопрос № ${editingQuestion.num} (ID: ${editingQuestion.id}) навсегда удален из базы данных!`,
+                        afterCloseScreen: returnScreen
+                    });
+                } catch (err) {
+                    setResultModal({
+                        ok: false,
+                        msg: `Не удалось удалить вопрос из базы данных. Причина: ${err.message || "Сбой сети или запрет записи в Firebase Rules."}`
+                    });
+                } finally {
+                    setIsSaving(false);
+                }
             };
 
             const goToSummary = (fromFinishButton = false) => {
+                setShowEndGameConfirm(false);
                 setAnsweredCount(fromFinishButton ? currentIndex + 1 : currentIndex);
                 setScreen('summary');
             };
@@ -354,12 +619,12 @@
                 return (
                     <div className="min-h-[100dvh] w-full flex flex-col items-center justify-center fade-in">
                         <div className="text-6xl mb-6 heart-pulse text-[#be123c] drop-shadow-[0_0_30px_rgba(190,18,60,0.7)]">🤍</div>
-                        <p className="text-white/40 font-bold uppercase text-[10px] tracking-[0.4em]">Синхронизация</p>
+                        <p className="text-white/40 font-bold uppercase text-[10px] tracking-[0.4em]">Синхронизация с базой</p>
                     </div>
                 );
             }
 
-            // МЕНЮ
+            // ГЛАВНОЕ МЕНЮ
             if (screen === 'menu') {
                 const availableCount = db.filter(q => selectedCats.includes(q.categoryId) && selectedDiffs.includes(q.level)).length;
                 return (
@@ -444,83 +709,134 @@
                 );
             }
 
-            // ИГРА
+            // ЭКРАН ИГРЫ
             if (screen === 'game') {
                 const currentQ = gameQuestions[currentIndex];
+                if (!currentQ) {
+                    setScreen('menu');
+                    return null;
+                }
                 const categoryInfo = CATEGORIES.find(c => c.id === currentQ.categoryId) || CATEGORIES[0];
                 const diffInfo = DIFFICULTIES.find(d => d.id === currentQ.level) || DIFFICULTIES[0];
-                const textParts = currentQ.text.match(/(№\s*\d+\.\s*)(.*)/);
-                const cleanText = textParts ? textParts[2] : currentQ.text;
+                const cleanText = currentQ.cleanText || currentQ.text.replace(/^№\s*\d+\.\s*/, '');
 
                 return (
                     <div className={`min-h-[100dvh] w-full flex flex-col bg-gradient-to-br ${categoryInfo.color} transition-colors duration-1000 fade-in relative z-10`}>
+                        {/* Верхняя панель: слева порядок в игре, справа кнопка Меню */}
                         <div className="flex justify-between items-center p-5 md:p-8 flex-shrink-0">
                             <div className="bg-[#0b0610]/60 backdrop-blur-md border border-white/5 text-white/80 font-bold px-6 py-2.5 rounded-full text-xs tracking-widest shadow-xl">
                                 {currentIndex + 1} / {gameQuestions.length}
                             </div>
-                            <button onClick={() => goToSummary(false)} className="flex items-center gap-2 text-white/80 text-[11px] font-bold uppercase tracking-widest px-5 py-2.5 rounded-full bg-white/5 hover:bg-white/10 active:scale-95 transition-all border border-white/5">
+                            <button 
+                                onClick={() => setShowEndGameConfirm(true)} 
+                                className="flex items-center gap-2 text-white/80 text-[11px] font-bold uppercase tracking-widest px-5 py-2.5 rounded-full bg-white/5 hover:bg-white/10 active:scale-95 transition-all border border-white/5"
+                            >
                                 <Icons.Menu /> Меню
                             </button>
                         </div>
 
-                        <div className="flex-1 flex flex-col items-center justify-center p-5 overflow-y-auto no-scrollbar">
-                            <div className="w-full max-w-lg flex flex-col items-center slide-up" key={currentIndex}>
-                                <div className="glass-panel px-6 py-4 rounded-3xl mb-8 flex flex-col items-center gap-2 shadow-2xl">
-                                    <span className="text-white/40 text-[10px] uppercase tracking-[0.25em] font-bold mb-1">Вопрос {currentIndex + 1}</span>
-                                    <div className="flex items-center gap-3 text-[12px] font-bold uppercase tracking-widest text-white/90">
-                                        <span className="text-xl">{categoryInfo.icon}</span>
+                        {/* Центральная часть с вопросом */}
+                        <div className="flex-1 flex flex-col items-center justify-center px-5 pb-28 overflow-y-auto no-scrollbar">
+                            <div className="w-full max-w-lg flex flex-col items-center slide-up" key={currentQ.dbKey + '_' + currentIndex}>
+                                
+                                {/* Плашка с настоящим номером вопроса из базы + кнопка Редактировать */}
+                                <div className="glass-panel px-6 py-3.5 rounded-3xl mb-7 flex flex-col items-center gap-1.5 shadow-2xl relative pr-12 pl-12">
+                                    <span className="text-white/40 text-[10px] uppercase tracking-[0.25em] font-bold">
+                                        Вопрос {currentQ.num}
+                                    </span>
+                                    <div className="flex items-center gap-2.5 text-[12px] font-bold uppercase tracking-widest text-white/90">
+                                        <span className="text-lg">{categoryInfo.icon}</span>
                                         <span>{categoryInfo.name}</span>
                                         <span className="w-1.5 h-1.5 rounded-full bg-white/20"></span>
                                         <span className={diffInfo.classText}>{diffInfo.name}</span>
                                     </div>
+                                    <button 
+                                        onClick={() => openEditScreen(currentQ, 'game')}
+                                        title="Редактировать вопрос"
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-white/5 hover:bg-white/15 text-white/60 hover:text-white active:scale-90 transition-all border border-white/10"
+                                    >
+                                        <Icons.Edit />
+                                    </button>
                                 </div>
-                                <h2 className="text-[26px] md:text-[30px] font-medium text-center leading-snug mb-10 text-white/95 px-2">
+
+                                {/* Текст вопроса с уменьшенным межстрочным интервалом */}
+                                <h2 className="text-[25px] md:text-[29px] font-medium text-center leading-[1.18] mb-9 text-white/95 px-2">
                                     {cleanText}
                                 </h2>
                                 
-                                <div className="flex flex-col gap-3 w-full max-w-[300px]">
+                                {/* Кнопки "Ситуация" и "Совет" в одну строку */}
+                                <div className="grid grid-cols-2 gap-3 w-full max-w-sm px-1">
                                     <button 
                                         onClick={() => triggerAI('situation')}
-                                        className="h-14 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-white/80 text-[11px] font-bold uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2 shadow-xl"
+                                        className="h-14 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-white/85 text-xs font-bold uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2 shadow-xl px-2"
                                     >
-                                        <Icons.Sparkles /> Сгенерировать ситуацию
+                                        <Icons.Sparkles /> Ситуация
                                     </button>
                                     <button 
                                         onClick={() => triggerAI('psych')}
-                                        className="h-14 bg-[#0ea5e9]/10 hover:bg-[#0ea5e9]/20 border border-[#0ea5e9]/30 rounded-full text-[#38bdf8] text-[11px] font-bold uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2 shadow-xl"
+                                        className="h-14 bg-[#0ea5e9]/10 hover:bg-[#0ea5e9]/20 border border-[#0ea5e9]/30 rounded-2xl text-[#38bdf8] text-xs font-bold uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2 shadow-xl px-2"
                                     >
-                                        <Icons.Bulb /> Совет психолога
+                                        <Icons.Bulb /> Совет
                                     </button>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="p-5 md:p-8 flex gap-4 flex-shrink-0">
-                            <button 
-                                onClick={() => setCurrentIndex(prev => prev - 1)}
-                                disabled={currentIndex === 0}
-                                className="flex-1 h-14 rounded-2xl font-bold text-white/80 glass-panel disabled:opacity-20 active:scale-95 transition-all uppercase tracking-widest text-xs flex items-center justify-center gap-2"
-                            >
-                                <Icons.Back /> Назад
-                            </button>
-                            <button 
-                                onClick={() => {
-                                    if (currentIndex < gameQuestions.length - 1) {
-                                        setCurrentIndex(prev => prev + 1);
-                                    } else {
-                                        goToSummary(true);
-                                    }
-                                }}
-                                className="flex-[2] h-14 rounded-2xl font-bold text-white btn-romantic active:scale-95 uppercase tracking-widest text-sm flex items-center justify-center gap-2 shadow-2xl"
-                            >
-                                {currentIndex === gameQuestions.length - 1 ? "Итоги" : "Далее"} <Icons.Next />
-                            </button>
+                        {/* Закрепленные внизу кнопки Назад и Далее (50% на 50%) */}
+                        <div className="fixed bottom-0 left-0 right-0 p-5 md:p-8 z-20 pointer-events-none">
+                            <div className="max-w-lg mx-auto grid grid-cols-2 gap-4 pointer-events-auto">
+                                <button 
+                                    onClick={() => setCurrentIndex(prev => prev - 1)}
+                                    disabled={currentIndex === 0}
+                                    className="w-full h-14 rounded-2xl font-bold text-white/85 glass-panel disabled:opacity-25 active:scale-95 transition-all uppercase tracking-widest text-xs flex items-center justify-center gap-2"
+                                >
+                                    <Icons.Back /> Назад
+                                </button>
+                                <button 
+                                    onClick={() => {
+                                        if (currentIndex < gameQuestions.length - 1) {
+                                            setCurrentIndex(prev => prev + 1);
+                                        } else {
+                                            goToSummary(true);
+                                        }
+                                    }}
+                                    className="w-full h-14 rounded-2xl font-bold text-white btn-romantic active:scale-95 uppercase tracking-widest text-xs flex items-center justify-center gap-2 shadow-2xl"
+                                >
+                                    {currentIndex === gameQuestions.length - 1 ? "Итоги" : "Далее"} <Icons.Next />
+                                </button>
+                            </div>
                         </div>
+
+                        {/* Промежуточное подтверждение выхода в Меню */}
+                        {showEndGameConfirm && (
+                            <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-5 z-50 fade-in">
+                                <div className="glass-panel p-7 w-full max-w-sm text-center flex flex-col items-center gap-6 border border-white/10">
+                                    <div className="text-4xl">❤️</div>
+                                    <h3 className="text-lg font-bold text-white leading-snug">
+                                        Точно хотите закончить игру?
+                                    </h3>
+                                    <div className="grid grid-cols-2 gap-3 w-full">
+                                        <button 
+                                            onClick={() => setShowEndGameConfirm(false)}
+                                            className="w-full h-14 rounded-2xl btn-ghost text-xs font-bold uppercase tracking-widest"
+                                        >
+                                            Отмена
+                                        </button>
+                                        <button 
+                                            onClick={() => goToSummary(false)}
+                                            className="w-full h-14 rounded-2xl btn-romantic text-white text-xs font-bold uppercase tracking-widest"
+                                        >
+                                            Да
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 );
             }
 
-            // НОВЫЙ ЭКРАН AI-ОТВЕТА
+            // ОТДЕЛЬНАЯ СТРАНИЦА AI-ОТВЕТА
             if (screen === 'ai_response') {
                 const currentQ = gameQuestions[currentIndex];
                 const categoryInfo = CATEGORIES.find(c => c.id === currentQ?.categoryId) || CATEGORIES[0];
@@ -528,35 +844,39 @@
                 
                 return (
                     <div className={`min-h-[100dvh] w-full flex flex-col bg-gradient-to-br ${categoryInfo.color} transition-colors duration-1000 fade-in relative z-10`}>
-                        
-                        <div className="flex items-center gap-4 mb-2 pt-8 px-5 flex-shrink-0">
+                        <div className="flex items-center justify-between pt-6 px-5 flex-shrink-0">
                             <button onClick={() => setScreen('game')} className="p-4 bg-white/5 rounded-full hover:bg-white/10 text-white/80 transition-all">
                                 <Icons.Back />
                             </button>
+                            <span className="text-[11px] font-bold uppercase tracking-widest text-white/40">
+                                Вопрос № {currentQ?.num}
+                            </span>
                         </div>
 
-                        <div className="flex-1 flex flex-col items-center p-5 overflow-y-auto no-scrollbar">
-                            <div className="w-full max-w-lg flex flex-col items-center slide-up text-center pb-10">
-                                
-                                <div className="text-[5rem] mb-6 drop-shadow-[0_0_30px_rgba(225,29,72,0.6)] heart-pulse">❤️‍🩹</div>
-                                
-                                <h2 className={`text-xl font-bold mb-8 tracking-widest uppercase ${isSituation ? 'text-[#be123c]' : 'text-[#38bdf8]'}`}>
-                                    {isSituation ? "AI Ситуация" : "Анализ психолога"}
+                        <div className="flex-1 flex flex-col items-center p-5 pb-28 overflow-y-auto no-scrollbar">
+                            <div className="w-full max-w-lg flex flex-col items-center slide-up text-center">
+                                <div className="text-[4.5rem] mb-4 drop-shadow-[0_0_30px_rgba(225,29,72,0.6)] heart-pulse">❤️‍🩹</div>
+                                <h2 className={`text-xl font-bold mb-6 tracking-widest uppercase ${isSituation ? 'text-[#be123c]' : 'text-[#38bdf8]'}`}>
+                                    {isSituation ? "Моделирование ситуации" : "Совет психолога"}
                                 </h2>
                                 
-                                <div className={`glass-panel p-6 md:p-8 w-full text-left text-white/90 text-[15px] md:text-[16px] font-light leading-relaxed shadow-2xl whitespace-pre-wrap ${isAiTyping ? 'ai-cursor' : ''}`}>
-                                    {aiContent}
+                                <div className="glass-panel p-5 mb-5 w-full text-center text-white/80 text-sm font-medium border border-white/10">
+                                    «{currentQ?.cleanText || currentQ?.text}»
                                 </div>
 
+                                <div className={`glass-panel p-6 md:p-8 w-full text-left text-white/95 text-[15px] md:text-[16px] font-light leading-relaxed shadow-2xl whitespace-pre-wrap ${isAiTyping ? 'ai-cursor' : ''}`}>
+                                    {aiContent}
+                                </div>
                             </div>
                         </div>
 
-                        <div className="p-5 md:p-8 flex gap-4 flex-shrink-0 bg-gradient-to-t from-[#0b0610] to-transparent">
-                            <button onClick={() => setScreen('game')} className="w-full h-14 rounded-2xl btn-ghost flex items-center justify-center text-[11px] font-bold uppercase tracking-widest text-white/90 bg-[#1a0b1c]/80 backdrop-blur-md border-white/20">
-                                Вернуться к вопросу
-                            </button>
+                        <div className="fixed bottom-0 left-0 right-0 p-5 md:p-8 z-20 pointer-events-none">
+                            <div className="max-w-lg mx-auto pointer-events-auto">
+                                <button onClick={() => setScreen('game')} className="w-full h-14 rounded-2xl btn-romantic flex items-center justify-center text-xs font-bold uppercase tracking-widest text-white shadow-2xl">
+                                    Вернуться к вопросу
+                                </button>
+                            </div>
                         </div>
-
                     </div>
                 );
             }
@@ -599,7 +919,7 @@
                 );
             }
 
-            // СПИСОК КАТЕГОРИЙ
+            // СПИСОК КАТЕГОРИЙ (Без отличающейся подложки под кнопками)
             if (screen === 'cat_list') {
                 return (
                     <div className="min-h-[100dvh] w-full flex flex-col p-5 fade-in max-w-lg mx-auto relative z-10">
@@ -607,13 +927,20 @@
                             <button onClick={() => setScreen('menu')} className="p-4 bg-white/5 rounded-full hover:bg-white/10 text-white/80 transition-all">
                                 <Icons.Back />
                             </button>
-                            <h2 className="text-2xl font-bold text-white tracking-wide">База вопросов</h2>
+                            <div>
+                                <h2 className="text-2xl font-bold text-white tracking-wide">База вопросов</h2>
+                                <p className="text-[11px] uppercase tracking-widest text-white/40 mt-1">Всего в базе: {db.length}</p>
+                            </div>
                         </div>
                         <div className="flex-1 overflow-y-auto no-scrollbar flex flex-col gap-4 pb-28">
                             {CATEGORIES.map(cat => {
                                 const count = db.filter(q => q.categoryId === cat.id).length;
                                 return (
-                                    <button key={cat.id} onClick={() => { setViewCategory(cat.id); setScreen('q_list'); }} className="glass-panel p-6 flex items-center justify-between hover:bg-white/5 transition-colors text-left">
+                                    <button 
+                                        key={cat.id} 
+                                        onClick={() => { setViewCategory(cat.id); setScreen('q_list'); }} 
+                                        className="glass-panel p-6 flex items-center justify-between hover:bg-white/5 transition-colors text-left"
+                                    >
                                         <div className="flex items-center gap-5">
                                             <span className="text-3xl">{cat.icon}</span>
                                             <div>
@@ -626,8 +953,11 @@
                                 );
                             })}
                         </div>
-                        <div className="fixed bottom-6 left-5 right-5 max-w-lg mx-auto">
-                            <button onClick={() => setScreen('add_q')} className="w-full h-14 rounded-2xl font-bold text-sm uppercase tracking-widest btn-romantic flex items-center justify-center gap-2 shadow-2xl">
+                        <div className="fixed bottom-6 left-5 right-5 max-w-lg mx-auto pointer-events-none">
+                            <button 
+                                onClick={() => { setAddStatus(null); setAddForm({ text: '', cat: 'family', diff: 'Простые' }); setScreen('add_q'); }} 
+                                className="w-full h-14 rounded-2xl font-bold text-sm uppercase tracking-widest btn-romantic flex items-center justify-center gap-2 shadow-2xl pointer-events-auto"
+                            >
                                 <Icons.Plus /> Добавить вопрос
                             </button>
                         </div>
@@ -635,9 +965,9 @@
                 );
             }
 
-            // СПИСОК ВОПРОСОВ КАТЕГОРИИ
+            // СПИСОК ВОПРОСОВ ВЫБРАННОЙ КАТЕГОРИИ (С иконкой редактирования на каждой карточке)
             if (screen === 'q_list') {
-                const cat = CATEGORIES.find(c => c.id === viewCategory);
+                const cat = CATEGORIES.find(c => c.id === viewCategory) || CATEGORIES[0];
                 const qs = db.filter(q => q.categoryId === viewCategory);
                 
                 return (
@@ -659,11 +989,23 @@
                                 if (diffQs.length === 0) return null;
                                 return (
                                     <div key={diff.id}>
-                                        <h3 className={`text-[22px] md:text-3xl font-bold uppercase tracking-widest mb-6 pl-2 ${diff.classText}`}>{diff.name} ({diffQs.length})</h3>
+                                        <h3 className={`text-[24px] md:text-3xl font-bold uppercase tracking-widest mb-6 pl-2 ${diff.classText}`}>
+                                            {diff.name} ({diffQs.length})
+                                        </h3>
                                         <div className="flex flex-col gap-4">
                                             {diffQs.map(q => (
-                                                <div key={q.id} className="glass-panel p-6 text-[16px] md:text-lg font-normal text-white/90 leading-snug border-white/5 shadow-md">
-                                                    {q.text}
+                                                <div key={q.dbKey} className="glass-panel p-5 md:p-6 flex items-start justify-between gap-4 border-white/5 shadow-md">
+                                                    <div className="text-[16px] md:text-lg font-normal text-white/90 leading-snug">
+                                                        <span className="text-white/40 font-bold mr-2">№ {q.num}.</span>
+                                                        {q.cleanText}
+                                                    </div>
+                                                    <button 
+                                                        onClick={() => openEditScreen(q, 'q_list')}
+                                                        title="Редактировать вопрос"
+                                                        className="flex-shrink-0 p-3 rounded-xl bg-white/5 hover:bg-white/15 text-white/60 hover:text-white active:scale-90 transition-all border border-white/10"
+                                                    >
+                                                        <Icons.Edit />
+                                                    </button>
                                                 </div>
                                             ))}
                                         </div>
@@ -671,8 +1013,11 @@
                                 );
                             })}
                         </div>
-                        <div className="fixed bottom-6 left-5 right-5 max-w-2xl mx-auto">
-                            <button onClick={() => setScreen('add_q')} className="w-full h-14 rounded-2xl font-bold text-sm uppercase tracking-widest btn-romantic flex items-center justify-center gap-2 shadow-2xl">
+                        <div className="fixed bottom-6 left-5 right-5 max-w-2xl mx-auto pointer-events-none">
+                            <button 
+                                onClick={() => { setAddStatus(null); setAddForm({ text: '', cat: viewCategory || 'family', diff: 'Простые' }); setScreen('add_q'); }} 
+                                className="w-full h-14 rounded-2xl font-bold text-sm uppercase tracking-widest btn-romantic flex items-center justify-center gap-2 shadow-2xl pointer-events-auto"
+                            >
                                 <Icons.Plus /> Добавить вопрос
                             </button>
                         </div>
@@ -680,7 +1025,149 @@
                 );
             }
 
-            // ФОРМА ДОБАВЛЕНИЯ
+            // ЭКРАН РЕДАКТИРОВАНИЯ И УДАЛЕНИЯ ВОПРОСА
+            if (screen === 'edit_q' && editingQuestion) {
+                const origText = (editingQuestion.cleanText || editingQuestion.text.replace(/^№\s*\d+\.\s*/, '')).trim();
+                const hasChanges = 
+                    editForm.text.trim() !== "" && (
+                        editForm.text.trim() !== origText ||
+                        editForm.cat !== editingQuestion.categoryId ||
+                        editForm.diff !== editingQuestion.level
+                    );
+
+                return (
+                    <div className="min-h-[100dvh] w-full flex flex-col p-5 fade-in max-w-lg mx-auto relative z-10">
+                        <div className="flex items-center justify-between mb-6 pt-4">
+                            <div className="flex items-center gap-4">
+                                <button onClick={() => setScreen(returnScreen)} className="p-4 bg-white/5 rounded-full hover:bg-white/10 text-white/80 transition-all">
+                                    <Icons.Back />
+                                </button>
+                                <div>
+                                    <h2 className="text-xl font-bold text-white tracking-wide">Редактирование</h2>
+                                    <p className="text-[11px] font-bold uppercase tracking-widest text-white/40 mt-0.5">
+                                        Вопрос № {editingQuestion.num} • ID: {editingQuestion.id}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex-1 flex flex-col gap-6 slide-up">
+                            <div>
+                                <label className="block text-[11px] font-bold uppercase tracking-widest text-white/50 mb-3 ml-2">Текст вопроса</label>
+                                <textarea 
+                                    value={editForm.text}
+                                    onChange={e => setEditForm({...editForm, text: e.target.value})}
+                                    className="w-full glass-panel p-5 text-base text-white/95 placeholder-white/20 outline-none resize-none h-36 focus:border-[#be123c]/50 transition-colors shadow-inner"
+                                    placeholder="Введите текст вопроса..."
+                                ></textarea>
+                            </div>
+                            
+                            <div>
+                                <label className="block text-[11px] font-bold uppercase tracking-widest text-white/50 mb-3 ml-2">Тема вопроса</label>
+                                <select 
+                                    value={editForm.cat}
+                                    onChange={e => setEditForm({...editForm, cat: e.target.value})}
+                                    className="w-full glass-panel h-14 px-5 text-base text-white/90 outline-none appearance-none font-medium bg-transparent"
+                                >
+                                    {CATEGORIES.map(c => <option key={c.id} value={c.id} className="bg-[#1a0b1c] text-white">{c.icon} {c.name}</option>)}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-[11px] font-bold uppercase tracking-widest text-white/50 mb-3 ml-2">Сложность</label>
+                                <select 
+                                    value={editForm.diff}
+                                    onChange={e => setEditForm({...editForm, diff: e.target.value})}
+                                    className="w-full glass-panel h-14 px-5 text-base text-white/90 outline-none appearance-none font-medium bg-transparent"
+                                >
+                                    {DIFFICULTIES.map(d => <option key={d.id} value={d.id} className="bg-[#1a0b1c] text-white">{d.name}</option>)}
+                                </select>
+                            </div>
+
+                            {/* Кнопка удаления вопроса */}
+                            <button 
+                                type="button"
+                                onClick={() => setConfirmModal({ action: 'delete', title: 'Точно ли вы хотите удалить этот вопрос из базы данных?' })}
+                                className="w-full h-14 rounded-2xl border border-rose-500/40 bg-rose-950/20 hover:bg-rose-900/30 text-rose-400 text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2 transition-all active:scale-95"
+                            >
+                                <Icons.Trash /> Удалить вопрос
+                            </button>
+
+                            {/* Кнопки Отменить и Сохранить */}
+                            <div className="mt-auto pb-4 pt-2 grid grid-cols-2 gap-4">
+                                <button 
+                                    type="button" 
+                                    onClick={() => setScreen(returnScreen)} 
+                                    className="w-full h-14 rounded-2xl btn-ghost text-xs font-bold uppercase tracking-widest"
+                                >
+                                    Отменить
+                                </button>
+                                <button 
+                                    type="button"
+                                    disabled={!hasChanges || isSaving}
+                                    onClick={() => setConfirmModal({ action: 'save', title: 'Точно ли вы хотите изменить этот вопрос в базе данных?' })}
+                                    className="w-full h-14 rounded-2xl btn-romantic text-white text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2 shadow-xl disabled:opacity-25 disabled:pointer-events-none"
+                                >
+                                    <Icons.Check /> Сохранить
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Модальное окно подтверждения действия */}
+                        {confirmModal && (
+                            <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-5 z-50 fade-in">
+                                <div className="glass-panel p-7 w-full max-w-sm text-center flex flex-col items-center gap-6 border border-white/10">
+                                    <div className="text-4xl">{confirmModal.action === 'delete' ? '🗑️' : '✏️'}</div>
+                                    <h3 className="text-base font-bold text-white leading-snug">
+                                        {confirmModal.title}
+                                    </h3>
+                                    <div className="grid grid-cols-2 gap-3 w-full">
+                                        <button 
+                                            onClick={() => setConfirmModal(null)}
+                                            className="w-full h-14 rounded-2xl btn-ghost text-xs font-bold uppercase tracking-widest"
+                                        >
+                                            Отмена
+                                        </button>
+                                        <button 
+                                            onClick={() => confirmModal.action === 'delete' ? executeDeleteQuestion() : executeSaveEdit()}
+                                            className="w-full h-14 rounded-2xl btn-romantic text-white text-xs font-bold uppercase tracking-widest"
+                                        >
+                                            Да
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Модальное окно ответа системы (Успех или Ошибка БД) */}
+                        {resultModal && (
+                            <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-5 z-50 fade-in">
+                                <div className="glass-panel p-8 w-full max-w-sm text-center flex flex-col items-center gap-5 border border-white/10">
+                                    <div className="text-5xl">{resultModal.ok ? '✅' : '⚠️'}</div>
+                                    <h3 className="text-lg font-bold text-white">
+                                        {resultModal.ok ? 'Выполнено успешно' : 'Ошибка базы данных'}
+                                    </h3>
+                                    <p className="text-xs text-white/70 leading-relaxed">
+                                        {resultModal.msg}
+                                    </p>
+                                    <button 
+                                        onClick={() => {
+                                            const target = resultModal.afterCloseScreen;
+                                            setResultModal(null);
+                                            if (target) setScreen(target);
+                                        }}
+                                        className="w-full h-14 rounded-2xl btn-romantic text-white text-xs font-bold uppercase tracking-widest mt-2"
+                                    >
+                                        Понятно
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                );
+            }
+
+            // ФОРМА ДОБАВЛЕНИЯ НОВОГО ВОПРОСА В БАЗУ
             if (screen === 'add_q') {
                 return (
                     <div className="min-h-[100dvh] w-full flex flex-col p-5 fade-in max-w-lg mx-auto relative z-10">
@@ -691,18 +1178,37 @@
                             <h2 className="text-2xl font-bold text-white tracking-wide">Новый вопрос</h2>
                         </div>
 
-                        {addSuccess ? (
+                        {addStatus ? (
                             <div className="flex-1 flex flex-col items-center justify-center slide-up">
-                                <div className="glass-panel p-10 w-full flex flex-col items-center text-center shadow-2xl">
-                                    <svg className="checkmark mb-8" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
-                                        <circle className="checkmark-circle" cx="26" cy="26" r="25" fill="none"/>
-                                        <path className="checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
-                                    </svg>
-                                    <h3 className="text-2xl font-bold text-white mb-2 tracking-wide">Успешно добавлен!</h3>
-                                    <p className="text-xs font-bold text-white/40 mb-10 tracking-widest uppercase">ID: {addSuccess}</p>
-                                    <button onClick={() => { setAddSuccess(null); setAddForm({ text: '', cat: 'family', diff: 'Простые' }); }} className="btn-ghost h-14 w-full rounded-2xl text-xs font-bold uppercase tracking-widest shadow-lg">
-                                        Добавить еще
-                                    </button>
+                                <div className="glass-panel p-8 w-full flex flex-col items-center text-center shadow-2xl">
+                                    {addStatus.ok ? (
+                                        <svg className="checkmark mb-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+                                            <circle className="checkmark-circle" cx="26" cy="26" r="25" fill="none"/>
+                                            <path className="checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+                                        </svg>
+                                    ) : (
+                                        <div className="text-5xl mb-6">⚠️</div>
+                                    )}
+                                    <h3 className="text-xl font-bold text-white mb-2 tracking-wide">
+                                        {addStatus.ok ? 'Успешно добавлен!' : 'Ошибка сохранения'}
+                                    </h3>
+                                    <p className="text-xs text-white/70 mb-8 leading-relaxed">
+                                        {addStatus.msg}
+                                    </p>
+                                    <div className="grid grid-cols-2 gap-3 w-full">
+                                        <button 
+                                            onClick={() => setScreen('cat_list')} 
+                                            className="btn-ghost h-14 w-full rounded-2xl text-xs font-bold uppercase tracking-widest"
+                                        >
+                                            К списку
+                                        </button>
+                                        <button 
+                                            onClick={() => { setAddStatus(null); setAddForm({ text: '', cat: addForm.cat, diff: addForm.diff }); }} 
+                                            className="btn-romantic h-14 w-full rounded-2xl text-xs font-bold uppercase tracking-widest text-white"
+                                        >
+                                            Еще один
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         ) : (
@@ -723,10 +1229,9 @@
                                     <select 
                                         value={addForm.cat}
                                         onChange={e => setAddForm({...addForm, cat: e.target.value})}
-                                        className="w-full glass-panel h-14 px-5 text-base text-white/90 outline-none appearance-none font-medium"
-                                        style={{ backgroundColor: "rgba(12,8,15,0.95)" }}
+                                        className="w-full glass-panel h-14 px-5 text-base text-white/90 outline-none appearance-none font-medium bg-transparent"
                                     >
-                                        {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
+                                        {CATEGORIES.map(c => <option key={c.id} value={c.id} className="bg-[#1a0b1c] text-white">{c.icon} {c.name}</option>)}
                                     </select>
                                 </div>
 
@@ -735,19 +1240,18 @@
                                     <select 
                                         value={addForm.diff}
                                         onChange={e => setAddForm({...addForm, diff: e.target.value})}
-                                        className="w-full glass-panel h-14 px-5 text-base text-white/90 outline-none appearance-none font-medium"
-                                        style={{ backgroundColor: "rgba(12,8,15,0.95)" }}
+                                        className="w-full glass-panel h-14 px-5 text-base text-white/90 outline-none appearance-none font-medium bg-transparent"
                                     >
-                                        {DIFFICULTIES.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                                        {DIFFICULTIES.map(d => <option key={d.id} value={d.id} className="bg-[#1a0b1c] text-white">{d.name}</option>)}
                                     </select>
                                 </div>
 
-                                <div className="mt-auto pb-6 pt-4 flex gap-4">
-                                    <button type="button" onClick={() => setScreen('cat_list')} className="flex-1 h-14 rounded-2xl btn-ghost text-[11px] font-bold uppercase tracking-widest">
-                                        Назад
+                                <div className="mt-auto pb-6 pt-4 grid grid-cols-2 gap-4">
+                                    <button type="button" onClick={() => setScreen('cat_list')} className="w-full h-14 rounded-2xl btn-ghost text-xs font-bold uppercase tracking-widest">
+                                        Отмена
                                     </button>
-                                    <button type="submit" className="flex-[2] h-14 rounded-2xl btn-romantic text-white text-[12px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 shadow-xl">
-                                        <Icons.Plus /> Сохранить
+                                    <button type="submit" disabled={isSaving || !addForm.text.trim()} className="w-full h-14 rounded-2xl btn-romantic text-white text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2 shadow-xl disabled:opacity-30">
+                                        <Icons.Plus /> {isSaving ? "Сохранение..." : "Сохранить"}
                                     </button>
                                 </div>
                             </form>
