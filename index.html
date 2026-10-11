@@ -722,10 +722,19 @@
 
                 return (
                     <div className={`min-h-[100dvh] w-full flex flex-col bg-gradient-to-br ${categoryInfo.color} transition-colors duration-1000 fade-in relative z-10`}>
-                        {/* Верхняя панель: слева порядок в игре, справа кнопка Меню */}
+                        {/* Верхняя панель: слева порядок в игре + кнопка Редактировать, справа кнопка Меню */}
                         <div className="flex justify-between items-center p-5 md:p-8 flex-shrink-0">
-                            <div className="bg-[#0b0610]/60 backdrop-blur-md border border-white/5 text-white/80 font-bold px-6 py-2.5 rounded-full text-xs tracking-widest shadow-xl">
-                                {currentIndex + 1} / {gameQuestions.length}
+                            <div className="flex items-center gap-2.5">
+                                <div className="bg-[#0b0610]/60 backdrop-blur-md border border-white/5 text-white/80 font-bold px-6 py-2.5 rounded-full text-xs tracking-widest shadow-xl">
+                                    {currentIndex + 1} / {gameQuestions.length}
+                                </div>
+                                <button 
+                                    onClick={() => openEditScreen(currentQ, 'game')}
+                                    title="Редактировать вопрос"
+                                    className="p-2.5 rounded-full bg-white/5 hover:bg-white/10 text-white/80 hover:text-white active:scale-95 transition-all border border-white/5 shadow-xl"
+                                >
+                                    <Icons.Edit />
+                                </button>
                             </div>
                             <button 
                                 onClick={() => setShowEndGameConfirm(true)} 
@@ -739,8 +748,8 @@
                         <div className="flex-1 flex flex-col items-center justify-center px-5 pb-28 overflow-y-auto no-scrollbar">
                             <div className="w-full max-w-lg flex flex-col items-center slide-up" key={currentQ.dbKey + '_' + currentIndex}>
                                 
-                                {/* Плашка с настоящим номером вопроса из базы + кнопка Редактировать */}
-                                <div className="glass-panel px-6 py-3.5 rounded-3xl mb-7 flex flex-col items-center gap-1.5 shadow-2xl relative pr-12 pl-12">
+                                {/* Плашка с настоящим номером вопроса из базы */}
+                                <div className="glass-panel px-6 py-3.5 rounded-3xl mb-7 flex flex-col items-center gap-1.5 shadow-2xl">
                                     <span className="text-white/40 text-[10px] uppercase tracking-[0.25em] font-bold">
                                         Вопрос {currentQ.num}
                                     </span>
@@ -750,13 +759,6 @@
                                         <span className="w-1.5 h-1.5 rounded-full bg-white/20"></span>
                                         <span className={diffInfo.classText}>{diffInfo.name}</span>
                                     </div>
-                                    <button 
-                                        onClick={() => openEditScreen(currentQ, 'game')}
-                                        title="Редактировать вопрос"
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-white/5 hover:bg-white/15 text-white/60 hover:text-white active:scale-90 transition-all border border-white/10"
-                                    >
-                                        <Icons.Edit />
-                                    </button>
                                 </div>
 
                                 {/* Текст вопроса с уменьшенным межстрочным интервалом */}
