@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#1a0b1c">
+    <meta name="theme-color" content="#160a1c">
     <title>Влад & Ира ❤️</title>
     <!-- React & Tailwind -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
@@ -20,7 +20,7 @@
             min-height: 100dvh;
             margin: 0;
             padding: 0;
-            background-color: #1a0b1c; 
+            background-color: #160a1c; 
             font-family: 'Product Sans', 'Google Sans', sans-serif; 
             overflow-x: hidden;
             color: white; 
@@ -28,9 +28,9 @@
             touch-action: pan-y;
         }
 
-        /* Переливающийся темный фон */
+        /* Переливающийся темный фон 2026 */
         .animated-gradient-bg {
-            background: linear-gradient(-45deg, #1f0d29, #2d1426, #141e30, #2f1322, #111111);
+            background: linear-gradient(-45deg, #1f0d29, #2d1426, #141e30, #2f1322, #110b16);
             background-size: 400% 400%;
             animation: gradientShift 15s ease infinite;
             min-height: 100dvh;
@@ -45,53 +45,64 @@
 
         /* Стекломорфизм */
         .glass-panel { 
-            background: rgba(18, 10, 24, 0.65); 
+            background: rgba(20, 11, 28, 0.68); 
             backdrop-filter: blur(24px);
             -webkit-backdrop-filter: blur(24px);
-            border: 1px solid rgba(255, 255, 255, 0.06); 
+            border: 1px solid rgba(255, 255, 255, 0.08); 
             border-radius: 1.75rem;
             box-shadow: 0 15px 50px rgba(0, 0, 0, 0.5);
         }
 
         /* Кнопки одинаковой высоты (56px) */
         .btn-romantic {
-            background: linear-gradient(135deg, #be123c 0%, #881337 100%);
-            box-shadow: 0 6px 25px rgba(159, 18, 57, 0.35);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background: linear-gradient(135deg, #e11d48 0%, #881337 100%);
+            box-shadow: 0 6px 25px rgba(225, 29, 72, 0.35);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
             height: 56px;
         }
-        .btn-romantic:active { transform: scale(0.96); box-shadow: 0 2px 10px rgba(159, 18, 57, 0.5); }
+        .btn-romantic:active { transform: scale(0.96); box-shadow: 0 2px 10px rgba(225, 29, 72, 0.5); }
+
+        .btn-ai-magic {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.25) 0%, rgba(14, 165, 233, 0.25) 100%);
+            border: 1px solid rgba(167, 139, 250, 0.4);
+            box-shadow: 0 6px 25px rgba(139, 92, 246, 0.2);
+            transition: all 0.25s ease;
+            height: 56px;
+        }
+        .btn-ai-magic:active { transform: scale(0.96); }
 
         .btn-ghost {
             background: rgba(255, 255, 255, 0.04);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.14);
             color: rgba(255,255,255,0.85);
-            transition: all 0.3s ease;
+            transition: all 0.25s ease;
             height: 56px;
         }
         .btn-ghost:active { transform: scale(0.96); background: rgba(255,255,255,0.1); }
         
         .cat-btn-active {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 200, 220, 0.3);
-            box-shadow: 0 0 20px rgba(255, 200, 220, 0.1);
+            background: rgba(255, 255, 255, 0.11);
+            border: 1px solid rgba(255, 200, 220, 0.35);
+            box-shadow: 0 0 20px rgba(255, 200, 220, 0.12);
             transform: scale(0.98);
         }
         .cat-btn-inactive {
             background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.04);
         }
 
         /* Анимации */
-        .fade-in { animation: fadeIn 0.35s ease-out forwards; }
-        .slide-up { animation: slideUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .fade-in { animation: fadeIn 0.3s ease-out forwards; }
+        .slide-up { animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         .heart-pulse { animation: heartPulse 1.8s infinite ease-in-out; }
+        .roulette-glow { animation: rouletteGlow 0.5s infinite alternate ease-in-out; }
         
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes heartPulse { 0%, 100% { transform: scale(1); } 15% { transform: scale(1.15); } 30% { transform: scale(1); } 45% { transform: scale(1.1); } }
+        @keyframes rouletteGlow { from { box-shadow: 0 0 15px rgba(225, 29, 72, 0.3); } to { box-shadow: 0 0 35px rgba(56, 189, 248, 0.6); } }
 
         .checkmark-circle { stroke-dasharray: 166; stroke-dashoffset: 166; stroke-width: 2; stroke-miterlimit: 10; stroke: #10b981; fill: none; animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards; }
         .checkmark { width: 64px; height: 64px; border-radius: 50%; display: block; stroke-width: 2; stroke: #fff; stroke-miterlimit: 10; margin: 10% auto; box-shadow: inset 0px 0px 0px #10b981; animation: fill .4s ease-in-out .4s forwards, scale .3s ease-in-out .9s both; }
@@ -107,9 +118,9 @@
         .diff-easy { color: #34d399; }
         .diff-med  { color: #fbbf24; }
         .diff-hard { color: #fb7185; }
-        .bg-diff-easy { background: rgba(52, 211, 153, 0.15); border: 1px solid rgba(52, 211, 153, 0.3); }
-        .bg-diff-med  { background: rgba(251, 191, 36, 0.15); border: 1px solid rgba(251, 191, 36, 0.3); }
-        .bg-diff-hard { background: rgba(251, 113, 133, 0.15); border: 1px solid rgba(251, 113, 133, 0.3); }
+        .bg-diff-easy { background: rgba(52, 211, 153, 0.15); border: 1px solid rgba(52, 211, 153, 0.35); }
+        .bg-diff-med  { background: rgba(251, 191, 36, 0.15); border: 1px solid rgba(251, 191, 36, 0.35); }
+        .bg-diff-hard { background: rgba(251, 113, 133, 0.15); border: 1px solid rgba(251, 113, 133, 0.35); }
 
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -119,7 +130,7 @@
     <div id="root" class="animated-gradient-bg"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+        const { useState, useEffect, useRef, useMemo } = React;
 
         // НАСТРОЙКИ БАЗЫ ДАННЫХ И AI
         const FIREBASE_BASE_URL = "https://project-x-5e16a-default-rtdb.europe-west1.firebasedatabase.app";
@@ -145,12 +156,74 @@
             { id: "Глубокие", name: "Глубокие", classText: "diff-hard", classBg: "bg-diff-hard" }
         ];
 
-        // Двухконтурный генератор реального ИИ (гарантирует уникальный ответ при каждом клике)
+        // Универсальный вызов нейросети (Gemini + Pollinations OpenAI Fallback)
+        const callNeuralNet = async (systemPrompt, userPrompt, maxTokens = 900) => {
+            const randomSeed = Math.floor(Math.random() * 10000000);
+
+            if (GEMINI_API_KEY && GEMINI_API_KEY.startsWith("AIza")) {
+                try {
+                    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+                    const response = await fetch(url, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: systemPrompt + "\n\n" + userPrompt }] }],
+                            generationConfig: { temperature: 0.95, maxOutputTokens: maxTokens }
+                        })
+                    });
+                    if (response.ok) {
+                        const data = await response.json();
+                        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+                        if (text) return text.trim();
+                    }
+                } catch (e) {
+                    console.warn("Direct Gemini call failed, switching to neural gateway...", e);
+                }
+            }
+
+            try {
+                const response = await fetch("https://text.pollinations.ai/openai", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        model: "openai",
+                        seed: randomSeed,
+                        temperature: 0.92,
+                        messages: [
+                            { role: "system", content: systemPrompt },
+                            { role: "user", content: userPrompt }
+                        ]
+                    })
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    const content = data?.choices?.[0]?.message?.content;
+                    if (content) return content.trim();
+                }
+            } catch (e) {
+                console.warn("Primary gateway failed, trying GET fallback...", e);
+            }
+
+            try {
+                const fallbackUrl = `https://text.pollinations.ai/${encodeURIComponent(systemPrompt + "\n" + userPrompt)}?seed=${randomSeed}&model=openai`;
+                const response = await fetch(fallbackUrl);
+                if (response.ok) {
+                    const text = await response.text();
+                    if (text && text.length > 15) return text.trim();
+                }
+            } catch (e) {
+                console.error("All AI endpoints unreachable:", e);
+            }
+
+            throw new Error("Не удалось связаться с нейросетью. Проверьте подключение к интернету.");
+        };
+
+        // Генератор ответов для "Ситуация" и "Совет"
         const fetchFromAI = async (promptType, questionText, catId) => {
             const cleanQuestion = questionText.replace(/^№\s*\d+\.\s*/, '').trim();
-            const randomSeed = Math.floor(Math.random() * 10000000);
             const catObj = CATEGORIES.find(c => c.id === catId);
             const catName = catObj ? catObj.name : "Отношения";
+            const randomSeed = Math.floor(Math.random() * 999999);
 
             let systemPrompt = "";
             let userPrompt = "";
@@ -158,7 +231,7 @@
             if (promptType === "situation") {
                 systemPrompt = "Ты креативный сценарист и психолог отношений. Пиши живо, реалистично, без шаблонов и повторений.";
                 userPrompt = `Контекст: Мы пара (Влад и Ира). Текущий вопрос из категории "${catName}": "${cleanQuestion}".
-Сгенерируй абсолютно новый, уникальный ответ строго по этому вопросу (код уникальности: ${randomSeed}), разделенный на 2 блока с отступами:
+Сгенерируй абсолютно новый, уникальный ответ строго по этому вопросу (код генерации: ${randomSeed}), разделенный на 2 блока с отступами:
 
 🎬 Моделирование ситуации:
 (Придумай 1 реалистичную, жизненную или интригующую ситуацию из 3-4 предложений, которая происходит с нами прямо сейчас и органично подводит к вопросу "${cleanQuestion}". Пиши от первого лица "мы").
@@ -168,7 +241,7 @@
             } else {
                 systemPrompt = "Ты практикующий семейный психотерапевт, сексолог и аналитик. Каждый твой разбор глубокий, конкретный и привязан строго к заданному вопросу.";
                 userPrompt = `Проанализируй конкретный вопрос для пары (Влад и Ира) из категории "${catName}": "${cleanQuestion}".
-Сгенерируй абсолютно новый, уникальный профессиональный разбор именно этого вопроса (код уникальности: ${randomSeed}) строго по следующим 6 пунктам с двойными отступами между ними:
+Сгенерируй абсолютно новый, уникальный профессиональный разбор именно этого вопроса (код генерации: ${randomSeed}) строго по следующим 6 пунктам с двойными отступами между ними:
 
 🧠 Как лучше поступить в этой ситуации:
 (Конкретный разбор: как паре правильно подойти к обсуждению и решению именно вопроса "${cleanQuestion}").
@@ -189,65 +262,52 @@
 (2-3 практических совета, как обсудить этот вопрос без обид и стать ближе).`;
             }
 
-            // Контур 1: Прямой запрос к Gemini API (если ключ валидный AIza...)
-            if (GEMINI_API_KEY && GEMINI_API_KEY.startsWith("AIza")) {
-                try {
-                    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
-                    const response = await fetch(url, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            contents: [{ parts: [{ text: systemPrompt + "\n\n" + userPrompt }] }],
-                            generationConfig: { temperature: 0.95, maxOutputTokens: 900 }
-                        })
-                    });
-                    if (response.ok) {
-                        const data = await response.json();
-                        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-                        if (text) return text.trim();
-                    }
-                } catch (e) {
-                    console.warn("Gemini direct call failed, switching to neural gateway...", e);
-                }
-            }
-
-            // Контур 2: Реальный нейросетевой шлюз (OpenAI/Mistral через Pollinations AI — работает без привязки к ключу)
             try {
-                const response = await fetch("https://text.pollinations.ai/openai", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        model: "openai",
-                        seed: randomSeed,
-                        temperature: 0.9,
-                        messages: [
-                            { role: "system", content: systemPrompt },
-                            { role: "user", content: userPrompt }
-                        ]
-                    })
-                });
-                if (response.ok) {
-                    const data = await response.json();
-                    const content = data?.choices?.[0]?.message?.content;
-                    if (content) return content.trim();
-                }
+                return await callNeuralNet(systemPrompt, userPrompt, 950);
             } catch (e) {
-                console.warn("Primary neural gateway failed, trying GET fallback...", e);
+                return `${e.message}\n\nПопробуйте нажать кнопку еще раз для вопроса:\n«${cleanQuestion}»`;
             }
+        };
 
-            // Контур 3: Резервный GET-запрос к нейросети
-            try {
-                const fallbackUrl = `https://text.pollinations.ai/${encodeURIComponent(systemPrompt + "\n" + userPrompt)}?seed=${randomSeed}&model=openai`;
-                const response = await fetch(fallbackUrl);
-                if (response.ok) {
-                    const text = await response.text();
-                    if (text && text.length > 40) return text.trim();
-                }
-            } catch (e) {
-                console.error("All AI endpoints unreachable:", e);
-            }
+        // Генератор нового уникального вопроса (Пункт 9)
+        const generateUniqueQuestionAI = async (targetCat, targetDiff, existingQuestionsSample) => {
+            const systemPrompt = "Ты топовый автор психологических, романтических и откровенных игр для пар (Влад и Ира). Твоя задача — придумать один совершенно новый, небанальный, глубокий или острый вопрос, которого еще нет в базе.";
+            const sampleText = existingQuestionsSample.slice(0, 35).map(q => `- ${q.cleanText}`).join("\n");
+            
+            const diffDesc = targetDiff.id === "Простые" 
+                ? "Легкий (прямой, анкетный, жизненный или пикантный вопрос без тяжелой философии)"
+                : targetDiff.id === "Средние"
+                ? "Средний (вопрос на размышление, личный опыт, желания или отношения)"
+                : "Глубокий (максимально откровенный, психологический, провокационный или интимный вопрос)";
 
-            return `Не удалось связаться с нейросетью (проверьте интернет-соединение).\n\nПопробуйте нажать кнопку еще раз для вопроса:\n«${cleanQuestion}»`;
+            const userPrompt = `Придумай ОДИН совершенно новый, уникальный вопрос для пары (Влад и Ира).
+Заданная тема: "${targetCat.name}" (${targetCat.icon}).
+Заданная сложность: "${targetDiff.name}" — ${diffDesc}.
+
+ВАЖНО: Вопрос НЕ должен повторять по смыслу следующие уже существующие вопросы из базы и архива:
+${sampleText}
+
+Требования к ответу:
+1. Выведи ТОЛЬКО чистый текст самого вопроса на русском языке (без кавычек, без номера, без префиксов и без пояснений).
+2. Вопрос должен быть живым, обращенным на "ты", интересным для обсуждения парой.`;
+
+            const raw = await callNeuralNet(systemPrompt, userPrompt, 200);
+            return raw.replace(/^["«№\d\.\-\s]+|["»]+$/g, '').trim();
+        };
+
+        // Автоматическая сквозная перенумерация по порядку без разрывов (Пункт 7)
+        const reindexSequential = (items) => {
+            return items.map((item, idx) => {
+                const seqNum = idx + 1;
+                const clean = item.cleanText || String(item.text || '').replace(/^№\s*\d+\.\s*/, '').trim();
+                return {
+                    ...item,
+                    num: seqNum,
+                    cleanText: clean,
+                    text: `№ ${seqNum}. ${clean}`,
+                    archived: Boolean(item.archived)
+                };
+            });
         };
 
         const AnimatedCounter = ({ target }) => {
@@ -255,7 +315,7 @@
             useEffect(() => {
                 if (!target || target === 0) { setCount(0); return; }
                 let current = 0;
-                const stepTime = Math.max(5, Math.floor(1000 / target)); 
+                const stepTime = Math.max(5, Math.floor(900 / target)); 
                 const timer = setInterval(() => {
                     current += 1;
                     setCount(current);
@@ -273,25 +333,36 @@
             Next: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>,
             Sparkles: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>,
             List: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>,
-            Plus: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>,
-            Check: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>,
+            Plus: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>,
+            Check: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>,
             Bulb: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>,
             Edit: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>,
-            Trash: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+            Trash: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>,
+            Restore: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>,
+            Archive: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>
         };
 
         function App() {
             const [db, setDb] = useState([]);
-            const [dbSubPath, setDbSubPath] = useState(""); // "" или "/questions"
+            const [dbSubPath, setDbSubPath] = useState("");
             const [isLoading, setIsLoading] = useState(true);
             const [screen, setScreen] = useState('menu'); 
             const [selectedCats, setSelectedCats] = useState(CATEGORIES.map(c => c.id));
             const [selectedDiffs, setSelectedDiffs] = useState(DIFFICULTIES.map(d => d.id));
             
+            // Режим игры: 'normal' | 'test'
+            const [gameMode, setGameMode] = useState('normal');
+            const [showModeModal, setShowModeModal] = useState(false);
+
             const [gameQuestions, setGameQuestions] = useState([]);
             const [currentIndex, setCurrentIndex] = useState(0);
             const [answeredCount, setAnsweredCount] = useState(0); 
             const [showEndGameConfirm, setShowEndGameConfirm] = useState(false);
+
+            // Состояние для рандомного выбора первого игрока в Обычном режиме (Пункт 10)
+            const [turnPopup, setTurnPopup] = useState({ open: false, spinning: false, highlight: 'guy', winner: null });
+            const [currentFirstPlayer, setCurrentFirstPlayer] = useState(null);
+            const lastRolledIndexRef = useRef(-1);
 
             // Состояние для AI-экрана
             const [aiType, setAiType] = useState('situation');
@@ -299,24 +370,29 @@
             const [isAiTyping, setIsAiTyping] = useState(false);
             const typingIntervalRef = useRef(null);
 
+            // Списки и пагинация для высокой производительности (без лагов)
             const [viewCategory, setViewCategory] = useState(null);
+            const [visibleLimit, setVisibleLimit] = useState(60);
+            const [archiveExpanded, setArchiveExpanded] = useState(false);
+            const [archiveVisibleLimit, setArchiveVisibleLimit] = useState(50);
+            const [isArchivingSync, setIsArchivingSync] = useState(false);
             
-            // Добавление вопроса
+            // Добавление вопроса + AI генерация
             const [addForm, setAddForm] = useState({ text: '', cat: 'family', diff: 'Простые' });
-            const [addStatus, setAddStatus] = useState(null); // { ok: bool, msg: string, id?: string }
+            const [addStatus, setAddStatus] = useState(null);
             const [isSaving, setIsSaving] = useState(false);
+            const [isGeneratingQuestion, setIsGeneratingQuestion] = useState(false);
 
             // Редактирование и удаление вопроса
             const [editingQuestion, setEditingQuestion] = useState(null);
             const [editForm, setEditForm] = useState({ text: '', cat: 'family', diff: 'Простые' });
             const [returnScreen, setReturnScreen] = useState('menu');
-            const [confirmModal, setConfirmModal] = useState(null); // { action: 'save' | 'delete', title: string }
-            const [resultModal, setResultModal] = useState(null);   // { ok: bool, msg: string, afterCloseScreen?: string }
+            const [confirmModal, setConfirmModal] = useState(null);
+            const [resultModal, setResultModal] = useState(null);
 
-            // Форматирование сырых данных из базы с сохранением постоянных номеров и ID
+            // Парсинг базы со сквозной сортировкой номеров 1..N без разрывов (Пункт 7)
             const parseDatabaseObject = (rawObj) => {
                 const entries = Object.entries(rawObj);
-                let autoNum = 1;
                 const parsed = [];
 
                 for (let i = 0; i < entries.length; i++) {
@@ -325,23 +401,24 @@
 
                     const matchNum = String(item.text).match(/^№\s*(\d+)\.\s*(.*)/s);
                     const cleanText = matchNum ? matchNum[2].trim() : String(item.text).trim();
-                    const permanentNum = item.num ? Number(item.num) : (matchNum ? Number(matchNum[1]) : autoNum);
-                    if (permanentNum >= autoNum) autoNum = permanentNum + 1;
 
                     parsed.push({
                         dbKey: String(dbKey),
-                        id: item.id || `q_${ permanentNum }`,
-                        num: permanentNum,
+                        id: item.id || `q_${i + 1}`,
+                        origNum: item.num ? Number(item.num) : (matchNum ? Number(matchNum[1]) : i + 1),
                         categoryId: item.categoryId || "family",
                         level: item.level || "Простые",
                         cleanText: cleanText,
-                        text: `№ ${permanentNum}. ${cleanText}`
+                        archived: Boolean(item.archived)
                     });
                 }
-                return parsed;
+
+                // Сортируем по исходному порядку и присваиваем непрерывные номера 1..N без дыр
+                parsed.sort((a, b) => a.origNum - b.origNum);
+                return reindexSequential(parsed);
             };
 
-            // Загрузка из Firebase (с авто-импортом из Gist, если база пустая)
+            // Загрузка из Firebase
             useEffect(() => {
                 const initDatabase = async () => {
                     try {
@@ -350,7 +427,6 @@
                         const data = await res.json();
 
                         if (data) {
-                            // Проверяем, лежат ли вопросы в корне или внутри узла /questions
                             if (data.questions && typeof data.questions === 'object') {
                                 setDbSubPath("/questions");
                                 setDb(parseDatabaseObject(data.questions));
@@ -360,7 +436,6 @@
                             }
                             setIsLoading(false);
                         } else {
-                            // Если база в Firebase еще пустая — автоматически переносим вопросы из Gist
                             const gistRes = await fetch(`${GIST_FALLBACK_URL}?t=${Date.now()}`);
                             const gistData = await gistRes.json();
                             const formattedForFirebase = gistData.map((q, idx) => {
@@ -371,11 +446,11 @@
                                     num: idx + 1,
                                     categoryId: q.categoryId || "family",
                                     level: q.level || "Простые",
-                                    text: cText
+                                    text: cText,
+                                    archived: false
                                 };
                             });
 
-                            // Записываем в Firebase
                             await fetch(`${FIREBASE_BASE_URL}/.json`, {
                                 method: "PUT",
                                 headers: { "Content-Type": "application/json" },
@@ -401,20 +476,191 @@
                 initDatabase();
             }, []);
 
-            const toggleCategory = (catId) => setSelectedCats(prev => prev.includes(catId) ? prev.filter(id => id !== catId) : [...prev, catId]);
-            const toggleDiff = (diffId) => setSelectedDiffs(prev => prev.includes(diffId) ? prev.filter(id => id !== diffId) : [...prev, diffId]);
+            // Мемоизированная статистика по активным и архивным вопросам (Пункты 3, 4, 5, 8)
+            const stats = useMemo(() => {
+                const activeByCat = {};
+                const totalByCat = {};
+                CATEGORIES.forEach(c => { activeByCat[c.id] = 0; totalByCat[c.id] = 0; });
 
-            const startGame = () => {
-                let filtered = db.filter(q => selectedCats.includes(q.categoryId) && selectedDiffs.includes(q.level));
-                if (filtered.length === 0) return alert("По этим параметрам нет вопросов. Выберите другие! ❤️");
-                for (let i = filtered.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    [filtered[i], filtered[j]] = [filtered[j], filtered[i]];
+                let availableActive = 0;
+                let availableTotal = 0;
+                const archivedList = [];
+
+                for (let i = 0; i < db.length; i++) {
+                    const q = db[i];
+                    if (totalByCat[q.categoryId] !== undefined) totalByCat[q.categoryId]++;
+                    
+                    const matchesDiff = selectedDiffs.includes(q.level);
+                    const matchesCat = selectedCats.includes(q.categoryId);
+
+                    if (q.archived) {
+                        archivedList.push(q);
+                    } else {
+                        if (activeByCat[q.categoryId] !== undefined) activeByCat[q.categoryId]++;
+                        if (matchesCat && matchesDiff) availableActive++;
+                    }
+
+                    if (matchesCat && matchesDiff) {
+                        availableTotal++;
+                    }
                 }
-                setGameQuestions(filtered);
+
+                return { activeByCat, totalByCat, availableActive, availableTotal, archivedList };
+            }, [db, selectedCats, selectedDiffs]);
+
+            // Если в какой-то теме стало 0 активных вопросов, снимаем с нее выделение (но если в тестовом режиме нужны все, оставляем возможность)
+            const toggleCategory = (catId) => {
+                if (stats.activeByCat[catId] === 0 && stats.totalByCat[catId] === 0) return;
+                setSelectedCats(prev => prev.includes(catId) ? prev.filter(id => id !== catId) : [...prev, catId]);
+            };
+
+            const toggleDiff = (diffId) => {
+                setSelectedDiffs(prev => prev.includes(diffId) ? prev.filter(id => id !== diffId) : [...prev, diffId]);
+            };
+
+            // Запуск рулетки "Кто отвечает первым" для Обычного режима (Пункт 10)
+            useEffect(() => {
+                if (screen === 'game' && gameMode === 'normal' && gameQuestions.length > 0) {
+                    if (lastRolledIndexRef.current !== currentIndex) {
+                        lastRolledIndexRef.current = currentIndex;
+                        const winner = Math.random() < 0.5 ? 'guy' : 'girl';
+                        setTurnPopup({ open: true, spinning: true, highlight: 'guy', winner: null });
+                        
+                        let ticks = 0;
+                        const spinInterval = setInterval(() => {
+                            ticks++;
+                            setTurnPopup(prev => ({
+                                ...prev,
+                                highlight: prev.highlight === 'guy' ? 'girl' : 'guy'
+                            }));
+                            if (ticks >= 9) {
+                                clearInterval(spinInterval);
+                                setTurnPopup({ open: true, spinning: false, highlight: winner, winner: winner });
+                                setCurrentFirstPlayer(winner);
+                            }
+                        }, 110);
+
+                        return () => clearInterval(spinInterval);
+                    }
+                }
+            }, [screen, gameMode, currentIndex, gameQuestions]);
+
+            // Старт игры в выбранном режиме (Пункты 1, 2, 3, 8)
+            const startWithMode = (mode) => {
+                let pool = [];
+                if (mode === 'normal') {
+                    // В обычном режиме берем только НЕ архивные вопросы из активных выбранных тем
+                    pool = db.filter(q => !q.archived && selectedCats.includes(q.categoryId) && selectedDiffs.includes(q.level));
+                    if (pool.length === 0) {
+                        alert("Для обычного режима нет доступных вопросов (возможно, все они уже в Архиве). Выберите Тестовый режим или верните вопросы из Архива! ❤️");
+                        return;
+                    }
+                } else {
+                    // В тестовом режиме показываем абсолютно все вопросы (включая архивные)
+                    const catsToUse = selectedCats.length > 0 ? selectedCats : CATEGORIES.map(c => c.id);
+                    const diffsToUse = selectedDiffs.length > 0 ? selectedDiffs : DIFFICULTIES.map(d => d.id);
+                    pool = db.filter(q => catsToUse.includes(q.categoryId) && diffsToUse.includes(q.level));
+                    if (pool.length === 0) {
+                        alert("В базе нет вопросов по этим фильтрам!");
+                        return;
+                    }
+                }
+
+                const shuffled = [...pool];
+                for (let i = shuffled.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+                }
+
+                setGameMode(mode);
+                setGameQuestions(shuffled);
                 setCurrentIndex(0);
                 setAnsweredCount(0);
+                lastRolledIndexRef.current = -1;
+                setShowModeModal(false);
+                setShowEndGameConfirm(false);
                 setScreen('game');
+            };
+
+            // Перемещение отвеченных вопросов в Архив после завершения Обычной игры (Пункт 2)
+            const archiveAnsweredQuestions = async (questionsToArchive) => {
+                if (!questionsToArchive || questionsToArchive.length === 0) return;
+                const keysSet = new Set(questionsToArchive.map(q => q.dbKey));
+
+                // Мгновенно обновляем локальный стейт
+                setDb(prev => prev.map(q => keysSet.has(q.dbKey) ? { ...q, archived: true } : q));
+
+                // Пакетно сохраняем в Firebase одним запросом
+                try {
+                    const patchPayload = {};
+                    questionsToArchive.forEach(q => {
+                        patchPayload[`${q.dbKey}/archived`] = true;
+                    });
+                    await fetch(`${FIREBASE_BASE_URL}${dbSubPath}.json`, {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(patchPayload)
+                    });
+                } catch (e) {
+                    console.error("Archive sync error:", e);
+                }
+            };
+
+            // Возврат одного вопроса из Архива в активную игру (Пункт 2)
+            const handleRestoreSingleFromArchive = async (qObj) => {
+                setDb(prev => prev.map(q => q.dbKey === qObj.dbKey ? { ...q, archived: false } : q));
+                try {
+                    await fetch(`${FIREBASE_BASE_URL}${dbSubPath}/${qObj.dbKey}.json`, {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ archived: false })
+                    });
+                } catch (e) {
+                    console.error("Failed to restore question:", e);
+                }
+            };
+
+            // Возврат ВСЕХ вопросов из Архива (Пункт 2)
+            const handleRestoreAllFromArchive = async () => {
+                if (stats.archivedList.length === 0 || isArchivingSync) return;
+                setIsArchivingSync(true);
+                const toRestore = [...stats.archivedList];
+
+                setDb(prev => prev.map(q => q.archived ? { ...q, archived: false } : q));
+
+                try {
+                    const patchPayload = {};
+                    toRestore.forEach(q => {
+                        patchPayload[`${q.dbKey}/archived`] = false;
+                    });
+                    await fetch(`${FIREBASE_BASE_URL}${dbSubPath}.json`, {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(patchPayload)
+                    });
+                } catch (e) {
+                    console.error("Failed to restore all questions:", e);
+                } finally {
+                    setIsArchivingSync(false);
+                }
+            };
+
+            // Завершение игры (с учетом различий Обычного и Тестового режимов)
+            const handleFinishGame = async (fromLastQuestionButton = false) => {
+                setShowEndGameConfirm(false);
+
+                if (gameMode === 'test') {
+                    // В тестовом режиме убираем страницу со счетчиком отвеченных вопросов и сразу выходим в меню (Пункт 1)
+                    setScreen('menu');
+                    return;
+                }
+
+                // В обычном режиме все пройденные вопросы (включая текущий открытый вопрос) уходят в Архив (Пункт 2)
+                const totalAnswered = currentIndex + 1;
+                const answeredSlice = gameQuestions.slice(0, totalAnswered);
+                setAnsweredCount(totalAnswered);
+                setScreen('summary');
+                await archiveAnsweredQuestions(answeredSlice);
             };
 
             const triggerAI = async (type) => {
@@ -432,12 +678,41 @@
                 let i = 0;
                 typingIntervalRef.current = setInterval(() => {
                     setAiContent(response.substring(0, i + 1));
-                    i++;
+                    i += 2;
                     if (i >= response.length) {
+                        setAiContent(response);
                         clearInterval(typingIntervalRef.current);
                         setIsAiTyping(false);
                     }
                 }, 8);
+            };
+
+            // AI-генерация нового уникального вопроса в форме добавления (Пункт 9)
+            const handleGenerateQuestionAI = async () => {
+                if (isGeneratingQuestion) return;
+                setIsGeneratingQuestion(true);
+
+                try {
+                    const randomCat = CATEGORIES[Math.floor(Math.random() * CATEGORIES.length)];
+                    const randomDiff = DIFFICULTIES[Math.floor(Math.random() * DIFFICULTIES.length)];
+
+                    // Выбираем сэмпл существующих вопросов этой же темы (из базы и архива), чтобы не повторяться
+                    const catQuestions = db.filter(q => q.categoryId === randomCat.id);
+                    const shuffledSample = [...catQuestions].sort(() => 0.5 - Math.random()).slice(0, 35);
+
+                    const generatedText = await generateUniqueQuestionAI(randomCat, randomDiff, shuffledSample);
+                    if (generatedText) {
+                        setAddForm({
+                            text: generatedText,
+                            cat: randomCat.id,
+                            diff: randomDiff.id
+                        });
+                    }
+                } catch (err) {
+                    alert(err.message || "Ошибка генерации вопроса. Попробуйте еще раз!");
+                } finally {
+                    setIsGeneratingQuestion(false);
+                }
             };
 
             // Открытие экрана редактирования
@@ -454,7 +729,7 @@
                 setScreen('edit_q');
             };
 
-            // Добавление нового вопроса после последней строки в БД
+            // Добавление нового вопроса после последней строки в БД (Пункты 6, 7)
             const handleAddQuestion = async (e) => {
                 e.preventDefault();
                 if (!addForm.text.trim() || isSaving) return;
@@ -462,10 +737,7 @@
 
                 try {
                     const cleanInput = addForm.text.replace(/^№\s*\d+\.\s*/, '').trim();
-                    
-                    // Вычисляем следующий номер вопроса и следующий ключ после последней строки
-                    const maxNum = db.reduce((max, item) => Math.max(max, Number(item.num) || 0), 0);
-                    const nextNum = maxNum + 1;
+                    const nextNum = db.length + 1;
 
                     const numericKeys = db.map(item => Number(item.dbKey)).filter(n => !isNaN(n));
                     const nextDbKey = numericKeys.length > 0 ? String(Math.max(...numericKeys) + 1) : String(db.length);
@@ -476,7 +748,8 @@
                         num: nextNum,
                         categoryId: addForm.cat,
                         level: addForm.diff,
-                        text: cleanInput
+                        text: cleanInput,
+                        archived: false // Новый вопрос сразу попадает в активную игру
                     };
 
                     const res = await fetch(`${FIREBASE_BASE_URL}${dbSubPath}/${nextDbKey}.json`, {
@@ -497,23 +770,23 @@
                         text: `№ ${nextNum}. ${cleanInput}`
                     };
 
-                    setDb(prev => [...prev, createdQuestion]);
+                    setDb(prev => reindexSequential([...prev, createdQuestion]));
                     setAddStatus({
                         ok: true,
-                        msg: `Вопрос № ${nextNum} успешно сохранен после последней строки в базе данных!`,
+                        msg: `Вопрос № ${nextNum} успешно сохранен в базу данных и доступен в новой игре!`,
                         id: newId
                     });
                 } catch (err) {
                     setAddStatus({
                         ok: false,
-                        msg: `Вопрос НЕ был сохранен в базу данных. Причина: ${err.message || "Ошибка сети или правил доступа Firebase (Rules)."}`
+                        msg: `Вопрос НЕ был сохранен в базу данных. Причина: ${err.message || "Ошибка сети или правил доступа Firebase."}`
                     });
                 } finally {
                     setIsSaving(false);
                 }
             };
 
-            // Выполнение сохранения изменений в БД
+            // Сохранение изменений вопроса в БД
             const executeSaveEdit = async () => {
                 if (!editingQuestion || isSaving) return;
                 setIsSaving(true);
@@ -521,11 +794,12 @@
 
                 const cleanUpdatedText = editForm.text.replace(/^№\s*\d+\.\s*/, '').trim();
                 const updatedPayload = {
-                    id: editingQuestion.id,     // ID не меняется
-                    num: editingQuestion.num,   // Номер не меняется
+                    id: editingQuestion.id,
+                    num: editingQuestion.num,
                     categoryId: editForm.cat,
                     level: editForm.diff,
-                    text: cleanUpdatedText
+                    text: cleanUpdatedText,
+                    archived: Boolean(editingQuestion.archived)
                 };
 
                 try {
@@ -560,14 +834,14 @@
                 } catch (err) {
                     setResultModal({
                         ok: false,
-                        msg: `Не удалось изменить вопрос в базе данных. Причина: ${err.message || "Сбой соединения или доступ запрещен в Firebase Rules."}`
+                        msg: `Не удалось изменить вопрос в базе данных. Причина: ${err.message || "Сбой соединения."}`
                     });
                 } finally {
                     setIsSaving(false);
                 }
             };
 
-            // Выполнение удаления вопроса из БД
+            // Удаление вопроса из БД с автоматической пересортировкой номеров без дыр (Пункт 7)
             const executeDeleteQuestion = async () => {
                 if (!editingQuestion || isSaving) return;
                 setIsSaving(true);
@@ -583,8 +857,10 @@
                         throw new Error(`Код ${res.status}: ${errText}`);
                     }
 
-                    // Удаляем вопрос без изменения номеров и ID остальных вопросов
-                    setDb(prev => prev.filter(q => q.dbKey !== editingQuestion.dbKey));
+                    setDb(prev => {
+                        const filtered = prev.filter(q => q.dbKey !== editingQuestion.dbKey);
+                        return reindexSequential(filtered);
+                    });
                     
                     setGameQuestions(prev => {
                         const nextList = prev.filter(q => q.dbKey !== editingQuestion.dbKey);
@@ -596,29 +872,23 @@
 
                     setResultModal({
                         ok: true,
-                        msg: `Вопрос № ${editingQuestion.num} (ID: ${editingQuestion.id}) навсегда удален из базы данных!`,
+                        msg: `Вопрос № ${editingQuestion.num} (ID: ${editingQuestion.id}) навсегда удален из базы данных, нумерация обновлена!`,
                         afterCloseScreen: returnScreen
                     });
                 } catch (err) {
                     setResultModal({
                         ok: false,
-                        msg: `Не удалось удалить вопрос из базы данных. Причина: ${err.message || "Сбой сети или запрет записи в Firebase Rules."}`
+                        msg: `Не удалось удалить вопрос из базы данных. Причина: ${err.message || "Сбой сети."}`
                     });
                 } finally {
                     setIsSaving(false);
                 }
             };
 
-            const goToSummary = (fromFinishButton = false) => {
-                setShowEndGameConfirm(false);
-                setAnsweredCount(fromFinishButton ? currentIndex + 1 : currentIndex);
-                setScreen('summary');
-            };
-
             if (isLoading) {
                 return (
                     <div className="min-h-[100dvh] w-full flex flex-col items-center justify-center fade-in">
-                        <div className="text-6xl mb-6 heart-pulse text-[#be123c] drop-shadow-[0_0_30px_rgba(190,18,60,0.7)]">🤍</div>
+                        <div className="text-6xl mb-6 heart-pulse text-[#e11d48] drop-shadow-[0_0_30px_rgba(225,29,72,0.7)]">🤍</div>
                         <p className="text-white/40 font-bold uppercase text-[10px] tracking-[0.4em]">Синхронизация с базой</p>
                     </div>
                 );
@@ -626,37 +896,56 @@
 
             // ГЛАВНОЕ МЕНЮ
             if (screen === 'menu') {
-                const availableCount = db.filter(q => selectedCats.includes(q.categoryId) && selectedDiffs.includes(q.level)).length;
+                const activeSelectedCatsCount = selectedCats.filter(cid => stats.activeByCat[cid] > 0).length;
+
                 return (
                     <div className="min-h-[100dvh] w-full flex flex-col items-center justify-center p-4 md:p-6 slide-up relative z-10">
                         <div className="text-center mb-6 flex-shrink-0">
                             <h1 className="text-5xl font-bold mb-3 flex items-center justify-center gap-3 text-white tracking-tight">
                                 <span>Влад</span>
-                                <span className="text-4xl text-[#be123c] heart-pulse drop-shadow-[0_0_20px_rgba(190,18,60,0.6)]">❤️</span>
+                                <span className="text-4xl text-[#e11d48] heart-pulse drop-shadow-[0_0_20px_rgba(225,29,72,0.6)]">❤️</span>
                                 <span>Ира</span>
                             </h1>
                             <p className="text-white/40 text-[11px] font-bold uppercase tracking-[0.25em] mt-2">Давай узнаем друг друга еще раз</p>
                         </div>
 
-                        <div className="w-full max-w-md glass-panel p-6 flex flex-col gap-8">
+                        <div className="w-full max-w-md glass-panel p-6 flex flex-col gap-7">
                             <div>
-                                <h2 className="text-[15px] md:text-base font-bold text-center uppercase tracking-widest text-white/50 mb-5">Темы вопросов</h2>
-                                <div className="grid grid-cols-2 gap-3">
-                                    {CATEGORIES.map(cat => (
-                                        <button 
-                                            key={cat.id}
-                                            onClick={() => toggleCategory(cat.id)}
-                                            className={`p-4 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-all duration-300 ${selectedCats.includes(cat.id) ? 'cat-btn-active text-white' : 'cat-btn-inactive text-white/40 hover:text-white/60'}`}
-                                        >
-                                            <span className="text-xl">{cat.icon}</span> 
-                                            <span className="truncate">{cat.name}</span>
-                                        </button>
-                                    ))}
+                                <h2 className="text-[14px] md:text-base font-bold text-center uppercase tracking-widest text-white/50 mb-4">Темы вопросов</h2>
+                                <div className="grid grid-cols-2 gap-2.5">
+                                    {CATEGORIES.map(cat => {
+                                        const catActiveCount = stats.activeByCat[cat.id] || 0;
+                                        const isEmpty = catActiveCount === 0;
+                                        const isSelected = selectedCats.includes(cat.id) && !isEmpty;
+
+                                        return (
+                                            <button 
+                                                key={cat.id}
+                                                disabled={isEmpty}
+                                                onClick={() => toggleCategory(cat.id)}
+                                                className={`p-3.5 rounded-xl text-sm font-medium flex items-center justify-between transition-all duration-300 ${
+                                                    isEmpty 
+                                                        ? 'opacity-30 cursor-not-allowed bg-black/20 border border-white/5 text-white/30' 
+                                                        : isSelected 
+                                                            ? 'cat-btn-active text-white' 
+                                                            : 'cat-btn-inactive text-white/40 hover:text-white/60'
+                                                }`}
+                                            >
+                                                <div className="flex items-center gap-2 truncate">
+                                                    <span className="text-lg">{cat.icon}</span> 
+                                                    <span className="truncate">{cat.name}</span>
+                                                </div>
+                                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/5 text-white/50">
+                                                    {catActiveCount}
+                                                </span>
+                                            </button>
+                                        );
+                                    })}
                                 </div>
                             </div>
 
                             <div className="w-full overflow-hidden">
-                                <h2 className="text-[15px] md:text-base font-bold text-center uppercase tracking-widest text-white/50 mb-5">Сложность вопросов</h2>
+                                <h2 className="text-[14px] md:text-base font-bold text-center uppercase tracking-widest text-white/50 mb-4">Сложность вопросов</h2>
                                 <div className="flex overflow-x-auto gap-3 pb-2 pt-1 px-1 no-scrollbar snap-x touch-pan-x">
                                     {DIFFICULTIES.map(diff => {
                                         const isActive = selectedDiffs.includes(diff.id);
@@ -673,38 +962,104 @@
                                 </div>
                                 <button 
                                     onClick={() => setScreen('cat_list')} 
-                                    className="w-full mt-5 rounded-2xl btn-ghost flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-widest"
+                                    className="w-full mt-4 rounded-2xl btn-ghost flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-widest"
                                 >
-                                    <Icons.List /> Список вопросов
+                                    <Icons.List /> Список вопросов {stats.archivedList.length > 0 ? `(Архив: ${stats.archivedList.length})` : ''}
                                 </button>
                             </div>
 
-                            <div className="flex flex-col gap-6 pt-6 border-t border-white/5 relative">
+                            <div className="flex flex-col gap-5 pt-5 border-t border-white/5 relative">
                                 <div className="absolute left-0 right-0 top-[-10px] text-center">
-                                    <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 bg-[#140b19] px-4 py-1.5 rounded-full border border-white/5">Вы выбрали</span>
+                                    <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 bg-[#160b1e] px-4 py-1.5 rounded-full border border-white/5">Доступно для новой игры</span>
                                 </div>
                                 
-                                <div className="grid grid-cols-[1fr_auto_1fr] items-center px-2 mt-4">
-                                    <div className="flex flex-col items-center gap-2">
-                                        <span className="text-4xl font-light text-white leading-none">{selectedCats.length}</span>
+                                <div className="grid grid-cols-[1fr_auto_1fr] items-center px-2 mt-3">
+                                    <div className="flex flex-col items-center gap-1.5">
+                                        <span className="text-4xl font-light text-white leading-none">{activeSelectedCatsCount}</span>
                                         <span className="uppercase text-[10px] font-bold tracking-widest text-white/40">Тем(ы)</span>
                                     </div>
                                     <div className="h-12 w-[1px] bg-white/10"></div>
-                                    <div className="flex flex-col items-center gap-2">
-                                        <span className="text-4xl font-light text-white leading-none">{availableCount}</span>
+                                    <div className="flex flex-col items-center gap-1.5">
+                                        <span className="text-4xl font-light text-white leading-none">{stats.availableActive}</span>
                                         <span className="uppercase text-[10px] font-bold tracking-widest text-white/40">Вопросов</span>
                                     </div>
                                 </div>
 
                                 <button 
-                                    onClick={startGame}
-                                    disabled={availableCount === 0}
-                                    className="w-full h-14 text-white font-bold text-sm uppercase tracking-[0.2em] btn-romantic disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-2 shadow-2xl rounded-2xl"
+                                    onClick={() => setShowModeModal(true)}
+                                    disabled={stats.availableTotal === 0 && db.length === 0}
+                                    className="w-full h-14 text-white font-bold text-sm uppercase tracking-[0.2em] btn-romantic disabled:opacity-40 disabled:grayscale flex items-center justify-center gap-2 shadow-2xl rounded-2xl"
                                 >
                                     <Icons.Play /> Начать игру
                                 </button>
                             </div>
                         </div>
+
+                        {/* МОДАЛЬНОЕ ОКНО ВЫБОРА РЕЖИМА ИГРЫ (Пункты 1, 2, 5, 8) */}
+                        {showModeModal && (
+                            <div className="fixed inset-0 bg-black/85 backdrop-blur-xl flex items-center justify-center p-5 z-50 fade-in">
+                                <div className="glass-panel p-7 w-full max-w-md flex flex-col gap-5 border border-white/15 shadow-2xl slide-up">
+                                    <div className="text-center">
+                                        <div className="text-4xl mb-3">🎮</div>
+                                        <h3 className="text-xl font-bold text-white leading-snug">
+                                            В каком режиме вы хотите начать игру?
+                                        </h3>
+                                        <p className="text-xs text-white/50 mt-1.5">
+                                            Выберите подходящий формат для текущей сессии
+                                        </p>
+                                    </div>
+
+                                    {/* Кнопка Обычного режима */}
+                                    <button 
+                                        disabled={stats.availableActive === 0}
+                                        onClick={() => startWithMode('normal')}
+                                        className="w-full p-5 rounded-2xl text-left transition-all border border-rose-500/40 bg-gradient-to-br from-rose-950/60 to-black/60 hover:border-rose-400 active:scale-[0.98] disabled:opacity-35 disabled:pointer-events-none flex flex-col gap-1.5 shadow-lg"
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <span className="font-bold text-sm uppercase tracking-wider text-rose-300 flex items-center gap-2">
+                                                ❤️ Обычный режим
+                                            </span>
+                                            <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-rose-500/20 text-rose-200">
+                                                {stats.availableActive} вопр.
+                                            </span>
+                                        </div>
+                                        <p className="text-xs text-white/70 leading-relaxed">
+                                            Случайный выбор первого отвечающего (Влад/Ира), без редактирования карточек. Отвеченные вопросы после игры уходят в Архив.
+                                        </p>
+                                        {stats.availableActive === 0 && (
+                                            <span className="text-[11px] text-rose-400 font-bold mt-1">
+                                                ⚠️ Все вопросы выбранных тем в Архиве — доступен только Тестовый режим!
+                                            </span>
+                                        )}
+                                    </button>
+
+                                    {/* Кнопка Тестового режима */}
+                                    <button 
+                                        onClick={() => startWithMode('test')}
+                                        className="w-full p-5 rounded-2xl text-left transition-all border border-sky-500/40 bg-gradient-to-br from-sky-950/50 to-black/60 hover:border-sky-400 active:scale-[0.98] flex flex-col gap-1.5 shadow-lg"
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <span className="font-bold text-sm uppercase tracking-wider text-sky-300 flex items-center gap-2">
+                                                🛠️ Тестовый режим
+                                            </span>
+                                            <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-sky-500/20 text-sky-200">
+                                                {stats.availableTotal > 0 ? stats.availableTotal : db.length} вопр.
+                                            </span>
+                                        </div>
+                                        <p className="text-xs text-white/70 leading-relaxed">
+                                            Доступны все вопросы (включая Архив), включено редактирование и удаление карточек, быстрый выход в меню без экрана итогов.
+                                        </p>
+                                    </button>
+
+                                    <button 
+                                        onClick={() => setShowModeModal(false)}
+                                        className="w-full h-14 rounded-2xl btn-ghost text-xs font-bold uppercase tracking-widest mt-1"
+                                    >
+                                        Отмена
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 );
             }
@@ -722,23 +1077,25 @@
 
                 return (
                     <div className={`min-h-[100dvh] w-full flex flex-col bg-gradient-to-br ${categoryInfo.color} transition-colors duration-1000 fade-in relative z-10`}>
-                        {/* Верхняя панель: слева порядок в игре + кнопка Редактировать, справа кнопка Меню */}
+                        {/* Верхняя панель: слева порядок в игре + кнопка Редактировать (только в Тестовом режиме), справа кнопка Меню */}
                         <div className="flex justify-between items-center p-5 md:p-8 flex-shrink-0">
                             <div className="flex items-center gap-2.5">
-                                <div className="bg-[#0b0610]/60 backdrop-blur-md border border-white/5 text-white/80 font-bold px-6 py-2.5 rounded-full text-xs tracking-widest shadow-xl">
+                                <div className="bg-[#0b0610]/60 backdrop-blur-md border border-white/10 text-white/85 font-bold px-5 py-2.5 rounded-full text-xs tracking-widest shadow-xl">
                                     {currentIndex + 1} / {gameQuestions.length}
                                 </div>
-                                <button 
-                                    onClick={() => openEditScreen(currentQ, 'game')}
-                                    title="Редактировать вопрос"
-                                    className="p-2.5 rounded-full bg-white/5 hover:bg-white/10 text-white/80 hover:text-white active:scale-95 transition-all border border-white/5 shadow-xl"
-                                >
-                                    <Icons.Edit />
-                                </button>
+                                {gameMode === 'test' && (
+                                    <button 
+                                        onClick={() => openEditScreen(currentQ, 'game')}
+                                        title="Редактировать вопрос"
+                                        className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white active:scale-95 transition-all border border-white/15 shadow-xl"
+                                    >
+                                        <Icons.Edit />
+                                    </button>
+                                )}
                             </div>
                             <button 
                                 onClick={() => setShowEndGameConfirm(true)} 
-                                className="flex items-center gap-2 text-white/80 text-[11px] font-bold uppercase tracking-widest px-5 py-2.5 rounded-full bg-white/5 hover:bg-white/10 active:scale-95 transition-all border border-white/5"
+                                className="flex items-center gap-2 text-white/80 text-[11px] font-bold uppercase tracking-widest px-5 py-2.5 rounded-full bg-white/5 hover:bg-white/10 active:scale-95 transition-all border border-white/10"
                             >
                                 <Icons.Menu /> Меню
                             </button>
@@ -749,10 +1106,17 @@
                             <div className="w-full max-w-lg flex flex-col items-center slide-up" key={currentQ.dbKey + '_' + currentIndex}>
                                 
                                 {/* Плашка с настоящим номером вопроса из базы */}
-                                <div className="glass-panel px-6 py-3.5 rounded-3xl mb-7 flex flex-col items-center gap-1.5 shadow-2xl">
-                                    <span className="text-white/40 text-[10px] uppercase tracking-[0.25em] font-bold">
-                                        Вопрос {currentQ.num}
-                                    </span>
+                                <div className="glass-panel px-6 py-3.5 rounded-3xl mb-5 flex flex-col items-center gap-1.5 shadow-2xl">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-white/45 text-[10px] uppercase tracking-[0.25em] font-bold">
+                                            Вопрос {currentQ.num}
+                                        </span>
+                                        {gameMode === 'test' && currentQ.archived && (
+                                            <span className="text-[9px] uppercase font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                                В архиве
+                                            </span>
+                                        )}
+                                    </div>
                                     <div className="flex items-center gap-2.5 text-[12px] font-bold uppercase tracking-widest text-white/90">
                                         <span className="text-lg">{categoryInfo.icon}</span>
                                         <span>{categoryInfo.name}</span>
@@ -760,6 +1124,16 @@
                                         <span className={diffInfo.classText}>{diffInfo.name}</span>
                                     </div>
                                 </div>
+
+                                {/* Бейдж того, кто отвечает первым в Обычном режиме */}
+                                {gameMode === 'normal' && currentFirstPlayer && (
+                                    <button 
+                                        onClick={() => setTurnPopup({ open: true, spinning: false, highlight: currentFirstPlayer, winner: currentFirstPlayer })}
+                                        className="mb-5 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-[11px] font-bold uppercase tracking-widest text-white/80 flex items-center gap-2 hover:bg-white/10 transition-all"
+                                    >
+                                        <span>{currentFirstPlayer === 'guy' ? '👦 Первым отвечает: Парень (Влад)' : '👧 Первой отвечает: Девушка (Ира)'}</span>
+                                    </button>
+                                )}
 
                                 {/* Текст вопроса с уменьшенным межстрочным интервалом */}
                                 <h2 className="text-[25px] md:text-[29px] font-medium text-center leading-[1.18] mb-9 text-white/95 px-2">
@@ -799,25 +1173,82 @@
                                         if (currentIndex < gameQuestions.length - 1) {
                                             setCurrentIndex(prev => prev + 1);
                                         } else {
-                                            goToSummary(true);
+                                            handleFinishGame(true);
                                         }
                                     }}
                                     className="w-full h-14 rounded-2xl font-bold text-white btn-romantic active:scale-95 uppercase tracking-widest text-xs flex items-center justify-center gap-2 shadow-2xl"
                                 >
-                                    {currentIndex === gameQuestions.length - 1 ? "Итоги" : "Далее"} <Icons.Next />
+                                    {currentIndex === gameQuestions.length - 1 ? (gameMode === 'test' ? "В меню" : "Итоги") : "Далее"} <Icons.Next />
                                 </button>
                             </div>
                         </div>
 
+                        {/* POP-UP СЛУЧАЙНОГО ВЫБОРА ИГРОКА В ОБЫЧНОМ РЕЖИМЕ (Пункт 10) */}
+                        {gameMode === 'normal' && turnPopup.open && (
+                            <div className="fixed inset-0 bg-black/85 backdrop-blur-xl flex items-center justify-center p-5 z-50 fade-in">
+                                <div className="glass-panel p-7 w-full max-w-sm text-center flex flex-col items-center gap-6 border border-white/15 roulette-glow slide-up">
+                                    <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-white/45">
+                                        Вопрос № {currentQ.num} • Жребий
+                                    </span>
+                                    <h3 className="text-lg font-bold text-white">
+                                        {turnPopup.spinning ? "Выбираем, кто отвечает первым..." : "Право первого ответа:"}
+                                    </h3>
+
+                                    <div className="grid grid-cols-2 gap-3.5 w-full">
+                                        <div className={`p-5 rounded-2xl flex flex-col items-center gap-2 transition-all duration-150 border ${
+                                            turnPopup.highlight === 'guy' 
+                                                ? 'bg-sky-500/25 border-sky-400 scale-105 shadow-[0_0_25px_rgba(56,189,248,0.4)]' 
+                                                : 'bg-white/5 border-white/5 opacity-35 scale-95'
+                                        }`}>
+                                            <span className="text-4xl">👦</span>
+                                            <span className="font-bold text-sm text-white">Парень</span>
+                                            <span className="text-[10px] uppercase tracking-widest text-sky-300 font-bold">Влад</span>
+                                        </div>
+
+                                        <div className={`p-5 rounded-2xl flex flex-col items-center gap-2 transition-all duration-150 border ${
+                                            turnPopup.highlight === 'girl' 
+                                                ? 'bg-rose-500/25 border-rose-400 scale-105 shadow-[0_0_25px_rgba(244,63,94,0.4)]' 
+                                                : 'bg-white/5 border-white/5 opacity-35 scale-95'
+                                        }`}>
+                                            <span className="text-4xl">👧</span>
+                                            <span className="font-bold text-sm text-white">Девушка</span>
+                                            <span className="text-[10px] uppercase tracking-widest text-rose-300 font-bold">Ира</span>
+                                        </div>
+                                    </div>
+
+                                    {!turnPopup.spinning && (
+                                        <div className="w-full flex flex-col gap-4 fade-in">
+                                            <div className="text-sm font-bold text-white/90">
+                                                {turnPopup.winner === 'guy' 
+                                                    ? '🔥 Первым на этот вопрос отвечает Влад!' 
+                                                    : '✨ Первой на этот вопрос отвечает Ира!'}
+                                            </div>
+                                            <button 
+                                                onClick={() => setTurnPopup(prev => ({ ...prev, open: false }))}
+                                                className="w-full h-14 rounded-2xl btn-romantic text-white text-xs font-bold uppercase tracking-widest shadow-xl"
+                                            >
+                                                Перейти к вопросу
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
                         {/* Промежуточное подтверждение выхода в Меню */}
                         {showEndGameConfirm && (
                             <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-5 z-50 fade-in">
-                                <div className="glass-panel p-7 w-full max-w-sm text-center flex flex-col items-center gap-6 border border-white/10">
+                                <div className="glass-panel p-7 w-full max-w-sm text-center flex flex-col items-center gap-5 border border-white/10">
                                     <div className="text-4xl">❤️</div>
                                     <h3 className="text-lg font-bold text-white leading-snug">
                                         Точно хотите закончить игру?
                                     </h3>
-                                    <div className="grid grid-cols-2 gap-3 w-full">
+                                    {gameMode === 'normal' && (
+                                        <p className="text-xs text-white/60 leading-relaxed">
+                                            Отвеченные вопросы ({currentIndex + 1} шт.) будут перемещены в Архив и не попадутся в следующей игре.
+                                        </p>
+                                    )}
+                                    <div className="grid grid-cols-2 gap-3 w-full mt-1">
                                         <button 
                                             onClick={() => setShowEndGameConfirm(false)}
                                             className="w-full h-14 rounded-2xl btn-ghost text-xs font-bold uppercase tracking-widest"
@@ -825,7 +1256,7 @@
                                             Отмена
                                         </button>
                                         <button 
-                                            onClick={() => goToSummary(false)}
+                                            onClick={() => handleFinishGame(false)}
                                             className="w-full h-14 rounded-2xl btn-romantic text-white text-xs font-bold uppercase tracking-widest"
                                         >
                                             Да
@@ -858,7 +1289,7 @@
                         <div className="flex-1 flex flex-col items-center p-5 pb-28 overflow-y-auto no-scrollbar">
                             <div className="w-full max-w-lg flex flex-col items-center slide-up text-center">
                                 <div className="text-[4.5rem] mb-4 drop-shadow-[0_0_30px_rgba(225,29,72,0.6)] heart-pulse">❤️‍🩹</div>
-                                <h2 className={`text-xl font-bold mb-6 tracking-widest uppercase ${isSituation ? 'text-[#be123c]' : 'text-[#38bdf8]'}`}>
+                                <h2 className={`text-xl font-bold mb-6 tracking-widest uppercase ${isSituation ? 'text-[#e11d48]' : 'text-[#38bdf8]'}`}>
                                     {isSituation ? "Моделирование ситуации" : "Совет психолога"}
                                 </h2>
                                 
@@ -883,7 +1314,7 @@
                 );
             }
 
-            // ИТОГИ (SUMMARY)
+            // ИТОГИ (SUMMARY — только для Обычного режима)
             if (screen === 'summary') {
                 const answered = gameQuestions.slice(0, answeredCount);
                 const cEasy = answered.filter(q => q.level === 'Простые').length;
@@ -892,13 +1323,13 @@
 
                 return (
                     <div className="min-h-[100dvh] w-full flex flex-col items-center justify-center p-5 slide-up relative z-10">
-                        <div className="text-[5rem] mb-10 heart-pulse drop-shadow-[0_0_40px_rgba(190,18,60,0.8)]">❤️</div>
-                        <div className="text-center mb-12">
-                            <h1 className="text-3xl font-bold mb-4 text-white/90">Вы ответили на</h1>
-                            <div className="text-7xl font-light text-[#be123c] mt-2"><AnimatedCounter target={answered.length} /></div>
-                            <p className="text-white/40 text-[11px] font-bold uppercase tracking-[0.25em] mt-4">вопросов</p>
+                        <div className="text-[5rem] mb-8 heart-pulse drop-shadow-[0_0_40px_rgba(225,29,72,0.8)]">❤️</div>
+                        <div className="text-center mb-10">
+                            <h1 className="text-3xl font-bold mb-3 text-white/90">Вы ответили на</h1>
+                            <div className="text-7xl font-light text-[#e11d48] mt-2"><AnimatedCounter target={answered.length} /></div>
+                            <p className="text-white/40 text-[11px] font-bold uppercase tracking-[0.25em] mt-4">вопросов (перемещены в Архив)</p>
                         </div>
-                        <div className="w-full max-w-sm glass-panel p-6 flex flex-col gap-4 mb-12">
+                        <div className="w-full max-w-sm glass-panel p-6 flex flex-col gap-4 mb-10">
                             <div className="flex justify-between items-center p-5 bg-black/40 rounded-xl border border-[#34d399]/20">
                                 <span className="font-bold text-xs uppercase tracking-widest diff-easy">Легких</span>
                                 <span className="text-2xl font-light text-white"><AnimatedCounter target={cEasy} /></span>
@@ -921,8 +1352,10 @@
                 );
             }
 
-            // СПИСОК КАТЕГОРИЙ (Без отличающейся подложки под кнопками)
+            // СПИСОК КАТЕГОРИЙ + АРХИВ В САМОМ НИЗУ СТРАНИЦЫ (Пункт 2)
             if (screen === 'cat_list') {
+                const archivedQs = stats.archivedList;
+
                 return (
                     <div className="min-h-[100dvh] w-full flex flex-col p-5 fade-in max-w-lg mx-auto relative z-10">
                         <div className="flex items-center gap-4 mb-8 pt-4">
@@ -930,31 +1363,111 @@
                                 <Icons.Back />
                             </button>
                             <div>
-                                <h2 className="text-2xl font-bold text-white tracking-wide">База вопросов</h2>
-                                <p className="text-[11px] uppercase tracking-widest text-white/40 mt-1">Всего в базе: {db.length}</p>
+                                <h2 className="text-2xl font-bold text-white tracking-wide">Список вопросов</h2>
+                                <p className="text-[11px] uppercase tracking-widest text-white/40 mt-1">
+                                    Активных: {db.length - archivedQs.length} • В архиве: {archivedQs.length}
+                                </p>
                             </div>
                         </div>
+
                         <div className="flex-1 overflow-y-auto no-scrollbar flex flex-col gap-4 pb-28">
                             {CATEGORIES.map(cat => {
-                                const count = db.filter(q => q.categoryId === cat.id).length;
+                                const totalCatCount = stats.totalByCat[cat.id] || 0;
+                                const activeCatCount = stats.activeByCat[cat.id] || 0;
                                 return (
                                     <button 
                                         key={cat.id} 
-                                        onClick={() => { setViewCategory(cat.id); setScreen('q_list'); }} 
+                                        onClick={() => { setViewCategory(cat.id); setVisibleLimit(60); setScreen('q_list'); }} 
                                         className="glass-panel p-6 flex items-center justify-between hover:bg-white/5 transition-colors text-left"
                                     >
                                         <div className="flex items-center gap-5">
                                             <span className="text-3xl">{cat.icon}</span>
                                             <div>
                                                 <div className="font-bold text-base text-white/90 mb-1">{cat.name}</div>
-                                                <div className="text-[11px] font-bold uppercase tracking-widest text-white/40">{count} вопросов</div>
+                                                <div className="text-[11px] font-bold uppercase tracking-widest text-white/40">
+                                                    Активных: {activeCatCount} из {totalCatCount}
+                                                </div>
                                             </div>
                                         </div>
                                         <Icons.Next />
                                     </button>
                                 );
                             })}
+
+                            {/* БЛОК АРХИВА ВОПРОСОВ В САМОМ НИЗУ СТРАНИЦЫ (Пункт 2) */}
+                            <div className="mt-6 pt-6 border-t border-white/10 flex flex-col gap-4">
+                                <div className="glass-panel p-6 flex flex-col gap-4 border border-amber-500/20">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3.5">
+                                            <span className="text-2xl text-amber-400"><Icons.Archive /></span>
+                                            <div>
+                                                <h3 className="font-bold text-base text-white">Архив вопросов</h3>
+                                                <p className="text-[11px] font-bold uppercase tracking-widest text-white/40 mt-0.5">
+                                                    Отвечено в играх: {archivedQs.length}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        {archivedQs.length > 0 && (
+                                            <button 
+                                                onClick={() => setArchiveExpanded(prev => !prev)}
+                                                className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-bold uppercase tracking-wider text-amber-300 border border-amber-500/30 transition-all"
+                                            >
+                                                {archiveExpanded ? "Скрыть" : "Открыть"}
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {archivedQs.length === 0 ? (
+                                        <p className="text-xs text-white/40 leading-relaxed">
+                                            Архив пока пуст. Вопросы попадают сюда автоматически после завершения игры в Обычном режиме, чтобы не повторяться в следующих играх.
+                                        </p>
+                                    ) : (
+                                        <>
+                                            {archiveExpanded && (
+                                                <div className="flex flex-col gap-3 mt-2 max-h-[420px] overflow-y-auto no-scrollbar pr-1">
+                                                    {archivedQs.slice(0, archiveVisibleLimit).map(q => {
+                                                        const cInfo = CATEGORIES.find(c => c.id === q.categoryId) || CATEGORIES[0];
+                                                        return (
+                                                            <div key={q.dbKey} className="p-4 rounded-2xl bg-black/40 border border-white/5 flex items-start justify-between gap-3">
+                                                                <div className="text-xs text-white/85 leading-relaxed">
+                                                                    <span className="text-amber-400/80 font-bold mr-1.5">№ {q.num} ({cInfo.icon})</span>
+                                                                    {q.cleanText}
+                                                                </div>
+                                                                <button 
+                                                                    onClick={() => handleRestoreSingleFromArchive(q)}
+                                                                    title="Вернуть вопрос в активную игру"
+                                                                    className="flex-shrink-0 px-3 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 active:scale-95 transition-all"
+                                                                >
+                                                                    <Icons.Restore /> Вернуть
+                                                                </button>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                    {archivedQs.length > archiveVisibleLimit && (
+                                                        <button 
+                                                            onClick={() => setArchiveVisibleLimit(prev => prev + 60)}
+                                                            className="w-full py-3 rounded-xl bg-white/5 text-xs font-bold uppercase tracking-widest text-white/60 hover:text-white"
+                                                        >
+                                                            Показать еще ({archivedQs.length - archiveVisibleLimit})
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            {/* Кнопка "Вернуть все вопросы" в самом низу Архива */}
+                                            <button 
+                                                disabled={isArchivingSync}
+                                                onClick={handleRestoreAllFromArchive}
+                                                className="w-full h-14 rounded-2xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2 transition-all active:scale-95 mt-1"
+                                            >
+                                                <Icons.Restore /> {isArchivingSync ? "Восстановление..." : `Вернуть все вопросы (${archivedQs.length})`}
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
                         </div>
+
                         <div className="fixed bottom-6 left-5 right-5 max-w-lg mx-auto pointer-events-none">
                             <button 
                                 onClick={() => { setAddStatus(null); setAddForm({ text: '', cat: 'family', diff: 'Простые' }); setScreen('add_q'); }} 
@@ -967,14 +1480,14 @@
                 );
             }
 
-            // СПИСОК ВОПРОСОВ ВЫБРАННОЙ КАТЕГОРИИ (С иконкой редактирования на каждой карточке)
+            // СПИСОК ВОПРОСОВ ВЫБРАННОЙ КАТЕГОРИИ (Оптимизированный рендер без лагов)
             if (screen === 'q_list') {
                 const cat = CATEGORIES.find(c => c.id === viewCategory) || CATEGORIES[0];
                 const qs = db.filter(q => q.categoryId === viewCategory);
                 
                 return (
                     <div className="min-h-[100dvh] w-full flex flex-col p-5 fade-in max-w-2xl mx-auto relative z-10">
-                        <div className="flex items-center gap-4 mb-10 pt-4 flex-shrink-0">
+                        <div className="flex items-center gap-4 mb-8 pt-4 flex-shrink-0">
                             <button onClick={() => setScreen('cat_list')} className="p-4 bg-white/5 rounded-full hover:bg-white/10 text-white/80 transition-all">
                                 <Icons.Back />
                             </button>
@@ -982,24 +1495,33 @@
                                 <h2 className="text-2xl font-bold text-white tracking-wide flex items-center gap-2">
                                     {cat.icon} {cat.name}
                                 </h2>
-                                <div className="text-[11px] font-bold uppercase tracking-widest text-white/40 mt-1">{qs.length} вопросов</div>
+                                <div className="text-[11px] font-bold uppercase tracking-widest text-white/40 mt-1">
+                                    Всего: {qs.length} вопросов
+                                </div>
                             </div>
                         </div>
                         <div className="flex-1 overflow-y-auto no-scrollbar flex flex-col gap-10 pb-28">
                             {DIFFICULTIES.map(diff => {
                                 const diffQs = qs.filter(q => q.level === diff.id);
                                 if (diffQs.length === 0) return null;
+                                const shownQs = diffQs.slice(0, visibleLimit);
+
                                 return (
                                     <div key={diff.id}>
-                                        <h3 className={`text-[24px] md:text-3xl font-bold uppercase tracking-widest mb-6 pl-2 ${diff.classText}`}>
+                                        <h3 className={`text-[22px] md:text-2xl font-bold uppercase tracking-widest mb-5 pl-2 ${diff.classText}`}>
                                             {diff.name} ({diffQs.length})
                                         </h3>
-                                        <div className="flex flex-col gap-4">
-                                            {diffQs.map(q => (
-                                                <div key={q.dbKey} className="glass-panel p-5 md:p-6 flex items-start justify-between gap-4 border-white/5 shadow-md">
-                                                    <div className="text-[16px] md:text-lg font-normal text-white/90 leading-snug">
+                                        <div className="flex flex-col gap-3.5">
+                                            {shownQs.map(q => (
+                                                <div key={q.dbKey} className="glass-panel p-5 flex items-start justify-between gap-4 border-white/5 shadow-md">
+                                                    <div className="text-[15px] md:text-base font-normal text-white/90 leading-snug">
                                                         <span className="text-white/40 font-bold mr-2">№ {q.num}.</span>
                                                         {q.cleanText}
+                                                        {q.archived && (
+                                                            <span className="ml-2 inline-block text-[10px] font-bold uppercase px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300">
+                                                                Архив
+                                                            </span>
+                                                        )}
                                                     </div>
                                                     <button 
                                                         onClick={() => openEditScreen(q, 'q_list')}
@@ -1010,6 +1532,14 @@
                                                     </button>
                                                 </div>
                                             ))}
+                                            {diffQs.length > visibleLimit && (
+                                                <button 
+                                                    onClick={() => setVisibleLimit(prev => prev + 80)}
+                                                    className="w-full h-12 rounded-2xl bg-white/5 hover:bg-white/10 text-xs font-bold uppercase tracking-widest text-white/70"
+                                                >
+                                                    Показать еще ({diffQs.length - visibleLimit})
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 );
@@ -1059,7 +1589,7 @@
                                 <textarea 
                                     value={editForm.text}
                                     onChange={e => setEditForm({...editForm, text: e.target.value})}
-                                    className="w-full glass-panel p-5 text-base text-white/95 placeholder-white/20 outline-none resize-none h-36 focus:border-[#be123c]/50 transition-colors shadow-inner"
+                                    className="w-full glass-panel p-5 text-base text-white/95 placeholder-white/20 outline-none resize-none h-36 focus:border-[#e11d48]/50 transition-colors shadow-inner"
                                     placeholder="Введите текст вопроса..."
                                 ></textarea>
                             </div>
@@ -1071,7 +1601,7 @@
                                     onChange={e => setEditForm({...editForm, cat: e.target.value})}
                                     className="w-full glass-panel h-14 px-5 text-base text-white/90 outline-none appearance-none font-medium bg-transparent"
                                 >
-                                    {CATEGORIES.map(c => <option key={c.id} value={c.id} className="bg-[#1a0b1c] text-white">{c.icon} {c.name}</option>)}
+                                    {CATEGORIES.map(c => <option key={c.id} value={c.id} className="bg-[#160a1c] text-white">{c.icon} {c.name}</option>)}
                                 </select>
                             </div>
 
@@ -1082,11 +1612,10 @@
                                     onChange={e => setEditForm({...editForm, diff: e.target.value})}
                                     className="w-full glass-panel h-14 px-5 text-base text-white/90 outline-none appearance-none font-medium bg-transparent"
                                 >
-                                    {DIFFICULTIES.map(d => <option key={d.id} value={d.id} className="bg-[#1a0b1c] text-white">{d.name}</option>)}
+                                    {DIFFICULTIES.map(d => <option key={d.id} value={d.id} className="bg-[#160a1c] text-white">{d.name}</option>)}
                                 </select>
                             </div>
 
-                            {/* Кнопка удаления вопроса */}
                             <button 
                                 type="button"
                                 onClick={() => setConfirmModal({ action: 'delete', title: 'Точно ли вы хотите удалить этот вопрос из базы данных?' })}
@@ -1095,7 +1624,6 @@
                                 <Icons.Trash /> Удалить вопрос
                             </button>
 
-                            {/* Кнопки Отменить и Сохранить */}
                             <div className="mt-auto pb-4 pt-2 grid grid-cols-2 gap-4">
                                 <button 
                                     type="button" 
@@ -1115,7 +1643,6 @@
                             </div>
                         </div>
 
-                        {/* Модальное окно подтверждения действия */}
                         {confirmModal && (
                             <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-5 z-50 fade-in">
                                 <div className="glass-panel p-7 w-full max-w-sm text-center flex flex-col items-center gap-6 border border-white/10">
@@ -1141,7 +1668,6 @@
                             </div>
                         )}
 
-                        {/* Модальное окно ответа системы (Успех или Ошибка БД) */}
                         {resultModal && (
                             <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-5 z-50 fade-in">
                                 <div className="glass-panel p-8 w-full max-w-sm text-center flex flex-col items-center gap-5 border border-white/10">
@@ -1169,12 +1695,12 @@
                 );
             }
 
-            // ФОРМА ДОБАВЛЕНИЯ НОВОГО ВОПРОСА В БАЗУ
+            // ФОРМА ДОБАВЛЕНИЯ НОВОГО ВОПРОСА + AI ГЕНЕРАТОР (Пункт 9)
             if (screen === 'add_q') {
                 return (
                     <div className="min-h-[100dvh] w-full flex flex-col p-5 fade-in max-w-lg mx-auto relative z-10">
-                        <div className="flex items-center gap-4 mb-8 pt-4">
-                            <button onClick={() => setScreen('cat_list')} className="p-4 bg-white/5 rounded-full hover:bg-white/10 text-white/80 transition-all">
+                        <div className="flex items-center gap-4 mb-6 pt-4">
+                            <button onClick={() => setScreen(viewCategory ? 'q_list' : 'cat_list')} className="p-4 bg-white/5 rounded-full hover:bg-white/10 text-white/80 transition-all">
                                 <Icons.Back />
                             </button>
                             <h2 className="text-2xl font-bold text-white tracking-wide">Новый вопрос</h2>
@@ -1199,7 +1725,7 @@
                                     </p>
                                     <div className="grid grid-cols-2 gap-3 w-full">
                                         <button 
-                                            onClick={() => setScreen('cat_list')} 
+                                            onClick={() => setScreen(viewCategory ? 'q_list' : 'cat_list')} 
                                             className="btn-ghost h-14 w-full rounded-2xl text-xs font-bold uppercase tracking-widest"
                                         >
                                             К списку
@@ -1214,42 +1740,53 @@
                                 </div>
                             </div>
                         ) : (
-                            <form onSubmit={handleAddQuestion} className="flex-1 flex flex-col gap-6 slide-up">
+                            <form onSubmit={handleAddQuestion} className="flex-1 flex flex-col gap-5 slide-up">
                                 <div>
-                                    <label className="block text-[11px] font-bold uppercase tracking-widest text-white/50 mb-3 ml-2">Текст вопроса</label>
+                                    <label className="block text-[11px] font-bold uppercase tracking-widest text-white/50 mb-2.5 ml-2">Текст вопроса</label>
                                     <textarea 
                                         required
                                         value={addForm.text}
                                         onChange={e => setAddForm({...addForm, text: e.target.value})}
-                                        className="w-full glass-panel p-6 text-base text-white/90 placeholder-white/20 outline-none resize-none h-40 focus:border-[#be123c]/50 transition-colors shadow-inner"
-                                        placeholder="Напишите ваш вопрос..."
+                                        className="w-full glass-panel p-5 text-base text-white/95 placeholder-white/25 outline-none resize-none h-36 focus:border-[#e11d48]/50 transition-colors shadow-inner"
+                                        placeholder="Напишите вопрос вручную или нажмите «Сгенерировать вопрос» ниже..."
                                     ></textarea>
                                 </div>
                                 
                                 <div>
-                                    <label className="block text-[11px] font-bold uppercase tracking-widest text-white/50 mb-3 ml-2">Тема вопроса</label>
+                                    <label className="block text-[11px] font-bold uppercase tracking-widest text-white/50 mb-2.5 ml-2">Тема вопроса</label>
                                     <select 
                                         value={addForm.cat}
                                         onChange={e => setAddForm({...addForm, cat: e.target.value})}
                                         className="w-full glass-panel h-14 px-5 text-base text-white/90 outline-none appearance-none font-medium bg-transparent"
                                     >
-                                        {CATEGORIES.map(c => <option key={c.id} value={c.id} className="bg-[#1a0b1c] text-white">{c.icon} {c.name}</option>)}
+                                        {CATEGORIES.map(c => <option key={c.id} value={c.id} className="bg-[#160a1c] text-white">{c.icon} {c.name}</option>)}
                                     </select>
                                 </div>
 
                                 <div>
-                                    <label className="block text-[11px] font-bold uppercase tracking-widest text-white/50 mb-3 ml-2">Сложность</label>
+                                    <label className="block text-[11px] font-bold uppercase tracking-widest text-white/50 mb-2.5 ml-2">Сложность</label>
                                     <select 
                                         value={addForm.diff}
                                         onChange={e => setAddForm({...addForm, diff: e.target.value})}
                                         className="w-full glass-panel h-14 px-5 text-base text-white/90 outline-none appearance-none font-medium bg-transparent"
                                     >
-                                        {DIFFICULTIES.map(d => <option key={d.id} value={d.id} className="bg-[#1a0b1c] text-white">{d.name}</option>)}
+                                        {DIFFICULTIES.map(d => <option key={d.id} value={d.id} className="bg-[#160a1c] text-white">{d.name}</option>)}
                                     </select>
                                 </div>
 
+                                {/* AI-КНОПКА ГЕНЕРАЦИИ НОВОГО УНИКАЛЬНОГО ВОПРОСА ЧУТЬ НИЖЕ ПОЛЯ СЛОЖНОСТЬ (Пункт 9) */}
+                                <button 
+                                    type="button"
+                                    disabled={isGeneratingQuestion}
+                                    onClick={handleGenerateQuestionAI}
+                                    className="w-full rounded-2xl btn-ai-magic text-white text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2.5 shadow-xl disabled:opacity-50"
+                                >
+                                    <Icons.Sparkles />
+                                    {isGeneratingQuestion ? "ИИ придумывает уникальный вопрос..." : "Сгенерировать вопрос"}
+                                </button>
+
                                 <div className="mt-auto pb-6 pt-4 grid grid-cols-2 gap-4">
-                                    <button type="button" onClick={() => setScreen('cat_list')} className="w-full h-14 rounded-2xl btn-ghost text-xs font-bold uppercase tracking-widest">
+                                    <button type="button" onClick={() => setScreen(viewCategory ? 'q_list' : 'cat_list')} className="w-full h-14 rounded-2xl btn-ghost text-xs font-bold uppercase tracking-widest">
                                         Отмена
                                     </button>
                                     <button type="submit" disabled={isSaving || !addForm.text.trim()} className="w-full h-14 rounded-2xl btn-romantic text-white text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2 shadow-xl disabled:opacity-30">
