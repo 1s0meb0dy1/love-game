@@ -4,10 +4,111 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#09080c">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Ask Me">
     <title>ASK ME — Игра для пар</title>
+
+    <!-- Иконки и манифест PWA (генерируются автоматически скриптом ниже) -->
+    <link id="pwa-apple-icon" rel="apple-touch-icon" href="">
+    <link id="pwa-favicon" rel="icon" type="image/png" href="">
+    <link id="pwa-manifest" rel="manifest" href="">
+
+    <!-- Автономный генератор PWA-иконки 512x512 и манифеста -->
+    <script>
+        (function initPWA() {
+            try {
+                const createIconDataUrl = (size) => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = size;
+                    canvas.height = size;
+                    const ctx = canvas.getContext('2d');
+
+                    // Фон иконки (#09080c)
+                    ctx.fillStyle = '#09080c';
+                    ctx.fillRect(0, 0, size, size);
+
+                    // Мягкое рубиновое свечение в центре
+                    const glow = ctx.createRadialGradient(size * 0.5, size * 0.42, size * 0.05, size * 0.5, size * 0.5, size * 0.55);
+                    glow.addColorStop(0, 'rgba(244, 63, 94, 0.32)');
+                    glow.addColorStop(1, 'rgba(9, 8, 12, 0)');
+                    ctx.fillStyle = glow;
+                    ctx.fillRect(0, 0, size, size);
+
+                    // Внутренняя декоративная плашка под сердце
+                    const boxSize = size * 0.46;
+                    const boxX = (size - boxSize) / 2;
+                    const boxY = size * 0.16;
+                    const radius = size * 0.11;
+
+                    const boxGrad = ctx.createLinearGradient(boxX, boxY, boxX + boxSize, boxY + boxSize);
+                    boxGrad.addColorStop(0, '#f43f5e');
+                    boxGrad.addColorStop(1, '#be123c');
+                    ctx.fillStyle = boxGrad;
+
+                    ctx.beginPath();
+                    ctx.roundRect(boxX, boxY, boxSize, boxSize, radius);
+                    ctx.fill();
+
+                    // Рисуем белое сердце внутри плашки
+                    ctx.fillStyle = '#ffffff';
+                    ctx.save();
+                    const heartScale = size / 512;
+                    ctx.translate(size * 0.5, boxY + boxSize * 0.52);
+                    ctx.scale(heartScale * 4.8, heartScale * 4.8);
+                    ctx.beginPath();
+                    ctx.moveTo(0, 9.35);
+                    ctx.lineTo(-1.45, 8.03);
+                    ctx.bezierCurveTo(-6.6, 3.36, -10, 0.28, -10, -3.5);
+                    ctx.bezierCurveTo(-10, -6.58, -7.58, -9, -4.5, -9);
+                    ctx.bezierCurveTo(-2.76, -9, -1.09, -8.19, 0, -6.91);
+                    ctx.bezierCurveTo(1.09, -8.19, 2.76, -9, 4.5, -9);
+                    ctx.bezierCurveTo(7.58, -9, 10, -6.58, 10, -3.5);
+                    ctx.bezierCurveTo(10, 0.28, 6.6, 3.36, 1.45, 8.04);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.restore();
+
+                    // Надпись ASK ME внизу иконки
+                    ctx.font = '800 ' + Math.round(size * 0.115) + 'px system-ui, -apple-system, sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillText('ASK', size * 0.37, size * 0.78);
+                    ctx.fillStyle = '#f43f5e';
+                    ctx.fillText('ME', size * 0.68, size * 0.78);
+
+                    return canvas.toDataURL('image/png');
+                };
+
+                const icon192 = createIconDataUrl(192);
+                const icon512 = createIconDataUrl(512);
+
+                document.getElementById('pwa-apple-icon').href = icon512;
+                document.getElementById('pwa-favicon').href = icon192;
+
+                const manifestObj = {
+                    name: "ASK ME — Игра для пар",
+                    short_name: "Ask Me",
+                    description: "Откровенные разговоры для двоих",
+                    start_url: window.location.origin + window.location.pathname,
+                    scope: window.location.origin + window.location.pathname,
+                    display: "standalone",
+                    orientation: "portrait",
+                    background_color: "#09080c",
+                    theme_color: "#09080c",
+                    icons: [
+                        { src: icon192, sizes: "192x192", type: "image/png", purpose: "any maskable" },
+                        { src: icon512, sizes: "512x512", type: "image/png", purpose: "any maskable" }
+                    ]
+                };
+
+                const manifestBlob = new Blob([JSON.stringify(manifestObj)], { type: 'application/manifest+json' });
+                document.getElementById('pwa-manifest').href = URL.createObjectURL(manifestBlob);
+            } catch (e) {}
+        })();
+    </script>
 
     <!-- React & Tailwind -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
@@ -15,7 +116,7 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Современные шрифты без засечек: Outfit (для логотипа и заголовков) и Plus Jakarta Sans (для интерфейса) -->
+    <!-- Современные шрифты без засечек: Outfit и Plus Jakarta Sans -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -40,15 +141,20 @@
             -webkit-tap-highlight-color: transparent;
             touch-action: pan-y;
             overscroll-behavior-y: none;
+            user-select: none;
+            -webkit-user-select: none;
             -webkit-font-smoothing: antialiased;
         }
 
-        /* Современный геометрический гротеск без засечек для логотипа и цифр */
+        input, textarea {
+            user-select: text;
+            -webkit-user-select: text;
+        }
+
         .font-display {
             font-family: 'Outfit', 'Plus Jakarta Sans', sans-serif;
         }
 
-        /* Единый сдержанный фон в монохромно-рубиновой гамме */
         .app-bg {
             position: fixed;
             top: -15vh;
@@ -63,7 +169,6 @@
             pointer-events: none;
         }
 
-        /* Контейнер с учетом безопасных зон мобильного экрана */
         .safe-screen {
             min-height: 100dvh;
             padding-top: max(1.25rem, env(safe-area-inset-top));
@@ -72,7 +177,6 @@
             padding-right: max(1.25rem, env(safe-area-inset-right));
         }
 
-        /* Фиксированная обертка для Pop-up окон: всегда следует за экраном и никогда не выходит за его рамки */
         .viewport-popup-overlay {
             position: fixed;
             inset: 0;
@@ -100,14 +204,12 @@
             box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7);
         }
 
-        /* Тонкая линия-разделитель вместо громоздких подложек */
         .hairline-divider {
             height: 1px;
             width: 100%;
             background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.08) 50%, transparent 100%);
         }
 
-        /* Кнопки единого стандарта (54px) в гармоничной палитре */
         .btn-primary {
             background: linear-gradient(135deg, #f43f5e 0%, #be123c 100%);
             color: #ffffff;
@@ -130,7 +232,6 @@
         }
         .btn-secondary:active { transform: scale(0.97); }
 
-        /* Минималистичные интерактивные плашки для тем */
         .topic-pill-active {
             background: rgba(244, 63, 94, 0.12);
             border: 1px solid rgba(244, 63, 94, 0.48);
@@ -142,7 +243,6 @@
             color: #71717a;
         }
 
-        /* Гармоничные оттенки сложности в единой гамме */
         .diff-text-1 { color: #e4e4e7; }
         .diff-text-2 { color: #fda4af; }
         .diff-text-3 { color: #f43f5e; }
@@ -151,7 +251,6 @@
         .diff-pill-2 { background: rgba(251, 113, 133, 0.14); border: 1px solid rgba(251, 113, 133, 0.42); color: #fecdd3; }
         .diff-pill-3 { background: rgba(225, 29, 72, 0.22); border: 1px solid rgba(244, 63, 94, 0.55); color: #fda4af; }
 
-        /* Легкие аппаратные анимации (60/120 FPS) */
         .fade-in { animation: fadeIn 0.22s ease-out forwards; }
         .slide-up { animation: slideUp 0.32s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
         .pulse-soft { animation: pulseSoft 2.4s ease-in-out infinite; }
@@ -194,6 +293,7 @@
         const GEMINI_API_KEY = "AQ.Ab8RN6JlrwetdJDgph_PDXCwnW1GCoUcw6jc8_iIBLEbG1dNWA"; 
         const PROFILE_STORAGE_KEY = "askme_device_profile_v3";
         const ADMIN_STORAGE_KEY = "askme_admin_unlocked_v3";
+        const OFFLINE_DB_CACHE_KEY = "askme_offline_db_cache_v1";
 
         // КРИПТОГРАФИЧЕСКАЯ ПРОВЕРКА ПАРОЛЯ ВЛАДЕЛЬЦА (Пароль: Yedvinn!Ask92#Me)
         const SECRET_CIPHER = [72, 85, 43, 24, 228, 194, 165, 203, 328, 347, 300, 351, 439, 391, 398, 391];
@@ -214,7 +314,6 @@
         // СИСТЕМА ГЕНЕРАЦИИ И ШИФРОВАНИЯ 8-ЗНАЧНОГО ID СЕССИИ ПАРЫ
         const SESSION_ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
 
-        // Генерация уникального 8-символьного ID с контрольным символом (защита от подбора)
         const generateSessionId = () => {
             const randomBytes = new Uint8Array(7);
             if (window.crypto && window.crypto.getRandomValues) {
@@ -233,13 +332,11 @@
             return id;
         };
 
-        // Проверка валидности 8-символьного ID
         const isValidSessionIdFormat = (rawId) => {
             const clean = String(rawId || "").trim().toUpperCase();
             return /^[A-Z0-9]{8}$/.test(clean);
         };
 
-        // Односторонний крипто-хэш от 8-значного ID для ключа в БД (чтобы никто в базе не увидел сам ID)
         const hashSessionIdForDb = (sessionId) => {
             const clean = String(sessionId || "").trim().toUpperCase();
             let h1 = 0x811c9dc5;
@@ -257,7 +354,6 @@
             return (h1 >>> 0).toString(16).padStart(8, '0') + (h2 >>> 0).toString(16).padStart(8, '0');
         };
 
-        // Потоковое шифрование данных сессии ключом 8-значного ID (даже в БД данные нечитаемы без знания ID)
         const encryptSessionPayload = (dataObj, sessionId) => {
             try {
                 const key = "ASKME_KEY_" + String(sessionId).trim().toUpperCase() + "_SECRET";
@@ -283,7 +379,6 @@
             }
         };
 
-        // Расшифровка данных сессии ключом 8-значного ID
         const decryptSessionPayload = (cipherB64, sessionId) => {
             try {
                 const key = "ASKME_KEY_" + String(sessionId).trim().toUpperCase() + "_SECRET";
@@ -305,7 +400,6 @@
             }
         };
 
-        // Универсальное копирование текста в буфер обмена
         const copyTextToClipboard = async (text) => {
             try {
                 if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -329,7 +423,6 @@
             }
         };
 
-        // Защита от XSS и вредоносного ввода
         const sanitizeInput = (str, maxLength = 600) => {
             if (!str) return "";
             return String(str)
@@ -340,7 +433,6 @@
                 .slice(0, maxLength);
         };
 
-        // Защита от спам-запросов
         const ActionGuard = {
             lastActionTime: 0,
             canProceed(cooldownMs = 650) {
@@ -370,7 +462,6 @@
             { id: "Глубокие", name: "Глубокие", classText: "diff-text-3", classBg: "diff-pill-3" }
         ];
 
-        // Карта URL-адресов страниц (Hash Routing)
         const SCREEN_TO_HASH = {
             onboarding: '#/welcome',
             session_created: '#/session-ready',
@@ -406,12 +497,17 @@
             '#/edit': 'edit_q'
         };
 
-        // АКУСТИЧЕСКИЙ ЗВУКОВОЙ ДВИЖОК
+        // АКУСТИЧЕСКИЙ ЗВУКОВОЙ ДВИЖОК + ВИБРООТКЛИК (Haptics для мобильных PWA)
         const SoundFX = {
             ctx: null,
             filter: null,
             muted: false,
             unlocked: false,
+            vibrate(ms = 10) {
+                try {
+                    if (navigator.vibrate) navigator.vibrate(ms);
+                } catch (e) {}
+            },
             init() {
                 try {
                     const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -472,9 +568,11 @@
                 } catch (e) {}
             },
             click() {
+                this.vibrate(8);
                 this.playAcousticNote(420, 0.075, 0.22, 540);
             },
             toggle(active = true) {
+                this.vibrate(10);
                 if (active) {
                     this.playAcousticNote(440, 0.08, 0.2);
                     setTimeout(() => this.playAcousticNote(587.33, 0.1, 0.22), 55);
@@ -484,9 +582,11 @@
                 }
             },
             rouletteTick() {
+                this.vibrate(6);
                 this.playAcousticNote(310, 0.045, 0.18, 220);
             },
             rouletteWin() {
+                this.vibrate([15, 40, 25]);
                 if (this.muted) return;
                 this.init();
                 const chord = [523.25, 659.25, 783.99, 987.77];
@@ -495,6 +595,7 @@
                 });
             },
             romanticFinale() {
+                this.vibrate([20, 50, 20, 50, 40]);
                 if (this.muted) return;
                 this.init();
                 const notes = [
@@ -509,18 +610,21 @@
                 });
             },
             magic() {
+                this.vibrate(12);
                 if (this.muted) return;
                 this.init();
                 this.playAcousticNote(493.88, 0.14, 0.2, 659.25);
                 setTimeout(() => this.playAcousticNote(783.99, 0.22, 0.22), 90);
             },
             success() {
+                this.vibrate(15);
                 if (this.muted) return;
                 this.init();
                 this.playAcousticNote(523.25, 0.12, 0.22);
                 setTimeout(() => this.playAcousticNote(783.99, 0.26, 0.26), 95);
             },
             warn() {
+                this.vibrate([20, 30, 20]);
                 this.playAcousticNote(280, 0.15, 0.22, 190);
             }
         };
@@ -555,10 +659,10 @@
             Eye: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>,
             EyeOff: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>,
             ChevronDown: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>,
-            Key: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" /></svg>
+            DownloadApp: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
         };
 
-        // СОВРЕМЕННЫЙ КАСТОМНЫЙ ВЫПАДАЮЩИЙ СПИСОК (Заменяет системный <select> на страницах админа и в фильтрах)
+        // СОВРЕМЕННЫЙ КАСТОМНЫЙ ВЫПАДАЮЩИЙ СПИСОК
         const CustomSelect = ({ value, onChange, options, placeholder = "Выберите..." }) => {
             const [open, setOpen] = useState(false);
             const containerRef = useRef(null);
@@ -636,7 +740,7 @@
             );
         };
 
-        // ИНТЕРАКТИВНЫЙ БЕЙДЖ ID СЕССИИ (Копирование в 1 клик)
+        // ИНТЕРАКТИВНЫЙ БЕЙДЖ ID СЕССИИ
         const SessionIdBadge = ({ sessionId, onCopy, size = "sm", label = "ID" }) => {
             const [copied, setCopied] = useState(false);
             if (!sessionId) return null;
@@ -1032,13 +1136,60 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
             const [toastMsg, setToastMsg] = useState(null);
             const toastTimerRef = useRef(null);
 
+            // СОСТОЯНИЕ PWA (Проверка, запущена ли игра как установленное приложение)
+            const [isStandalonePWA, setIsStandalonePWA] = useState(() => {
+                try {
+                    return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+                } catch (e) {
+                    return false;
+                }
+            });
+            const [deferredPwaPrompt, setDeferredPwaPrompt] = useState(null);
+            const [showPwaModal, setShowPwaModal] = useState(false);
+            const [pwaPlatformTab, setPwaPlatformTab] = useState(() => {
+                const ua = navigator.userAgent || "";
+                return /iPad|iPhone|iPod/i.test(ua) ? 'ios' : 'android';
+            });
+
+            useEffect(() => {
+                const handleBeforeInstallPrompt = (e) => {
+                    e.preventDefault();
+                    setDeferredPwaPrompt(e);
+                };
+                const handleAppInstalled = () => {
+                    setIsStandalonePWA(true);
+                    setDeferredPwaPrompt(null);
+                    setShowPwaModal(false);
+                    showToast("Приложение ASK ME установлено!");
+                };
+                window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+                window.addEventListener('appinstalled', handleAppInstalled);
+                return () => {
+                    window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+                    window.removeEventListener('appinstalled', handleAppInstalled);
+                };
+            }, []);
+
+            const handleInstallPwaClick = async () => {
+                SoundFX.click();
+                if (deferredPwaPrompt) {
+                    deferredPwaPrompt.prompt();
+                    const { outcome } = await deferredPwaPrompt.userChoice;
+                    if (outcome === 'accepted') {
+                        setDeferredPwaPrompt(null);
+                    }
+                    return;
+                }
+                setShowPwaModal(true);
+            };
+
             const showToast = (msg) => {
                 if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
                 setToastMsg(msg);
                 toastTimerRef.current = setTimeout(() => setToastMsg(null), 2800);
             };
 
-            // ИНДИВИДУАЛЬНЫЙ ПРОФИЛЬ СЕССИИ ПАРЫ (с 8-значным зашифрованным ID)
+            // ИНДИВИДУАЛЬНЫЙ ПРОФИЛЬ СЕССИИ ПАРЫ
             const [profile, setProfile] = useState(() => {
                 try {
                     const saved = localStorage.getItem(PROFILE_STORAGE_KEY) || localStorage.getItem("askme_device_profile_v2");
@@ -1072,8 +1223,7 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 }
             });
 
-            // Состояния экрана авторизации / восстановления по ID
-            const [authTab, setAuthTab] = useState('create'); // 'create' | 'restore'
+            const [authTab, setAuthTab] = useState('create');
             const [restoreIdInput, setRestoreIdInput] = useState('');
             const [restoreError, setRestoreError] = useState('');
             const [isRestoringSession, setIsRestoringSession] = useState(false);
@@ -1087,7 +1237,6 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
             const [adminPinError, setAdminPinError] = useState('');
             const [logoTapCount, setLogoTapCount] = useState(0);
 
-            // Определяем стартовый экран с учетом URL-хэша
             const [screen, setScreenState] = useState(() => {
                 const currentHash = window.location.hash;
                 if (currentHash === '#/admin') return 'admin_login';
@@ -1096,7 +1245,6 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 return HASH_TO_SCREEN[currentHash] || 'menu';
             });
 
-            // Навигация с обновлением URL-адреса страницы
             const navigate = (nextScreen) => {
                 setScreenState(nextScreen);
                 const targetHash = SCREEN_TO_HASH[nextScreen] || '#/';
@@ -1147,17 +1295,14 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
             const [completedAllFlag, setCompletedAllFlag] = useState(false);
             const [showEndGameConfirm, setShowEndGameConfirm] = useState(false);
 
-            // Рулетка выбора первого игрока
             const [turnPopup, setTurnPopup] = useState({ open: false, spinning: false, highlight: 'guy', winner: null });
             const rouletteTimeoutsRef = useRef([]);
 
-            // AI-экран
             const [aiType, setAiType] = useState('situation');
             const [aiContent, setAiContent] = useState('');
             const [isAiTyping, setIsAiTyping] = useState(false);
             const typingIntervalRef = useRef(null);
 
-            // Списки и страница Архива
             const [viewCategory, setViewCategory] = useState(null);
             const [visibleLimit, setVisibleLimit] = useState(60);
             const [archiveFilterCat, setArchiveFilterCat] = useState('all');
@@ -1165,7 +1310,6 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
             const [archiveSearch, setArchiveSearch] = useState('');
             const [archiveVisibleLimit, setArchiveVisibleLimit] = useState(50);
             
-            // Добавление и редактирование вопросов (Админ)
             const [addForm, setAddForm] = useState({ text: '', cat: 'family', diff: 'Простые' });
             const [addStatus, setAddStatus] = useState(null);
             const [isSaving, setIsSaving] = useState(false);
@@ -1177,7 +1321,7 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
             const [confirmModal, setConfirmModal] = useState(null);
             const [resultModal, setResultModal] = useState(null);
 
-            // ОБЛАЧНАЯ СИНХРОНИЗАЦИЯ ЗАШИФРОВАННОЙ СЕССИИ В FIREBASE И LOCALSTORAGE
+            // ОБЛАЧНАЯ СИНХРОНИЗАЦИЯ ЗАШИФРОВАННОЙ СЕССИИ
             const syncSessionToCloud = async (profData, subPath = dbSubPath) => {
                 if (!profData || !profData.sessionId) return;
                 try {
@@ -1196,7 +1340,6 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                         updatedAt: profData.updatedAt || Date.now()
                     }, profData.sessionId);
 
-                    // Формат полностью совместим с правилами безопасности Firebase
                     const cloudRecord = {
                         id: dbHashKey,
                         num: 0,
@@ -1215,7 +1358,6 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 } catch (e) {}
             };
 
-            // Авто-сохранение профиля и синхронизация с облаком при любых изменениях
             useEffect(() => {
                 if (!profile || isLoading) return;
                 try {
@@ -1228,7 +1370,6 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 return () => clearTimeout(timer);
             }, [profile, dbSubPath, isLoading]);
 
-            // Фоновая подгрузка актуального состояния сессии из облака при старте
             useEffect(() => {
                 if (!profile?.sessionId || isLoading) return;
                 const checkCloudSession = async () => {
@@ -1258,7 +1399,6 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 checkCloudSession();
             }, [isLoading]);
 
-            // Восстановление сессии по 8-символьному ID (на любом устройстве)
             const handleRestoreBySessionId = async (e) => {
                 e.preventDefault();
                 const cleanId = String(restoreIdInput || "").trim().toUpperCase();
@@ -1275,7 +1415,6 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                     const dbHashKey = "sess_" + hashSessionIdForDb(cleanId);
                     let restoredObj = null;
 
-                    // 1. Проверяем в облаке Firebase
                     try {
                         const res = await fetch(`${FIREBASE_BASE_URL}${dbSubPath}/${dbHashKey}.json?t=${Date.now()}`);
                         if (res.ok) {
@@ -1297,7 +1436,6 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                         }
                     } catch (err) {}
 
-                    // 2. Резервная проверка в локальном хранилище устройства
                     if (!restoredObj) {
                         const localBackup = localStorage.getItem(`askme_sess_${cleanId}`);
                         if (localBackup) {
@@ -1327,7 +1465,6 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 }
             };
 
-            // Функция "Поделиться игрой" (отправляет ссылку на страницу авторизации #/welcome)
             const handleShareGame = async () => {
                 SoundFX.click();
                 const shareUrl = `${window.location.origin}${window.location.pathname}#/welcome`;
@@ -1357,7 +1494,6 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 if (!nextState) SoundFX.click();
             };
 
-            // Быстрый переход на секретную страницу #/admin по 5 нажатиям на логотип
             const handleLogoSecretTap = () => {
                 const nextCount = logoTapCount + 1;
                 setLogoTapCount(nextCount);
@@ -1369,7 +1505,6 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 }
             };
 
-            // Создание новой сессии или обновление имен
             const handleSaveProfileNames = (e) => {
                 e.preventDefault();
                 const gName = sanitizeInput(profileForm.guyName, 25);
@@ -1393,7 +1528,6 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 syncSessionToCloud(updatedProfile, dbSubPath);
 
                 if (isNewSession) {
-                    // Показываем экран с созданным ID сессии сразу после ввода имен
                     navigate('session_created');
                 } else {
                     showToast("Имена пары сохранены");
@@ -1428,7 +1562,6 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 for (let i = 0; i < entries.length; i++) {
                     const [dbKey, item] = entries[i];
                     if (!item || typeof item !== 'object' || !item.text) continue;
-                    // Игнорируем зашифрованные записи сессий пар
                     if (item.categoryId === "_session" || String(dbKey).startsWith("sess_")) continue;
 
                     const matchNum = String(item.text).match(/^№\s*(\d+)\.\s*(.*)/s);
@@ -1448,21 +1581,37 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 return reindexSequential(parsed);
             };
 
+            // Загрузка базы с офлайн-кэшем для мгновенной работы PWA без интернета
             useEffect(() => {
                 const initDatabase = async () => {
+                    // Мгновенный показ из локального кэша PWA, если он уже есть
+                    try {
+                        const cachedRaw = localStorage.getItem(OFFLINE_DB_CACHE_KEY);
+                        if (cachedRaw) {
+                            const cachedParsed = JSON.parse(cachedRaw);
+                            if (Array.isArray(cachedParsed) && cachedParsed.length > 0) {
+                                setDb(cachedParsed);
+                                setIsLoading(false);
+                            }
+                        }
+                    } catch (e) {}
+
                     try {
                         const res = await fetch(`${FIREBASE_BASE_URL}/.json?t=${Date.now()}`);
                         if (!res.ok) throw new Error(`HTTP ${res.status}`);
                         const data = await res.json();
 
                         if (data) {
+                            let parsedDb = [];
                             if (data.questions && typeof data.questions === 'object') {
                                 setDbSubPath("/questions");
-                                setDb(parseDatabaseObject(data.questions));
+                                parsedDb = parseDatabaseObject(data.questions);
                             } else {
                                 setDbSubPath("");
-                                setDb(parseDatabaseObject(data));
+                                parsedDb = parseDatabaseObject(data);
                             }
+                            setDb(parsedDb);
+                            try { localStorage.setItem(OFFLINE_DB_CACHE_KEY, JSON.stringify(parsedDb)); } catch (e) {}
                             setIsLoading(false);
                         } else {
                             const gistRes = await fetch(`${GIST_FALLBACK_URL}?t=${Date.now()}`);
@@ -1485,18 +1634,20 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                                 body: JSON.stringify(formattedForFirebase)
                             });
 
+                            const parsedDb = parseDatabaseObject(formattedForFirebase);
                             setDbSubPath("");
-                            setDb(parseDatabaseObject(formattedForFirebase));
+                            setDb(parsedDb);
+                            try { localStorage.setItem(OFFLINE_DB_CACHE_KEY, JSON.stringify(parsedDb)); } catch (e) {}
                             setIsLoading(false);
                         }
                     } catch (err) {
                         try {
                             const gistRes = await fetch(`${GIST_FALLBACK_URL}?t=${Date.now()}`);
                             const gistData = await gistRes.json();
-                            setDb(parseDatabaseObject(gistData));
-                        } catch (e) {
-                            setDb([]);
-                        }
+                            const parsedDb = parseDatabaseObject(gistData);
+                            setDb(parsedDb);
+                            try { localStorage.setItem(OFFLINE_DB_CACHE_KEY, JSON.stringify(parsedDb)); } catch (e) {}
+                        } catch (e) {}
                         setIsLoading(false);
                     }
                 };
@@ -1586,7 +1737,6 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 });
             };
 
-            // Сохранение состояния активной партии внутри профиля (для возврата на тот же вопрос)
             const updateSavedGameProgress = (questionsArr, cIdx, mIdx, tHist, extraArchivedKey = null) => {
                 setProfile(prev => {
                     if (!prev) return prev;
@@ -1608,7 +1758,6 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 });
             };
 
-            // Рулетка выбора первого игрока с плавным замедлением
             const triggerRouletteForIndex = (targetIdx, currentHistory, questionsForSave = gameQuestions) => {
                 if (currentHistory[targetIdx]) return;
 
@@ -1644,7 +1793,6 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 });
             };
 
-            // Продолжение сохранённой незавершенной игры с того же вопроса
             const handleResumeSavedGame = () => {
                 if (!profile?.savedGame || !profile.savedGame.questionIds?.length) return;
                 SoundFX.click();
@@ -1746,7 +1894,6 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                     setMaxReachedIndex(nextMax);
 
                     if (gameMode === 'normal') {
-                        // Сразу сохраняем отвеченный вопрос в архив и фиксируем текущий индекс сессии
                         updateSavedGameProgress(gameQuestions, nextIdx, nextMax, turnHistory, currentQKey);
                         if (!turnHistory[nextIdx]) {
                             triggerRouletteForIndex(nextIdx, turnHistory, gameQuestions);
@@ -1946,7 +2093,11 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                     };
 
                     SoundFX.success();
-                    setDb(prev => reindexSequential([...prev, createdQuestion]));
+                    setDb(prev => {
+                        const nextDb = reindexSequential([...prev, createdQuestion]);
+                        try { localStorage.setItem(OFFLINE_DB_CACHE_KEY, JSON.stringify(nextDb)); } catch (e) {}
+                        return nextDb;
+                    });
                     setAddStatus({
                         ok: true,
                         msg: `Вопрос № ${nextNum} сохранен в базу данных и доступен в игре!`,
@@ -1999,7 +2150,11 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                     };
 
                     SoundFX.success();
-                    setDb(prev => prev.map(q => q.dbKey === editingQuestion.dbKey ? updatedObj : q));
+                    setDb(prev => {
+                        const nextDb = prev.map(q => q.dbKey === editingQuestion.dbKey ? updatedObj : q);
+                        try { localStorage.setItem(OFFLINE_DB_CACHE_KEY, JSON.stringify(nextDb)); } catch (e) {}
+                        return nextDb;
+                    });
                     setGameQuestions(prev => prev.map(q => q.dbKey === editingQuestion.dbKey ? updatedObj : q));
                     setEditingQuestion(updatedObj);
 
@@ -2038,7 +2193,9 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                     SoundFX.success();
                     setDb(prev => {
                         const filtered = prev.filter(q => q.dbKey !== editingQuestion.dbKey);
-                        return reindexSequential(filtered);
+                        const nextDb = reindexSequential(filtered);
+                        try { localStorage.setItem(OFFLINE_DB_CACHE_KEY, JSON.stringify(nextDb)); } catch (e) {}
+                        return nextDb;
                     });
                     
                     setGameQuestions(prev => {
@@ -2065,13 +2222,105 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 }
             };
 
-            // Всплывающее уведомление (Toast) при копировании ID или ссылки
+            // Всплывающее уведомление (Toast)
             const ToastBanner = () => {
                 if (!toastMsg) return null;
                 return (
                     <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[150] px-4 py-2.5 rounded-full bg-[#161321] border border-rose-500/45 text-white text-xs font-bold tracking-wider shadow-[0_12px_35px_rgba(0,0,0,0.8)] flex items-center gap-2 fade-in">
                         <span className="text-rose-400"><Icons.Check /></span>
                         <span>{toastMsg}</span>
+                    </div>
+                );
+            };
+
+            // МОДАЛЬНОЕ ОКНО УСТАНОВКИ PWA НА IPHONE И ANDROID
+            const PwaInstallModal = () => {
+                if (!showPwaModal) return null;
+                return (
+                    <div className="viewport-popup-overlay fade-in" onClick={() => setShowPwaModal(false)}>
+                        <div className="viewport-popup-box flex flex-col gap-5 slide-up" onClick={e => e.stopPropagation()}>
+                            <div className="flex items-center justify-between">
+                                <AskMeLogo size="xs" />
+                                <button 
+                                    onClick={() => { SoundFX.click(); setShowPwaModal(false); }}
+                                    className="px-3 py-1 rounded-full bg-white/5 text-xs text-zinc-400 hover:text-white"
+                                >
+                                    Закрыть
+                                </button>
+                            </div>
+
+                            <div className="text-center space-y-1">
+                                <h3 className="font-display text-xl font-bold text-white">
+                                    Установка приложения
+                                </h3>
+                                <p className="text-xs text-zinc-400">
+                                    Добавьте <b className="text-white">ASK ME</b> на главный экран телефона — игра будет открываться во весь экран без браузера.
+                                </p>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2 p-1 rounded-2xl bg-white/[0.04] border border-white/10">
+                                <button
+                                    type="button"
+                                    onClick={() => { SoundFX.click(); setPwaPlatformTab('ios'); }}
+                                    className={`h-10 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${
+                                        pwaPlatformTab === 'ios' ? 'bg-rose-500 text-white' : 'text-zinc-400 hover:text-white'
+                                    }`}
+                                >
+                                     iPhone (iOS)
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => { SoundFX.click(); setPwaPlatformTab('android'); }}
+                                    className={`h-10 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${
+                                        pwaPlatformTab === 'android' ? 'bg-rose-500 text-white' : 'text-zinc-400 hover:text-white'
+                                    }`}
+                                >
+                                    🤖 Android
+                                </button>
+                            </div>
+
+                            {pwaPlatformTab === 'ios' ? (
+                                <div className="flex flex-col gap-3 text-left text-xs text-zinc-200 bg-white/[0.03] p-4 rounded-2xl border border-white/10">
+                                    <div className="flex items-start gap-3">
+                                        <span className="w-6 h-6 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold flex items-center justify-center flex-shrink-0">1</span>
+                                        <p className="leading-relaxed">
+                                            Нажмите на иконку <b className="text-white">«Поделиться»</b> (квадрат со стрелкой вверх <span className="text-rose-400">↑</span>) в нижней панели браузера Safari.
+                                        </p>
+                                    </div>
+                                    <div className="hairline-divider"></div>
+                                    <div className="flex items-start gap-3">
+                                        <span className="w-6 h-6 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold flex items-center justify-center flex-shrink-0">2</span>
+                                        <p className="leading-relaxed">
+                                            Пролистайте меню чуть ниже и выберите пункт <b className="text-white">«На экран "Домой"»</b> (+), затем нажмите <b className="text-rose-400">Добавить</b>.
+                                        </p>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="flex flex-col gap-3 text-left text-xs text-zinc-200 bg-white/[0.03] p-4 rounded-2xl border border-white/10">
+                                    <div className="flex items-start gap-3">
+                                        <span className="w-6 h-6 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold flex items-center justify-center flex-shrink-0">1</span>
+                                        <p className="leading-relaxed">
+                                            Нажмите на меню браузера <b className="text-white">«⋮»</b> (три точки в правом верхнем углу Chrome).
+                                        </p>
+                                    </div>
+                                    <div className="hairline-divider"></div>
+                                    <div className="flex items-start gap-3">
+                                        <span className="w-6 h-6 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold flex items-center justify-center flex-shrink-0">2</span>
+                                        <p className="leading-relaxed">
+                                            Выберите пункт <b className="text-white">«Установить приложение»</b> или <b className="text-white">«Добавить на главный экран»</b>.
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
+                            <button
+                                type="button"
+                                onClick={() => { SoundFX.click(); setShowPwaModal(false); }}
+                                className="w-full rounded-2xl btn-primary text-xs font-bold uppercase tracking-widest"
+                            >
+                                Понятно
+                            </button>
+                        </div>
                     </div>
                 );
             };
@@ -2088,7 +2337,7 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 );
             }
 
-            // СЕКРЕТНАЯ СТРАНИЦА ВХОДА АДМИНИСТРАТОРА (#/admin) — С КНОПКОЙ "ГЛАЗ" (Показать/Скрыть пароль)
+            // СЕКРЕТНАЯ СТРАНИЦА ВХОДА АДМИНИСТРАТОРА (#/admin)
             if (screen === 'admin_login') {
                 return (
                     <div className="safe-screen w-full flex flex-col items-center justify-between slide-up relative z-10">
@@ -2173,11 +2422,12 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 );
             }
 
-            // ЭКРАН ПОСЛЕ ВВОДА ИМЕН ИГРОКОВ (#/session-ready) — ПОКАЗЫВАЕТ СГЕНЕРИРОВАННЫЙ 8-ЗНАЧНЫЙ ID СЕССИИ
+            // ЭКРАН ПОСЛЕ ВВОДА ИМЕН ИГРОКОВ (#/session-ready)
             if (screen === 'session_created' && profile) {
                 return (
                     <div className="safe-screen w-full flex flex-col items-center justify-between slide-up relative z-10">
                         <ToastBanner />
+                        <PwaInstallModal />
                         <div className="flex-1 flex items-center justify-center w-full py-6">
                             <div className="w-full max-w-sm flex flex-col items-center text-center gap-6">
                                 <AskMeLogo size="md" />
@@ -2215,6 +2465,7 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 return (
                     <div className="safe-screen w-full flex flex-col items-center justify-between slide-up relative z-10">
                         <ToastBanner />
+                        <PwaInstallModal />
                         <div className="flex-1 flex items-center justify-center w-full py-6">
                             <div className="w-full max-w-sm flex flex-col items-center text-center gap-7">
                                 <AskMeLogo size="lg" onClick={handleLogoSecretTap} />
@@ -2228,7 +2479,6 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                                     </p>
                                 </div>
 
-                                {/* Переключатель: Новая пара / Войти по ID */}
                                 <div className="grid grid-cols-2 gap-2 w-full p-1 rounded-2xl bg-white/[0.04] border border-white/10">
                                     <button
                                         type="button"
@@ -2324,11 +2574,21 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                                     </form>
                                 )}
 
+                                {!isStandalonePWA && (
+                                    <button
+                                        type="button"
+                                        onClick={handleInstallPwaClick}
+                                        className="px-4 py-2 rounded-full border border-white/12 bg-white/[0.03] hover:bg-white/[0.07] text-xs font-bold uppercase tracking-wider text-zinc-300 flex items-center gap-2 transition-all"
+                                    >
+                                        <Icons.DownloadApp /> Установить как приложение
+                                    </button>
+                                )}
+
                                 {profile && (
                                     <button
                                         type="button"
                                         onClick={() => { SoundFX.click(); navigate('menu'); }}
-                                        className="text-xs text-zinc-400 hover:text-white underline underline-offset-4 mt-1"
+                                        className="text-xs text-zinc-400 hover:text-white underline underline-offset-4"
                                     >
                                         Вернуться в текущую сессию ({profile.guyName} & {profile.girlName})
                                     </button>
@@ -2345,6 +2605,7 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 return (
                     <div className="safe-screen w-full flex flex-col items-center justify-between slide-up relative z-10">
                         <ToastBanner />
+                        <PwaInstallModal />
                         <header className="w-full max-w-md flex items-center justify-between pt-2">
                             <button 
                                 onClick={() => { SoundFX.click(); navigate('menu'); }} 
@@ -2357,7 +2618,6 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                         </header>
 
                         <main className="w-full max-w-sm flex flex-col gap-6 my-auto py-6">
-                            {/* Карточка текущего ID сессии */}
                             <SessionIdBadge 
                                 sessionId={profile.sessionId} 
                                 onCopy={showToast} 
@@ -2401,7 +2661,6 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
 
                             <div className="hairline-divider"></div>
 
-                            {/* Переключение на другой ID сессии */}
                             <form onSubmit={handleRestoreBySessionId} className="flex flex-col gap-3">
                                 <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-400 ml-1">
                                     Восстановить другую сессию по ID
@@ -2447,6 +2706,19 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                                     🔊 Тест
                                 </button>
                             </div>
+
+                            {!isStandalonePWA && (
+                                <>
+                                    <div className="hairline-divider"></div>
+                                    <button 
+                                        type="button"
+                                        onClick={handleInstallPwaClick}
+                                        className="w-full rounded-2xl btn-secondary text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2"
+                                    >
+                                        <Icons.DownloadApp /> Установить приложение на телефон
+                                    </button>
+                                </>
+                            )}
 
                             {isAdmin && (
                                 <>
@@ -2531,7 +2803,7 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 );
             }
 
-            // 3. ГЛАВНОЕ МЕНЮ (#/ — С ID СЕССИИ, КНОПКОЙ ПОДЕЛИТЬСЯ И ПРОДОЛЖЕНИЕМ СОХРАНЕННОЙ ИГРЫ)
+            // 3. ГЛАВНОЕ МЕНЮ (#/)
             if (screen === 'menu') {
                 const activeSelectedCatsCount = selectedCats.filter(cid => stats.activeByCat[cid] > 0).length;
                 const hasSavedGame = Boolean(profile?.savedGame && profile.savedGame.questionIds?.length > 0);
@@ -2539,9 +2811,10 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 return (
                     <div className="safe-screen w-full flex flex-col items-center justify-between slide-up relative z-10">
                         <ToastBanner />
+                        <PwaInstallModal />
                         <div className="w-full max-w-md lg:max-w-4xl mx-auto flex flex-col gap-7 pt-1">
                             
-                            {/* Верхняя панель: Профиль пары, кнопка Поделиться и Звук */}
+                            {/* Верхняя панель */}
                             <header className="w-full flex items-center justify-between gap-2">
                                 <button 
                                     onClick={() => {
@@ -2552,15 +2825,26 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                                     className="px-3.5 py-2 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-xs font-semibold text-zinc-200 flex items-center gap-2 transition-all active:scale-95 truncate"
                                 >
                                     <Icons.User />
-                                    <span className="truncate max-w-[130px] sm:max-w-[180px]">{profile.guyName} & {profile.girlName}</span>
+                                    <span className="truncate max-w-[125px] sm:max-w-[180px]">{profile.guyName} & {profile.girlName}</span>
                                     {isAdmin && <span className="text-rose-400 text-[10px]">●</span>}
                                 </button>
 
-                                <div className="flex items-center gap-2 flex-shrink-0">
+                                <div className="flex items-center gap-1.5 flex-shrink-0">
+                                    {!isStandalonePWA && (
+                                        <button 
+                                            onClick={handleInstallPwaClick}
+                                            title="Установить приложение на телефон"
+                                            className="px-3 py-2 rounded-full bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/35 text-xs font-bold uppercase tracking-wider text-rose-200 flex items-center gap-1.5 transition-all active:scale-95"
+                                        >
+                                            <Icons.DownloadApp />
+                                            <span className="hidden sm:inline">Приложение</span>
+                                        </button>
+                                    )}
+
                                     <button 
                                         onClick={handleShareGame}
                                         title="Поделиться игрой с друзьями"
-                                        className="px-3.5 py-2 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-xs font-bold uppercase tracking-wider text-zinc-200 flex items-center gap-1.5 transition-all active:scale-95"
+                                        className="px-3 py-2 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-xs font-bold uppercase tracking-wider text-zinc-200 flex items-center gap-1.5 transition-all active:scale-95"
                                     >
                                         <Icons.Share />
                                         <span className="hidden sm:inline">Поделиться</span>
@@ -2568,14 +2852,14 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
 
                                     <button 
                                         onClick={toggleMute}
-                                        className={`px-3.5 py-2 rounded-full border text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all active:scale-95 ${
+                                        className={`px-3 py-2 rounded-full border text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all active:scale-95 ${
                                             isMuted 
                                                 ? 'border-white/10 text-zinc-500' 
                                                 : 'border-rose-500/35 bg-rose-500/10 text-rose-300'
                                         }`}
                                     >
                                         {isMuted ? <Icons.SoundOff /> : <Icons.SoundOn />}
-                                        <span>{isMuted ? "Выкл" : "Звук"}</span>
+                                        <span className="hidden xs:inline">{isMuted ? "Выкл" : "Звук"}</span>
                                     </button>
                                 </div>
                             </header>
@@ -2680,12 +2964,11 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                                     </div>
                                 </div>
 
-                                {/* Правая колонка (Старт игры, возврат в партию, Список вопросов и Поделиться) */}
+                                {/* Правая колонка */}
                                 <div className="lg:col-span-5 flex flex-col gap-7 lg:pl-6 lg:border-l lg:border-white/[0.08]">
                                     
                                     <div className="lg:hidden hairline-divider"></div>
 
-                                    {/* Блок "Список вопросов" */}
                                     <div className="space-y-3.5">
                                         <div className="flex items-center justify-between">
                                             <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-400">
@@ -2705,7 +2988,6 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
 
                                     <div className="hairline-divider"></div>
 
-                                    {/* Блок "Доступно для новой игры" */}
                                     <div className="flex flex-col gap-5">
                                         <div className="flex items-center gap-3 w-full">
                                             <div className="h-[1px] flex-1 bg-white/10"></div>
@@ -2727,7 +3009,6 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                                             </div>
                                         </div>
 
-                                        {/* Если есть незаконченная сохраненная игра в сессии — кнопка мгновенного возврата */}
                                         {hasSavedGame && (
                                             <button 
                                                 onClick={handleResumeSavedGame}
@@ -2745,12 +3026,29 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                                             <Icons.Play /> {hasSavedGame ? "Новая игра" : "Начать игру"}
                                         </button>
 
-                                        <button 
-                                            onClick={handleShareGame}
-                                            className="w-full rounded-2xl btn-secondary text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2"
-                                        >
-                                            <Icons.Share /> Поделиться игрой
-                                        </button>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                            <button 
+                                                onClick={handleShareGame}
+                                                className="w-full rounded-2xl btn-secondary text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2"
+                                            >
+                                                <Icons.Share /> Поделиться
+                                            </button>
+                                            {!isStandalonePWA ? (
+                                                <button 
+                                                    onClick={handleInstallPwaClick}
+                                                    className="w-full rounded-2xl btn-secondary text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 text-rose-300 border-rose-500/30"
+                                                >
+                                                    <Icons.DownloadApp /> Скачать App
+                                                </button>
+                                            ) : (
+                                                <button 
+                                                    onClick={() => { SoundFX.click(); navigate('profile_page'); }}
+                                                    className="w-full rounded-2xl btn-secondary text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2"
+                                                >
+                                                    <Icons.User /> Сессия пары
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
 
                                 </div>
@@ -2762,7 +3060,7 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 );
             }
 
-            // 4. ЭКРАН ИГРЫ (#/play — С КОПИРУЕМЫМ ID СЕССИИ В ШАПКЕ)
+            // 4. ЭКРАН ИГРЫ (#/play)
             if (screen === 'game') {
                 const currentQ = gameQuestions[currentIndex];
                 if (!currentQ) {
@@ -2780,7 +3078,6 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 return (
                     <div className="safe-screen w-full flex flex-col justify-between fade-in relative z-10">
                         <ToastBanner />
-                        {/* Линия прогресса сверху */}
                         <div className="fixed top-0 left-0 right-0 h-1 bg-white/5 z-30">
                             <div 
                                 className="h-full bg-rose-500 transition-all duration-300"
@@ -2788,7 +3085,6 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                             ></div>
                         </div>
 
-                        {/* Верхняя панель: Счетчик + ID сессии + Редактировать | Звук + Меню */}
                         <header className="w-full max-w-xl mx-auto flex justify-between items-center py-2 flex-shrink-0 gap-2">
                             <div className="flex items-center gap-2">
                                 <div className="px-3.5 py-1.5 rounded-full border border-white/12 text-white font-display font-bold text-xs tracking-wider">
@@ -2822,7 +3118,6 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                             </div>
                         </header>
 
-                        {/* Центральная область вопроса */}
                         <main className="flex-1 flex flex-col items-center justify-center py-6 pb-28">
                             <div className="w-full max-w-lg flex flex-col items-center slide-up" key={currentQ.dbKey + '_' + currentIndex}>
                                 
@@ -2888,7 +3183,6 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                             </div>
                         </main>
 
-                        {/* Закрепленные кнопки Назад и Далее (50% на 50%) */}
                         <div className="fixed bottom-0 left-0 right-0 p-4 sm:p-6 z-20 bg-gradient-to-t from-[#09080c] via-[#09080c]/90 to-transparent" style={{ paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom))' }}>
                             <div className="max-w-lg mx-auto grid grid-cols-2 gap-3.5">
                                 <button 
@@ -2907,7 +3201,6 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                             </div>
                         </div>
 
-                        {/* КОМПАКТНЫЙ POP-UP ЖРЕБИЯ */}
                         {gameMode === 'normal' && turnPopup.open && (
                             <div className="viewport-popup-overlay fade-in">
                                 <div className="viewport-popup-box text-center flex flex-col items-center gap-5 slide-up">
@@ -2959,7 +3252,6 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                             </div>
                         )}
 
-                        {/* КОМПАКТНЫЙ POP-UP ВЫХОДА В МЕНЮ */}
                         {showEndGameConfirm && (
                             <div className="viewport-popup-overlay fade-in">
                                 <div className="viewport-popup-box text-center flex flex-col items-center gap-5 slide-up">
@@ -3181,7 +3473,6 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                                 })}
                             </div>
 
-                            {/* БЛОК АРХИВА ВНИЗУ СТРАНИЦЫ (С ID сессии и кнопкой "Вернуть все") */}
                             <div className="pt-2 flex flex-col gap-4">
                                 <div className="flex items-center justify-between gap-2 flex-wrap">
                                     <button 
@@ -3230,7 +3521,7 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 );
             }
 
-            // 8. ОТДЕЛЬНАЯ СТРАНИЦА "АРХИВ ВОПРОСОВ" (#/archive — С ID СЕССИИ И КАСТОМНЫМИ СПИСКАМИ ФИЛЬТРОВ)
+            // 8. ОТДЕЛЬНАЯ СТРАНИЦА "АРХИВ ВОПРОСОВ" (#/archive)
             if (screen === 'archive_page') {
                 const totalArchivedCount = stats.archivedList.length;
 
@@ -3284,7 +3575,6 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                             </div>
                         ) : (
                             <div className="flex-1 flex flex-col gap-6 pb-24">
-                                {/* Фильтры Архива с кастомными выпадающими списками */}
                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                                     <input 
                                         type="text"
@@ -3481,7 +3771,7 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 );
             }
 
-            // 10. ЭКРАН РЕДАКТИРОВАНИЯ И УДАЛЕНИЯ ВОПРОСА (#/edit — С КАСТОМНЫМИ ВЫПАДАЮЩИМИ СПИСКАМИ)
+            // 10. ЭКРАН РЕДАКТИРОВАНИЯ И УДАЛЕНИЯ ВОПРОСА (#/edit)
             if (screen === 'edit_q' && editingQuestion && isAdmin) {
                 const origText = (editingQuestion.cleanText || editingQuestion.text.replace(/^№\s*\d+\.\s*/, '')).trim();
                 const hasChanges = 
@@ -3620,7 +3910,7 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 );
             }
 
-            // 11. ФОРМА ДОБАВЛЕНИЯ ВОПРОСА (#/add — С КАСТОМНЫМИ ВЫПАДАЮЩИМИ СПИСКАМИ)
+            // 11. ФОРМА ДОБАВЛЕНИЯ ВОПРОСА (#/add)
             if (screen === 'add_q' && isAdmin) {
                 const categorySelectOptions = CATEGORIES.map(c => ({ value: c.id, label: c.name, icon: c.icon }));
                 const difficultySelectOptions = DIFFICULTIES.map(d => ({ value: d.id, label: d.name }));
