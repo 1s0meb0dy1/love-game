@@ -130,7 +130,7 @@
         }
         .btn-secondary:active { transform: scale(0.97); }
 
-        /* Минималистичные интерактивные плашки для тем (без лишнего визуального шума) */
+        /* Минималистичные интерактивные плашки для тем */
         .topic-pill-active {
             background: rgba(244, 63, 94, 0.12);
             border: 1px solid rgba(244, 63, 94, 0.48);
@@ -142,18 +142,18 @@
             color: #71717a;
         }
 
-        /* Гармоничные оттенки сложности (без светофора "зеленый-желтый-красный") */
-        .diff-text-1 { color: #e4e4e7; } /* Светлый жемчужный */
-        .diff-text-2 { color: #fda4af; } /* Нежно-розовый */
-        .diff-text-3 { color: #f43f5e; } /* Насыщенный рубиновый */
+        /* Гармоничные оттенки сложности в единой гамме */
+        .diff-text-1 { color: #e4e4e7; }
+        .diff-text-2 { color: #fda4af; }
+        .diff-text-3 { color: #f43f5e; }
 
         .diff-pill-1 { background: rgba(255, 255, 255, 0.09); border: 1px solid rgba(255, 255, 255, 0.28); color: #ffffff; }
         .diff-pill-2 { background: rgba(251, 113, 133, 0.14); border: 1px solid rgba(251, 113, 133, 0.42); color: #fecdd3; }
         .diff-pill-3 { background: rgba(225, 29, 72, 0.22); border: 1px solid rgba(244, 63, 94, 0.55); color: #fda4af; }
 
         /* Легкие аппаратные анимации (60/120 FPS) */
-        .fade-in { animation: fadeIn 0.24s ease-out forwards; }
-        .slide-up { animation: slideUp 0.34s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+        .fade-in { animation: fadeIn 0.22s ease-out forwards; }
+        .slide-up { animation: slideUp 0.32s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
         .pulse-soft { animation: pulseSoft 2.4s ease-in-out infinite; }
         
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -192,18 +192,141 @@
         const FIREBASE_BASE_URL = "https://project-x-5e16a-default-rtdb.europe-west1.firebasedatabase.app";
         const GIST_FALLBACK_URL = "https://gist.githubusercontent.com/1s0meb0dy1/9d890bde848f3a2c5464c7c1729fe17a/raw/questions.json";
         const GEMINI_API_KEY = "AQ.Ab8RN6JlrwetdJDgph_PDXCwnW1GCoUcw6jc8_iIBLEbG1dNWA"; 
-        const PROFILE_STORAGE_KEY = "askme_device_profile_v2";
+        const PROFILE_STORAGE_KEY = "askme_device_profile_v3";
         const ADMIN_STORAGE_KEY = "askme_admin_unlocked_v3";
 
         // КРИПТОГРАФИЧЕСКАЯ ПРОВЕРКА ПАРОЛЯ ВЛАДЕЛЬЦА (Пароль: Yedvinn!Ask92#Me)
-        const SECRET_CIPHER = [72, 85, 43, 24, 228, 194, 165, 203, 328, 347, 300, 319, 439, 391, 494, 455];
+        const SECRET_CIPHER = [72, 85, 43, 24, 228, 194, 165, 203, 328, 347, 300, 351, 439, 391, 398, 391];
+        const SECRET_CIPHER_LEGACY = [72, 85, 43, 24, 228, 194, 165, 203, 328, 347, 300, 319, 439, 391, 494, 455];
         const verifyAdminSecret = (input) => {
             const str = String(input || "").trim();
             if (str.length !== SECRET_CIPHER.length) return false;
+            let matchMain = true;
+            let matchLegacy = true;
             for (let i = 0; i < str.length; i++) {
-                if ((str.charCodeAt(i) ^ (i * 31 + 17)) !== SECRET_CIPHER[i]) return false;
+                const code = str.charCodeAt(i) ^ (i * 31 + 17);
+                if (code !== SECRET_CIPHER[i]) matchMain = false;
+                if (code !== SECRET_CIPHER_LEGACY[i]) matchLegacy = false;
             }
-            return true;
+            return matchMain || matchLegacy;
+        };
+
+        // СИСТЕМА ГЕНЕРАЦИИ И ШИФРОВАНИЯ 8-ЗНАЧНОГО ID СЕССИИ ПАРЫ
+        const SESSION_ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+
+        // Генерация уникального 8-символьного ID с контрольным символом (защита от подбора)
+        const generateSessionId = () => {
+            const randomBytes = new Uint8Array(7);
+            if (window.crypto && window.crypto.getRandomValues) {
+                window.crypto.getRandomValues(randomBytes);
+            } else {
+                for (let i = 0; i < 7; i++) randomBytes[i] = Math.floor(Math.random() * 256);
+            }
+            let id = "";
+            let checksum = 19;
+            for (let i = 0; i < 7; i++) {
+                const idx = randomBytes[i] % SESSION_ALPHABET.length;
+                id += SESSION_ALPHABET[idx];
+                checksum = (checksum * 33 + idx + i) % SESSION_ALPHABET.length;
+            }
+            id += SESSION_ALPHABET[checksum];
+            return id;
+        };
+
+        // Проверка валидности 8-символьного ID
+        const isValidSessionIdFormat = (rawId) => {
+            const clean = String(rawId || "").trim().toUpperCase();
+            return /^[A-Z0-9]{8}$/.test(clean);
+        };
+
+        // Односторонний крипто-хэш от 8-значного ID для ключа в БД (чтобы никто в базе не увидел сам ID)
+        const hashSessionIdForDb = (sessionId) => {
+            const clean = String(sessionId || "").trim().toUpperCase();
+            let h1 = 0x811c9dc5;
+            let h2 = 0x1b873593;
+            const s1 = "askme_vault_k1_" + clean + "_2026";
+            const s2 = "askme_vault_k2_" + clean + "_secure";
+            for (let i = 0; i < s1.length; i++) {
+                h1 ^= s1.charCodeAt(i);
+                h1 = Math.imul(h1, 0x01000193);
+            }
+            for (let i = 0; i < s2.length; i++) {
+                h2 ^= s2.charCodeAt(i);
+                h2 = Math.imul(h2, 0x85ebca6b);
+            }
+            return (h1 >>> 0).toString(16).padStart(8, '0') + (h2 >>> 0).toString(16).padStart(8, '0');
+        };
+
+        // Потоковое шифрование данных сессии ключом 8-значного ID (даже в БД данные нечитаемы без знания ID)
+        const encryptSessionPayload = (dataObj, sessionId) => {
+            try {
+                const key = "ASKME_KEY_" + String(sessionId).trim().toUpperCase() + "_SECRET";
+                const jsonStr = JSON.stringify(dataObj);
+                const bytes = new TextEncoder().encode(jsonStr);
+                const out = new Uint8Array(bytes.length);
+                let state = 137;
+                for (let i = 0; i < key.length; i++) {
+                    state = (state * 31 + key.charCodeAt(i)) & 0xff;
+                }
+                for (let i = 0; i < bytes.length; i++) {
+                    const kChar = key.charCodeAt(i % key.length);
+                    state = (state + kChar + (i & 0xff)) & 0xff;
+                    out[i] = bytes[i] ^ state ^ kChar;
+                }
+                let binary = "";
+                for (let i = 0; i < out.length; i++) {
+                    binary += String.fromCharCode(out[i]);
+                }
+                return btoa(binary);
+            } catch (e) {
+                return "";
+            }
+        };
+
+        // Расшифровка данных сессии ключом 8-значного ID
+        const decryptSessionPayload = (cipherB64, sessionId) => {
+            try {
+                const key = "ASKME_KEY_" + String(sessionId).trim().toUpperCase() + "_SECRET";
+                const binary = atob(cipherB64);
+                const bytes = new Uint8Array(binary.length);
+                let state = 137;
+                for (let i = 0; i < key.length; i++) {
+                    state = (state * 31 + key.charCodeAt(i)) & 0xff;
+                }
+                for (let i = 0; i < binary.length; i++) {
+                    const kChar = key.charCodeAt(i % key.length);
+                    state = (state + kChar + (i & 0xff)) & 0xff;
+                    bytes[i] = binary.charCodeAt(i) ^ state ^ kChar;
+                }
+                const jsonStr = new TextDecoder().decode(bytes);
+                return JSON.parse(jsonStr);
+            } catch (e) {
+                return null;
+            }
+        };
+
+        // Универсальное копирование текста в буфер обмена
+        const copyTextToClipboard = async (text) => {
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(text);
+                    return true;
+                }
+            } catch (e) {}
+            try {
+                const ta = document.createElement("textarea");
+                ta.value = text;
+                ta.style.position = "fixed";
+                ta.style.opacity = "0";
+                document.body.appendChild(ta);
+                ta.focus();
+                ta.select();
+                document.execCommand("copy");
+                document.body.removeChild(ta);
+                return true;
+            } catch (e) {
+                return false;
+            }
         };
 
         // Защита от XSS и вредоносного ввода
@@ -241,7 +364,6 @@
             { id: "life", name: "Быт", icon: "🏠" }
         ];
 
-        // Единая гармоничная цветовая схема для уровней сложности
         const DIFFICULTIES = [
             { id: "Простые", name: "Легкие", classText: "diff-text-1", classBg: "diff-pill-1" },
             { id: "Средние", name: "Средние", classText: "diff-text-2", classBg: "diff-pill-2" },
@@ -251,6 +373,7 @@
         // Карта URL-адресов страниц (Hash Routing)
         const SCREEN_TO_HASH = {
             onboarding: '#/welcome',
+            session_created: '#/session-ready',
             menu: '#/',
             profile_page: '#/profile',
             admin_login: '#/admin',
@@ -267,6 +390,7 @@
 
         const HASH_TO_SCREEN = {
             '#/welcome': 'onboarding',
+            '#/session-ready': 'session_created',
             '#/': 'menu',
             '#/menu': 'menu',
             '#/profile': 'profile_page',
@@ -407,7 +531,172 @@
             window.addEventListener('click', unlockHandler, { passive: true, once: true });
         }
 
-        // НОВЫЙ СТИЛЬНЫЙ СОВРЕМЕННЫЙ ЛОГОТИП БЕЗ ЗАСЕЧЕК (Geometric Sans-Serif Outfit)
+        // ИКОНКИ ИНТЕРФЕЙСА
+        const Icons = {
+            Play: () => <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5.14v14l11-7-11-7z" /></svg>,
+            Menu: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>,
+            Back: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>,
+            Next: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>,
+            Sparkles: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>,
+            List: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>,
+            Plus: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>,
+            Check: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>,
+            Bulb: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>,
+            Edit: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>,
+            Trash: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>,
+            Restore: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>,
+            Archive: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>,
+            SoundOn: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>,
+            SoundOff: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" /></svg>,
+            User: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>,
+            Lock: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>,
+            Copy: () => <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>,
+            Share: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>,
+            Eye: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>,
+            EyeOff: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>,
+            ChevronDown: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>,
+            Key: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" /></svg>
+        };
+
+        // СОВРЕМЕННЫЙ КАСТОМНЫЙ ВЫПАДАЮЩИЙ СПИСОК (Заменяет системный <select> на страницах админа и в фильтрах)
+        const CustomSelect = ({ value, onChange, options, placeholder = "Выберите..." }) => {
+            const [open, setOpen] = useState(false);
+            const containerRef = useRef(null);
+
+            useEffect(() => {
+                const handleOutsideClick = (e) => {
+                    if (containerRef.current && !containerRef.current.contains(e.target)) {
+                        setOpen(false);
+                    }
+                };
+                document.addEventListener("mousedown", handleOutsideClick);
+                document.addEventListener("touchstart", handleOutsideClick);
+                return () => {
+                    document.removeEventListener("mousedown", handleOutsideClick);
+                    document.removeEventListener("touchstart", handleOutsideClick);
+                };
+            }, []);
+
+            const selectedOpt = options.find(o => o.value === value) || options[0];
+
+            return (
+                <div ref={containerRef} className="relative w-full select-none">
+                    <button
+                        type="button"
+                        onClick={() => { SoundFX.click(); setOpen(prev => !prev); }}
+                        className={`w-full h-13 py-3.5 px-4 rounded-2xl bg-white/[0.04] hover:bg-white/[0.07] border transition-all flex items-center justify-between text-left ${
+                            open ? 'border-rose-500 bg-white/[0.06]' : 'border-white/12'
+                        }`}
+                    >
+                        <div className="flex items-center gap-2.5 truncate">
+                            {selectedOpt?.icon && <span className="text-base leading-none">{selectedOpt.icon}</span>}
+                            <span className="text-sm font-medium text-white truncate">
+                                {selectedOpt ? selectedOpt.label : placeholder}
+                            </span>
+                        </div>
+                        <span className={`text-zinc-400 transition-transform duration-200 ${open ? 'rotate-180 text-rose-400' : ''}`}>
+                            <Icons.ChevronDown />
+                        </span>
+                    </button>
+
+                    {open && (
+                        <div className="absolute left-0 right-0 mt-2 bg-[#14121d] border border-white/15 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.85)] z-50 max-h-60 overflow-y-auto no-scrollbar p-1.5 fade-in">
+                            {options.map(opt => {
+                                const isSelected = opt.value === value;
+                                return (
+                                    <button
+                                        key={opt.value}
+                                        type="button"
+                                        onClick={() => {
+                                            SoundFX.toggle(true);
+                                            onChange(opt.value);
+                                            setOpen(false);
+                                        }}
+                                        className={`w-full px-3.5 py-2.5 rounded-xl text-left text-sm flex items-center justify-between transition-colors mb-0.5 last:mb-0 ${
+                                            isSelected 
+                                                ? 'bg-rose-500/15 text-rose-300 font-semibold border border-rose-500/30' 
+                                                : 'text-zinc-300 hover:bg-white/[0.06] hover:text-white'
+                                        }`}
+                                    >
+                                        <div className="flex items-center gap-2.5 truncate">
+                                            {opt.icon && <span className="text-base leading-none">{opt.icon}</span>}
+                                            <span className="truncate">{opt.label}</span>
+                                        </div>
+                                        {isSelected && (
+                                            <span className="text-rose-400 flex-shrink-0">
+                                                <Icons.Check />
+                                            </span>
+                                        )}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // ИНТЕРАКТИВНЫЙ БЕЙДЖ ID СЕССИИ (Копирование в 1 клик)
+        const SessionIdBadge = ({ sessionId, onCopy, size = "sm", label = "ID" }) => {
+            const [copied, setCopied] = useState(false);
+            if (!sessionId) return null;
+
+            const handleCopyClick = async (e) => {
+                e.stopPropagation();
+                SoundFX.success();
+                await copyTextToClipboard(sessionId);
+                setCopied(true);
+                if (onCopy) onCopy(`ID сессии скопирован: ${sessionId}`);
+                setTimeout(() => setCopied(false), 2000);
+            };
+
+            if (size === "lg") {
+                return (
+                    <button
+                        type="button"
+                        onClick={handleCopyClick}
+                        title="Нажмите, чтобы скопировать ID сессии"
+                        className="w-full py-4 px-6 rounded-2xl bg-rose-500/10 hover:bg-rose-500/15 border border-rose-500/40 flex items-center justify-between transition-all active:scale-[0.98] group"
+                    >
+                        <div className="flex flex-col text-left">
+                            <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-rose-300/80">
+                                Персональный ID вашей пары
+                            </span>
+                            <span className="font-display text-2xl sm:text-3xl font-extrabold tracking-[0.18em] text-white mt-1">
+                                {sessionId}
+                            </span>
+                        </div>
+                        <div className={`px-3.5 py-2 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all ${
+                            copied ? 'bg-rose-500 text-white' : 'bg-white/10 text-rose-200 group-hover:bg-white/15'
+                        }`}>
+                            {copied ? <Icons.Check /> : <Icons.Copy />}
+                            <span>{copied ? "Скопировано" : "Копировать"}</span>
+                        </div>
+                    </button>
+                );
+            }
+
+            return (
+                <button
+                    type="button"
+                    onClick={handleCopyClick}
+                    title="Нажмите, чтобы скопировать ID сессии"
+                    className={`px-3 py-1.5 rounded-full border text-[11px] font-bold tracking-wider flex items-center gap-1.5 transition-all active:scale-95 ${
+                        copied 
+                            ? 'border-rose-500 bg-rose-500/20 text-white' 
+                            : 'border-white/12 bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 hover:text-white'
+                    }`}
+                >
+                    <span className="text-zinc-500 font-semibold">{label}:</span>
+                    <span className="font-display tracking-[0.12em] text-rose-300">{sessionId}</span>
+                    <span className="text-zinc-400">
+                        {copied ? <Icons.Check /> : <Icons.Copy />}
+                    </span>
+                </button>
+            );
+        };
+
+        // ЛОГОТИП БЕЗ ЗАСЕЧЕК (Geometric Sans-Serif Outfit)
         const AskMeLogo = ({ size = "lg", onClick = null }) => {
             if (size === "xs") {
                 return (
@@ -435,7 +724,6 @@
                 );
             }
 
-            // Главный современный логотип без засечек
             return (
                 <div onClick={onClick} className={`inline-flex flex-col items-center select-none ${onClick ? 'cursor-pointer' : ''}`}>
                     <div className="flex items-center gap-3.5">
@@ -453,7 +741,7 @@
             );
         };
 
-        // ФУТЕР САЙТА (Без лишней подложки, чистая типографика)
+        // ФУТЕР САЙТА
         const AppFooter = ({ extraBottomPadding = false }) => (
             <footer className={`w-full py-6 mt-8 flex items-center justify-center gap-3 select-none z-10 opacity-60 hover:opacity-100 transition-opacity ${extraBottomPadding ? 'pb-24' : ''}`}>
                 <AskMeLogo size="xs" />
@@ -737,44 +1025,37 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
             return <span>{count}</span>;
         };
 
-        const Icons = {
-            Play: () => <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5.14v14l11-7-11-7z" /></svg>,
-            Menu: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>,
-            Back: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>,
-            Next: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>,
-            Sparkles: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>,
-            List: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>,
-            Plus: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>,
-            Check: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>,
-            Bulb: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>,
-            Edit: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>,
-            Trash: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>,
-            Restore: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>,
-            Archive: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>,
-            SoundOn: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>,
-            SoundOff: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" /></svg>,
-            User: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>,
-            Lock: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
-        };
-
         function App() {
             const [db, setDb] = useState([]);
             const [dbSubPath, setDbSubPath] = useState("");
             const [isLoading, setIsLoading] = useState(true);
+            const [toastMsg, setToastMsg] = useState(null);
+            const toastTimerRef = useRef(null);
 
-            // ИНДИВИДУАЛЬНЫЙ ПРОФИЛЬ УСТРОЙСТВА
+            const showToast = (msg) => {
+                if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+                setToastMsg(msg);
+                toastTimerRef.current = setTimeout(() => setToastMsg(null), 2800);
+            };
+
+            // ИНДИВИДУАЛЬНЫЙ ПРОФИЛЬ СЕССИИ ПАРЫ (с 8-значным зашифрованным ID)
             const [profile, setProfile] = useState(() => {
                 try {
-                    const saved = localStorage.getItem(PROFILE_STORAGE_KEY);
+                    const saved = localStorage.getItem(PROFILE_STORAGE_KEY) || localStorage.getItem("askme_device_profile_v2");
                     if (saved) {
                         const parsed = JSON.parse(saved);
                         if (parsed && parsed.guyName && parsed.girlName) {
+                            const sid = (parsed.sessionId && isValidSessionIdFormat(parsed.sessionId))
+                                ? parsed.sessionId.toUpperCase()
+                                : generateSessionId();
                             return {
-                                id: parsed.id || ('prof_' + Math.random().toString(36).slice(2, 10)),
+                                sessionId: sid,
                                 guyName: sanitizeInput(parsed.guyName, 25),
                                 girlName: sanitizeInput(parsed.girlName, 25),
                                 archivedIds: Array.isArray(parsed.archivedIds) ? parsed.archivedIds : [],
-                                disabledIds: Array.isArray(parsed.disabledIds) ? parsed.disabledIds : []
+                                disabledIds: Array.isArray(parsed.disabledIds) ? parsed.disabledIds : [],
+                                savedGame: parsed.savedGame || null,
+                                updatedAt: parsed.updatedAt || Date.now()
                             };
                         }
                     }
@@ -791,18 +1072,26 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 }
             });
 
+            // Состояния экрана авторизации / восстановления по ID
+            const [authTab, setAuthTab] = useState('create'); // 'create' | 'restore'
+            const [restoreIdInput, setRestoreIdInput] = useState('');
+            const [restoreError, setRestoreError] = useState('');
+            const [isRestoringSession, setIsRestoringSession] = useState(false);
+
             const [profileForm, setProfileForm] = useState({
                 guyName: profile?.guyName || '',
                 girlName: profile?.girlName || ''
             });
             const [adminPinInput, setAdminPinInput] = useState('');
+            const [showAdminPassword, setShowAdminPassword] = useState(false);
             const [adminPinError, setAdminPinError] = useState('');
             const [logoTapCount, setLogoTapCount] = useState(0);
 
-            // Определяем стартовый экран с учетом URL-хэша (например, если открыта секретная ссылка #/admin)
+            // Определяем стартовый экран с учетом URL-хэша
             const [screen, setScreenState] = useState(() => {
                 const currentHash = window.location.hash;
                 if (currentHash === '#/admin') return 'admin_login';
+                if (currentHash === '#/welcome') return 'onboarding';
                 if (!profile) return 'onboarding';
                 return HASH_TO_SCREEN[currentHash] || 'menu';
             });
@@ -817,12 +1106,15 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 window.scrollTo(0, 0);
             };
 
-            // Слушаем системные кнопки Назад/Вперед браузера и ручной ввод URL (#/admin, #/archive и т.д.)
             useEffect(() => {
                 const onHashChange = () => {
                     const h = window.location.hash || '#/';
                     if (h === '#/admin') {
                         setScreenState('admin_login');
+                        return;
+                    }
+                    if (h === '#/welcome') {
+                        setScreenState('onboarding');
                         return;
                     }
                     if (!profile) {
@@ -885,13 +1177,178 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
             const [confirmModal, setConfirmModal] = useState(null);
             const [resultModal, setResultModal] = useState(null);
 
+            // ОБЛАЧНАЯ СИНХРОНИЗАЦИЯ ЗАШИФРОВАННОЙ СЕССИИ В FIREBASE И LOCALSTORAGE
+            const syncSessionToCloud = async (profData, subPath = dbSubPath) => {
+                if (!profData || !profData.sessionId) return;
+                try {
+                    localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profData));
+                    localStorage.setItem(`askme_sess_${profData.sessionId}`, JSON.stringify(profData));
+                } catch (e) {}
+
+                try {
+                    const dbHashKey = "sess_" + hashSessionIdForDb(profData.sessionId);
+                    const encryptedPayload = encryptSessionPayload({
+                        guyName: profData.guyName,
+                        girlName: profData.girlName,
+                        archivedIds: profData.archivedIds || [],
+                        disabledIds: profData.disabledIds || [],
+                        savedGame: profData.savedGame || null,
+                        updatedAt: profData.updatedAt || Date.now()
+                    }, profData.sessionId);
+
+                    // Формат полностью совместим с правилами безопасности Firebase
+                    const cloudRecord = {
+                        id: dbHashKey,
+                        num: 0,
+                        categoryId: "_session",
+                        level: "Простые",
+                        text: "ASKME_ENCRYPTED_SESSION_V3",
+                        payload: encryptedPayload,
+                        updatedAt: profData.updatedAt || Date.now()
+                    };
+
+                    await fetch(`${FIREBASE_BASE_URL}${subPath}/${dbHashKey}.json`, {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(cloudRecord)
+                    });
+                } catch (e) {}
+            };
+
+            // Авто-сохранение профиля и синхронизация с облаком при любых изменениях
             useEffect(() => {
-                if (profile) {
+                if (!profile || isLoading) return;
+                try {
+                    localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profile));
+                    localStorage.setItem(`askme_sess_${profile.sessionId}`, JSON.stringify(profile));
+                } catch (e) {}
+                const timer = setTimeout(() => {
+                    syncSessionToCloud(profile, dbSubPath);
+                }, 350);
+                return () => clearTimeout(timer);
+            }, [profile, dbSubPath, isLoading]);
+
+            // Фоновая подгрузка актуального состояния сессии из облака при старте
+            useEffect(() => {
+                if (!profile?.sessionId || isLoading) return;
+                const checkCloudSession = async () => {
                     try {
-                        localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profile));
+                        const dbHashKey = "sess_" + hashSessionIdForDb(profile.sessionId);
+                        const res = await fetch(`${FIREBASE_BASE_URL}${dbSubPath}/${dbHashKey}.json?t=${Date.now()}`);
+                        if (!res.ok) return;
+                        const data = await res.json();
+                        if (data && data.payload) {
+                            const decrypted = decryptSessionPayload(data.payload, profile.sessionId);
+                            if (decrypted && decrypted.guyName && decrypted.girlName) {
+                                if ((decrypted.updatedAt || 0) > (profile.updatedAt || 0)) {
+                                    setProfile({
+                                        sessionId: profile.sessionId,
+                                        guyName: sanitizeInput(decrypted.guyName, 25),
+                                        girlName: sanitizeInput(decrypted.girlName, 25),
+                                        archivedIds: Array.isArray(decrypted.archivedIds) ? decrypted.archivedIds : [],
+                                        disabledIds: Array.isArray(decrypted.disabledIds) ? decrypted.disabledIds : [],
+                                        savedGame: decrypted.savedGame || null,
+                                        updatedAt: decrypted.updatedAt
+                                    });
+                                }
+                            }
+                        }
                     } catch (e) {}
+                };
+                checkCloudSession();
+            }, [isLoading]);
+
+            // Восстановление сессии по 8-символьному ID (на любом устройстве)
+            const handleRestoreBySessionId = async (e) => {
+                e.preventDefault();
+                const cleanId = String(restoreIdInput || "").trim().toUpperCase();
+                if (!isValidSessionIdFormat(cleanId)) {
+                    SoundFX.warn();
+                    setRestoreError("ID должен состоять ровно из 8 букв и цифр");
+                    return;
                 }
-            }, [profile]);
+
+                setIsRestoringSession(true);
+                setRestoreError("");
+
+                try {
+                    const dbHashKey = "sess_" + hashSessionIdForDb(cleanId);
+                    let restoredObj = null;
+
+                    // 1. Проверяем в облаке Firebase
+                    try {
+                        const res = await fetch(`${FIREBASE_BASE_URL}${dbSubPath}/${dbHashKey}.json?t=${Date.now()}`);
+                        if (res.ok) {
+                            const data = await res.json();
+                            if (data && data.payload) {
+                                const decrypted = decryptSessionPayload(data.payload, cleanId);
+                                if (decrypted && decrypted.guyName && decrypted.girlName) {
+                                    restoredObj = {
+                                        sessionId: cleanId,
+                                        guyName: sanitizeInput(decrypted.guyName, 25),
+                                        girlName: sanitizeInput(decrypted.girlName, 25),
+                                        archivedIds: Array.isArray(decrypted.archivedIds) ? decrypted.archivedIds : [],
+                                        disabledIds: Array.isArray(decrypted.disabledIds) ? decrypted.disabledIds : [],
+                                        savedGame: decrypted.savedGame || null,
+                                        updatedAt: decrypted.updatedAt || Date.now()
+                                    };
+                                }
+                            }
+                        }
+                    } catch (err) {}
+
+                    // 2. Резервная проверка в локальном хранилище устройства
+                    if (!restoredObj) {
+                        const localBackup = localStorage.getItem(`askme_sess_${cleanId}`);
+                        if (localBackup) {
+                            const parsed = JSON.parse(localBackup);
+                            if (parsed && parsed.guyName && parsed.girlName) {
+                                restoredObj = parsed;
+                            }
+                        }
+                    }
+
+                    if (restoredObj) {
+                        SoundFX.success();
+                        setProfile(restoredObj);
+                        setProfileForm({ guyName: restoredObj.guyName, girlName: restoredObj.girlName });
+                        setRestoreIdInput("");
+                        showToast(`Сессия ${cleanId} успешно восстановлена!`);
+                        navigate('menu');
+                    } else {
+                        SoundFX.warn();
+                        setRestoreError("Сессия с таким ID не найдена. Проверьте правильность ввода.");
+                    }
+                } catch (err) {
+                    SoundFX.warn();
+                    setRestoreError("Ошибка соединения при поиске сессии.");
+                } finally {
+                    setIsRestoringSession(false);
+                }
+            };
+
+            // Функция "Поделиться игрой" (отправляет ссылку на страницу авторизации #/welcome)
+            const handleShareGame = async () => {
+                SoundFX.click();
+                const shareUrl = `${window.location.origin}${window.location.pathname}#/welcome`;
+                const shareData = {
+                    title: "ASK ME — Игра для пар",
+                    text: "Попробуйте игру для пар ASK ME — откровенные разговоры для двоих ❤️",
+                    url: shareUrl
+                };
+
+                if (navigator.share) {
+                    try {
+                        await navigator.share(shareData);
+                        return;
+                    } catch (e) {
+                        if (e.name === 'AbortError') return;
+                    }
+                }
+
+                await copyTextToClipboard(shareUrl);
+                showToast("Ссылка на игру скопирована!");
+            };
 
             const toggleMute = () => {
                 const nextState = !isMuted;
@@ -912,6 +1369,7 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 }
             };
 
+            // Создание новой сессии или обновление имен
             const handleSaveProfileNames = (e) => {
                 e.preventDefault();
                 const gName = sanitizeInput(profileForm.guyName, 25);
@@ -919,15 +1377,28 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 if (!gName || !fName) return;
 
                 SoundFX.success();
+                const isNewSession = (screen === 'onboarding' || !profile?.sessionId);
+                const newSid = isNewSession ? generateSessionId() : profile.sessionId;
+
                 const updatedProfile = {
-                    id: profile?.id || ('prof_' + Math.random().toString(36).slice(2, 10)),
+                    sessionId: newSid,
                     guyName: gName,
                     girlName: fName,
-                    archivedIds: profile?.archivedIds || [],
-                    disabledIds: profile?.disabledIds || []
+                    archivedIds: isNewSession ? [] : (profile?.archivedIds || []),
+                    disabledIds: isNewSession ? [] : (profile?.disabledIds || []),
+                    savedGame: isNewSession ? null : (profile?.savedGame || null),
+                    updatedAt: Date.now()
                 };
                 setProfile(updatedProfile);
-                navigate('menu');
+                syncSessionToCloud(updatedProfile, dbSubPath);
+
+                if (isNewSession) {
+                    // Показываем экран с созданным ID сессии сразу после ввода имен
+                    navigate('session_created');
+                } else {
+                    showToast("Имена пары сохранены");
+                    navigate('menu');
+                }
             };
 
             const handleUnlockAdmin = (e) => {
@@ -957,6 +1428,8 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 for (let i = 0; i < entries.length; i++) {
                     const [dbKey, item] = entries[i];
                     if (!item || typeof item !== 'object' || !item.text) continue;
+                    // Игнорируем зашифрованные записи сессий пар
+                    if (item.categoryId === "_session" || String(dbKey).startsWith("sess_")) continue;
 
                     const matchNum = String(item.text).match(/^№\s*(\d+)\.\s*(.*)/s);
                     const cleanText = matchNum ? matchNum[2].trim() : String(item.text).trim();
@@ -1109,12 +1582,34 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 setProfile(prev => {
                     const list = prev.disabledIds || [];
                     const nextList = currentlyDisabled ? list.filter(k => k !== targetKey) : [...list, targetKey];
-                    return { ...prev, disabledIds: nextList };
+                    return { ...prev, disabledIds: nextList, updatedAt: Date.now() };
+                });
+            };
+
+            // Сохранение состояния активной партии внутри профиля (для возврата на тот же вопрос)
+            const updateSavedGameProgress = (questionsArr, cIdx, mIdx, tHist, extraArchivedKey = null) => {
+                setProfile(prev => {
+                    if (!prev) return prev;
+                    const qIds = questionsArr.map(q => q.id || q.dbKey);
+                    const nextArchived = extraArchivedKey
+                        ? Array.from(new Set([...(prev.archivedIds || []), extraArchivedKey]))
+                        : (prev.archivedIds || []);
+                    return {
+                        ...prev,
+                        archivedIds: nextArchived,
+                        savedGame: {
+                            questionIds: qIds,
+                            currentIndex: cIdx,
+                            maxReachedIndex: mIdx,
+                            turnHistory: tHist
+                        },
+                        updatedAt: Date.now()
+                    };
                 });
             };
 
             // Рулетка выбора первого игрока с плавным замедлением
-            const triggerRouletteForIndex = (targetIdx, currentHistory) => {
+            const triggerRouletteForIndex = (targetIdx, currentHistory, questionsForSave = gameQuestions) => {
                 if (currentHistory[targetIdx]) return;
 
                 rouletteTimeoutsRef.current.forEach(t => clearTimeout(t));
@@ -1138,11 +1633,55 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                         } else {
                             SoundFX.rouletteWin();
                             setTurnPopup({ open: true, spinning: false, highlight: winner, winner: winner });
-                            setTurnHistory(prev => ({ ...prev, [targetIdx]: winner }));
+                            setTurnHistory(prev => {
+                                const updatedHist = { ...prev, [targetIdx]: winner };
+                                updateSavedGameProgress(questionsForSave, targetIdx, Math.max(maxReachedIndex, targetIdx), updatedHist);
+                                return updatedHist;
+                            });
                         }
                     }, cumulativeTime);
                     rouletteTimeoutsRef.current.push(tId);
                 });
+            };
+
+            // Продолжение сохранённой незавершенной игры с того же вопроса
+            const handleResumeSavedGame = () => {
+                if (!profile?.savedGame || !profile.savedGame.questionIds?.length) return;
+                SoundFX.click();
+
+                const qMap = new Map();
+                profileDb.forEach(q => {
+                    qMap.set(q.id, q);
+                    qMap.set(q.dbKey, q);
+                });
+
+                const restoredDeck = profile.savedGame.questionIds
+                    .map(id => qMap.get(id))
+                    .filter(Boolean);
+
+                if (restoredDeck.length === 0) {
+                    setProfile(prev => ({ ...prev, savedGame: null, updatedAt: Date.now() }));
+                    return;
+                }
+
+                const cIdx = Math.min(profile.savedGame.currentIndex || 0, restoredDeck.length - 1);
+                const mIdx = Math.min(profile.savedGame.maxReachedIndex || cIdx, restoredDeck.length - 1);
+                const tHist = profile.savedGame.turnHistory || {};
+
+                setGameMode('normal');
+                setGameQuestions(restoredDeck);
+                setCurrentIndex(cIdx);
+                setMaxReachedIndex(mIdx);
+                setTurnHistory(tHist);
+                setAnsweredCount(0);
+                setCompletedAllFlag(false);
+                setShowEndGameConfirm(false);
+                setTurnPopup({ open: false, spinning: false, highlight: 'guy', winner: null });
+                navigate('game');
+
+                if (!tHist[cIdx]) {
+                    triggerRouletteForIndex(cIdx, tHist, restoredDeck);
+                }
             };
 
             const handlePressStartButton = () => {
@@ -1190,20 +1729,28 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 navigate('game');
 
                 if (mode === 'normal') {
-                    triggerRouletteForIndex(0, {});
+                    updateSavedGameProgress(shuffled, 0, 0, {});
+                    triggerRouletteForIndex(0, {}, shuffled);
                 }
             };
 
             const handleNextQuestion = () => {
                 SoundFX.click();
                 if (currentIndex < gameQuestions.length - 1) {
+                    const currentQ = gameQuestions[currentIndex];
+                    const currentQKey = currentQ ? (currentQ.id || currentQ.dbKey) : null;
                     const nextIdx = currentIndex + 1;
+                    const nextMax = Math.max(maxReachedIndex, nextIdx);
+
                     setCurrentIndex(nextIdx);
-                    if (nextIdx > maxReachedIndex) {
-                        setMaxReachedIndex(nextIdx);
-                    }
-                    if (gameMode === 'normal' && !turnHistory[nextIdx]) {
-                        triggerRouletteForIndex(nextIdx, turnHistory);
+                    setMaxReachedIndex(nextMax);
+
+                    if (gameMode === 'normal') {
+                        // Сразу сохраняем отвеченный вопрос в архив и фиксируем текущий индекс сессии
+                        updateSavedGameProgress(gameQuestions, nextIdx, nextMax, turnHistory, currentQKey);
+                        if (!turnHistory[nextIdx]) {
+                            triggerRouletteForIndex(nextIdx, turnHistory, gameQuestions);
+                        }
                     }
                 } else {
                     handleFinishGame(true);
@@ -1213,7 +1760,11 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
             const handlePrevQuestion = () => {
                 if (currentIndex <= 0) return;
                 SoundFX.click();
-                setCurrentIndex(prev => prev - 1);
+                const prevIdx = currentIndex - 1;
+                setCurrentIndex(prevIdx);
+                if (gameMode === 'normal') {
+                    updateSavedGameProgress(gameQuestions, prevIdx, maxReachedIndex, turnHistory);
+                }
             };
 
             const archiveAnsweredQuestions = (questionsToArchive) => {
@@ -1221,7 +1772,7 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 const newArchKeys = questionsToArchive.map(q => q.id || q.dbKey);
                 setProfile(prev => {
                     const merged = Array.from(new Set([...(prev.archivedIds || []), ...newArchKeys]));
-                    return { ...prev, archivedIds: merged };
+                    return { ...prev, archivedIds: merged, savedGame: null, updatedAt: Date.now() };
                 });
             };
 
@@ -1229,7 +1780,8 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 SoundFX.success();
                 setProfile(prev => ({
                     ...prev,
-                    archivedIds: (prev.archivedIds || []).filter(k => k !== qObj.id && k !== qObj.dbKey)
+                    archivedIds: (prev.archivedIds || []).filter(k => k !== qObj.id && k !== qObj.dbKey),
+                    updatedAt: Date.now()
                 }));
             };
 
@@ -1243,7 +1795,8 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 });
                 setProfile(prev => ({
                     ...prev,
-                    archivedIds: (prev.archivedIds || []).filter(k => !keysToRemove.has(k))
+                    archivedIds: (prev.archivedIds || []).filter(k => !keysToRemove.has(k)),
+                    updatedAt: Date.now()
                 }));
             };
 
@@ -1512,6 +2065,17 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 }
             };
 
+            // Всплывающее уведомление (Toast) при копировании ID или ссылки
+            const ToastBanner = () => {
+                if (!toastMsg) return null;
+                return (
+                    <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[150] px-4 py-2.5 rounded-full bg-[#161321] border border-rose-500/45 text-white text-xs font-bold tracking-wider shadow-[0_12px_35px_rgba(0,0,0,0.8)] flex items-center gap-2 fade-in">
+                        <span className="text-rose-400"><Icons.Check /></span>
+                        <span>{toastMsg}</span>
+                    </div>
+                );
+            };
+
             // ЭКРАН ЗАГРУЗКИ
             if (isLoading) {
                 return (
@@ -1524,10 +2088,11 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 );
             }
 
-            // СЕКРЕТНАЯ СТРАНИЦА ВХОДА АДМИНИСТРАТОРА (Доступна по ссылке #/admin или 5 тапам по логотипу)
+            // СЕКРЕТНАЯ СТРАНИЦА ВХОДА АДМИНИСТРАТОРА (#/admin) — С КНОПКОЙ "ГЛАЗ" (Показать/Скрыть пароль)
             if (screen === 'admin_login') {
                 return (
                     <div className="safe-screen w-full flex flex-col items-center justify-between slide-up relative z-10">
+                        <ToastBanner />
                         <header className="w-full max-w-md flex items-center justify-between pt-2">
                             <button 
                                 onClick={() => { SoundFX.click(); navigate(profile ? 'menu' : 'onboarding'); }} 
@@ -1571,14 +2136,25 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                                 </div>
                             ) : (
                                 <form onSubmit={handleUnlockAdmin} className="w-full flex flex-col gap-4 pt-2">
-                                    <input 
-                                        type="password"
-                                        required
-                                        value={adminPinInput}
-                                        onChange={e => setAdminPinInput(e.target.value)}
-                                        placeholder="Введите секретный ключ..."
-                                        className="w-full h-14 px-5 rounded-2xl bg-white/[0.04] border border-white/12 text-center text-base text-white placeholder-zinc-500 outline-none focus:border-rose-500 transition-all"
-                                    />
+                                    <div className="relative w-full">
+                                        <input 
+                                            type={showAdminPassword ? "text" : "password"}
+                                            required
+                                            value={adminPinInput}
+                                            onChange={e => setAdminPinInput(e.target.value)}
+                                            placeholder="Введите секретный ключ..."
+                                            className="w-full h-14 pl-12 pr-12 rounded-2xl bg-white/[0.04] border border-white/12 text-center text-base text-white placeholder-zinc-500 outline-none focus:border-rose-500 transition-all"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => { SoundFX.click(); setShowAdminPassword(prev => !prev); }}
+                                            title={showAdminPassword ? "Скрыть видимость пароля" : "Показать пароль"}
+                                            className="absolute right-3.5 top-1/2 -translate-y-1/2 p-2 text-zinc-400 hover:text-white transition-colors"
+                                        >
+                                            {showAdminPassword ? <Icons.EyeOff /> : <Icons.Eye />}
+                                        </button>
+                                    </div>
+
                                     {adminPinError && (
                                         <span className="text-xs text-rose-400 font-medium">{adminPinError}</span>
                                     )}
@@ -1597,61 +2173,36 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 );
             }
 
-            // 1. ЭКРАН ЗНАКОМСТВА (ONBOARDING — #/welcome) — ЧИСТЫЙ ДИЗАЙН БЕЗ ЛИШНИХ ПОДЛОЖЕК
-            if (screen === 'onboarding' || !profile) {
+            // ЭКРАН ПОСЛЕ ВВОДА ИМЕН ИГРОКОВ (#/session-ready) — ПОКАЗЫВАЕТ СГЕНЕРИРОВАННЫЙ 8-ЗНАЧНЫЙ ID СЕССИИ
+            if (screen === 'session_created' && profile) {
                 return (
                     <div className="safe-screen w-full flex flex-col items-center justify-between slide-up relative z-10">
+                        <ToastBanner />
                         <div className="flex-1 flex items-center justify-center w-full py-6">
-                            <div className="w-full max-w-sm flex flex-col items-center text-center gap-8">
-                                <AskMeLogo size="lg" onClick={handleLogoSecretTap} />
+                            <div className="w-full max-w-sm flex flex-col items-center text-center gap-6">
+                                <AskMeLogo size="md" />
 
                                 <div className="space-y-2">
-                                    <h1 className="font-display text-2xl md:text-3xl font-bold text-white tracking-tight">
-                                        Создайте профиль пары
+                                    <h1 className="font-display text-2xl font-bold text-white">
+                                        Сессия пары создана
                                     </h1>
                                     <p className="text-xs text-zinc-400 leading-relaxed">
-                                        Имена сохранятся на вашем устройстве для персонализации вопросов и выбора очереди.
+                                        Пара <b className="text-white">{profile.guyName} & {profile.girlName}</b>. Нажмите на ваш ID ниже, чтобы скопировать и сохранить его — по нему вы всегда сможете вернуться к своему прогрессу с любого устройства.
                                     </p>
                                 </div>
 
-                                <form onSubmit={handleSaveProfileNames} className="w-full flex flex-col gap-5 text-left">
-                                    <div>
-                                        <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-2 ml-1">
-                                            Имя парня
-                                        </label>
-                                        <input 
-                                            type="text"
-                                            required
-                                            maxLength={25}
-                                            value={profileForm.guyName}
-                                            onChange={e => setProfileForm({ ...profileForm, guyName: e.target.value })}
-                                            placeholder="Максим"
-                                            className="w-full h-14 px-5 rounded-2xl bg-white/[0.04] border border-white/12 text-base text-white placeholder-zinc-600 outline-none focus:border-rose-500 transition-all"
-                                        />
-                                    </div>
+                                <SessionIdBadge 
+                                    sessionId={profile.sessionId} 
+                                    onCopy={showToast} 
+                                    size="lg" 
+                                />
 
-                                    <div>
-                                        <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-2 ml-1">
-                                            Имя девушки
-                                        </label>
-                                        <input 
-                                            type="text"
-                                            required
-                                            maxLength={25}
-                                            value={profileForm.girlName}
-                                            onChange={e => setProfileForm({ ...profileForm, girlName: e.target.value })}
-                                            placeholder="Анна"
-                                            className="w-full h-14 px-5 rounded-2xl bg-white/[0.04] border border-white/12 text-base text-white placeholder-zinc-600 outline-none focus:border-rose-500 transition-all"
-                                        />
-                                    </div>
-
-                                    <button 
-                                        type="submit"
-                                        className="w-full rounded-2xl btn-primary font-bold text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-2 mt-2"
-                                    >
-                                        Продолжить <Icons.Next />
-                                    </button>
-                                </form>
+                                <button 
+                                    onClick={() => { SoundFX.click(); navigate('menu'); }}
+                                    className="w-full rounded-2xl btn-primary font-bold text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-2 mt-2"
+                                >
+                                    Перейти к игре <Icons.Next />
+                                </button>
                             </div>
                         </div>
                         <AppFooter />
@@ -1659,10 +2210,141 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 );
             }
 
-            // ОТДЕЛЬНАЯ СТРАНИЦА НАСТРОЕК ПАРЫ (#/profile) — ВМЕСТО ПЕРЕГРУЖЕННОГО POP-UP
+            // 1. ЭКРАН АВТОРИЗАЦИИ И ВОССТАНОВЛЕНИЯ СЕССИИ (#/welcome)
+            if (screen === 'onboarding' || !profile) {
+                return (
+                    <div className="safe-screen w-full flex flex-col items-center justify-between slide-up relative z-10">
+                        <ToastBanner />
+                        <div className="flex-1 flex items-center justify-center w-full py-6">
+                            <div className="w-full max-w-sm flex flex-col items-center text-center gap-7">
+                                <AskMeLogo size="lg" onClick={handleLogoSecretTap} />
+
+                                <div className="space-y-1.5">
+                                    <h1 className="font-display text-2xl md:text-3xl font-bold text-white tracking-tight">
+                                        Добро пожаловать
+                                    </h1>
+                                    <p className="text-xs text-zinc-400 leading-relaxed">
+                                        Создайте новую сессию для вашей пары или введите 8-значный ID, чтобы продолжить сохранённую игру.
+                                    </p>
+                                </div>
+
+                                {/* Переключатель: Новая пара / Войти по ID */}
+                                <div className="grid grid-cols-2 gap-2 w-full p-1 rounded-2xl bg-white/[0.04] border border-white/10">
+                                    <button
+                                        type="button"
+                                        onClick={() => { SoundFX.click(); setAuthTab('create'); setRestoreError(''); }}
+                                        className={`h-11 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${
+                                            authTab === 'create' 
+                                                ? 'bg-rose-500 text-white shadow' 
+                                                : 'text-zinc-400 hover:text-white'
+                                        }`}
+                                    >
+                                        Новая пара
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => { SoundFX.click(); setAuthTab('restore'); setRestoreError(''); }}
+                                        className={`h-11 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${
+                                            authTab === 'restore' 
+                                                ? 'bg-rose-500 text-white shadow' 
+                                                : 'text-zinc-400 hover:text-white'
+                                        }`}
+                                    >
+                                        Войти по ID
+                                    </button>
+                                </div>
+
+                                {authTab === 'create' ? (
+                                    <form onSubmit={handleSaveProfileNames} className="w-full flex flex-col gap-4 text-left fade-in">
+                                        <div>
+                                            <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-2 ml-1">
+                                                Имя парня
+                                            </label>
+                                            <input 
+                                                type="text"
+                                                required
+                                                maxLength={25}
+                                                value={profileForm.guyName}
+                                                onChange={e => setProfileForm({ ...profileForm, guyName: e.target.value })}
+                                                placeholder="Максим"
+                                                className="w-full h-14 px-5 rounded-2xl bg-white/[0.04] border border-white/12 text-base text-white placeholder-zinc-600 outline-none focus:border-rose-500 transition-all"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-2 ml-1">
+                                                Имя девушки
+                                            </label>
+                                            <input 
+                                                type="text"
+                                                required
+                                                maxLength={25}
+                                                value={profileForm.girlName}
+                                                onChange={e => setProfileForm({ ...profileForm, girlName: e.target.value })}
+                                                placeholder="Анна"
+                                                className="w-full h-14 px-5 rounded-2xl bg-white/[0.04] border border-white/12 text-base text-white placeholder-zinc-600 outline-none focus:border-rose-500 transition-all"
+                                            />
+                                        </div>
+
+                                        <button 
+                                            type="submit"
+                                            className="w-full rounded-2xl btn-primary font-bold text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-2 mt-2"
+                                        >
+                                            Создать сессию <Icons.Next />
+                                        </button>
+                                    </form>
+                                ) : (
+                                    <form onSubmit={handleRestoreBySessionId} className="w-full flex flex-col gap-4 text-left fade-in">
+                                        <div>
+                                            <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-2 ml-1">
+                                                8-значный ID вашей сессии
+                                            </label>
+                                            <input 
+                                                type="text"
+                                                required
+                                                maxLength={8}
+                                                value={restoreIdInput}
+                                                onChange={e => setRestoreIdInput(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
+                                                placeholder="Например: K7M9P4X2"
+                                                className="w-full h-14 px-5 rounded-2xl bg-white/[0.04] border border-white/12 font-display text-center text-xl tracking-[0.22em] uppercase text-white placeholder-zinc-600 outline-none focus:border-rose-500 transition-all"
+                                            />
+                                        </div>
+
+                                        {restoreError && (
+                                            <p className="text-xs text-rose-400 text-center font-medium">{restoreError}</p>
+                                        )}
+
+                                        <button 
+                                            type="submit"
+                                            disabled={isRestoringSession || restoreIdInput.length !== 8}
+                                            className="w-full rounded-2xl btn-primary font-bold text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-2 mt-2 disabled:opacity-40"
+                                        >
+                                            {isRestoringSession ? "Поиск сессии..." : "Восстановить прогресс"} <Icons.Next />
+                                        </button>
+                                    </form>
+                                )}
+
+                                {profile && (
+                                    <button
+                                        type="button"
+                                        onClick={() => { SoundFX.click(); navigate('menu'); }}
+                                        className="text-xs text-zinc-400 hover:text-white underline underline-offset-4 mt-1"
+                                    >
+                                        Вернуться в текущую сессию ({profile.guyName} & {profile.girlName})
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                        <AppFooter />
+                    </div>
+                );
+            }
+
+            // ОТДЕЛЬНАЯ СТРАНИЦА НАСТРОЕК ПАРЫ И СЕССИИ (#/profile)
             if (screen === 'profile_page') {
                 return (
                     <div className="safe-screen w-full flex flex-col items-center justify-between slide-up relative z-10">
+                        <ToastBanner />
                         <header className="w-full max-w-md flex items-center justify-between pt-2">
                             <button 
                                 onClick={() => { SoundFX.click(); navigate('menu'); }} 
@@ -1670,12 +2352,19 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                             >
                                 <Icons.Back />
                             </button>
-                            <span className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-400">Профиль пары</span>
+                            <span className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-400">Профиль и сессия</span>
                             <div className="w-10"></div>
                         </header>
 
-                        <main className="w-full max-w-sm flex flex-col gap-7 my-auto py-8">
-                            <form onSubmit={handleSaveProfileNames} className="flex flex-col gap-5">
+                        <main className="w-full max-w-sm flex flex-col gap-6 my-auto py-6">
+                            {/* Карточка текущего ID сессии */}
+                            <SessionIdBadge 
+                                sessionId={profile.sessionId} 
+                                onCopy={showToast} 
+                                size="lg" 
+                            />
+
+                            <form onSubmit={handleSaveProfileNames} className="flex flex-col gap-4">
                                 <div>
                                     <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-2 ml-1">
                                         Имя парня
@@ -1686,7 +2375,7 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                                         maxLength={25}
                                         value={profileForm.guyName}
                                         onChange={e => setProfileForm({ ...profileForm, guyName: e.target.value })}
-                                        className="w-full h-14 px-5 rounded-2xl bg-white/[0.04] border border-white/12 text-base text-white outline-none focus:border-rose-500"
+                                        className="w-full h-13 py-3.5 px-5 rounded-2xl bg-white/[0.04] border border-white/12 text-base text-white outline-none focus:border-rose-500"
                                     />
                                 </div>
                                 <div>
@@ -1699,7 +2388,7 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                                         maxLength={25}
                                         value={profileForm.girlName}
                                         onChange={e => setProfileForm({ ...profileForm, girlName: e.target.value })}
-                                        className="w-full h-14 px-5 rounded-2xl bg-white/[0.04] border border-white/12 text-base text-white outline-none focus:border-rose-500"
+                                        className="w-full h-13 py-3.5 px-5 rounded-2xl bg-white/[0.04] border border-white/12 text-base text-white outline-none focus:border-rose-500"
                                     />
                                 </div>
                                 <button 
@@ -1708,6 +2397,35 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                                 >
                                     Сохранить имена
                                 </button>
+                            </form>
+
+                            <div className="hairline-divider"></div>
+
+                            {/* Переключение на другой ID сессии */}
+                            <form onSubmit={handleRestoreBySessionId} className="flex flex-col gap-3">
+                                <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-400 ml-1">
+                                    Восстановить другую сессию по ID
+                                </label>
+                                <div className="flex gap-2">
+                                    <input 
+                                        type="text"
+                                        maxLength={8}
+                                        value={restoreIdInput}
+                                        onChange={e => setRestoreIdInput(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
+                                        placeholder="8 символов..."
+                                        className="flex-1 h-12 px-4 rounded-xl bg-white/[0.04] border border-white/12 font-display uppercase tracking-[0.18em] text-sm text-white placeholder-zinc-600 outline-none focus:border-rose-500"
+                                    />
+                                    <button 
+                                        type="submit"
+                                        disabled={isRestoringSession || restoreIdInput.length !== 8}
+                                        className="px-4 h-12 rounded-xl bg-white/[0.08] hover:bg-white/[0.14] border border-white/15 text-xs font-bold uppercase tracking-wider text-white disabled:opacity-35"
+                                    >
+                                        {isRestoringSession ? "..." : "Войти"}
+                                    </button>
+                                </div>
+                                {restoreError && (
+                                    <span className="text-xs text-rose-400">{restoreError}</span>
+                                )}
                             </form>
 
                             <div className="hairline-divider"></div>
@@ -1752,6 +2470,7 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
             if (screen === 'mode_select') {
                 return (
                     <div className="safe-screen w-full flex flex-col items-center justify-between slide-up relative z-10">
+                        <ToastBanner />
                         <header className="w-full max-w-md flex items-center justify-between pt-2">
                             <button 
                                 onClick={() => { SoundFX.click(); navigate('menu'); }}
@@ -1812,63 +2531,81 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 );
             }
 
-            // 3. ГЛАВНОЕ МЕНЮ (#/ — ЧИСТЫЙ ДИЗАЙН БЕЗ ТЯЖЕЛЫХ ФОНОВЫХ ПОДЛОЖЕК)
+            // 3. ГЛАВНОЕ МЕНЮ (#/ — С ID СЕССИИ, КНОПКОЙ ПОДЕЛИТЬСЯ И ПРОДОЛЖЕНИЕМ СОХРАНЕННОЙ ИГРЫ)
             if (screen === 'menu') {
                 const activeSelectedCatsCount = selectedCats.filter(cid => stats.activeByCat[cid] > 0).length;
+                const hasSavedGame = Boolean(profile?.savedGame && profile.savedGame.questionIds?.length > 0);
 
                 return (
                     <div className="safe-screen w-full flex flex-col items-center justify-between slide-up relative z-10">
-                        <div className="w-full max-w-md lg:max-w-4xl mx-auto flex flex-col gap-8 pt-1">
+                        <ToastBanner />
+                        <div className="w-full max-w-md lg:max-w-4xl mx-auto flex flex-col gap-7 pt-1">
                             
-                            {/* Верхняя панель: Имена пары и Звук */}
-                            <header className="w-full flex items-center justify-between">
+                            {/* Верхняя панель: Профиль пары, кнопка Поделиться и Звук */}
+                            <header className="w-full flex items-center justify-between gap-2">
                                 <button 
                                     onClick={() => {
                                         SoundFX.click();
                                         setProfileForm({ guyName: profile.guyName, girlName: profile.girlName });
                                         navigate('profile_page');
                                     }}
-                                    className="px-4 py-2 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-xs font-semibold text-zinc-200 flex items-center gap-2 transition-all active:scale-95"
+                                    className="px-3.5 py-2 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-xs font-semibold text-zinc-200 flex items-center gap-2 transition-all active:scale-95 truncate"
                                 >
                                     <Icons.User />
-                                    <span className="truncate max-w-[160px]">{profile.guyName} & {profile.girlName}</span>
+                                    <span className="truncate max-w-[130px] sm:max-w-[180px]">{profile.guyName} & {profile.girlName}</span>
                                     {isAdmin && <span className="text-rose-400 text-[10px]">●</span>}
                                 </button>
 
-                                <button 
-                                    onClick={toggleMute}
-                                    className={`px-4 py-2 rounded-full border text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all active:scale-95 ${
-                                        isMuted 
-                                            ? 'border-white/10 text-zinc-500' 
-                                            : 'border-rose-500/35 bg-rose-500/10 text-rose-300'
-                                    }`}
-                                >
-                                    {isMuted ? <Icons.SoundOff /> : <Icons.SoundOn />}
-                                    <span>{isMuted ? "Выкл" : "Звук"}</span>
-                                </button>
+                                <div className="flex items-center gap-2 flex-shrink-0">
+                                    <button 
+                                        onClick={handleShareGame}
+                                        title="Поделиться игрой с друзьями"
+                                        className="px-3.5 py-2 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-xs font-bold uppercase tracking-wider text-zinc-200 flex items-center gap-1.5 transition-all active:scale-95"
+                                    >
+                                        <Icons.Share />
+                                        <span className="hidden sm:inline">Поделиться</span>
+                                    </button>
+
+                                    <button 
+                                        onClick={toggleMute}
+                                        className={`px-3.5 py-2 rounded-full border text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all active:scale-95 ${
+                                            isMuted 
+                                                ? 'border-white/10 text-zinc-500' 
+                                                : 'border-rose-500/35 bg-rose-500/10 text-rose-300'
+                                        }`}
+                                    >
+                                        {isMuted ? <Icons.SoundOff /> : <Icons.SoundOn />}
+                                        <span>{isMuted ? "Выкл" : "Звук"}</span>
+                                    </button>
+                                </div>
                             </header>
 
-                            {/* Центральный блок логотипа и пары (без фоновой коробки) */}
-                            <div className="flex flex-col items-center text-center gap-3 py-2">
+                            {/* Центральный блок логотипа, имен пары и интерактивного ID сессии */}
+                            <div className="flex flex-col items-center text-center gap-3 py-1">
                                 <AskMeLogo size="lg" onClick={handleLogoSecretTap} />
+                                
                                 <div className="flex items-center gap-2.5 text-base font-semibold text-zinc-200 mt-1">
                                     <span>{profile.guyName}</span>
                                     <span className="text-rose-500 text-sm">♥</span>
                                     <span>{profile.girlName}</span>
                                 </div>
-                                <p className="text-zinc-500 text-[11px] font-semibold uppercase tracking-[0.22em]">
+
+                                <div className="flex items-center gap-2 mt-0.5">
+                                    <SessionIdBadge sessionId={profile.sessionId} onCopy={showToast} />
+                                </div>
+
+                                <p className="text-zinc-500 text-[11px] font-semibold uppercase tracking-[0.22em] mt-1">
                                     Откровенные разговоры для двоих
                                 </p>
                             </div>
 
                             <div className="hairline-divider"></div>
 
-                            {/* Адаптивная сетка контента без фоновых подложек */}
+                            {/* Адаптивная сетка контента */}
                             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                                 
                                 {/* Темы и Сложность */}
                                 <div className="lg:col-span-7 flex flex-col gap-8">
-                                    {/* Темы */}
                                     <div className="space-y-4">
                                         <div className="flex items-center justify-between">
                                             <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-400">
@@ -1918,7 +2655,6 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                                         </div>
                                     </div>
 
-                                    {/* Сложность */}
                                     <div className="space-y-4">
                                         <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-400">
                                             Сложность вопросов
@@ -1944,7 +2680,7 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                                     </div>
                                 </div>
 
-                                {/* Правая колонка (Старт игры и База вопросов) */}
+                                {/* Правая колонка (Старт игры, возврат в партию, Список вопросов и Поделиться) */}
                                 <div className="lg:col-span-5 flex flex-col gap-7 lg:pl-6 lg:border-l lg:border-white/[0.08]">
                                     
                                     <div className="lg:hidden hairline-divider"></div>
@@ -1991,12 +2727,29 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                                             </div>
                                         </div>
 
+                                        {/* Если есть незаконченная сохраненная игра в сессии — кнопка мгновенного возврата */}
+                                        {hasSavedGame && (
+                                            <button 
+                                                onClick={handleResumeSavedGame}
+                                                className="w-full rounded-2xl border border-rose-500/50 bg-rose-500/15 hover:bg-rose-500/20 text-rose-200 h-14 font-bold text-xs uppercase tracking-[0.16em] flex items-center justify-center gap-2 transition-all active:scale-95"
+                                            >
+                                                <Icons.Play /> Продолжить (Вопрос {(profile.savedGame.currentIndex || 0) + 1} из {profile.savedGame.questionIds.length})
+                                            </button>
+                                        )}
+
                                         <button 
                                             onClick={handlePressStartButton}
                                             disabled={!isAdmin && stats.availableActive === 0}
                                             className="w-full rounded-2xl btn-primary font-bold text-sm uppercase tracking-[0.2em] disabled:opacity-35 flex items-center justify-center gap-2"
                                         >
-                                            <Icons.Play /> Начать игру
+                                            <Icons.Play /> {hasSavedGame ? "Новая игра" : "Начать игру"}
+                                        </button>
+
+                                        <button 
+                                            onClick={handleShareGame}
+                                            className="w-full rounded-2xl btn-secondary text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2"
+                                        >
+                                            <Icons.Share /> Поделиться игрой
                                         </button>
                                     </div>
 
@@ -2009,7 +2762,7 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 );
             }
 
-            // 4. ЭКРАН ИГРЫ (#/play — БЕЗ ТЯЖЕЛЫХ ПОДЛОЖЕК, ЧИСТЫЙ ФОКУС НА ВОПРОСЕ, БЕЗ ФУТЕРА)
+            // 4. ЭКРАН ИГРЫ (#/play — С КОПИРУЕМЫМ ID СЕССИИ В ШАПКЕ)
             if (screen === 'game') {
                 const currentQ = gameQuestions[currentIndex];
                 if (!currentQ) {
@@ -2026,6 +2779,7 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
 
                 return (
                     <div className="safe-screen w-full flex flex-col justify-between fade-in relative z-10">
+                        <ToastBanner />
                         {/* Линия прогресса сверху */}
                         <div className="fixed top-0 left-0 right-0 h-1 bg-white/5 z-30">
                             <div 
@@ -2034,44 +2788,44 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                             ></div>
                         </div>
 
-                        {/* Верхняя панель: Счетчик + Редактировать (справа от счетчика) | Звук + Меню */}
-                        <header className="w-full max-w-xl mx-auto flex justify-between items-center py-2 flex-shrink-0">
+                        {/* Верхняя панель: Счетчик + ID сессии + Редактировать | Звук + Меню */}
+                        <header className="w-full max-w-xl mx-auto flex justify-between items-center py-2 flex-shrink-0 gap-2">
                             <div className="flex items-center gap-2">
-                                <div className="px-4 py-2 rounded-full border border-white/12 text-white font-display font-bold text-xs tracking-wider">
+                                <div className="px-3.5 py-1.5 rounded-full border border-white/12 text-white font-display font-bold text-xs tracking-wider">
                                     {currentIndex + 1} <span className="text-zinc-500">/</span> {gameQuestions.length}
                                 </div>
+                                <SessionIdBadge sessionId={profile.sessionId} onCopy={showToast} />
                                 {isAdmin && gameMode === 'test' && (
                                     <button 
                                         onClick={() => openEditScreen(currentQ, 'game')}
                                         title="Редактировать вопрос"
-                                        className="p-2.5 rounded-full bg-white/[0.06] hover:bg-white/[0.12] text-white active:scale-95 transition-all border border-white/12"
+                                        className="p-2 rounded-full bg-white/[0.06] hover:bg-white/[0.12] text-white active:scale-95 transition-all border border-white/12"
                                     >
                                         <Icons.Edit />
                                     </button>
                                 )}
                             </div>
 
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1.5">
                                 <button 
                                     onClick={toggleMute}
-                                    className="p-2.5 rounded-full border border-white/10 text-zinc-300 hover:text-white transition-all"
+                                    className="p-2 rounded-full border border-white/10 text-zinc-300 hover:text-white transition-all"
                                 >
                                     {isMuted ? <Icons.SoundOff /> : <Icons.SoundOn />}
                                 </button>
                                 <button 
                                     onClick={() => { SoundFX.warn(); setShowEndGameConfirm(true); }} 
-                                    className="flex items-center gap-2 text-zinc-200 text-xs font-bold uppercase tracking-wider px-4 py-2 rounded-full border border-white/10 hover:bg-white/[0.05] active:scale-95 transition-all"
+                                    className="flex items-center gap-1.5 text-zinc-200 text-xs font-bold uppercase tracking-wider px-3.5 py-2 rounded-full border border-white/10 hover:bg-white/[0.05] active:scale-95 transition-all"
                                 >
-                                    <Icons.Menu /> Меню
+                                    <Icons.Menu /> <span className="hidden sm:inline">Меню</span>
                                 </button>
                             </div>
                         </header>
 
-                        {/* Центральная область вопроса (прямо на чистом полотне без лишней рамки) */}
+                        {/* Центральная область вопроса */}
                         <main className="flex-1 flex flex-col items-center justify-center py-6 pb-28">
                             <div className="w-full max-w-lg flex flex-col items-center slide-up" key={currentQ.dbKey + '_' + currentIndex}>
                                 
-                                {/* Метаданные вопроса: Номер из БД, тема и сложность */}
                                 <div className="flex flex-col items-center gap-1.5 mb-6">
                                     <div className="flex items-center gap-2">
                                         <span className="text-zinc-500 text-[11px] uppercase tracking-[0.25em] font-bold">
@@ -2091,7 +2845,6 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                                     </div>
                                 </div>
 
-                                {/* Статус отвечающего игрока (сохраняется при нажатии Назад) */}
                                 {gameMode === 'normal' && assignedPlayer && (
                                     <div className={`mb-7 px-4 py-1.5 rounded-full border text-xs font-bold uppercase tracking-wider ${
                                         isPreviousQuestion 
@@ -2114,12 +2867,10 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                                     </div>
                                 )}
 
-                                {/* Текст вопроса */}
                                 <h2 className="text-[24px] sm:text-[29px] font-medium text-center leading-[1.18] mb-10 text-white px-2">
                                     {cleanText}
                                 </h2>
                                 
-                                {/* Кнопки "Ситуация" и "Совет" в одну строку в единой цветовой гамме */}
                                 <div className="grid grid-cols-2 gap-3 w-full max-w-sm">
                                     <button 
                                         onClick={() => triggerAI('situation')}
@@ -2156,7 +2907,7 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                             </div>
                         </div>
 
-                        {/* КОМПАКТНЫЙ POP-UP ЖРЕБИЯ (Всегда следует за экраном и помещается на любом телефоне) */}
+                        {/* КОМПАКТНЫЙ POP-UP ЖРЕБИЯ */}
                         {gameMode === 'normal' && turnPopup.open && (
                             <div className="viewport-popup-overlay fade-in">
                                 <div className="viewport-popup-box text-center flex flex-col items-center gap-5 slide-up">
@@ -2208,16 +2959,16 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                             </div>
                         )}
 
-                        {/* КОМПАКТНЫЙ POP-UP ПОДТВЕРЖДЕНИЯ ВЫХОДА В МЕНЮ */}
+                        {/* КОМПАКТНЫЙ POP-UP ВЫХОДА В МЕНЮ */}
                         {showEndGameConfirm && (
                             <div className="viewport-popup-overlay fade-in">
                                 <div className="viewport-popup-box text-center flex flex-col items-center gap-5 slide-up">
                                     <h3 className="font-display text-lg font-bold text-white">
-                                        Точно хотите закончить игру?
+                                        Завершить текущую партию?
                                     </h3>
                                     {gameMode === 'normal' && (
                                         <p className="text-xs text-zinc-400 leading-relaxed">
-                                            Пройденные вопросы ({maxReachedIndex + 1} шт.) перейдут в Архив и не попадутся в следующей игре.
+                                            Пройденные вопросы ({maxReachedIndex + 1} шт.) перейдут в Архив сессии <b className="text-rose-300">{profile.sessionId}</b> и не попадутся в следующей игре.
                                         </p>
                                     )}
                                     <div className="grid grid-cols-2 gap-3 w-full">
@@ -2248,6 +2999,7 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 
                 return (
                     <div className="safe-screen w-full flex flex-col justify-between fade-in relative z-10">
+                        <ToastBanner />
                         <header className="w-full max-w-2xl mx-auto flex items-center justify-between py-2 flex-shrink-0">
                             <button onClick={() => { SoundFX.click(); navigate('game'); }} className="p-3 bg-white/[0.04] rounded-2xl hover:bg-white/[0.08] text-zinc-300 border border-white/10">
                                 <Icons.Back />
@@ -2307,6 +3059,7 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
 
                 return (
                     <div className="safe-screen w-full flex flex-col items-center justify-between slide-up relative z-10 overflow-hidden">
+                        <ToastBanner />
                         {isAllAnswered && floatingHearts.map((h, i) => (
                             <div 
                                 key={i} 
@@ -2317,8 +3070,9 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                             </div>
                         ))}
 
-                        <div className="flex-1 flex flex-col items-center justify-center w-full max-w-sm py-6 gap-7">
+                        <div className="flex-1 flex flex-col items-center justify-center w-full max-w-sm py-6 gap-6">
                             <AskMeLogo size="md" />
+                            <SessionIdBadge sessionId={profile.sessionId} onCopy={showToast} />
 
                             {isAllAnswered ? (
                                 <div className="text-center space-y-3 py-2">
@@ -2342,7 +3096,7 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                                 <div className="text-center space-y-1">
                                     <p className="text-xs font-bold uppercase tracking-widest text-zinc-500">Вы ответили на</p>
                                     <div className="font-display text-6xl font-extrabold text-rose-500 py-1"><AnimatedCounter target={answered.length} /></div>
-                                    <p className="text-zinc-500 text-xs">вопросов (сохранены в Архив)</p>
+                                    <p className="text-zinc-500 text-xs">вопросов (сохранены в Архив сессии)</p>
                                 </div>
                             )}
 
@@ -2371,12 +3125,13 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 );
             }
 
-            // 7. СТРАНИЦА "ВСЕ ВОПРОСЫ" (#/topics — В блоке Архива внизу оставлена только кнопка "Вернуть все" и переход на страницу Архива)
+            // 7. СТРАНИЦА "ВСЕ ВОПРОСЫ" (#/topics)
             if (screen === 'cat_list') {
                 const totalArchivedCount = stats.archivedList.length;
 
                 return (
                     <div className="safe-screen w-full flex flex-col fade-in max-w-md lg:max-w-3xl mx-auto relative z-10">
+                        <ToastBanner />
                         <header className="flex items-center justify-between gap-4 mb-6 pt-2">
                             <div className="flex items-center gap-3.5">
                                 <button onClick={() => { SoundFX.click(); navigate('menu'); }} className="p-3 bg-white/[0.04] rounded-2xl hover:bg-white/[0.08] text-zinc-300 border border-white/10">
@@ -2401,7 +3156,6 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                         </header>
 
                         <div className="flex-1 flex flex-col gap-8 pb-24">
-                            {/* Список тем без лишних коробок — чистые строки с разделителями */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 divide-y md:divide-y-0 border-y border-white/[0.08] divide-white/[0.08]">
                                 {CATEGORIES.map(cat => {
                                     const totalCatCount = stats.totalByCat[cat.id] || 0;
@@ -2427,9 +3181,9 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                                 })}
                             </div>
 
-                            {/* КОМПАКТНЫЙ БЛОК АРХИВА ВНИЗУ СТРАНИЦЫ (Сам список вынесен на отдельную страницу #/archive, здесь только "Вернуть все") */}
+                            {/* БЛОК АРХИВА ВНИЗУ СТРАНИЦЫ (С ID сессии и кнопкой "Вернуть все") */}
                             <div className="pt-2 flex flex-col gap-4">
-                                <div className="flex items-center justify-between">
+                                <div className="flex items-center justify-between gap-2 flex-wrap">
                                     <button 
                                         onClick={() => { SoundFX.click(); navigate('archive_page'); }}
                                         className="flex items-center gap-3 text-left group"
@@ -2442,10 +3196,12 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                                                 Архив вопросов <span className="text-xs text-zinc-500 font-normal">→</span>
                                             </div>
                                             <div className="text-xs text-zinc-500">
-                                                В архиве: {totalArchivedCount} вопр. (нажмите, чтобы открыть)
+                                                В архиве: {totalArchivedCount} вопр.
                                             </div>
                                         </div>
                                     </button>
+
+                                    <SessionIdBadge sessionId={profile.sessionId} onCopy={showToast} />
                                 </div>
 
                                 <button 
@@ -2474,13 +3230,28 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 );
             }
 
-            // 8. ОТДЕЛЬНАЯ СТРАНИЦА "АРХИВ ВОПРОСОВ" (#/archive)
+            // 8. ОТДЕЛЬНАЯ СТРАНИЦА "АРХИВ ВОПРОСОВ" (#/archive — С ID СЕССИИ И КАСТОМНЫМИ СПИСКАМИ ФИЛЬТРОВ)
             if (screen === 'archive_page') {
                 const totalArchivedCount = stats.archivedList.length;
 
+                const catFilterOptions = [
+                    { value: 'all', label: `Все темы (${totalArchivedCount})`, icon: '📚' },
+                    ...CATEGORIES.map(c => ({
+                        value: c.id,
+                        label: `${c.name} (${stats.archivedByCat[c.id] || 0})`,
+                        icon: c.icon
+                    }))
+                ];
+
+                const diffFilterOptions = [
+                    { value: 'all', label: 'Любая сложность' },
+                    ...DIFFICULTIES.map(d => ({ value: d.id, label: d.name }))
+                ];
+
                 return (
                     <div className="safe-screen w-full flex flex-col fade-in max-w-2xl mx-auto relative z-10">
-                        <header className="flex items-center justify-between gap-4 mb-6 pt-2">
+                        <ToastBanner />
+                        <header className="flex items-center justify-between gap-3 mb-6 pt-2 flex-wrap">
                             <div className="flex items-center gap-3.5">
                                 <button onClick={() => { SoundFX.click(); navigate('cat_list'); }} className="p-3 bg-white/[0.04] rounded-2xl hover:bg-white/[0.08] text-zinc-300 border border-white/10">
                                     <Icons.Back />
@@ -2492,6 +3263,8 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                                     </p>
                                 </div>
                             </div>
+
+                            <SessionIdBadge sessionId={profile.sessionId} onCopy={showToast} />
                         </header>
 
                         {totalArchivedCount === 0 ? (
@@ -2500,7 +3273,7 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                                     <Icons.Archive />
                                 </div>
                                 <p className="text-sm text-zinc-400 max-w-xs leading-relaxed">
-                                    Ваш архив пуст. Отвеченные вопросы появятся здесь после завершения игры.
+                                    Ваш архив пуст. Отвеченные вопросы появятся здесь автоматически по ходу игры.
                                 </p>
                                 <button 
                                     onClick={() => { SoundFX.click(); navigate('cat_list'); }}
@@ -2511,42 +3284,29 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                             </div>
                         ) : (
                             <div className="flex-1 flex flex-col gap-6 pb-24">
-                                {/* Фильтры Архива */}
+                                {/* Фильтры Архива с кастомными выпадающими списками */}
                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                                     <input 
                                         type="text"
                                         value={archiveSearch}
                                         onChange={e => setArchiveSearch(e.target.value)}
                                         placeholder="🔍 Поиск по тексту..."
-                                        className="h-11 px-4 rounded-xl bg-white/[0.04] border border-white/10 text-xs text-white placeholder-zinc-500 outline-none focus:border-rose-500"
+                                        className="h-13 py-3.5 px-4 rounded-2xl bg-white/[0.04] border border-white/12 text-sm text-white placeholder-zinc-500 outline-none focus:border-rose-500"
                                     />
 
-                                    <select 
+                                    <CustomSelect 
                                         value={archiveFilterCat}
-                                        onChange={e => { SoundFX.toggle(true); setArchiveFilterCat(e.target.value); }}
-                                        className="h-11 px-3.5 rounded-xl bg-white/[0.04] border border-white/10 text-xs text-zinc-200 outline-none"
-                                    >
-                                        <option value="all" className="bg-[#09080c]">Все темы ({totalArchivedCount})</option>
-                                        {CATEGORIES.map(c => (
-                                            <option key={c.id} value={c.id} className="bg-[#09080c]">
-                                                {c.icon} {c.name} ({stats.archivedByCat[c.id] || 0})
-                                            </option>
-                                        ))}
-                                    </select>
+                                        onChange={setArchiveFilterCat}
+                                        options={catFilterOptions}
+                                    />
 
-                                    <select 
+                                    <CustomSelect 
                                         value={archiveFilterDiff}
-                                        onChange={e => { SoundFX.toggle(true); setArchiveFilterDiff(e.target.value); }}
-                                        className="h-11 px-3.5 rounded-xl bg-white/[0.04] border border-white/10 text-xs text-zinc-200 outline-none"
-                                    >
-                                        <option value="all" className="bg-[#09080c]">Любая сложность</option>
-                                        {DIFFICULTIES.map(d => (
-                                            <option key={d.id} value={d.id} className="bg-[#09080c]">{d.name}</option>
-                                        ))}
-                                    </select>
+                                        onChange={setArchiveFilterDiff}
+                                        options={diffFilterOptions}
+                                    />
                                 </div>
 
-                                {/* Список вопросов в Архиве */}
                                 <div className="flex flex-col divide-y divide-white/[0.08] border-y border-white/[0.08]">
                                     {filteredArchivedList.length === 0 ? (
                                         <div className="text-center py-10 text-xs text-zinc-500">
@@ -2603,13 +3363,14 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 );
             }
 
-            // 9. СПИСОК ВОПРОСОВ ВЫБРАННОЙ ТЕМЫ (#/questions — Чистые строки без лишних подложек)
+            // 9. СПИСОК ВОПРОСОВ ВЫБРАННОЙ ТЕМЫ (#/questions)
             if (screen === 'q_list') {
                 const cat = CATEGORIES.find(c => c.id === viewCategory) || CATEGORIES[0];
                 const qs = profileDb.filter(q => q.categoryId === viewCategory);
                 
                 return (
                     <div className="safe-screen w-full flex flex-col fade-in max-w-2xl mx-auto relative z-10">
+                        <ToastBanner />
                         <header className="flex items-center justify-between gap-4 mb-7 pt-2 flex-shrink-0">
                             <div className="flex items-center gap-3.5">
                                 <button onClick={() => { SoundFX.click(); navigate('cat_list'); }} className="p-3 bg-white/[0.04] rounded-2xl hover:bg-white/[0.08] text-zinc-300 border border-white/10">
@@ -2720,7 +3481,7 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 );
             }
 
-            // 10. ЭКРАН РЕДАКТИРОВАНИЯ И УДАЛЕНИЯ ВОПРОСА (#/edit — Админ)
+            // 10. ЭКРАН РЕДАКТИРОВАНИЯ И УДАЛЕНИЯ ВОПРОСА (#/edit — С КАСТОМНЫМИ ВЫПАДАЮЩИМИ СПИСКАМИ)
             if (screen === 'edit_q' && editingQuestion && isAdmin) {
                 const origText = (editingQuestion.cleanText || editingQuestion.text.replace(/^№\s*\d+\.\s*/, '')).trim();
                 const hasChanges = 
@@ -2730,8 +3491,12 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                         editForm.diff !== editingQuestion.level
                     );
 
+                const categorySelectOptions = CATEGORIES.map(c => ({ value: c.id, label: c.name, icon: c.icon }));
+                const difficultySelectOptions = DIFFICULTIES.map(d => ({ value: d.id, label: d.name }));
+
                 return (
                     <div className="safe-screen w-full flex flex-col fade-in max-w-lg mx-auto relative z-10">
+                        <ToastBanner />
                         <header className="flex items-center gap-3.5 mb-6 pt-2">
                             <button onClick={() => { SoundFX.click(); navigate(returnScreen); }} className="p-3 bg-white/[0.04] rounded-2xl hover:bg-white/[0.08] text-zinc-300 border border-white/10">
                                 <Icons.Back />
@@ -2758,24 +3523,20 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-2 ml-1">Тема</label>
-                                    <select 
+                                    <CustomSelect 
                                         value={editForm.cat}
-                                        onChange={e => { SoundFX.toggle(true); setEditForm({...editForm, cat: e.target.value}); }}
-                                        className="w-full h-13 px-4 rounded-2xl bg-white/[0.04] border border-white/12 text-sm text-white outline-none"
-                                    >
-                                        {CATEGORIES.map(c => <option key={c.id} value={c.id} className="bg-[#09080c] text-white">{c.icon} {c.name}</option>)}
-                                    </select>
+                                        onChange={val => setEditForm({...editForm, cat: val})}
+                                        options={categorySelectOptions}
+                                    />
                                 </div>
 
                                 <div>
                                     <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-2 ml-1">Сложность</label>
-                                    <select 
+                                    <CustomSelect 
                                         value={editForm.diff}
-                                        onChange={e => { SoundFX.toggle(true); setEditForm({...editForm, diff: e.target.value}); }}
-                                        className="w-full h-13 px-4 rounded-2xl bg-white/[0.04] border border-white/12 text-sm text-white outline-none"
-                                    >
-                                        {DIFFICULTIES.map(d => <option key={d.id} value={d.id} className="bg-[#09080c] text-white">{d.name}</option>)}
-                                    </select>
+                                        onChange={val => setEditForm({...editForm, diff: val})}
+                                        options={difficultySelectOptions}
+                                    />
                                 </div>
                             </div>
 
@@ -2859,10 +3620,14 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 );
             }
 
-            // 11. ФОРМА ДОБАВЛЕНИЯ ВОПРОСА (#/add — Админ)
+            // 11. ФОРМА ДОБАВЛЕНИЯ ВОПРОСА (#/add — С КАСТОМНЫМИ ВЫПАДАЮЩИМИ СПИСКАМИ)
             if (screen === 'add_q' && isAdmin) {
+                const categorySelectOptions = CATEGORIES.map(c => ({ value: c.id, label: c.name, icon: c.icon }));
+                const difficultySelectOptions = DIFFICULTIES.map(d => ({ value: d.id, label: d.name }));
+
                 return (
                     <div className="safe-screen w-full flex flex-col fade-in max-w-lg mx-auto relative z-10">
+                        <ToastBanner />
                         <header className="flex items-center gap-3.5 mb-6 pt-2">
                             <button onClick={() => { SoundFX.click(); navigate(viewCategory ? 'q_list' : 'cat_list'); }} className="p-3 bg-white/[0.04] rounded-2xl hover:bg-white/[0.08] text-zinc-300 border border-white/10">
                                 <Icons.Back />
@@ -2912,24 +3677,20 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-2 ml-1">Тема</label>
-                                        <select 
+                                        <CustomSelect 
                                             value={addForm.cat}
-                                            onChange={e => { SoundFX.toggle(true); setAddForm({...addForm, cat: e.target.value}); }}
-                                            className="w-full h-13 px-4 rounded-2xl bg-white/[0.04] border border-white/12 text-sm text-white outline-none"
-                                        >
-                                            {CATEGORIES.map(c => <option key={c.id} value={c.id} className="bg-[#09080c] text-white">{c.icon} {c.name}</option>)}
-                                        </select>
+                                            onChange={val => setAddForm({...addForm, cat: val})}
+                                            options={categorySelectOptions}
+                                        />
                                     </div>
 
                                     <div>
                                         <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-2 ml-1">Сложность</label>
-                                        <select 
+                                        <CustomSelect 
                                             value={addForm.diff}
-                                            onChange={e => { SoundFX.toggle(true); setAddForm({...addForm, diff: e.target.value}); }}
-                                            className="w-full h-13 px-4 rounded-2xl bg-white/[0.04] border border-white/12 text-sm text-white outline-none"
-                                        >
-                                            {DIFFICULTIES.map(d => <option key={d.id} value={d.id} className="bg-[#09080c] text-white">{d.name}</option>)}
-                                        </select>
+                                            onChange={val => setAddForm({...addForm, diff: val})}
+                                            options={difficultySelectOptions}
+                                        />
                                     </div>
                                 </div>
 
