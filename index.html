@@ -19,44 +19,25 @@
     <script>
         (function initPWA() {
             try {
-                const createIconDataUrl = (size) => {
+const createIconDataUrl = (size) => {
                     const canvas = document.createElement('canvas');
                     canvas.width = size;
                     canvas.height = size;
                     const ctx = canvas.getContext('2d');
 
-                    ctx.fillStyle = '#09080c';
+                    // Рубиновый градиентный фон во всю иконку (как в логотипе)
+                    const bgGrad = ctx.createLinearGradient(0, 0, size, size);
+                    bgGrad.addColorStop(0, '#f43f5e');
+                    bgGrad.addColorStop(1, '#be123c');
+                    ctx.fillStyle = bgGrad;
                     ctx.fillRect(0, 0, size, size);
 
-                    const glow = ctx.createRadialGradient(size * 0.5, size * 0.42, size * 0.05, size * 0.5, size * 0.5, size * 0.55);
-                    glow.addColorStop(0, 'rgba(244, 63, 94, 0.34)');
-                    glow.addColorStop(1, 'rgba(9, 8, 12, 0)');
-                    ctx.fillStyle = glow;
-                    ctx.fillRect(0, 0, size, size);
-
-                    const boxSize = size * 0.46;
-                    const boxX = (size - boxSize) / 2;
-                    const boxY = size * 0.16;
-                    const radius = size * 0.11;
-
-                    const boxGrad = ctx.createLinearGradient(boxX, boxY, boxX + boxSize, boxY + boxSize);
-                    boxGrad.addColorStop(0, '#f43f5e');
-                    boxGrad.addColorStop(1, '#be123c');
-                    ctx.fillStyle = boxGrad;
-
-                    ctx.beginPath();
-                    if (ctx.roundRect) {
-                        ctx.roundRect(boxX, boxY, boxSize, boxSize, radius);
-                    } else {
-                        ctx.rect(boxX, boxY, boxSize, boxSize);
-                    }
-                    ctx.fill();
-
+                    // Белое сердечко ровно по центру
                     ctx.fillStyle = '#ffffff';
                     ctx.save();
-                    const heartScale = size / 512;
-                    ctx.translate(size * 0.5, boxY + boxSize * 0.52);
-                    ctx.scale(heartScale * 4.8, heartScale * 4.8);
+                    const scale = (size / 20) * 0.52;
+                    ctx.translate(size * 0.5, size * 0.5);
+                    ctx.scale(scale, scale);
                     ctx.beginPath();
                     ctx.moveTo(0, 9.35);
                     ctx.lineTo(-1.45, 8.03);
@@ -69,14 +50,6 @@
                     ctx.closePath();
                     ctx.fill();
                     ctx.restore();
-
-                    ctx.font = '800 ' + Math.round(size * 0.115) + 'px system-ui, -apple-system, sans-serif';
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    ctx.fillStyle = '#ffffff';
-                    ctx.fillText('ASK', size * 0.37, size * 0.78);
-                    ctx.fillStyle = '#f43f5e';
-                    ctx.fillText('ME', size * 0.68, size * 0.78);
 
                     return canvas.toDataURL('image/png');
                 };
