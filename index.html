@@ -10,12 +10,12 @@
     <meta name="apple-mobile-web-app-title" content="Ask Me">
     <title>ASK ME — Игра для пар</title>
 
-    <!-- Иконки и манифест PWA (генерируются автоматически скриптом ниже) -->
+    <!-- Иконки и манифест PWA -->
     <link id="pwa-apple-icon" rel="apple-touch-icon" href="">
     <link id="pwa-favicon" rel="icon" type="image/png" href="">
     <link id="pwa-manifest" rel="manifest" href="">
 
-    <!-- Автономный генератор PWA-иконки 512x512 и манифеста -->
+    <!-- Генератор PWA-иконки 512x512 и валидного data-манифеста для iOS и Android -->
     <script>
         (function initPWA() {
             try {
@@ -25,18 +25,15 @@
                     canvas.height = size;
                     const ctx = canvas.getContext('2d');
 
-                    // Фон иконки (#09080c)
                     ctx.fillStyle = '#09080c';
                     ctx.fillRect(0, 0, size, size);
 
-                    // Мягкое рубиновое свечение в центре
                     const glow = ctx.createRadialGradient(size * 0.5, size * 0.42, size * 0.05, size * 0.5, size * 0.5, size * 0.55);
-                    glow.addColorStop(0, 'rgba(244, 63, 94, 0.32)');
+                    glow.addColorStop(0, 'rgba(244, 63, 94, 0.34)');
                     glow.addColorStop(1, 'rgba(9, 8, 12, 0)');
                     ctx.fillStyle = glow;
                     ctx.fillRect(0, 0, size, size);
 
-                    // Внутренняя декоративная плашка под сердце
                     const boxSize = size * 0.46;
                     const boxX = (size - boxSize) / 2;
                     const boxY = size * 0.16;
@@ -48,10 +45,13 @@
                     ctx.fillStyle = boxGrad;
 
                     ctx.beginPath();
-                    ctx.roundRect(boxX, boxY, boxSize, boxSize, radius);
+                    if (ctx.roundRect) {
+                        ctx.roundRect(boxX, boxY, boxSize, boxSize, radius);
+                    } else {
+                        ctx.rect(boxX, boxY, boxSize, boxSize);
+                    }
                     ctx.fill();
 
-                    // Рисуем белое сердце внутри плашки
                     ctx.fillStyle = '#ffffff';
                     ctx.save();
                     const heartScale = size / 512;
@@ -70,7 +70,6 @@
                     ctx.fill();
                     ctx.restore();
 
-                    // Надпись ASK ME внизу иконки
                     ctx.font = '800 ' + Math.round(size * 0.115) + 'px system-ui, -apple-system, sans-serif';
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
@@ -104,8 +103,8 @@
                     ]
                 };
 
-                const manifestBlob = new Blob([JSON.stringify(manifestObj)], { type: 'application/manifest+json' });
-                document.getElementById('pwa-manifest').href = URL.createObjectURL(manifestBlob);
+                const manifestJson = JSON.stringify(manifestObj);
+                document.getElementById('pwa-manifest').href = 'data:application/manifest+json;charset=utf-8,' + encodeURIComponent(manifestJson);
             } catch (e) {}
         })();
     </script>
@@ -164,7 +163,7 @@
             z-index: 0;
             background-color: #09080c;
             background-image: 
-                radial-gradient(circle at 50% 0%, rgba(225, 29, 72, 0.13) 0%, transparent 55%),
+                radial-gradient(circle at 50% 0%, rgba(225, 29, 72, 0.14) 0%, transparent 55%),
                 radial-gradient(circle at 50% 100%, rgba(159, 18, 57, 0.08) 0%, transparent 50%);
             pointer-events: none;
         }
@@ -177,31 +176,36 @@
             padding-right: max(1.25rem, env(safe-area-inset-right));
         }
 
+        /* Фиксированная обертка для Pop-up окон через Portal: всегда ездит за экраном и помещается в рамки */
         .viewport-popup-overlay {
             position: fixed;
-            inset: 0;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
             width: 100vw;
             height: 100dvh;
-            background: rgba(9, 8, 12, 0.84);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
+            background: rgba(9, 8, 12, 0.86);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
             display: flex;
             align-items: center;
             justify-content: center;
             padding: max(1rem, env(safe-area-inset-top)) 1.25rem max(1rem, env(safe-area-inset-bottom));
-            z-index: 100;
+            z-index: 9999;
         }
 
         .viewport-popup-box {
+            position: relative;
             width: 100%;
-            max-width: 22rem;
+            max-width: 23rem;
             max-height: calc(100dvh - 2.5rem);
             overflow-y: auto;
             background: #13111a;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.12);
             border-radius: 1.75rem;
             padding: 1.5rem;
-            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7);
+            box-shadow: 0 25px 65px rgba(0, 0, 0, 0.8);
         }
 
         .hairline-divider {
@@ -251,12 +255,13 @@
         .diff-pill-2 { background: rgba(251, 113, 133, 0.14); border: 1px solid rgba(251, 113, 133, 0.42); color: #fecdd3; }
         .diff-pill-3 { background: rgba(225, 29, 72, 0.22); border: 1px solid rgba(244, 63, 94, 0.55); color: #fda4af; }
 
+        /* Анимации с transform: none в финале, чтобы никогда не ломать фиксированные координаты */
         .fade-in { animation: fadeIn 0.22s ease-out forwards; }
         .slide-up { animation: slideUp 0.32s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
         .pulse-soft { animation: pulseSoft 2.4s ease-in-out infinite; }
         
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes slideUp { from { opacity: 0; transform: translate3d(0, 14px, 0); } to { opacity: 1; transform: translate3d(0, 0, 0); } }
+        @keyframes slideUp { from { opacity: 0; transform: translate3d(0, 14px, 0); } to { opacity: 1; transform: none; } }
         @keyframes pulseSoft { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.07); } }
 
         .floating-heart {
@@ -282,6 +287,11 @@
 </head>
 <body>
     <div class="app-bg"></div>
+    <!-- Скрытый системный переключатель для активации нативного Taptic Engine на iOS 17.4+ / iOS 18+ -->
+    <div style="position:fixed;top:-100px;left:-100px;width:1px;height:1px;opacity:0;pointer-events:none;overflow:hidden;" aria-hidden="true">
+        <input type="checkbox" id="ios-taptic-trigger" switch="switch" />
+        <label id="ios-taptic-label" for="ios-taptic-trigger"></label>
+    </div>
     <div id="root"></div>
 
     <script type="text/babel">
@@ -497,15 +507,25 @@
             '#/edit': 'edit_q'
         };
 
-        // АКУСТИЧЕСКИЙ ЗВУКОВОЙ ДВИЖОК + ВИБРООТКЛИК (Haptics для мобильных PWA)
+        // АКУСТИЧЕСКИЙ ДВИЖОК + TAPTIC ENGINE (Вибрация строго привязана к состоянию звука!)
         const SoundFX = {
             ctx: null,
             filter: null,
             muted: false,
             unlocked: false,
-            vibrate(ms = 10) {
+            triggerHaptic(pattern = 12) {
+                // Строгое правило: если звук выключен, вибрация тоже полностью отключена!
+                if (this.muted) return;
                 try {
-                    if (navigator.vibrate) navigator.vibrate(ms);
+                    if (navigator.vibrate) {
+                        navigator.vibrate(pattern);
+                        return;
+                    }
+                    // Поддержка нативного Taptic Engine на iPhone (iOS 17.4+ / iOS 18+)
+                    const iosLabel = document.getElementById('ios-taptic-label');
+                    if (iosLabel) {
+                        iosLabel.click();
+                    }
                 } catch (e) {}
             },
             init() {
@@ -568,11 +588,13 @@
                 } catch (e) {}
             },
             click() {
-                this.vibrate(8);
+                if (this.muted) return;
+                this.triggerHaptic(10);
                 this.playAcousticNote(420, 0.075, 0.22, 540);
             },
             toggle(active = true) {
-                this.vibrate(10);
+                if (this.muted) return;
+                this.triggerHaptic(14);
                 if (active) {
                     this.playAcousticNote(440, 0.08, 0.2);
                     setTimeout(() => this.playAcousticNote(587.33, 0.1, 0.22), 55);
@@ -582,12 +604,13 @@
                 }
             },
             rouletteTick() {
-                this.vibrate(6);
+                if (this.muted) return;
+                this.triggerHaptic(8);
                 this.playAcousticNote(310, 0.045, 0.18, 220);
             },
             rouletteWin() {
-                this.vibrate([15, 40, 25]);
                 if (this.muted) return;
+                this.triggerHaptic([18, 45, 30]);
                 this.init();
                 const chord = [523.25, 659.25, 783.99, 987.77];
                 chord.forEach((f, idx) => {
@@ -595,8 +618,8 @@
                 });
             },
             romanticFinale() {
-                this.vibrate([20, 50, 20, 50, 40]);
                 if (this.muted) return;
+                this.triggerHaptic([25, 60, 25, 60, 45]);
                 this.init();
                 const notes = [
                     { f: 440.00, d: 0.45, t: 0 },
@@ -610,21 +633,22 @@
                 });
             },
             magic() {
-                this.vibrate(12);
                 if (this.muted) return;
+                this.triggerHaptic([12, 35, 18]);
                 this.init();
                 this.playAcousticNote(493.88, 0.14, 0.2, 659.25);
                 setTimeout(() => this.playAcousticNote(783.99, 0.22, 0.22), 90);
             },
             success() {
-                this.vibrate(15);
                 if (this.muted) return;
+                this.triggerHaptic([14, 30, 20]);
                 this.init();
                 this.playAcousticNote(523.25, 0.12, 0.22);
                 setTimeout(() => this.playAcousticNote(783.99, 0.26, 0.26), 95);
             },
             warn() {
-                this.vibrate([20, 30, 20]);
+                if (this.muted) return;
+                this.triggerHaptic([25, 40, 25]);
                 this.playAcousticNote(280, 0.15, 0.22, 190);
             }
         };
@@ -656,13 +680,44 @@
             Lock: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>,
             Copy: () => <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>,
             Share: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>,
+            IosShare: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>,
             Eye: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>,
             EyeOff: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>,
             ChevronDown: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>,
-            DownloadApp: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+            DownloadApp: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>,
+            Close: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M6 18L18 6M6 6l12 12" /></svg>
         };
 
-        // СОВРЕМЕННЫЙ КАСТОМНЫЙ ВЫПАДАЮЩИЙ СПИСОК
+        // ЕДИНЫЙ КОМПОНЕНТ POP-UP ЧЕРЕЗ PORTAL (Всегда ездит за экраном + единая кнопка закрытия в правом верхнем углу)
+        const PopupModal = ({ isOpen, onClose, children }) => {
+            if (!isOpen) return null;
+            return ReactDOM.createPortal(
+                <div 
+                    className="viewport-popup-overlay fade-in" 
+                    onClick={() => { if (onClose) { SoundFX.click(); onClose(); } }}
+                >
+                    <div 
+                        className="viewport-popup-box slide-up" 
+                        onClick={e => e.stopPropagation()}
+                    >
+                        {onClose && (
+                            <button
+                                type="button"
+                                onClick={() => { SoundFX.click(); onClose(); }}
+                                aria-label="Закрыть"
+                                className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/[0.06] hover:bg-white/[0.14] border border-white/12 text-zinc-400 hover:text-white flex items-center justify-center transition-all active:scale-90 z-10"
+                            >
+                                <Icons.Close />
+                            </button>
+                        )}
+                        {children}
+                    </div>
+                </div>,
+                document.body
+            );
+        };
+
+        // КАСТОМНЫЙ ВЫПАДАЮЩИЙ СПИСОК
         const CustomSelect = ({ value, onChange, options, placeholder = "Выберите..." }) => {
             const [open, setOpen] = useState(false);
             const containerRef = useRef(null);
@@ -1136,7 +1191,7 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
             const [toastMsg, setToastMsg] = useState(null);
             const toastTimerRef = useRef(null);
 
-            // СОСТОЯНИЕ PWA (Проверка, запущена ли игра как установленное приложение)
+            // СОСТОЯНИЕ PWA
             const [isStandalonePWA, setIsStandalonePWA] = useState(() => {
                 try {
                     return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
@@ -1150,6 +1205,12 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 const ua = navigator.userAgent || "";
                 return /iPad|iPhone|iPod/i.test(ua) ? 'ios' : 'android';
             });
+
+            // Определяем, открыт ли сайт внутри встроенного браузера Telegram / Instagram / TikTok
+            const isInAppWebView = useMemo(() => {
+                const ua = navigator.userAgent || "";
+                return /Telegram|Instagram|FBAN|FBAV|TikTok|BytedanceWebview|Viber/i.test(ua);
+            }, []);
 
             useEffect(() => {
                 const handleBeforeInstallPrompt = (e) => {
@@ -1181,6 +1242,22 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                     return;
                 }
                 setShowPwaModal(true);
+            };
+
+            // Вызов системного меню iOS (в котором в Safari находится кнопка «На экран "Домой"»)
+            const triggerIosNativeShareMenu = async () => {
+                SoundFX.click();
+                const cleanAppUrl = `${window.location.origin}${window.location.pathname}`;
+                if (navigator.share) {
+                    try {
+                        await navigator.share({
+                            title: "Ask Me",
+                            url: cleanAppUrl
+                        });
+                        return;
+                    } catch (e) {}
+                }
+                showToast("Нажмите на кнопку «Поделиться» [↑] на панели самого браузера Safari");
             };
 
             const showToast = (msg) => {
@@ -1491,6 +1568,7 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 const nextState = !isMuted;
                 setIsMuted(nextState);
                 SoundFX.muted = nextState;
+                // Если звук включили — проигрываем мягкий отклик со звуком и вибрацией. Если выключили — полная тишина и ноль вибрации.
                 if (!nextState) SoundFX.click();
             };
 
@@ -1581,10 +1659,8 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 return reindexSequential(parsed);
             };
 
-            // Загрузка базы с офлайн-кэшем для мгновенной работы PWA без интернета
             useEffect(() => {
                 const initDatabase = async () => {
-                    // Мгновенный показ из локального кэша PWA, если он уже есть
                     try {
                         const cachedRaw = localStorage.getItem(OFFLINE_DB_CACHE_KEY);
                         if (cachedRaw) {
@@ -1766,7 +1842,7 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
 
                 const winner = Math.random() < 0.5 ? 'guy' : 'girl';
                 const startSide = winner === 'guy' ? 'girl' : 'guy';
-                setTurnPopup({ open: true, spinning: true, highlight: startSide, winner: null });
+                setTurnPopup({ open: true, spinning: true, highlight: startSide, winner: winner });
 
                 const stepDelays = [140, 155, 170, 190, 210, 235, 260, 290, 320, 350];
                 let cumulativeTime = 0;
@@ -1778,7 +1854,7 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                         currentHighlight = currentHighlight === 'guy' ? 'girl' : 'guy';
                         if (idx < stepDelays.length - 1) {
                             SoundFX.rouletteTick();
-                            setTurnPopup({ open: true, spinning: true, highlight: currentHighlight, winner: null });
+                            setTurnPopup({ open: true, spinning: true, highlight: currentHighlight, winner: winner });
                         } else {
                             SoundFX.rouletteWin();
                             setTurnPopup({ open: true, spinning: false, highlight: winner, winner: winner });
@@ -1791,6 +1867,21 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                     }, cumulativeTime);
                     rouletteTimeoutsRef.current.push(tId);
                 });
+            };
+
+            // Закрытие окна рулетки (если закрыли крестиком до окончания — сразу фиксируем победителя)
+            const handleCloseRoulettePopup = () => {
+                rouletteTimeoutsRef.current.forEach(t => clearTimeout(t));
+                rouletteTimeoutsRef.current = [];
+                const finalWinner = turnPopup.winner || (Math.random() < 0.5 ? 'guy' : 'girl');
+                if (!turnHistory[currentIndex]) {
+                    setTurnHistory(prev => {
+                        const updatedHist = { ...prev, [currentIndex]: finalWinner };
+                        updateSavedGameProgress(gameQuestions, currentIndex, Math.max(maxReachedIndex, currentIndex), updatedHist);
+                        return updatedHist;
+                    });
+                }
+                setTurnPopup(prev => ({ ...prev, open: false, spinning: false }));
             };
 
             const handleResumeSavedGame = () => {
@@ -2222,108 +2313,114 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 }
             };
 
-            // Всплывающее уведомление (Toast)
+            // Всплывающее уведомление (Toast через Portal)
             const ToastBanner = () => {
                 if (!toastMsg) return null;
-                return (
-                    <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[150] px-4 py-2.5 rounded-full bg-[#161321] border border-rose-500/45 text-white text-xs font-bold tracking-wider shadow-[0_12px_35px_rgba(0,0,0,0.8)] flex items-center gap-2 fade-in">
+                return ReactDOM.createPortal(
+                    <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[10000] px-4 py-2.5 rounded-full bg-[#161321] border border-rose-500/45 text-white text-xs font-bold tracking-wider shadow-[0_12px_35px_rgba(0,0,0,0.85)] flex items-center gap-2 fade-in">
                         <span className="text-rose-400"><Icons.Check /></span>
                         <span>{toastMsg}</span>
-                    </div>
+                    </div>,
+                    document.body
                 );
             };
 
-            // МОДАЛЬНОЕ ОКНО УСТАНОВКИ PWA НА IPHONE И ANDROID
-            const PwaInstallModal = () => {
-                if (!showPwaModal) return null;
-                return (
-                    <div className="viewport-popup-overlay fade-in" onClick={() => setShowPwaModal(false)}>
-                        <div className="viewport-popup-box flex flex-col gap-5 slide-up" onClick={e => e.stopPropagation()}>
-                            <div className="flex items-center justify-between">
-                                <AskMeLogo size="xs" />
-                                <button 
-                                    onClick={() => { SoundFX.click(); setShowPwaModal(false); }}
-                                    className="px-3 py-1 rounded-full bg-white/5 text-xs text-zinc-400 hover:text-white"
-                                >
-                                    Закрыть
-                                </button>
+            // МОДАЛЬНОЕ ОКНО "СКАЧАТЬ НА УСТРОЙСТВО" (Через единый PopupModal с кнопкой ✕ в углу)
+            const PwaInstallModal = () => (
+                <PopupModal isOpen={showPwaModal} onClose={() => setShowPwaModal(false)}>
+                    <div className="flex flex-col gap-4 pt-1">
+                        <div className="pr-8">
+                            <AskMeLogo size="xs" />
+                        </div>
+
+                        <div className="space-y-1 text-left">
+                            <h3 className="font-display text-xl font-bold text-white">
+                                Скачать на устройство
+                            </h3>
+                            <p className="text-xs text-zinc-400 leading-relaxed">
+                                Установите <b className="text-white">ASK ME</b> на домашний экран телефона — игра будет запускаться мгновенно во весь экран без вкладок браузера.
+                            </p>
+                        </div>
+
+                        {isInAppWebView && (
+                            <div className="p-3.5 rounded-2xl bg-rose-500/15 border border-rose-500/40 text-xs text-rose-200 leading-relaxed text-left">
+                                ⚠️ <b>Важно:</b> Вы открыли сайт внутри встроенного браузера мессенджера. Сначала нажмите на иконку <b>Safari / Браузера</b> в углу экрана, чтобы появилась кнопка установки.
                             </div>
+                        )}
 
-                            <div className="text-center space-y-1">
-                                <h3 className="font-display text-xl font-bold text-white">
-                                    Установка приложения
-                                </h3>
-                                <p className="text-xs text-zinc-400">
-                                    Добавьте <b className="text-white">ASK ME</b> на главный экран телефона — игра будет открываться во весь экран без браузера.
-                                </p>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-2 p-1 rounded-2xl bg-white/[0.04] border border-white/10">
-                                <button
-                                    type="button"
-                                    onClick={() => { SoundFX.click(); setPwaPlatformTab('ios'); }}
-                                    className={`h-10 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${
-                                        pwaPlatformTab === 'ios' ? 'bg-rose-500 text-white' : 'text-zinc-400 hover:text-white'
-                                    }`}
-                                >
-                                     iPhone (iOS)
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => { SoundFX.click(); setPwaPlatformTab('android'); }}
-                                    className={`h-10 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${
-                                        pwaPlatformTab === 'android' ? 'bg-rose-500 text-white' : 'text-zinc-400 hover:text-white'
-                                    }`}
-                                >
-                                    🤖 Android
-                                </button>
-                            </div>
-
-                            {pwaPlatformTab === 'ios' ? (
-                                <div className="flex flex-col gap-3 text-left text-xs text-zinc-200 bg-white/[0.03] p-4 rounded-2xl border border-white/10">
-                                    <div className="flex items-start gap-3">
-                                        <span className="w-6 h-6 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold flex items-center justify-center flex-shrink-0">1</span>
-                                        <p className="leading-relaxed">
-                                            Нажмите на иконку <b className="text-white">«Поделиться»</b> (квадрат со стрелкой вверх <span className="text-rose-400">↑</span>) в нижней панели браузера Safari.
-                                        </p>
-                                    </div>
-                                    <div className="hairline-divider"></div>
-                                    <div className="flex items-start gap-3">
-                                        <span className="w-6 h-6 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold flex items-center justify-center flex-shrink-0">2</span>
-                                        <p className="leading-relaxed">
-                                            Пролистайте меню чуть ниже и выберите пункт <b className="text-white">«На экран "Домой"»</b> (+), затем нажмите <b className="text-rose-400">Добавить</b>.
-                                        </p>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="flex flex-col gap-3 text-left text-xs text-zinc-200 bg-white/[0.03] p-4 rounded-2xl border border-white/10">
-                                    <div className="flex items-start gap-3">
-                                        <span className="w-6 h-6 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold flex items-center justify-center flex-shrink-0">1</span>
-                                        <p className="leading-relaxed">
-                                            Нажмите на меню браузера <b className="text-white">«⋮»</b> (три точки в правом верхнем углу Chrome).
-                                        </p>
-                                    </div>
-                                    <div className="hairline-divider"></div>
-                                    <div className="flex items-start gap-3">
-                                        <span className="w-6 h-6 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold flex items-center justify-center flex-shrink-0">2</span>
-                                        <p className="leading-relaxed">
-                                            Выберите пункт <b className="text-white">«Установить приложение»</b> или <b className="text-white">«Добавить на главный экран»</b>.
-                                        </p>
-                                    </div>
-                                </div>
-                            )}
-
+                        <div className="grid grid-cols-2 gap-2 p-1 rounded-2xl bg-white/[0.04] border border-white/10">
                             <button
                                 type="button"
-                                onClick={() => { SoundFX.click(); setShowPwaModal(false); }}
-                                className="w-full rounded-2xl btn-primary text-xs font-bold uppercase tracking-widest"
+                                onClick={() => { SoundFX.click(); setPwaPlatformTab('ios'); }}
+                                className={`h-10 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${
+                                    pwaPlatformTab === 'ios' ? 'bg-rose-500 text-white' : 'text-zinc-400 hover:text-white'
+                                }`}
                             >
-                                Понятно
+                                 iPhone (iOS)
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => { SoundFX.click(); setPwaPlatformTab('android'); }}
+                                className={`h-10 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${
+                                    pwaPlatformTab === 'android' ? 'bg-rose-500 text-white' : 'text-zinc-400 hover:text-white'
+                                }`}
+                            >
+                                🤖 Android
                             </button>
                         </div>
+
+                        {pwaPlatformTab === 'ios' ? (
+                            <div className="flex flex-col gap-3 text-left text-xs text-zinc-200 bg-white/[0.03] p-4 rounded-2xl border border-white/10">
+                                <div className="flex items-start gap-3">
+                                    <span className="w-6 h-6 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold flex items-center justify-center flex-shrink-0">1</span>
+                                    <p className="leading-relaxed">
+                                        Нажмите кнопку <b className="text-white">«Открыть меню iOS»</b> ниже (или иконку <b className="text-rose-400">[↑] Поделиться</b> на нижней панели самого браузера Safari).
+                                    </p>
+                                </div>
+                                <div className="hairline-divider"></div>
+                                <div className="flex items-start gap-3">
+                                    <span className="w-6 h-6 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold flex items-center justify-center flex-shrink-0">2</span>
+                                    <p className="leading-relaxed">
+                                        В открывшемся системном списке Apple пролистайте вниз и нажмите <b className="text-white">«На экран "Домой"»</b> (+), затем <b className="text-rose-400">Добавить</b>.
+                                    </p>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    onClick={triggerIosNativeShareMenu}
+                                    className="w-full h-12 mt-1 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/45 text-rose-200 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all active:scale-95"
+                                >
+                                    <Icons.IosShare /> Открыть меню iOS
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="flex flex-col gap-3 text-left text-xs text-zinc-200 bg-white/[0.03] p-4 rounded-2xl border border-white/10">
+                                <div className="flex items-start gap-3">
+                                    <span className="w-6 h-6 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold flex items-center justify-center flex-shrink-0">1</span>
+                                    <p className="leading-relaxed">
+                                        Нажмите на меню браузера <b className="text-white">«⋮»</b> (три точки в правом верхнем углу Chrome).
+                                    </p>
+                                </div>
+                                <div className="hairline-divider"></div>
+                                <div className="flex items-start gap-3">
+                                    <span className="w-6 h-6 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold flex items-center justify-center flex-shrink-0">2</span>
+                                    <p className="leading-relaxed">
+                                        Выберите пункт <b className="text-white">«Установить приложение»</b> или <b className="text-white">«Добавить на гл. экран»</b>.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
+                        <button
+                            type="button"
+                            onClick={() => { SoundFX.click(); setShowPwaModal(false); }}
+                            className="w-full rounded-2xl btn-primary text-xs font-bold uppercase tracking-widest"
+                        >
+                            Понятно
+                        </button>
                     </div>
-                );
-            };
+                </PopupModal>
+            );
 
             // ЭКРАН ЗАГРУЗКИ
             if (isLoading) {
@@ -2578,9 +2675,9 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                                     <button
                                         type="button"
                                         onClick={handleInstallPwaClick}
-                                        className="px-4 py-2 rounded-full border border-white/12 bg-white/[0.03] hover:bg-white/[0.07] text-xs font-bold uppercase tracking-wider text-zinc-300 flex items-center gap-2 transition-all"
+                                        className="px-5 py-2.5 rounded-full border border-rose-500/35 bg-rose-500/10 hover:bg-rose-500/15 text-xs font-bold uppercase tracking-wider text-rose-200 flex items-center gap-2 transition-all active:scale-95"
                                     >
-                                        <Icons.DownloadApp /> Установить как приложение
+                                        <Icons.DownloadApp /> Скачать на устройство
                                     </button>
                                 )}
 
@@ -2600,7 +2697,7 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 );
             }
 
-            // ОТДЕЛЬНАЯ СТРАНИЦА НАСТРОЕК ПАРЫ И СЕССИИ (#/profile)
+            // ОТДЕЛЬНАЯ СТРАНИЦА НАСТРОЕК ПАРЫ И СЕССИИ (#/profile — Без теста звуков)
             if (screen === 'profile_page') {
                 return (
                     <div className="safe-screen w-full flex flex-col items-center justify-between slide-up relative z-10">
@@ -2687,35 +2784,15 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                                 )}
                             </form>
 
-                            <div className="hairline-divider"></div>
-
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <div className="text-sm font-semibold text-white">Звуковые эффекты</div>
-                                    <div className="text-xs text-zinc-500 mt-0.5">Проверка акустического отклика</div>
-                                </div>
-                                <button 
-                                    type="button"
-                                    onClick={() => {
-                                        SoundFX.muted = false;
-                                        setIsMuted(false);
-                                        SoundFX.rouletteWin();
-                                    }}
-                                    className="px-4 py-2.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] border border-white/12 text-white text-xs font-bold uppercase tracking-wider active:scale-95"
-                                >
-                                    🔊 Тест
-                                </button>
-                            </div>
-
                             {!isStandalonePWA && (
                                 <>
                                     <div className="hairline-divider"></div>
                                     <button 
                                         type="button"
                                         onClick={handleInstallPwaClick}
-                                        className="w-full rounded-2xl btn-secondary text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2"
+                                        className="w-full rounded-2xl btn-secondary text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2 text-rose-200 border-rose-500/35"
                                     >
-                                        <Icons.DownloadApp /> Установить приложение на телефон
+                                        <Icons.DownloadApp /> Скачать на устройство
                                     </button>
                                 </>
                             )}
@@ -2803,7 +2880,7 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 );
             }
 
-            // 3. ГЛАВНОЕ МЕНЮ (#/)
+            // 3. ГЛАВНОЕ МЕНЮ (#/ — Без ID сессии на главной, с ярким подзаголовком и только кнопкой "Начать игру" внизу)
             if (screen === 'menu') {
                 const activeSelectedCatsCount = selectedCats.filter(cid => stats.activeByCat[cid] > 0).length;
                 const hasSavedGame = Boolean(profile?.savedGame && profile.savedGame.questionIds?.length > 0);
@@ -2814,8 +2891,8 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                         <PwaInstallModal />
                         <div className="w-full max-w-md lg:max-w-4xl mx-auto flex flex-col gap-7 pt-1">
                             
-                            {/* Верхняя панель */}
-                            <header className="w-full flex items-center justify-between gap-2">
+                            {/* Верхняя панель: Профиль, Поделиться, Скачать на устройство, Звук */}
+                            <header className="w-full flex items-center justify-between gap-2 flex-wrap">
                                 <button 
                                     onClick={() => {
                                         SoundFX.click();
@@ -2825,7 +2902,7 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                                     className="px-3.5 py-2 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-xs font-semibold text-zinc-200 flex items-center gap-2 transition-all active:scale-95 truncate"
                                 >
                                     <Icons.User />
-                                    <span className="truncate max-w-[125px] sm:max-w-[180px]">{profile.guyName} & {profile.girlName}</span>
+                                    <span className="truncate max-w-[120px] sm:max-w-[180px]">{profile.guyName} & {profile.girlName}</span>
                                     {isAdmin && <span className="text-rose-400 text-[10px]">●</span>}
                                 </button>
 
@@ -2833,25 +2910,26 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                                     {!isStandalonePWA && (
                                         <button 
                                             onClick={handleInstallPwaClick}
-                                            title="Установить приложение на телефон"
-                                            className="px-3 py-2 rounded-full bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/35 text-xs font-bold uppercase tracking-wider text-rose-200 flex items-center gap-1.5 transition-all active:scale-95"
+                                            title="Скачать на устройство"
+                                            className="px-3 py-2 rounded-full bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/35 text-[11px] font-bold uppercase tracking-wider text-rose-200 flex items-center gap-1.5 transition-all active:scale-95"
                                         >
                                             <Icons.DownloadApp />
-                                            <span className="hidden sm:inline">Приложение</span>
+                                            <span>Скачать на устройство</span>
                                         </button>
                                     )}
 
                                     <button 
                                         onClick={handleShareGame}
-                                        title="Поделиться игрой с друзьями"
-                                        className="px-3 py-2 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-xs font-bold uppercase tracking-wider text-zinc-200 flex items-center gap-1.5 transition-all active:scale-95"
+                                        title="Поделиться игрой"
+                                        className="p-2 sm:px-3 sm:py-2 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-xs font-bold uppercase tracking-wider text-zinc-200 flex items-center gap-1.5 transition-all active:scale-95"
                                     >
                                         <Icons.Share />
-                                        <span className="hidden sm:inline">Поделиться</span>
+                                        <span className="hidden md:inline">Поделиться</span>
                                     </button>
 
                                     <button 
                                         onClick={toggleMute}
+                                        title={isMuted ? "Включить звук и вибрацию" : "Выключить звук и вибрацию"}
                                         className={`px-3 py-2 rounded-full border text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all active:scale-95 ${
                                             isMuted 
                                                 ? 'border-white/10 text-zinc-500' 
@@ -2859,26 +2937,22 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                                         }`}
                                     >
                                         {isMuted ? <Icons.SoundOff /> : <Icons.SoundOn />}
-                                        <span className="hidden xs:inline">{isMuted ? "Выкл" : "Звук"}</span>
+                                        <span className="hidden sm:inline">{isMuted ? "Выкл" : "Звук"}</span>
                                     </button>
                                 </div>
                             </header>
 
-                            {/* Центральный блок логотипа, имен пары и интерактивного ID сессии */}
+                            {/* Центральный блок логотипа, имен пары и яркого слогана (Без ID сессии) */}
                             <div className="flex flex-col items-center text-center gap-3 py-1">
                                 <AskMeLogo size="lg" onClick={handleLogoSecretTap} />
                                 
-                                <div className="flex items-center gap-2.5 text-base font-semibold text-zinc-200 mt-1">
+                                <div className="flex items-center gap-2.5 text-base font-semibold text-white mt-1">
                                     <span>{profile.guyName}</span>
                                     <span className="text-rose-500 text-sm">♥</span>
                                     <span>{profile.girlName}</span>
                                 </div>
 
-                                <div className="flex items-center gap-2 mt-0.5">
-                                    <SessionIdBadge sessionId={profile.sessionId} onCopy={showToast} />
-                                </div>
-
-                                <p className="text-zinc-500 text-[11px] font-semibold uppercase tracking-[0.22em] mt-1">
+                                <p className="text-rose-400 text-[11px] sm:text-xs font-extrabold uppercase tracking-[0.24em] mt-0.5 drop-shadow-[0_0_14px_rgba(244,63,94,0.45)]">
                                     Откровенные разговоры для двоих
                                 </p>
                             </div>
@@ -2964,7 +3038,7 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                                     </div>
                                 </div>
 
-                                {/* Правая колонка */}
+                                {/* Правая колонка (Список вопросов и Старт игры) */}
                                 <div className="lg:col-span-5 flex flex-col gap-7 lg:pl-6 lg:border-l lg:border-white/[0.08]">
                                     
                                     <div className="lg:hidden hairline-divider"></div>
@@ -2988,6 +3062,7 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
 
                                     <div className="hairline-divider"></div>
 
+                                    {/* Блок "Доступно для новой игры" (Внизу только "Начать игру") */}
                                     <div className="flex flex-col gap-5">
                                         <div className="flex items-center gap-3 w-full">
                                             <div className="h-[1px] flex-1 bg-white/10"></div>
@@ -3023,32 +3098,8 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                                             disabled={!isAdmin && stats.availableActive === 0}
                                             className="w-full rounded-2xl btn-primary font-bold text-sm uppercase tracking-[0.2em] disabled:opacity-35 flex items-center justify-center gap-2"
                                         >
-                                            <Icons.Play /> {hasSavedGame ? "Новая игра" : "Начать игру"}
+                                            <Icons.Play /> Начать игру
                                         </button>
-
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                                            <button 
-                                                onClick={handleShareGame}
-                                                className="w-full rounded-2xl btn-secondary text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2"
-                                            >
-                                                <Icons.Share /> Поделиться
-                                            </button>
-                                            {!isStandalonePWA ? (
-                                                <button 
-                                                    onClick={handleInstallPwaClick}
-                                                    className="w-full rounded-2xl btn-secondary text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 text-rose-300 border-rose-500/30"
-                                                >
-                                                    <Icons.DownloadApp /> Скачать App
-                                                </button>
-                                            ) : (
-                                                <button 
-                                                    onClick={() => { SoundFX.click(); navigate('profile_page'); }}
-                                                    className="w-full rounded-2xl btn-secondary text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2"
-                                                >
-                                                    <Icons.User /> Сессия пары
-                                                </button>
-                                            )}
-                                        </div>
                                     </div>
 
                                 </div>
@@ -3201,85 +3252,83 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                             </div>
                         </div>
 
-                        {gameMode === 'normal' && turnPopup.open && (
-                            <div className="viewport-popup-overlay fade-in">
-                                <div className="viewport-popup-box text-center flex flex-col items-center gap-5 slide-up">
-                                    <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-500">
-                                        Вопрос № {currentQ.num} • Очередь
-                                    </span>
-                                    <h3 className="font-display text-lg font-bold text-white">
-                                        {turnPopup.spinning ? "Выбираем, кто начнет..." : "Право первого ответа:"}
-                                    </h3>
+                        {/* POP-UP ЖРЕБИЯ ЧЕРЕЗ PORTAL С ЕДИНОЙ КНОПКОЙ ✕ В ПРАВОМ ВЕРХНЕМ УГЛУ */}
+                        <PopupModal isOpen={gameMode === 'normal' && turnPopup.open} onClose={handleCloseRoulettePopup}>
+                            <div className="text-center flex flex-col items-center gap-5 pt-1">
+                                <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-500">
+                                    Вопрос № {currentQ.num} • Очередь
+                                </span>
+                                <h3 className="font-display text-lg font-bold text-white">
+                                    {turnPopup.spinning ? "Выбираем, кто начнет..." : "Право первого ответа:"}
+                                </h3>
 
-                                    <div className="grid grid-cols-2 gap-3 w-full">
-                                        <div className={`p-4 rounded-2xl flex flex-col items-center gap-1.5 transition-all duration-200 border ${
-                                            turnPopup.highlight === 'guy' 
-                                                ? 'bg-rose-500/15 border-rose-500 scale-[1.03]' 
-                                                : 'bg-white/[0.02] border-white/5 opacity-35 scale-95'
-                                        }`}>
-                                            <span className="text-3xl">👦</span>
-                                            <span className="font-bold text-sm text-white truncate max-w-full">{profile.guyName}</span>
-                                            <span className="text-[10px] uppercase tracking-wider text-zinc-400">Парень</span>
-                                        </div>
-
-                                        <div className={`p-4 rounded-2xl flex flex-col items-center gap-1.5 transition-all duration-200 border ${
-                                            turnPopup.highlight === 'girl' 
-                                                ? 'bg-rose-500/15 border-rose-500 scale-[1.03]' 
-                                                : 'bg-white/[0.02] border-white/5 opacity-35 scale-95'
-                                        }`}>
-                                            <span className="text-3xl">👧</span>
-                                            <span className="font-bold text-sm text-white truncate max-w-full">{profile.girlName}</span>
-                                            <span className="text-[10px] uppercase tracking-wider text-zinc-400">Девушка</span>
-                                        </div>
+                                <div className="grid grid-cols-2 gap-3 w-full">
+                                    <div className={`p-4 rounded-2xl flex flex-col items-center gap-1.5 transition-all duration-200 border ${
+                                        turnPopup.highlight === 'guy' 
+                                            ? 'bg-rose-500/15 border-rose-500 scale-[1.03]' 
+                                            : 'bg-white/[0.02] border-white/5 opacity-35 scale-95'
+                                    }`}>
+                                        <span className="text-3xl">👦</span>
+                                        <span className="font-bold text-sm text-white truncate max-w-full">{profile.guyName}</span>
+                                        <span className="text-[10px] uppercase tracking-wider text-zinc-400">Парень</span>
                                     </div>
 
-                                    {!turnPopup.spinning && (
-                                        <div className="w-full flex flex-col gap-3.5 fade-in pt-1">
-                                            <div className="text-xs font-semibold text-rose-300">
-                                                {turnPopup.winner === 'guy' 
-                                                    ? `Первым отвечает ${profile.guyName}` 
-                                                    : `Первой отвечает ${profile.girlName}`}
-                                            </div>
-                                            <button 
-                                                onClick={() => { SoundFX.click(); setTurnPopup(prev => ({ ...prev, open: false })); }}
-                                                className="w-full rounded-2xl btn-primary text-xs font-bold uppercase tracking-widest"
-                                            >
-                                                К вопросу
-                                            </button>
-                                        </div>
-                                    )}
+                                    <div className={`p-4 rounded-2xl flex flex-col items-center gap-1.5 transition-all duration-200 border ${
+                                        turnPopup.highlight === 'girl' 
+                                            ? 'bg-rose-500/15 border-rose-500 scale-[1.03]' 
+                                            : 'bg-white/[0.02] border-white/5 opacity-35 scale-95'
+                                    }`}>
+                                        <span className="text-3xl">👧</span>
+                                        <span className="font-bold text-sm text-white truncate max-w-full">{profile.girlName}</span>
+                                        <span className="text-[10px] uppercase tracking-wider text-zinc-400">Девушка</span>
+                                    </div>
                                 </div>
-                            </div>
-                        )}
 
-                        {showEndGameConfirm && (
-                            <div className="viewport-popup-overlay fade-in">
-                                <div className="viewport-popup-box text-center flex flex-col items-center gap-5 slide-up">
-                                    <h3 className="font-display text-lg font-bold text-white">
-                                        Завершить текущую партию?
-                                    </h3>
-                                    {gameMode === 'normal' && (
-                                        <p className="text-xs text-zinc-400 leading-relaxed">
-                                            Пройденные вопросы ({maxReachedIndex + 1} шт.) перейдут в Архив сессии <b className="text-rose-300">{profile.sessionId}</b> и не попадутся в следующей игре.
-                                        </p>
-                                    )}
-                                    <div className="grid grid-cols-2 gap-3 w-full">
+                                {!turnPopup.spinning && (
+                                    <div className="w-full flex flex-col gap-3.5 fade-in pt-1">
+                                        <div className="text-xs font-semibold text-rose-300">
+                                            {turnPopup.winner === 'guy' 
+                                                ? `Первым отвечает ${profile.guyName}` 
+                                                : `Первой отвечает ${profile.girlName}`}
+                                        </div>
                                         <button 
-                                            onClick={() => { SoundFX.click(); setShowEndGameConfirm(false); }}
-                                            className="w-full rounded-2xl btn-secondary text-xs font-bold uppercase tracking-widest"
-                                        >
-                                            Отмена
-                                        </button>
-                                        <button 
-                                            onClick={() => handleFinishGame(false)}
+                                            onClick={handleCloseRoulettePopup}
                                             className="w-full rounded-2xl btn-primary text-xs font-bold uppercase tracking-widest"
                                         >
-                                            Да
+                                            К вопросу
                                         </button>
                                     </div>
+                                )}
+                            </div>
+                        </PopupModal>
+
+                        {/* POP-UP ВЫХОДА В МЕНЮ ЧЕРЕЗ PORTAL С ЕДИНОЙ КНОПКОЙ ✕ В ПРАВОМ ВЕРХНЕМ УГЛУ */}
+                        <PopupModal isOpen={showEndGameConfirm} onClose={() => setShowEndGameConfirm(false)}>
+                            <div className="text-center flex flex-col items-center gap-5 pt-2">
+                                <h3 className="font-display text-lg font-bold text-white pr-4 pl-4">
+                                    Завершить текущую партию?
+                                </h3>
+                                {gameMode === 'normal' && (
+                                    <p className="text-xs text-zinc-400 leading-relaxed">
+                                        Пройденные вопросы ({maxReachedIndex + 1} шт.) перейдут в Архив сессии <b className="text-rose-300">{profile.sessionId}</b> и не попадутся в следующей игре.
+                                    </p>
+                                )}
+                                <div className="grid grid-cols-2 gap-3 w-full">
+                                    <button 
+                                        onClick={() => { SoundFX.click(); setShowEndGameConfirm(false); }}
+                                        className="w-full rounded-2xl btn-secondary text-xs font-bold uppercase tracking-widest"
+                                    >
+                                        Отмена
+                                    </button>
+                                    <button 
+                                        onClick={() => handleFinishGame(false)}
+                                        className="w-full rounded-2xl btn-primary text-xs font-bold uppercase tracking-widest"
+                                    >
+                                        Да
+                                    </button>
                                 </div>
                             </div>
-                        )}
+                        </PopupModal>
                     </div>
                 );
             }
@@ -3859,10 +3908,10 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
 
                         <AppFooter />
 
-                        {confirmModal && (
-                            <div className="viewport-popup-overlay fade-in">
-                                <div className="viewport-popup-box text-center flex flex-col items-center gap-5 slide-up">
-                                    <h3 className="font-display text-base font-bold text-white leading-snug">
+                        <PopupModal isOpen={Boolean(confirmModal)} onClose={() => setConfirmModal(null)}>
+                            {confirmModal && (
+                                <div className="text-center flex flex-col items-center gap-5 pt-2">
+                                    <h3 className="font-display text-base font-bold text-white leading-snug pr-4 pl-4">
                                         {confirmModal.title}
                                     </h3>
                                     <div className="grid grid-cols-2 gap-3 w-full">
@@ -3880,12 +3929,19 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                                         </button>
                                     </div>
                                 </div>
-                            </div>
-                        )}
+                            )}
+                        </PopupModal>
 
-                        {resultModal && (
-                            <div className="viewport-popup-overlay fade-in">
-                                <div className="viewport-popup-box text-center flex flex-col items-center gap-4 slide-up">
+                        <PopupModal 
+                            isOpen={Boolean(resultModal)} 
+                            onClose={() => {
+                                const target = resultModal?.afterCloseScreen;
+                                setResultModal(null);
+                                if (target) navigate(target);
+                            }}
+                        >
+                            {resultModal && (
+                                <div className="text-center flex flex-col items-center gap-4 pt-2">
                                     <h3 className="font-display text-lg font-bold text-white">
                                         {resultModal.ok ? 'Выполнено' : 'Ошибка базы данных'}
                                     </h3>
@@ -3904,8 +3960,8 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                                         Понятно
                                     </button>
                                 </div>
-                            </div>
-                        )}
+                            )}
+                        </PopupModal>
                     </div>
                 );
             }
