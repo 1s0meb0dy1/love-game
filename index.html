@@ -2,13 +2,21 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="theme-color" content="#09080c">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Ask Me">
     <title>ASK ME — Игра для пар</title>
+    <meta name="description" content="ASK ME — игра для пар: вопросы, которые помогают говорить откровенно.">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="ASK ME — Игра для пар">
+    <meta property="og:description" content="Откровенные разговоры для двоих.">
+    <link rel="preconnect" href="https://unpkg.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.tailwindcss.com">
+    <link rel="preconnect" href="https://project-x-5e16a-default-rtdb.europe-west1.firebasedatabase.app" crossorigin>
+    <link rel="dns-prefetch" href="https://identitytoolkit.googleapis.com">
 
     <!-- Иконки и манифест PWA -->
     <link id="pwa-apple-icon" rel="apple-touch-icon" href="">
@@ -83,10 +91,10 @@ const createIconDataUrl = (size) => {
     </script>
 
     <!-- React & Tailwind -->
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone@7.26.2/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com/3.4.17"></script>
     
     <!-- Современные шрифты без засечек: Outfit и Plus Jakarta Sans -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -94,8 +102,6 @@ const createIconDataUrl = (size) => {
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <style>
-        @import url('https://fonts.cdnfonts.com/css/google-sans');
-        
         :root {
             color-scheme: dark;
         }
@@ -111,7 +117,7 @@ const createIconDataUrl = (size) => {
             overflow-x: hidden;
             color: #fafafa; 
             -webkit-tap-highlight-color: transparent;
-            touch-action: pan-y;
+            touch-action: manipulation;
             overscroll-behavior-y: none;
             user-select: none;
             -webkit-user-select: none;
@@ -273,25 +279,90 @@ const createIconDataUrl = (size) => {
         // НАСТРОЙКИ БАЗЫ ДАННЫХ И AI
         const FIREBASE_BASE_URL = "https://project-x-5e16a-default-rtdb.europe-west1.firebasedatabase.app";
         const GIST_FALLBACK_URL = "https://gist.githubusercontent.com/1s0meb0dy1/9d890bde848f3a2c5464c7c1729fe17a/raw/questions.json";
-        const GEMINI_API_KEY = "AQ.Ab8RN6JlrwetdJDgph_PDXCwnW1GCoUcw6jc8_iIBLEbG1dNWA"; 
+        const GEMINI_API_KEY = ""; // ключ удалён из кода: вызывайте ИИ только через свой серверный прокси
         const PROFILE_STORAGE_KEY = "askme_device_profile_v3";
         const ADMIN_STORAGE_KEY = "askme_admin_unlocked_v3";
         const OFFLINE_DB_CACHE_KEY = "askme_offline_db_cache_v1";
 
-        // КРИПТОГРАФИЧЕСКАЯ ПРОВЕРКА ПАРОЛЯ ВЛАДЕЛЬЦА (Пароль: Yedvinn!Ask92#Me)
-        const SECRET_CIPHER = [72, 85, 43, 24, 228, 194, 165, 203, 328, 347, 300, 351, 439, 391, 398, 391];
-        const SECRET_CIPHER_LEGACY = [72, 85, 43, 24, 228, 194, 165, 203, 328, 347, 300, 319, 439, 391, 494, 455];
-        const verifyAdminSecret = (input) => {
-            const str = String(input || "").trim();
-            if (str.length !== SECRET_CIPHER.length) return false;
-            let matchMain = true;
-            let matchLegacy = true;
-            for (let i = 0; i < str.length; i++) {
-                const code = str.charCodeAt(i) ^ (i * 31 + 17);
-                if (code !== SECRET_CIPHER[i]) matchMain = false;
-                if (code !== SECRET_CIPHER_LEGACY[i]) matchLegacy = false;
+        const fetchWithTimeout = async (url, options = {}, ms = 20000) => {
+            if (typeof url === "string" && url.startsWith(FIREBASE_BASE_URL)) {
+                const token = await Auth.token();
+                if (token) url += (url.includes("?") ? "&" : "?") + "auth=" + encodeURIComponent(token);
             }
-            return matchMain || matchLegacy;
+            const ctrl = new AbortController();
+            const timer = setTimeout(() => ctrl.abort(), ms);
+            try {
+                return await fetch(url, { ...options, signal: ctrl.signal });
+            } finally {
+                clearTimeout(timer);
+            }
+        };
+
+        // === Firebase Authentication через REST (без SDK) ===
+        const FIREBASE_API_KEY = "AIzaSyDBE1-ZGgrHOVVUzl0Pcnkua-heJyRyoqg"; // Web API key: Project settings -> General (не секрет)
+        const OWNER_EMAIL = "yedvinn@gmail.com";      // e-mail владельца из Authentication -> Users
+        const AUTH_STORAGE_KEY = "askme_auth_v1";
+        const AUTH_BASE = "https://identitytoolkit.googleapis.com/v1/accounts";
+        const Auth = {
+            store: (() => { try { return JSON.parse(localStorage.getItem(AUTH_STORAGE_KEY)) || {}; } catch (e) { return {}; } })(),
+            anonPending: null,
+            persist() { try { localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(this.store)); } catch (e) {} },
+            pack(d) {
+                const ttl = Number(d.expiresIn || d.expires_in || 3600);
+                return { idToken: d.idToken || d.id_token, refreshToken: d.refreshToken || d.refresh_token, expiresAt: Date.now() + (ttl - 60) * 1000 };
+            },
+            async post(url, body, form) {
+                const r = await fetchWithTimeout(url, {
+                    method: "POST",
+                    headers: { "Content-Type": form ? "application/x-www-form-urlencoded" : "application/json" },
+                    body: form ? new URLSearchParams(body).toString() : JSON.stringify(body)
+                }, 15000);
+                const d = await r.json();
+                if (!r.ok) throw new Error((d && d.error && d.error.message) || "AUTH_ERROR");
+                return d;
+            },
+            async fresh(kind) {
+                const rec = this.store[kind];
+                if (!rec) return null;
+                if (rec.expiresAt > Date.now()) return rec.idToken;
+                try {
+                    const d = await this.post(`https://securetoken.googleapis.com/v1/token?key=${FIREBASE_API_KEY}`, { grant_type: "refresh_token", refresh_token: rec.refreshToken }, true);
+                    this.store[kind] = this.pack(d);
+                    this.persist();
+                    return this.store[kind].idToken;
+                } catch (e) {
+                    delete this.store[kind];
+                    this.persist();
+                    return null;
+                }
+            },
+            async token() {
+                if (!FIREBASE_API_KEY) return null;
+                const owner = await this.fresh("owner");
+                if (owner) return owner;
+                const anon = await this.fresh("anon");
+                if (anon) return anon;
+                if (!this.anonPending) {
+                    this.anonPending = this.post(`${AUTH_BASE}:signUp?key=${FIREBASE_API_KEY}`, { returnSecureToken: true })
+                        .then(d => { this.store.anon = this.pack(d); this.persist(); return this.store.anon.idToken; })
+                        .catch(() => null)
+                        .finally(() => { this.anonPending = null; });
+                }
+                return this.anonPending;
+            },
+            hasOwner() { return !!this.store.owner; },
+            ownerLogout() { delete this.store.owner; this.persist(); }
+        };
+        const verifyAdminSecret = async (input) => {
+            try {
+                if (!FIREBASE_API_KEY || !OWNER_EMAIL) return false;
+                const d = await Auth.post(`${AUTH_BASE}:signInWithPassword?key=${FIREBASE_API_KEY}`, { email: OWNER_EMAIL, password: String(input || ""), returnSecureToken: true });
+                Auth.store.owner = Auth.pack(d);
+                Auth.persist();
+                return true;
+            } catch (e) {
+                return false;
+            }
         };
 
         // СИСТЕМА ГЕНЕРАЦИИ И ШИФРОВАНИЯ 8-ЗНАЧНОГО ID СЕССИИ ПАРЫ
@@ -337,31 +408,7 @@ const createIconDataUrl = (size) => {
             return (h1 >>> 0).toString(16).padStart(8, '0') + (h2 >>> 0).toString(16).padStart(8, '0');
         };
 
-        const encryptSessionPayload = (dataObj, sessionId) => {
-            try {
-                const key = "ASKME_KEY_" + String(sessionId).trim().toUpperCase() + "_SECRET";
-                const jsonStr = JSON.stringify(dataObj);
-                const bytes = new TextEncoder().encode(jsonStr);
-                const out = new Uint8Array(bytes.length);
-                let state = 137;
-                for (let i = 0; i < key.length; i++) {
-                    state = (state * 31 + key.charCodeAt(i)) & 0xff;
-                }
-                for (let i = 0; i < bytes.length; i++) {
-                    const kChar = key.charCodeAt(i % key.length);
-                    state = (state + kChar + (i & 0xff)) & 0xff;
-                    out[i] = bytes[i] ^ state ^ kChar;
-                }
-                let binary = "";
-                for (let i = 0; i < out.length; i++) {
-                    binary += String.fromCharCode(out[i]);
-                }
-                return btoa(binary);
-            } catch (e) {
-                return "";
-            }
-        };
-
+        
         const decryptSessionPayload = (cipherB64, sessionId) => {
             try {
                 const key = "ASKME_KEY_" + String(sessionId).trim().toUpperCase() + "_SECRET";
@@ -406,12 +453,54 @@ const createIconDataUrl = (size) => {
             }
         };
 
+        const cleanIdList = (v, max = 5000) =>
+            Array.isArray(v) ? v.filter(x => typeof x === 'string' || typeof x === 'number').slice(0, max) : [];
+
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden && typeof SoundFX !== 'undefined' && SoundFX.ctx && SoundFX.ctx.state !== 'running') {
+                try { const p = SoundFX.ctx.resume(); if (p && p.catch) p.catch(() => {}); } catch (e) {}
+            }
+        });
+        let lastSyncToastAt = 0;
+        const bufToB64Url = (buf) => { let t = ""; const b = new Uint8Array(buf); for (let i = 0; i < b.length; i++) t += String.fromCharCode(b[i]); return btoa(t).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); };
+        const b64UrlToBuf = (str) => { const b64 = str.replace(/-/g, "+").replace(/_/g, "/"); const bin = atob(b64 + "=".repeat((4 - b64.length % 4) % 4)); const out = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i); return out; };
+        const generateAESKey = async () => bufToB64Url(await crypto.subtle.exportKey("raw", await crypto.subtle.generateKey({ name: "AES-GCM", length: 128 }, true, ["encrypt", "decrypt"])));
+        const importAESKey = (keyStr, usage) => crypto.subtle.importKey("raw", b64UrlToBuf(keyStr), { name: "AES-GCM" }, false, [usage]);
+        const isValidAESKey = (k) => typeof k === "string" && /^[A-Za-z0-9_-]{22}$/.test(k);
+        const encryptSessionAES = async (obj, keyStr) => {
+            try {
+                const iv = crypto.getRandomValues(new Uint8Array(12));
+                const ct = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv }, await importAESKey(keyStr, "encrypt"), new TextEncoder().encode(JSON.stringify(obj))));
+                const out = new Uint8Array(12 + ct.length); out.set(iv, 0); out.set(ct, 12);
+                return bufToB64Url(out);
+            } catch (e) { return null; }
+        };
+        const decryptSessionAES = async (cipher, keyStr) => {
+            try {
+                const all = b64UrlToBuf(cipher);
+                const pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv: all.slice(0, 12) }, await importAESKey(keyStr, "decrypt"), all.slice(12));
+                return JSON.parse(new TextDecoder().decode(pt));
+            } catch (e) { return null; }
+        };
+        const sessionDbKey = async (keyStr) => {
+            const h = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode("askme-session-v1:" + keyStr)));
+            return "s_" + Array.from(h).map(b => b.toString(16).padStart(2, "0")).join("");
+        };
+        const parseRestoreInput = (raw) => {
+            const text = String(raw || "").trim();
+            let sid = "", key = "";
+            const mSid = text.match(/sid=([A-Za-z0-9]{8})/i), mKey = text.match(/key=([A-Za-z0-9_-]{22})/);
+            if (mSid || mKey) { sid = mSid ? mSid[1] : ""; key = mKey ? mKey[1] : ""; }
+            else if (text.includes("|")) { [sid, key] = text.split("|").map(x => x.trim()); }
+            else { sid = text; }
+            return { sid: sid.toUpperCase(), key: isValidAESKey(key) ? key : "" };
+        };
+
         const sanitizeInput = (str, maxLength = 600) => {
             if (!str) return "";
             return String(str)
                 .replace(/[<>]/g, "")
-                .replace(/javascript:/gi, "")
-                .replace(/on\w+=/gi, "")
+                .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "")
                 .trim()
                 .slice(0, maxLength);
         };
@@ -487,6 +576,9 @@ const createIconDataUrl = (size) => {
             muted: false,
             unlocked: false,
             triggerHaptic(pattern = 12) {
+                const nowTs = Date.now();
+                if (nowTs - (this.lastHaptic || 0) < 25) return;
+                this.lastHaptic = nowTs;
                 // Строгое правило: если звук выключен, вибрация тоже полностью отключена!
                 if (this.muted) return;
                 try {
@@ -512,8 +604,8 @@ const createIconDataUrl = (size) => {
                         this.filter.frequency.value = 1650;
                         this.filter.connect(this.ctx.destination);
                     }
-                    if (this.ctx.state === 'suspended') {
-                        this.ctx.resume();
+                    if (this.ctx.state === 'suspended' || this.ctx.state === 'interrupted') {
+                        try { const rp = this.ctx.resume(); if (rp && rp.catch) rp.catch(() => {}); } catch (e) {}
                     }
                     if (!this.unlocked && this.ctx) {
                         const buffer = this.ctx.createBuffer(1, 1, 22050);
@@ -670,7 +762,7 @@ const createIconDataUrl = (size) => {
                     onClick={() => { if (onClose) { SoundFX.click(); onClose(); } }}
                 >
                     <div 
-                        className="viewport-popup-box slide-up" 
+                        className="viewport-popup-box slide-up" role="dialog" aria-modal="true" 
                         onClick={e => e.stopPropagation()}
                     >
                         {onClose && (
@@ -769,16 +861,58 @@ const createIconDataUrl = (size) => {
         };
 
         // ИНТЕРАКТИВНЫЙ БЕЙДЖ ID СЕССИИ
-        const SessionIdBadge = ({ sessionId, onCopy, size = "sm", label = "ID" }) => {
+        const REEL = { CARD: 84, GAP: 8, TARGET: 30, COUNT: 36, TRAVEL: 22 };
+        const reelGeometry = (w, winner, jit = 0) => {
+            const stride = REEL.CARD + REEL.GAP;
+            const t = winner === 'guy' ? REEL.TARGET : REEL.TARGET + 1;
+            const final = w / 2 - (t * stride + REEL.CARD / 2) + jit;
+            return { t, final, start: final - REEL.TRAVEL * stride };
+        };
+        const TurnReel = ({ guyName, girlName, winner, spinning }) => {
+            const wrapRef = React.useRef(null);
+            const [pos, setPos] = React.useState({ x: 0, anim: false, ready: false });
+            React.useLayoutEffect(() => {
+                const w = wrapRef.current ? wrapRef.current.getBoundingClientRect().width : 300;
+                const g = reelGeometry(w, winner, (Math.random() - 0.5) * REEL.CARD * 0.5);
+                const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                if (reduce) { setPos({ x: g.final, anim: false, ready: true }); return; }
+                setPos({ x: g.start, anim: false, ready: true });
+                let r2;
+                const r1 = requestAnimationFrame(() => { r2 = requestAnimationFrame(() => setPos({ x: g.final, anim: true, ready: true })); });
+                return () => { cancelAnimationFrame(r1); if (r2) cancelAnimationFrame(r2); };
+            }, []);
+            const t = reelGeometry(0, winner).t;
+            return (
+                <div ref={wrapRef} className="relative w-full h-[112px] overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02]">
+                    <div className="absolute top-0 bottom-0 left-0 flex items-center" style={{ gap: REEL.GAP, transform: `translate3d(${pos.x}px,0,0)`, transition: pos.anim ? 'transform 2.2s cubic-bezier(0.08,0.6,0.12,1)' : 'none', willChange: 'transform', opacity: pos.ready ? 1 : 0 }}>
+                        {Array.from({ length: REEL.COUNT }, (_, i) => {
+                            const isGuy = i % 2 === 0;
+                            const win = !spinning && i === t;
+                            return (
+                                <div key={i} style={{ width: REEL.CARD, flex: '0 0 auto' }} className={`h-[92px] rounded-xl border flex flex-col items-center justify-center gap-1 transition-all duration-300 ${win ? 'bg-rose-500/15 border-rose-500 scale-105' : 'bg-white/[0.04] border-white/10'} ${(!spinning && !win) ? 'opacity-35' : ''}`}>
+                                    <span className="text-2xl">{isGuy ? '👦' : '👧'}</span>
+                                    <span className="text-[11px] font-bold text-white truncate max-w-[72px]">{isGuy ? guyName : girlName}</span>
+                                </div>
+                            );
+                        })}
+                    </div>
+                    <div className="pointer-events-none absolute inset-y-0 left-0 w-10 bg-gradient-to-r from-black/60 to-transparent" />
+                    <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-black/60 to-transparent" />
+                    <div className="pointer-events-none absolute inset-y-0 left-1/2 w-[2px] -translate-x-1/2 bg-rose-400 shadow-[0_0_12px_rgba(251,113,133,0.9)]" />
+                </div>
+            );
+        };
+
+        const SessionIdBadge = ({ sessionId, sessionKey, onCopy, size = "sm", label = "ID" }) => {
             const [copied, setCopied] = useState(false);
             if (!sessionId) return null;
 
             const handleCopyClick = async (e) => {
                 e.stopPropagation();
                 SoundFX.success();
-                await copyTextToClipboard(sessionId);
+                await copyTextToClipboard(sessionKey ? `${window.location.origin}${window.location.pathname}#/welcome?sid=${sessionId}&key=${sessionKey}` : sessionId);
                 setCopied(true);
-                if (onCopy) onCopy(`ID сессии скопирован: ${sessionId}`);
+                if (onCopy) onCopy(sessionKey ? "Ссылка для входа скопирована — отправьте её партнёру" : `ID сессии скопирован: ${sessionId}`);
                 setTimeout(() => setCopied(false), 2000);
             };
 
@@ -792,7 +926,7 @@ const createIconDataUrl = (size) => {
                     >
                         <div className="flex flex-col text-left">
                             <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-rose-300/80">
-                                Персональный ID вашей пары
+                                ID вашей пары · нажмите, чтобы скопировать ссылку для входа
                             </span>
                             <span className="font-display text-2xl sm:text-3xl font-extrabold tracking-[0.18em] text-white mt-1">
                                 {sessionId}
@@ -891,7 +1025,7 @@ const createIconDataUrl = (size) => {
             if (GEMINI_API_KEY && GEMINI_API_KEY.startsWith("AIza")) {
                 try {
                     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
-                    const response = await fetch(url, {
+                    const response = await fetchWithTimeout(url, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({
@@ -908,7 +1042,7 @@ const createIconDataUrl = (size) => {
             }
 
             try {
-                const response = await fetch("https://text.pollinations.ai/openai", {
+                const response = await fetchWithTimeout("https://text.pollinations.ai/openai", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
@@ -931,7 +1065,7 @@ const createIconDataUrl = (size) => {
             try {
                 const compactPrompt = userPrompt.slice(0, 520);
                 const fallbackUrl = `https://text.pollinations.ai/${encodeURIComponent(compactPrompt)}?seed=${randomSeed}&model=openai`;
-                const response = await fetch(fallbackUrl);
+                const response = await fetchWithTimeout(fallbackUrl);
                 if (response.ok) {
                     const text = await response.text();
                     if (text && text.length > 10 && !text.includes("<!DOCTYPE")) return text.trim();
@@ -1159,7 +1293,7 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
 
         function App() {
             const [db, setDb] = useState([]);
-            const [dbSubPath, setDbSubPath] = useState("");
+            const [dbSubPath, setDbSubPath] = useState("/questions");
             const [isLoading, setIsLoading] = useState(true);
             const [toastMsg, setToastMsg] = useState(null);
             const toastTimerRef = useRef(null);
@@ -1239,6 +1373,8 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 toastTimerRef.current = setTimeout(() => setToastMsg(null), 2800);
             };
 
+            const showErrorPopup = (title, msg) => { SoundFX.warn(); setResultModal({ ok: false, title, msg }); };
+
             // ИНДИВИДУАЛЬНЫЙ ПРОФИЛЬ СЕССИИ ПАРЫ
             const [profile, setProfile] = useState(() => {
                 try {
@@ -1251,6 +1387,7 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                                 : generateSessionId();
                             return {
                                 sessionId: sid,
+                                sessionKey: isValidAESKey(parsed.sessionKey) ? parsed.sessionKey : undefined,
                                 guyName: sanitizeInput(parsed.guyName, 25),
                                 girlName: sanitizeInput(parsed.girlName, 25),
                                 archivedIds: Array.isArray(parsed.archivedIds) ? parsed.archivedIds : [],
@@ -1267,14 +1404,25 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
             // ДОСТУП АДМИНИСТРАТОРА (Владельца)
             const [isAdmin, setIsAdmin] = useState(() => {
                 try {
-                    return localStorage.getItem(ADMIN_STORAGE_KEY) === "true";
+                    return Auth.hasOwner();
                 } catch (e) {
                     return false;
                 }
             });
 
             const [authTab, setAuthTab] = useState('create');
+            const [nameErrors, setNameErrors] = useState({ guy: '', girl: '' });
             const [restoreIdInput, setRestoreIdInput] = useState('');
+            useEffect(() => {
+                try {
+                    const h = window.location.hash || "";
+                    if (/key=/.test(h) && /sid=/.test(h)) {
+                        setAuthTab('restore');
+                        setRestoreIdInput(window.location.href);
+                        window.history.replaceState(null, "", window.location.pathname + window.location.search + "#/welcome");
+                    }
+                } catch (e) {}
+            }, []);
             const [restoreError, setRestoreError] = useState('');
             const [isRestoringSession, setIsRestoringSession] = useState(false);
 
@@ -1372,40 +1520,29 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
             const [resultModal, setResultModal] = useState(null);
 
             // ОБЛАЧНАЯ СИНХРОНИЗАЦИЯ ЗАШИФРОВАННОЙ СЕССИИ
-            const syncSessionToCloud = async (profData, subPath = dbSubPath) => {
+            const syncSessionToCloud = async (profData) => {
                 if (!profData || !profData.sessionId) return;
                 try {
                     localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profData));
                     localStorage.setItem(`askme_sess_${profData.sessionId}`, JSON.stringify(profData));
                 } catch (e) {}
-
+                if (!isValidAESKey(profData.sessionKey)) return;
                 try {
-                    const dbHashKey = "sess_" + hashSessionIdForDb(profData.sessionId);
-                    const encryptedPayload = encryptSessionPayload({
-                        guyName: profData.guyName,
-                        girlName: profData.girlName,
-                        archivedIds: profData.archivedIds || [],
-                        disabledIds: profData.disabledIds || [],
-                        savedGame: profData.savedGame || null,
-                        updatedAt: profData.updatedAt || Date.now()
-                    }, profData.sessionId);
-
-                    const cloudRecord = {
-                        id: dbHashKey,
-                        num: 0,
-                        categoryId: "_session",
-                        level: "Простые",
-                        text: "ASKME_ENCRYPTED_SESSION_V3",
-                        payload: encryptedPayload,
-                        updatedAt: profData.updatedAt || Date.now()
-                    };
-
-                    await fetch(`${FIREBASE_BASE_URL}${subPath}/${dbHashKey}.json`, {
-                        method: "PUT",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify(cloudRecord)
+                    const updatedAt = profData.updatedAt || Date.now();
+                    const encrypted = await encryptSessionAES({
+                        guyName: profData.guyName, girlName: profData.girlName,
+                        archivedIds: profData.archivedIds || [], disabledIds: profData.disabledIds || [],
+                        savedGame: profData.savedGame || null, updatedAt
+                    }, profData.sessionKey);
+                    if (!encrypted) throw new Error("encrypt");
+                    const res = await fetchWithTimeout(`${FIREBASE_BASE_URL}/sessions/${await sessionDbKey(profData.sessionKey)}.json`, {
+                        method: "PUT", headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ payload: encrypted, updatedAt })
                     });
-                } catch (e) {}
+                    if (!res.ok) throw new Error("HTTP " + res.status);
+                } catch (e) {
+                    if (Date.now() - lastSyncToastAt > 60000) { lastSyncToastAt = Date.now(); showErrorPopup("Нет связи с облаком", "Прогресс не удалось сохранить в облаке. Данные сохранены на этом устройстве, игра продолжится. Проверьте интернет-соединение."); }
+                }
             };
 
             useEffect(() => {
@@ -1421,95 +1558,96 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
             }, [profile, dbSubPath, isLoading]);
 
             useEffect(() => {
-                if (!profile?.sessionId || isLoading) return;
-                const checkCloudSession = async () => {
+                if (!isValidAESKey(profile?.sessionKey) || isLoading) return;
+                (async () => {
                     try {
-                        const dbHashKey = "sess_" + hashSessionIdForDb(profile.sessionId);
-                        const res = await fetch(`${FIREBASE_BASE_URL}${dbSubPath}/${dbHashKey}.json?t=${Date.now()}`);
+                        const res = await fetchWithTimeout(`${FIREBASE_BASE_URL}/sessions/${await sessionDbKey(profile.sessionKey)}.json?t=${Date.now()}`);
                         if (!res.ok) return;
                         const data = await res.json();
-                        if (data && data.payload) {
-                            const decrypted = decryptSessionPayload(data.payload, profile.sessionId);
-                            if (decrypted && decrypted.guyName && decrypted.girlName) {
-                                if ((decrypted.updatedAt || 0) > (profile.updatedAt || 0)) {
-                                    setProfile({
-                                        sessionId: profile.sessionId,
-                                        guyName: sanitizeInput(decrypted.guyName, 25),
-                                        girlName: sanitizeInput(decrypted.girlName, 25),
-                                        archivedIds: Array.isArray(decrypted.archivedIds) ? decrypted.archivedIds : [],
-                                        disabledIds: Array.isArray(decrypted.disabledIds) ? decrypted.disabledIds : [],
-                                        savedGame: decrypted.savedGame || null,
-                                        updatedAt: decrypted.updatedAt
-                                    });
-                                }
-                            }
+                        const dec = data && data.payload ? await decryptSessionAES(data.payload, profile.sessionKey) : null;
+                        if (dec && dec.guyName && dec.girlName && (dec.updatedAt || 0) > (profile.updatedAt || 0)) {
+                            setProfile({
+                                ...profile,
+                                guyName: sanitizeInput(dec.guyName, 25), girlName: sanitizeInput(dec.girlName, 25),
+                                archivedIds: cleanIdList(dec.archivedIds), disabledIds: cleanIdList(dec.disabledIds),
+                                savedGame: (dec.savedGame && typeof dec.savedGame === 'object' ? dec.savedGame : null),
+                                updatedAt: dec.updatedAt
+                            });
                         }
                     } catch (e) {}
-                };
-                checkCloudSession();
-            }, [isLoading]);
+                })();
+            }, [isLoading, profile?.sessionKey]);
+
+            // Апгрейд старых сессий (без ключа) до AES: новый ключ + удаление старой XOR-записи из облака
+            useEffect(() => {
+                if (!profile || profile.sessionKey || isLoading) return;
+                let alive = true;
+                generateAESKey().then(k => {
+                    if (!alive) return;
+                    fetchWithTimeout(`${FIREBASE_BASE_URL}/sessions/sess_${hashSessionIdForDb(profile.sessionId)}.json`, { method: "DELETE" }).catch(() => {});
+                    setProfile(pr => (pr && !pr.sessionKey) ? { ...pr, sessionKey: k, updatedAt: Date.now() } : pr);
+                });
+                return () => { alive = false; };
+            }, [profile, isLoading]);
 
             const handleRestoreBySessionId = async (e) => {
                 e.preventDefault();
-                const cleanId = String(restoreIdInput || "").trim().toUpperCase();
-                if (!isValidSessionIdFormat(cleanId)) {
+                const { sid, key } = parseRestoreInput(restoreIdInput);
+                if (!key && !isValidSessionIdFormat(sid)) {
                     SoundFX.warn();
-                    setRestoreError("ID должен состоять ровно из 8 букв и цифр");
+                    setRestoreError("Вставьте ссылку на сессию или 8-значный ID");
                     return;
                 }
-
                 setIsRestoringSession(true);
                 setRestoreError("");
-
+                const toProfile = (dec, sessionId, sessionKey) => ({
+                    sessionId, sessionKey,
+                    guyName: sanitizeInput(dec.guyName, 25), girlName: sanitizeInput(dec.girlName, 25),
+                    archivedIds: cleanIdList(dec.archivedIds), disabledIds: cleanIdList(dec.disabledIds),
+                    savedGame: (dec.savedGame && typeof dec.savedGame === 'object' ? dec.savedGame : null),
+                    updatedAt: Date.now()
+                });
                 try {
-                    const dbHashKey = "sess_" + hashSessionIdForDb(cleanId);
-                    let restoredObj = null;
-
+                    let restored = null, legacyPath = null;
                     try {
-                        const res = await fetch(`${FIREBASE_BASE_URL}${dbSubPath}/${dbHashKey}.json?t=${Date.now()}`);
-                        if (res.ok) {
-                            const data = await res.json();
-                            if (data && data.payload) {
-                                const decrypted = decryptSessionPayload(data.payload, cleanId);
-                                if (decrypted && decrypted.guyName && decrypted.girlName) {
-                                    restoredObj = {
-                                        sessionId: cleanId,
-                                        guyName: sanitizeInput(decrypted.guyName, 25),
-                                        girlName: sanitizeInput(decrypted.girlName, 25),
-                                        archivedIds: Array.isArray(decrypted.archivedIds) ? decrypted.archivedIds : [],
-                                        disabledIds: Array.isArray(decrypted.disabledIds) ? decrypted.disabledIds : [],
-                                        savedGame: decrypted.savedGame || null,
-                                        updatedAt: decrypted.updatedAt || Date.now()
-                                    };
-                                }
-                            }
+                        if (key) {
+                            const res = await fetchWithTimeout(`${FIREBASE_BASE_URL}/sessions/${await sessionDbKey(key)}.json?t=${Date.now()}`);
+                            const data = res.ok ? await res.json() : null;
+                            const dec = data && data.payload ? await decryptSessionAES(data.payload, key) : null;
+                            if (dec && dec.guyName && dec.girlName) restored = toProfile(dec, isValidSessionIdFormat(sid) ? sid : generateSessionId(), key);
+                        } else {
+                            const lp = "sess_" + hashSessionIdForDb(sid);
+                            const res = await fetchWithTimeout(`${FIREBASE_BASE_URL}/sessions/${lp}.json?t=${Date.now()}`);
+                            const data = res.ok ? await res.json() : null;
+                            const dec = data && data.payload ? decryptSessionPayload(data.payload, sid) : null;
+                            if (dec && dec.guyName && dec.girlName) { restored = toProfile(dec, sid, await generateAESKey()); legacyPath = lp; }
                         }
                     } catch (err) {}
 
-                    if (!restoredObj) {
-                        const localBackup = localStorage.getItem(`askme_sess_${cleanId}`);
-                        if (localBackup) {
-                            const parsed = JSON.parse(localBackup);
-                            if (parsed && parsed.guyName && parsed.girlName) {
-                                restoredObj = parsed;
-                            }
-                        }
+                    if (!restored && !key) {
+                        try {
+                            const backup = JSON.parse(localStorage.getItem(`askme_sess_${sid}`) || "null");
+                            if (backup && backup.guyName && backup.girlName) restored = { ...backup, sessionId: sid };
+                        } catch (err) {}
                     }
 
-                    if (restoredObj) {
+                    if (restored) {
                         SoundFX.success();
-                        setProfile(restoredObj);
-                        setProfileForm({ guyName: restoredObj.guyName, girlName: restoredObj.girlName });
+                        if (legacyPath) fetchWithTimeout(`${FIREBASE_BASE_URL}/sessions/${legacyPath}.json`, { method: "DELETE" }).catch(() => {});
+                        try { window.history.replaceState(null, "", window.location.pathname + window.location.search + "#/welcome"); } catch (err) {}
+                        setProfile(restored);
+                        setProfileForm({ guyName: restored.guyName, girlName: restored.girlName });
                         setRestoreIdInput("");
-                        showToast(`Сессия ${cleanId} успешно восстановлена!`);
+                        showToast(`Сессия ${restored.sessionId} успешно восстановлена!`);
                         navigate('menu');
                     } else {
                         SoundFX.warn();
-                        setRestoreError("Сессия с таким ID не найдена. Проверьте правильность ввода.");
+                        setRestoreError("Сессия не найдена. Проверьте ссылку или ID.");
                     }
                 } catch (err) {
                     SoundFX.warn();
                     setRestoreError("Ошибка соединения при поиске сессии.");
+                    showErrorPopup("Нет соединения", "Не удалось связаться с сервером. Проверьте интернет и попробуйте ещё раз.");
                 } finally {
                     setIsRestoringSession(false);
                 }
@@ -1556,18 +1694,25 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 }
             };
 
-            const handleSaveProfileNames = (e) => {
+            const handleSaveProfileNames = async (e) => {
                 e.preventDefault();
                 const gName = sanitizeInput(profileForm.guyName, 25);
                 const fName = sanitizeInput(profileForm.girlName, 25);
-                if (!gName || !fName) return;
+                if (!gName || !fName) {
+                    SoundFX.warn();
+                    setNameErrors({ guy: gName ? '' : 'Введите имя парня', girl: fName ? '' : 'Введите имя девушки' });
+                    return;
+                }
+                setNameErrors({ guy: '', girl: '' });
 
                 SoundFX.success();
                 const isNewSession = (screen === 'onboarding' || !profile?.sessionId);
                 const newSid = isNewSession ? generateSessionId() : profile.sessionId;
+                const newKey = (!isNewSession && isValidAESKey(profile?.sessionKey)) ? profile.sessionKey : await generateAESKey();
 
                 const updatedProfile = {
                     sessionId: newSid,
+                    sessionKey: newKey,
                     guyName: gName,
                     girlName: fName,
                     archivedIds: isNewSession ? [] : (profile?.archivedIds || []),
@@ -1586,9 +1731,9 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 }
             };
 
-            const handleUnlockAdmin = (e) => {
+            const handleUnlockAdmin = async (e) => {
                 e.preventDefault();
-                if (verifyAdminSecret(adminPinInput)) {
+                if (await verifyAdminSecret(adminPinInput)) {
                     SoundFX.success();
                     setIsAdmin(true);
                     localStorage.setItem(ADMIN_STORAGE_KEY, "true");
@@ -1604,6 +1749,7 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 SoundFX.click();
                 setIsAdmin(false);
                 localStorage.removeItem(ADMIN_STORAGE_KEY);
+                Auth.ownerLogout();
             };
 
             const parseDatabaseObject = (rawObj) => {
@@ -1646,24 +1792,19 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                     } catch (e) {}
 
                     try {
-                        const res = await fetch(`${FIREBASE_BASE_URL}/.json?t=${Date.now()}`);
+                        const res = await fetchWithTimeout(`${FIREBASE_BASE_URL}/questions.json?t=${Date.now()}`);
                         if (!res.ok) throw new Error(`HTTP ${res.status}`);
                         const data = await res.json();
 
                         if (data) {
                             let parsedDb = [];
-                            if (data.questions && typeof data.questions === 'object') {
-                                setDbSubPath("/questions");
-                                parsedDb = parseDatabaseObject(data.questions);
-                            } else {
-                                setDbSubPath("");
-                                parsedDb = parseDatabaseObject(data);
-                            }
+                            setDbSubPath("/questions");
+                            parsedDb = parseDatabaseObject(data);
                             setDb(parsedDb);
                             try { localStorage.setItem(OFFLINE_DB_CACHE_KEY, JSON.stringify(parsedDb)); } catch (e) {}
                             setIsLoading(false);
                         } else {
-                            const gistRes = await fetch(`${GIST_FALLBACK_URL}?t=${Date.now()}`);
+                            const gistRes = await fetchWithTimeout(`${GIST_FALLBACK_URL}?t=${Date.now()}`);
                             const gistData = await gistRes.json();
                             const formattedForFirebase = gistData.map((q, idx) => {
                                 const m = String(q.text).match(/^№\s*(\d+)\.\s*(.*)/s);
@@ -1677,21 +1818,17 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                                 };
                             });
 
-                            await fetch(`${FIREBASE_BASE_URL}/.json`, {
-                                method: "PUT",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify(formattedForFirebase)
-                            });
+                            // Засев корня БД с клиента отключён: публичная страница не должна перезаписывать всю базу.
 
                             const parsedDb = parseDatabaseObject(formattedForFirebase);
-                            setDbSubPath("");
+                            setDbSubPath("/questions");
                             setDb(parsedDb);
                             try { localStorage.setItem(OFFLINE_DB_CACHE_KEY, JSON.stringify(parsedDb)); } catch (e) {}
                             setIsLoading(false);
                         }
                     } catch (err) {
                         try {
-                            const gistRes = await fetch(`${GIST_FALLBACK_URL}?t=${Date.now()}`);
+                            const gistRes = await fetchWithTimeout(`${GIST_FALLBACK_URL}?t=${Date.now()}`);
                             const gistData = await gistRes.json();
                             const parsedDb = parseDatabaseObject(gistData);
                             setDb(parsedDb);
@@ -2060,13 +2197,13 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 let i = 0;
                 typingIntervalRef.current = setInterval(() => {
                     setAiContent(response.substring(0, i + 1));
-                    i += 2;
+                    i += 8;
                     if (i >= response.length) {
                         setAiContent(response);
                         clearInterval(typingIntervalRef.current);
                         setIsAiTyping(false);
                     }
-                }, 8);
+                }, 40);
             };
 
             const handleGenerateQuestionAI = async () => {
@@ -2138,7 +2275,7 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                         text: cleanInput
                     };
 
-                    const res = await fetch(`${FIREBASE_BASE_URL}${dbSubPath}/${nextDbKey}.json`, {
+                    const res = await fetchWithTimeout(`${FIREBASE_BASE_URL}${dbSubPath}/${nextDbKey}.json`, {
                         method: "PUT",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify(payload)
@@ -2194,7 +2331,7 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 };
 
                 try {
-                    const res = await fetch(`${FIREBASE_BASE_URL}${dbSubPath}/${editingQuestion.dbKey}.json`, {
+                    const res = await fetchWithTimeout(`${FIREBASE_BASE_URL}${dbSubPath}/${editingQuestion.dbKey}.json`, {
                         method: "PATCH",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify(updatedPayload)
@@ -2245,7 +2382,7 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                 setConfirmModal(null);
 
                 try {
-                    const res = await fetch(`${FIREBASE_BASE_URL}${dbSubPath}/${editingQuestion.dbKey}.json`, {
+                    const res = await fetchWithTimeout(`${FIREBASE_BASE_URL}${dbSubPath}/${editingQuestion.dbKey}.json`, {
                         method: "DELETE"
                     });
 
@@ -2511,7 +2648,7 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                                     </p>
                                 </div>
 
-                                <SessionIdBadge 
+                                <SessionIdBadge sessionKey={profile?.sessionKey} 
                                     sessionId={profile.sessionId} 
                                     onCopy={showToast} 
                                     size="lg" 
@@ -2575,7 +2712,7 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                                 </div>
 
                                 {authTab === 'create' ? (
-                                    <form onSubmit={handleSaveProfileNames} className="w-full flex flex-col gap-4 text-left fade-in">
+                                    <form noValidate onSubmit={handleSaveProfileNames} className="w-full flex flex-col gap-4 text-left fade-in">
                                         <div>
                                             <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-2 ml-1">
                                                 Имя парня
@@ -2585,10 +2722,11 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                                                 required
                                                 maxLength={25}
                                                 value={profileForm.guyName}
-                                                onChange={e => setProfileForm({ ...profileForm, guyName: e.target.value })}
+                                                onChange={e => { setProfileForm({ ...profileForm, guyName: e.target.value }); if (nameErrors.guy) setNameErrors(x => ({ ...x, guy: '' })); }}
                                                 placeholder="Максим"
                                                 className="w-full h-14 px-5 rounded-2xl bg-white/[0.04] border border-white/12 text-base text-white placeholder-zinc-600 outline-none focus:border-rose-500 transition-all"
                                             />
+                                            {nameErrors.guy && <p className="text-xs text-rose-400 mt-1.5 ml-1 font-medium">{nameErrors.guy}</p>}
                                         </div>
 
                                         <div>
@@ -2600,10 +2738,11 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                                                 required
                                                 maxLength={25}
                                                 value={profileForm.girlName}
-                                                onChange={e => setProfileForm({ ...profileForm, girlName: e.target.value })}
+                                                onChange={e => { setProfileForm({ ...profileForm, girlName: e.target.value }); if (nameErrors.girl) setNameErrors(x => ({ ...x, girl: '' })); }}
                                                 placeholder="Анна"
                                                 className="w-full h-14 px-5 rounded-2xl bg-white/[0.04] border border-white/12 text-base text-white placeholder-zinc-600 outline-none focus:border-rose-500 transition-all"
                                             />
+                                            {nameErrors.girl && <p className="text-xs text-rose-400 mt-1.5 ml-1 font-medium">{nameErrors.girl}</p>}
                                         </div>
 
                                         <button 
@@ -2617,16 +2756,16 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                                     <form onSubmit={handleRestoreBySessionId} className="w-full flex flex-col gap-4 text-left fade-in">
                                         <div>
                                             <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-2 ml-1">
-                                                8-значный ID вашей сессии
+                                                Ссылка на сессию или ID
                                             </label>
                                             <input 
                                                 type="text"
                                                 required
-                                                maxLength={8}
+                                                maxLength={400}
                                                 value={restoreIdInput}
-                                                onChange={e => setRestoreIdInput(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
-                                                placeholder="Например: K7M9P4X2"
-                                                className="w-full h-14 px-5 rounded-2xl bg-white/[0.04] border border-white/12 font-display text-center text-xl tracking-[0.22em] uppercase text-white placeholder-zinc-600 outline-none focus:border-rose-500 transition-all"
+                                                onChange={e => setRestoreIdInput(e.target.value.slice(0, 400))}
+                                                placeholder="Ссылка из игры или ID"
+                                                className="w-full h-14 px-5 rounded-2xl bg-white/[0.04] border border-white/12 font-display text-center text-sm text-white placeholder-zinc-600 outline-none focus:border-rose-500 transition-all"
                                             />
                                         </div>
 
@@ -2636,7 +2775,7 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
 
                                         <button 
                                             type="submit"
-                                            disabled={isRestoringSession || restoreIdInput.length !== 8}
+                                            disabled={isRestoringSession || !restoreIdInput.trim()}
                                             className="w-full rounded-2xl btn-primary font-bold text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-2 mt-2 disabled:opacity-40"
                                         >
                                             {isRestoringSession ? "Поиск сессии..." : "Восстановить прогресс"} <Icons.Next />
@@ -2688,13 +2827,13 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                         </header>
 
                         <main className="w-full max-w-sm flex flex-col gap-6 my-auto py-6">
-                            <SessionIdBadge 
+                            <SessionIdBadge sessionKey={profile?.sessionKey} 
                                 sessionId={profile.sessionId} 
                                 onCopy={showToast} 
                                 size="lg" 
                             />
 
-                            <form onSubmit={handleSaveProfileNames} className="flex flex-col gap-4">
+                            <form noValidate onSubmit={handleSaveProfileNames} className="flex flex-col gap-4">
                                 <div>
                                     <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-2 ml-1">
                                         Имя парня
@@ -2704,9 +2843,10 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                                         required
                                         maxLength={25}
                                         value={profileForm.guyName}
-                                        onChange={e => setProfileForm({ ...profileForm, guyName: e.target.value })}
+                                        onChange={e => { setProfileForm({ ...profileForm, guyName: e.target.value }); if (nameErrors.guy) setNameErrors(x => ({ ...x, guy: '' })); }}
                                         className="w-full h-13 py-3.5 px-5 rounded-2xl bg-white/[0.04] border border-white/12 text-base text-white outline-none focus:border-rose-500"
                                     />
+                                    {nameErrors.guy && <p className="text-xs text-rose-400 mt-1.5 ml-1 font-medium">{nameErrors.guy}</p>}
                                 </div>
                                 <div>
                                     <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-2 ml-1">
@@ -2717,9 +2857,10 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                                         required
                                         maxLength={25}
                                         value={profileForm.girlName}
-                                        onChange={e => setProfileForm({ ...profileForm, girlName: e.target.value })}
+                                        onChange={e => { setProfileForm({ ...profileForm, girlName: e.target.value }); if (nameErrors.girl) setNameErrors(x => ({ ...x, girl: '' })); }}
                                         className="w-full h-13 py-3.5 px-5 rounded-2xl bg-white/[0.04] border border-white/12 text-base text-white outline-none focus:border-rose-500"
                                     />
+                                    {nameErrors.girl && <p className="text-xs text-rose-400 mt-1.5 ml-1 font-medium">{nameErrors.girl}</p>}
                                 </div>
                                 <button 
                                     type="submit"
@@ -2733,20 +2874,20 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
 
                             <form onSubmit={handleRestoreBySessionId} className="flex flex-col gap-3">
                                 <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-400 ml-1">
-                                    Восстановить другую сессию по ID
+                                    Восстановить другую сессию (ссылка или ID)
                                 </label>
                                 <div className="flex gap-2">
                                     <input 
                                         type="text"
-                                        maxLength={8}
+                                        maxLength={400}
                                         value={restoreIdInput}
-                                        onChange={e => setRestoreIdInput(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
-                                        placeholder="8 символов..."
-                                        className="flex-1 h-12 px-4 rounded-xl bg-white/[0.04] border border-white/12 font-display uppercase tracking-[0.18em] text-sm text-white placeholder-zinc-600 outline-none focus:border-rose-500"
+                                        onChange={e => setRestoreIdInput(e.target.value.slice(0, 400))}
+                                        placeholder="Ссылка из игры или ID"
+                                        className="flex-1 h-12 px-4 rounded-xl bg-white/[0.04] border border-white/12 font-display text-sm text-white placeholder-zinc-600 outline-none focus:border-rose-500"
                                     />
                                     <button 
                                         type="submit"
-                                        disabled={isRestoringSession || restoreIdInput.length !== 8}
+                                        disabled={isRestoringSession || !restoreIdInput.trim()}
                                         className="px-4 h-12 rounded-xl bg-white/[0.08] hover:bg-white/[0.14] border border-white/15 text-xs font-bold uppercase tracking-wider text-white disabled:opacity-35"
                                     >
                                         {isRestoringSession ? "..." : "Войти"}
@@ -3113,7 +3254,7 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                                 <div className="px-3.5 py-1.5 rounded-full border border-white/12 text-white font-display font-bold text-xs tracking-wider">
                                     {currentIndex + 1} <span className="text-zinc-500">/</span> {gameQuestions.length}
                                 </div>
-                                <SessionIdBadge sessionId={profile.sessionId} onCopy={showToast} />
+                                <SessionIdBadge sessionKey={profile?.sessionKey} sessionId={profile.sessionId} onCopy={showToast} />
                                 {isAdmin && gameMode === 'test' && (
                                     <button 
                                         onClick={() => openEditScreen(currentQ, 'game')}
@@ -3234,27 +3375,7 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                                     {turnPopup.spinning ? "Выбираем, кто начнет..." : "Право первого ответа:"}
                                 </h3>
 
-                                <div className="grid grid-cols-2 gap-3 w-full">
-                                    <div className={`p-4 rounded-2xl flex flex-col items-center gap-1.5 transition-all duration-200 border ${
-                                        turnPopup.highlight === 'guy' 
-                                            ? 'bg-rose-500/15 border-rose-500 scale-[1.03]' 
-                                            : 'bg-white/[0.02] border-white/5 opacity-35 scale-95'
-                                    }`}>
-                                        <span className="text-3xl">👦</span>
-                                        <span className="font-bold text-sm text-white truncate max-w-full">{profile.guyName}</span>
-                                        <span className="text-[10px] uppercase tracking-wider text-zinc-400">Парень</span>
-                                    </div>
-
-                                    <div className={`p-4 rounded-2xl flex flex-col items-center gap-1.5 transition-all duration-200 border ${
-                                        turnPopup.highlight === 'girl' 
-                                            ? 'bg-rose-500/15 border-rose-500 scale-[1.03]' 
-                                            : 'bg-white/[0.02] border-white/5 opacity-35 scale-95'
-                                    }`}>
-                                        <span className="text-3xl">👧</span>
-                                        <span className="font-bold text-sm text-white truncate max-w-full">{profile.girlName}</span>
-                                        <span className="text-[10px] uppercase tracking-wider text-zinc-400">Девушка</span>
-                                    </div>
-                                </div>
+                                <TurnReel guyName={profile.guyName} girlName={profile.girlName} winner={turnPopup.winner} spinning={turnPopup.spinning} />
 
                                 {!turnPopup.spinning && (
                                     <div className="w-full flex flex-col gap-3.5 fade-in pt-1">
@@ -3385,7 +3506,7 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
 
                         <div className="flex-1 flex flex-col items-center justify-center w-full max-w-sm py-6 gap-6">
                             <AskMeLogo size="md" />
-                            <SessionIdBadge sessionId={profile.sessionId} onCopy={showToast} />
+                            <SessionIdBadge sessionKey={profile?.sessionKey} sessionId={profile.sessionId} onCopy={showToast} />
 
                             {isAllAnswered ? (
                                 <div className="text-center space-y-3 py-2">
@@ -3513,7 +3634,7 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                                         </div>
                                     </button>
 
-                                    <SessionIdBadge sessionId={profile.sessionId} onCopy={showToast} />
+                                    <SessionIdBadge sessionKey={profile?.sessionKey} sessionId={profile.sessionId} onCopy={showToast} />
                                 </div>
 
                                 <button 
@@ -3576,7 +3697,7 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                                 </div>
                             </div>
 
-                            <SessionIdBadge sessionId={profile.sessionId} onCopy={showToast} />
+                            <SessionIdBadge sessionKey={profile?.sessionKey} sessionId={profile.sessionId} onCopy={showToast} />
                         </header>
 
                         {totalArchivedCount === 0 ? (
@@ -3915,7 +4036,7 @@ ${chosenSetting}. Я ловлю твой взгляд, делаю небольш
                             {resultModal && (
                                 <div className="text-center flex flex-col items-center gap-4 pt-2">
                                     <h3 className="font-display text-lg font-bold text-white">
-                                        {resultModal.ok ? 'Выполнено' : 'Ошибка базы данных'}
+                                        {resultModal.title || (resultModal.ok ? 'Выполнено' : 'Ошибка базы данных')}
                                     </h3>
                                     <p className="text-xs text-zinc-400 leading-relaxed">
                                         {resultModal.msg}
