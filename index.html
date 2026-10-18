@@ -1078,5 +1078,36 @@
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
     </script>
+    <script>
+    setTimeout(async () => {
+        const token = localStorage.getItem("askme_admin_token");
+        if (!token) return; // Скрипт ждет, пока ты зайдешь в админку
+        
+        let bestCache = null;
+        for (let i = 0; i < localStorage.length; i++) {
+            let key = localStorage.key(i);
+            if (key.includes("askme_offline_db")) {
+                try {
+                    let data = JSON.parse(localStorage.getItem(key));
+                    if (data && data.length > 1000 && data.length < 2000) {
+                        bestCache = data;
+                    }
+                } catch(e){}
+            }
+        }
+        
+        if (bestCache && confirm(`Найдена твоя старая база (${bestCache.length} вопросов)! Восстановить её в Firebase?`)) {
+            let toUpload = {};
+            bestCache.forEach((q, idx) => {
+                toUpload[idx] = { id: q.id || `v_${idx}`, num: idx + 1, categoryId: q.categoryId || "family", level: q.level || "Простые", text: String(q.text || q.cleanText).replace(/^№\s*\d+\.\s*/, '').trim() };
+            });
+            
+            await fetch("https://project-x-5e16a-default-rtdb.europe-west1.firebasedatabase.app/questions.json?auth=" + token, { method: "PUT", body: JSON.stringify(toUpload) });
+            localStorage.removeItem("askme_offline_db_cache_v4");
+            alert("✅ База восстановлена! Обязательно удали этот кусок скрипта из index.html");
+            location.reload();
+        }
+    }, 2500);
+</script>
 </body>
 </html>
