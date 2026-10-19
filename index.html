@@ -1503,7 +1503,8 @@
                             <div className="flex items-center gap-3.5"><button onClick={() => { SoundFX.click(); navigate('menu'); }} className="p-3 bg-white/[0.04] rounded-2xl border border-white/10"><Icons.Back /></button><div><h2 className="font-display text-2xl font-bold text-white">Все вопросы</h2><p className="text-xs text-zinc-500 mt-0.5">Активно: {db.length - stats.archivedList.length - stats.disabledCount} из {db.length}</p></div></div>
                             {isAdmin && <button onClick={() => { SoundFX.click(); setAddStatus(null); setAddForm({ text: '', cat: 'family', diff: 'Простые', targetId: '' }); navigate('add_q'); }} className="hidden lg:flex px-5 h-12 rounded-2xl font-bold text-xs uppercase btn-primary items-center gap-2"><Icons.Plus /> Новый вопрос</button>}
                         </header>
-                        \1{isAdmin && (
+                        <div className="flex-1 flex flex-col gap-8 pb-24">
+                            {isAdmin && (
                                 <div className="rounded-2xl border border-white/10 bg-white/[0.03]">
                                     <button type="button" aria-expanded={topicPanelOpen} onClick={() => { SoundFX.click(); if (!topicPanelOpen) { setTopicDraft(CATEGORIES.map(c => c.id)); setTopicErr(''); } setTopicPanelOpen(v => !v); }} className="w-full px-4 py-3.5 flex items-center justify-between text-left">
                                         <span className="text-sm font-bold text-white">Управление темами</span>
@@ -1535,7 +1536,7 @@
                                     )}
                                 </div>
                             )}
-                            \2 divide-y md:divide-y-0 border-y border-white/[0.08] divide-white/[0.08]">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 divide-y md:divide-y-0 border-y border-white/[0.08] divide-white/[0.08]">
                                 {CATEGORIES.map(cat => (
                                     <button key={cat.id} onClick={() => { SoundFX.click(); setViewCategory(cat.id); setVisibleLimit(60); navigate('q_list'); }} className="py-4 px-2 flex items-center justify-between text-left hover:bg-white/[0.02] transition-colors md:border-b md:border-white/[0.08]">
                                         <div className="flex items-center gap-3.5"><span className="text-2xl">{cat.icon}</span><div><div className="font-semibold text-base text-white">{cat.name}</div><div className="text-xs text-zinc-500">Активных: <span className="text-zinc-300 font-semibold">{stats.activeByCat[cat.id] || 0}</span> из {stats.totalByCat[cat.id] || 0}</div></div></div><span className="text-zinc-600"><Icons.Next /></span>
