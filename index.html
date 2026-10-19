@@ -10,6 +10,9 @@
     <meta name="apple-mobile-web-app-title" content="Ask Me">
     <title>ASK ME — Игра</title>
     <meta name="description" content="ASK ME — откровенные разговоры для двоих и компаний.">
+    <link rel="canonical" href="https://1s0meb0dy1.github.io/love-game/">
+    <meta name="robots" content="index, follow">
+    <meta property="og:url" content="https://1s0meb0dy1.github.io/love-game/">
     <meta property="og:type" content="website">
     <meta property="og:title" content="ASK ME — Игра">
     <meta property="og:description" content="Откровенные разговоры.">
@@ -96,6 +99,14 @@
         .ai-cursor::after { content: '▋'; color: #f43f5e; animation: blink 0.9s step-end infinite; margin-left: 2px; }
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
         .no-scrollbar::-webkit-scrollbar { display: none; } .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    
+        /* Адаптация под мобильные: безопасные зоны, масштаб полей, отклик касаний */
+        html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
+        button, [role="button"], a { touch-action: manipulation; }
+        .viewport-popup-overlay { padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left)); box-sizing: border-box; }
+        .viewport-popup-box { max-height: calc(100dvh - 2rem - env(safe-area-inset-top) - env(safe-area-inset-bottom)); overscroll-behavior: contain; }
+        @media (max-width: 640px) { input:not([type="checkbox"]):not([type="range"]), select, textarea { font-size: 16px; } }
+        @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
     </style>
 </head>
 <body>
@@ -286,6 +297,92 @@
             return ( <div ref={containerRef} className="relative w-full select-none"> <button type="button" onClick={() => { SoundFX.click(); setOpen(prev => !prev); }} className={`w-full h-13 py-3.5 px-4 rounded-2xl bg-white/[0.04] hover:bg-white/[0.07] border transition-all flex items-center justify-between text-left ${ open ? 'border-rose-500 bg-white/[0.06]' : 'border-white/12' }`} > <div className="flex items-center gap-2.5 truncate"> {selectedOpt?.icon && <span className="text-base leading-none">{selectedOpt.icon}</span>} <span className="text-sm font-medium text-white truncate"> {selectedOpt ? selectedOpt.label : placeholder} </span> </div> <span className={`text-zinc-400 transition-transform duration-200 ${open ? 'rotate-180 text-rose-400' : ''}`}> <Icons.ChevronDown /> </span> </button> {open && ( <div className="absolute left-0 right-0 mt-2 bg-[#14121d] border border-white/15 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.85)] z-50 max-h-60 overflow-y-auto no-scrollbar p-1.5 fade-in"> {options.map(opt => { const isSelected = opt.value === value; return ( <button key={opt.value} type="button" onClick={() => { SoundFX.toggle(true); onChange(opt.value); setOpen(false); }} className={`w-full px-3.5 py-2.5 rounded-xl text-left text-sm flex items-center justify-between transition-colors mb-0.5 last:mb-0 ${ isSelected ? 'bg-rose-500/15 text-rose-300 font-semibold border border-rose-500/30' : 'text-zinc-300 hover:bg-white/[0.06] hover:text-white' }`} > <div className="flex items-center gap-2.5 truncate"> {opt.icon && <span className="text-base leading-none">{opt.icon}</span>} <span className="truncate">{opt.label}</span> </div> {isSelected && ( <span className="text-rose-400 flex-shrink-0"> <Icons.Check /> </span> )} </button> ); })} </div> )} </div> );
         };
 
+        const SETTINGS_KEY = "askme_game_settings_v1";
+        const DEFAULT_PUNISHMENTS = [
+            { id: 'd1', text: 'Сделай искренний комплимент каждому игроку', level: 'any', icon: '💌' },
+            { id: 'd2', text: 'Станцуй 15 секунд без музыки', level: 'any', icon: '💃' },
+            { id: 'd3', text: 'Изобрази животное — остальные угадывают', level: 'any', icon: '🐒' },
+            { id: 'd4', text: 'Выпей стакан воды залпом', level: 'Простые', icon: '💧' },
+            { id: 'd5', text: 'Расскажи смешную историю из своей жизни', level: 'Простые', icon: '😄' },
+            { id: 'd6', text: 'Расскажи неловкий секрет из детства', level: 'Средние', icon: '🤫' },
+            { id: 'd7', text: 'Прочитай вслух последнее сообщение в телефоне, которое можно показать', level: 'Средние', icon: '📱' },
+            { id: 'd8', text: 'Скажи, за что ты по-настоящему благодарен(на) партнёру', level: 'Глубокие', icon: '🫶' }
+        ];
+        const LEVEL_OPTIONS = [['any', 'Любая сложность'], ['Простые', 'Лёгкие'], ['Средние', 'Средние'], ['Глубокие', 'Глубокие']];
+        const loadGameSettings = () => {
+            const base = { timerOn: false, timerSec: 30, punishOn: false, punishments: DEFAULT_PUNISHMENTS };
+            try {
+                const p = JSON.parse(localStorage.getItem(SETTINGS_KEY) || 'null');
+                if (p && typeof p === 'object') {
+                    const list = Array.isArray(p.punishments) ? p.punishments.filter(x => x && typeof x.text === 'string' && x.text.trim()).slice(0, 60).map(x => ({ id: String(x.id || Math.random()), text: x.text.slice(0, 80), level: LEVEL_OPTIONS.some(o => o[0] === x.level) ? x.level : 'any', icon: x.icon || '🎭', custom: !!x.custom })) : [];
+                    return { timerOn: !!p.timerOn, timerSec: Math.max(5, Math.min(300, Number(p.timerSec) || 30)), punishOn: !!p.punishOn, punishments: list.length ? list : DEFAULT_PUNISHMENTS };
+                }
+            } catch (e) {}
+            return base;
+        };
+        const pickPunishment = (list, level, rnd = Math.random) => {
+            const pool = (list || []).filter(p => p.level === 'any' || p.level === level);
+            return pool.length ? pool[Math.floor(rnd() * pool.length)] : null;
+        };
+        const SettingSwitch = ({ on, onChange, label }) => (
+            <button type="button" role="switch" aria-checked={on} aria-label={label} onClick={onChange} className={`relative w-12 h-7 rounded-full border transition-colors flex-shrink-0 ${on ? 'bg-rose-500 border-rose-400' : 'bg-white/10 border-white/15'}`}>
+                <span className={`absolute top-0.5 left-0.5 w-6 h-6 rounded-full bg-white transition-transform ${on ? 'translate-x-5' : ''}`}></span>
+            </button>
+        );
+        const BASE_CATEGORIES = CATEGORIES.slice();
+        const TOPICS_CACHE_KEY = "askme_topics_cache_v1";
+        const readTopicsCache = () => {
+            try {
+                const p = JSON.parse(localStorage.getItem(TOPICS_CACHE_KEY) || 'null');
+                if (p && typeof p === 'object') return { custom: (p.custom && typeof p.custom === 'object') ? p.custom : {}, order: Array.isArray(p.order) ? p.order : Object.values(p.order || {}) };
+            } catch (e) {}
+            return { custom: {}, order: [] };
+        };
+        const applyTopics = (data) => {
+            const custom = data && data.custom && typeof data.custom === 'object'
+                ? Object.values(data.custom).filter(c => c && typeof c.id === 'string' && typeof c.name === 'string' && c.name.trim()).map(c => ({ id: c.id, name: String(c.name).slice(0, 30), icon: String(c.icon || '✨').slice(0, 16), custom: true }))
+                : [];
+            const all = [...BASE_CATEGORIES, ...custom.filter(c => !BASE_CATEGORIES.some(b => b.id === c.id))];
+            const baseIdx = new Map(all.map((c, i) => [c.id, i]));
+            const orderArr = data && data.order ? (Array.isArray(data.order) ? data.order : Object.values(data.order)) : [];
+            const rank = new Map(); orderArr.forEach((id, i) => { if (typeof id === 'string' && !rank.has(id)) rank.set(id, i); });
+            all.sort((a, b) => (rank.has(a.id) ? rank.get(a.id) : 1000 + baseIdx.get(a.id)) - (rank.has(b.id) ? rank.get(b.id) : 1000 + baseIdx.get(b.id)));
+            CATEGORIES.splice(0, CATEGORIES.length, ...all);
+        };
+        applyTopics(readTopicsCache());
+        const TOPIC_EMOJIS = ['✨', '🔥', '🎭', '🌍', '🍷', '🎬', '💬', '🧠', '🌙', '🎯', '🧩', '🫶'];
+        const TopicReorderList = ({ items, onChange }) => {
+            const [dragId, setDragId] = React.useState(null);
+            const listRef = React.useRef(null);
+            const move = (from, to) => {
+                if (to < 0 || to >= items.length || from === to) return;
+                const next = items.slice(); const [it] = next.splice(from, 1); next.splice(to, 0, it); onChange(next);
+            };
+            const onDown = (e, id) => { e.preventDefault(); try { listRef.current.setPointerCapture(e.pointerId); } catch (err) {} setDragId(id); };
+            const onMove = (e) => {
+                if (!dragId || !listRef.current) return;
+                const rows = [...listRef.current.querySelectorAll('[data-topic-id]')].filter(r => r.dataset.topicId !== dragId);
+                let target = 0; rows.forEach(r => { const b = r.getBoundingClientRect(); if (e.clientY > b.top + b.height / 2) target++; });
+                const from = items.findIndex(c => c.id === dragId);
+                if (from >= 0 && target !== from) move(from, target);
+            };
+            const onUp = () => setDragId(null);
+            return (
+                <ul ref={listRef} className="flex flex-col gap-1.5" onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}>
+                    {items.map((c, i) => (
+                        <li key={c.id} data-topic-id={c.id} className={`flex items-center gap-1.5 rounded-xl border px-1.5 py-1 transition-colors ${dragId === c.id ? 'border-rose-500/60 bg-rose-500/10' : 'border-white/10 bg-white/[0.03]'}`}>
+                            <button type="button" aria-label={`Перетащить тему «${c.name}»`} onPointerDown={e => onDown(e, c.id)} style={{ touchAction: 'none' }} className="w-10 h-10 flex items-center justify-center text-lg text-zinc-500 cursor-grab select-none">⠿</button>
+                            <span aria-hidden="true" className="text-lg">{c.icon}</span>
+                            <span className="flex-1 min-w-0 text-sm font-semibold text-white truncate">{c.name}</span>
+                            <button type="button" aria-label="Поднять выше" disabled={i === 0} onClick={() => move(i, i - 1)} className="w-9 h-9 text-zinc-400 disabled:opacity-25">▲</button>
+                            <button type="button" aria-label="Опустить ниже" disabled={i === items.length - 1} onClick={() => move(i, i + 1)} className="w-9 h-9 text-zinc-400 disabled:opacity-25">▼</button>
+                        </li>
+                    ))}
+                </ul>
+            );
+        };
+        const SCREEN_TITLES = { onboarding: 'ASK ME — начните игру', session_created: 'Сессия создана — ASK ME', menu: 'ASK ME — откровенные разговоры для двоих и компании', profile_page: 'Игроки и сессия — ASK ME', admin_login: 'Вход для владельца — ASK ME', mode_select: 'Режим игры — ASK ME', game: 'Игра — ASK ME', ai_response: 'Совет и ситуация — ASK ME', summary: 'Итоги игры — ASK ME', cat_list: 'Все темы — ASK ME', q_list: 'Вопросы — ASK ME', archive_page: 'Архив вопросов — ASK ME', add_q: 'Новый вопрос — ASK ME', edit_q: 'Редактирование вопроса — ASK ME' };
+        const GROUP_EMOJIS = ['😈', '🤫', '😋', '🤔', '🤪', '😏', '😱', '🫣'];
         const MAX_PLAYERS = 10;
         const normTurn = (e) => {
             if (!e) return null;
@@ -446,6 +543,18 @@
             const [showExitConfirm, setShowExitConfirm] = useState(false);
             const [playersError, setPlayersError] = useState('');
             const [showSkipPopup, setShowSkipPopup] = useState(false);
+            const [topicsVersion, setTopicsVersion] = useState(0);
+            const [topicPanelOpen, setTopicPanelOpen] = useState(false);
+            const [topicDraft, setTopicDraft] = useState([]);
+            const [newTopicIcon, setNewTopicIcon] = useState(''); const [newTopicName, setNewTopicName] = useState('');
+            const [topicErr, setTopicErr] = useState(''); const [topicBusy, setTopicBusy] = useState(false);
+            const topicsDataRef = useRef(readTopicsCache());
+            const [settings, setSettings] = useState(loadGameSettings);
+            const [pregameOpen, setPregameOpen] = useState(false);
+            const [showSettings, setShowSettings] = useState(false);
+            const [newPunish, setNewPunish] = useState(''); const [newPunishLevel, setNewPunishLevel] = useState('any'); const [punishErr, setPunishErr] = useState('');
+            const [tm, setTm] = useState({ key: '', left: 0 });
+            const [punish, setPunish] = useState({ open: false, text: '', player: '', icon: '⏰' });
             
             const [playersForm, setPlayersForm] = useState(profile?.players || [ { id: 'p1', name: '', gender: 'guy' }, { id: 'p2', name: '', gender: 'girl' } ]);
             
@@ -574,7 +683,7 @@
                 let availableActive = 0, availableTotal = 0, disabledCount = 0; const archivedList = [];
                 for (let i = 0; i < profileDb.length; i++) { const q = profileDb[i]; if (totalByCat[q.categoryId] !== undefined) totalByCat[q.categoryId]++; const matchesDiff = selectedDiffs.includes(q.level); const matchesCat = selectedCats.includes(q.categoryId); if (q.disabled) disabledCount++; if (q.archived) { archivedList.push(q); if (archivedByCat[q.categoryId] !== undefined) archivedByCat[q.categoryId]++; } else if (!q.disabled) { if (activeByCat[q.categoryId] !== undefined) activeByCat[q.categoryId]++; if (matchesCat && matchesDiff) availableActive++; } if (matchesCat && matchesDiff) availableTotal++; }
                 return { activeByCat, totalByCat, archivedByCat, availableActive, availableTotal, disabledCount, archivedList };
-            }, [profileDb, selectedCats, selectedDiffs]);
+            }, [profileDb, selectedCats, selectedDiffs, topicsVersion]);
             const filteredArchivedList = useMemo(() => { return stats.archivedList.filter(q => { if (archiveFilterCat !== 'all' && q.categoryId !== archiveFilterCat) return false; if (archiveFilterDiff !== 'all' && q.level !== archiveFilterDiff) return false; if (archiveSearch.trim() !== '') { const s = archiveSearch.toLowerCase().trim(); if (!q.cleanText.toLowerCase().includes(s) && !String(q.num).includes(s)) return false; } return true; }); }, [stats.archivedList, archiveFilterCat, archiveFilterDiff, archiveSearch]);
 
             const toggleCategory = (catId) => { if (stats.activeByCat[catId] === 0 && stats.totalByCat[catId] === 0) return; const willBeSelected = !selectedCats.includes(catId); SoundFX.toggle(willBeSelected); setSelectedCats(prev => willBeSelected ? [...prev, catId] : prev.filter(id => id !== catId)); };
@@ -638,76 +747,243 @@
                 SoundFX.warn();
                 commitTurn(currentIndex, { cur: null, answered: ids, skippedBy: ids, skippedAll: true }, gameQuestions);
             };
+            const GROUP_EMOJIS_SHUFFLED = useMemo(() => { const a = [...GROUP_EMOJIS]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }, [profile?.sessionId]);
+            useEffect(() => { document.title = SCREEN_TITLES[screen] || 'ASK ME — игра для пар и компаний'; }, [screen]);
             const cardRef = useRef(null);
-            const swipeRef = useRef({ id: null, x0: 0, y0: 0, locked: null });
+            const swipeRef = useRef({ id: null, x0: 0, y0: 0, locked: null, lx: 0, lt: 0, vx: 0 });
             const swipeTimerRef = useRef(null);
             const [swipeHint, setSwipeHint] = useState('');
             useEffect(() => () => clearTimeout(swipeTimerRef.current), []);
-            const applySwipe = (dx, anim) => {
+            const SWIPE_EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
+            const applySwipe = (dx, mode, scale = 1) => {
                 const el = cardRef.current; if (!el) return;
-                el.style.transition = anim ? 'transform 220ms cubic-bezier(0.2,0.8,0.2,1), opacity 220ms' : 'none';
-                el.style.transform = `translate3d(${dx}px,0,0) rotate(${dx * 0.035}deg)`;
-                el.style.opacity = String(1 - Math.min(0.55, Math.abs(dx) / 420));
+                el.style.transition = mode === 'out' ? `transform 340ms ${SWIPE_EASE}, opacity 300ms ease-out` : mode === 'spring' ? 'transform 460ms cubic-bezier(0.34, 1.45, 0.64, 1), opacity 260ms ease-out' : mode === 'enter' ? `transform 420ms ${SWIPE_EASE}, opacity 320ms ease-out` : 'none';
+                el.style.transformOrigin = '50% 115%';
+                el.style.transform = `translate3d(${dx}px,0,0) rotate(${dx * 0.045}deg) scale(${scale})`;
+                el.style.opacity = String(mode === 'out' ? 0 : 1 - Math.min(0.3, Math.abs(dx) / 700));
             };
-            const swipeBusy = () => turnPopup.open || showSkipPopup || showEndGameConfirm;
+            const swipeBusy = () => turnPopup.open || showSkipPopup || showEndGameConfirm || punish.open;
             const swipeAllowed = (dir) => {
                 if (screen !== 'game' || !gameQuestions.length) return false;
                 const last = currentIndex === gameQuestions.length - 1;
-                if (gameMode === 'test') return dir === 'left' ? currentIndex > 0 : !last;
+                if (gameMode === 'test') return dir === 'right' ? currentIndex > 0 : !last;
                 const e = normTurn(turnHistory[currentIndex]);
                 if (!e) return false;
                 const done = !e.cur && (profile?.players || []).every(p => e.answered.includes(p.id));
                 return !(done && last);
             };
-            const performSwipe = (dir) => { if (gameMode === 'test' && dir === 'left') handlePrevQuestion(); else handleNextQuestion(); };
-            const swipeLabel = (dir) => !swipeAllowed(dir) ? 'Здесь нельзя' : (gameMode === 'test' ? (dir === 'right' ? 'Следующий →' : '← Предыдущий') : (dir === 'right' ? 'Далее →' : '← Далее'));
+            const performSwipe = (dir) => { if (gameMode === 'test' && dir === 'right') handlePrevQuestion(); else handleNextQuestion(); };
+            const swipeLabel = (dir) => !swipeAllowed(dir) ? 'Здесь нельзя' : (gameMode === 'test' ? (dir === 'left' ? '← Следующий' : 'Предыдущий →') : (dir === 'left' ? '← Далее' : 'Далее →'));
             const onSwipeStart = (e) => {
-                if (swipeBusy() || (e.target.closest && e.target.closest('button,a,input,textarea'))) return;
+                if (swipeBusy() || (e.target.closest && e.target.closest('button,a,input,textarea,select'))) return;
                 if (e.pointerType === 'mouse' && e.button !== 0) return;
-                swipeRef.current = { id: e.pointerId, x0: e.clientX, y0: e.clientY, locked: null };
+                swipeRef.current = { id: e.pointerId, x0: e.clientX, y0: e.clientY, locked: null, lx: e.clientX, lt: performance.now(), vx: 0 };
             };
             const onSwipeMove = (e) => {
                 const s = swipeRef.current; if (s.id !== e.pointerId) return;
-                const dx = e.clientX - s.x0, dy = e.clientY - s.y0;
+                const raw = e.clientX - s.x0, dy = e.clientY - s.y0;
                 if (s.locked === null) {
-                    if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
-                    s.locked = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+                    if (Math.abs(raw) < 8 && Math.abs(dy) < 8) return;
+                    s.locked = Math.abs(raw) > Math.abs(dy) ? 'x' : 'y';
                     if (s.locked === 'x') { try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) {} }
                 }
                 if (s.locked !== 'x') return;
-                applySwipe(Math.max(-170, Math.min(170, dx)), false);
-                setSwipeHint(Math.abs(dx) > 28 ? swipeLabel(dx > 0 ? 'right' : 'left') : '');
+                const now = performance.now(), dt = now - s.lt;
+                if (dt > 0) s.vx = 0.8 * s.vx + 0.2 * ((e.clientX - s.lx) / dt);
+                s.lx = e.clientX; s.lt = now;
+                const a = Math.abs(raw);
+                const damped = (a < 110 ? a : 110 + (a - 110) * 0.4) * Math.sign(raw);
+                applySwipe(Math.max(-230, Math.min(230, damped)), 'none');
+                setSwipeHint(a > 28 ? swipeLabel(raw > 0 ? 'right' : 'left') : '');
             };
             const onSwipeEnd = (e) => {
                 const s = swipeRef.current; if (s.id !== e.pointerId) return;
-                swipeRef.current = { id: null, x0: 0, y0: 0, locked: null };
+                swipeRef.current = { id: null, x0: 0, y0: 0, locked: null, lx: 0, lt: 0, vx: 0 };
                 setSwipeHint('');
                 if (s.locked !== 'x') return;
                 const dx = e.clientX - s.x0, w = e.currentTarget.getBoundingClientRect().width;
                 const dir = dx > 0 ? 'right' : 'left';
-                const far = Math.abs(dx) >= Math.min(110, w * 0.25);
-                if (!far || !swipeAllowed(dir)) { if (far) SoundFX.warn(); applySwipe(0, true); return; }
-                applySwipe(dir === 'right' ? 460 : -460, true);
+                const far = Math.abs(dx) >= Math.min(110, w * 0.25) || (Math.abs(s.vx) > 0.5 && Math.abs(dx) > 36);
+                if (!far || !swipeAllowed(dir)) { if (far) SoundFX.warn(); applySwipe(0, 'spring'); return; }
+                applySwipe(dir === 'right' ? 560 : -560, 'out', 0.96);
                 clearTimeout(swipeTimerRef.current);
                 swipeTimerRef.current = setTimeout(() => {
                     performSwipe(dir);
-                    applySwipe(dir === 'right' ? -70 : 70, false);
-                    requestAnimationFrame(() => requestAnimationFrame(() => applySwipe(0, true)));
-                }, 190);
+                    applySwipe(dir === 'right' ? -56 : 56, 'none', 0.95);
+                    if (cardRef.current) cardRef.current.style.opacity = '0';
+                    requestAnimationFrame(() => requestAnimationFrame(() => applySwipe(0, 'enter', 1)));
+                }, 260);
             };
-            const onSwipeCancel = (e) => { if (swipeRef.current.id === e.pointerId) { swipeRef.current = { id: null, x0: 0, y0: 0, locked: null }; setSwipeHint(''); applySwipe(0, true); } };
+            const onSwipeCancel = (e) => { if (swipeRef.current.id === e.pointerId) { swipeRef.current = { id: null, x0: 0, y0: 0, locked: null, lx: 0, lt: 0, vx: 0 }; setSwipeHint(''); applySwipe(0, 'spring'); } };
             useEffect(() => {
                 if (screen !== 'game') return;
                 const onKey = (e) => {
                     if (e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
                     if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+                    const wantNext = e.key === 'ArrowRight';
+                    if (gameMode !== 'test' && !wantNext) return;
                     if (swipeBusy()) return;
-                    const dir = e.key === 'ArrowRight' ? 'right' : 'left';
+                    const dir = wantNext ? 'left' : 'right';
                     if (swipeAllowed(dir)) performSwipe(dir);
                 };
                 window.addEventListener('keydown', onKey);
                 return () => window.removeEventListener('keydown', onKey);
             });
+            useEffect(() => { try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) {} }, [settings]);
+            const turnE = normTurn(turnHistory[currentIndex]);
+            const timerKey = (settings.timerOn && screen === 'game' && gameMode === 'normal' && turnE && turnE.cur) ? `${currentIndex}:${turnE.cur}:${turnE.answered.length}` : '';
+            const timerPaused = turnPopup.open || showSkipPopup || showEndGameConfirm || punish.open;
+            useEffect(() => { if (timerKey) setTm({ key: timerKey, left: settings.timerSec }); }, [timerKey, settings.timerSec]);
+            useEffect(() => {
+                if (!timerKey || timerPaused) return;
+                const id = setInterval(() => setTm(t => (t.key === timerKey ? { ...t, left: t.left - 1 } : t)), 1000);
+                return () => clearInterval(id);
+            }, [timerKey, timerPaused]);
+            useEffect(() => {
+                if (!timerKey || timerPaused || tm.key !== timerKey) return;
+                if (tm.left > 0 && tm.left <= 3) SoundFX.rouletteTick();
+                if (tm.left <= 0) {
+                    const who = profile?.players?.find(p => p.id === turnE.cur);
+                    const qNow = gameQuestions[currentIndex];
+                    const pun = settings.punishOn ? pickPunishment(settings.punishments, qNow && qNow.level) : null;
+                    SoundFX.warn();
+                    setPunish({ open: true, player: who ? who.name : '', text: pun ? pun.text : '', icon: pun ? (pun.icon || '🎭') : '⏰' });
+                }
+            }, [tm.left, tm.key, timerKey, timerPaused]);
+            const closePunish = () => { setPunish(p => ({ ...p, open: false })); skipForPlayer(); };
+            const openPregame = () => { SoundFX.click(); setShowSettings(false); setPregameOpen(true); };
+            const startFromPregame = () => { setPregameOpen(false); startWithMode('normal'); };
+            const patchSettings = (patch) => setSettings(st => ({ ...st, ...patch }));
+            const addPunishment = () => {
+                const t = sanitizeInput(newPunish, 80);
+                if (t.length < 3) { SoundFX.warn(); setPunishErr('Опишите наказание хотя бы парой слов'); return; }
+                if (settings.punishments.length >= 60) { SoundFX.warn(); setPunishErr('Максимум 60 наказаний'); return; }
+                SoundFX.click();
+                setSettings(st => ({ ...st, punishments: [...st.punishments, { id: 'c' + Date.now(), text: t, level: newPunishLevel, icon: '🎭', custom: true }] }));
+                setNewPunish(''); setPunishErr('');
+            };
+            const chip = "px-3 py-1.5 rounded-full border border-white/12 bg-white/[0.04] text-zinc-200";
+            const pregamePopup = (
+                <PopupModal isOpen={pregameOpen} onClose={() => setPregameOpen(false)}>
+                    <div className="flex flex-col gap-4 pt-1 text-left">
+                        <div className="text-center">
+                            <h3 className="font-display text-lg font-bold text-white">Готовы начать?</h3>
+                            <p className="text-sm text-zinc-400 mt-1 leading-snug">Таймер и наказания — по желанию. Включите их в настройках, если хотите добавить азарта.</p>
+                        </div>
+                        <div className="flex flex-wrap justify-center gap-2 text-[11px] font-bold uppercase tracking-wider">
+                            <span className={chip}>⏱ {settings.timerOn ? `${settings.timerSec} с на ответ` : 'без таймера'}</span>
+                            <span className={chip}>🎭 {settings.punishOn ? 'наказания включены' : 'без наказаний'}</span>
+                        </div>
+                        <button type="button" aria-expanded={showSettings} onClick={() => { SoundFX.click(); setShowSettings(v => !v); }} className="h-12 rounded-2xl border border-white/15 bg-white/[0.03] text-xs font-bold uppercase tracking-widest text-zinc-200 flex items-center justify-center gap-2">⚙ Настройки игры <span aria-hidden="true">{showSettings ? '▴' : '▾'}</span></button>
+                        {showSettings && (
+                            <div className="flex flex-col gap-5 max-h-[52vh] overflow-y-auto pr-1 fade-in">
+                                <section className="flex flex-col gap-3">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <div><div className="text-sm font-bold text-white">Таймер на ответ</div><div className="text-xs text-zinc-500 leading-snug">Время на ответ каждому игроку. Если не успел — наказание и переход хода.</div></div>
+                                        <SettingSwitch on={settings.timerOn} onChange={() => { SoundFX.click(); patchSettings({ timerOn: !settings.timerOn }); }} label="Таймер на ответ" />
+                                    </div>
+                                    {settings.timerOn && (
+                                        <div className="flex flex-col gap-2 fade-in">
+                                            <div className="flex flex-wrap gap-2">
+                                                {[15, 30, 45, 60, 90].map(sec => (
+                                                    <button key={sec} type="button" onClick={() => { SoundFX.click(); patchSettings({ timerSec: sec }); }} className={`px-3.5 h-9 rounded-full border text-xs font-bold ${settings.timerSec === sec ? 'border-rose-500 bg-rose-500/15 text-rose-200' : 'border-white/12 bg-white/[0.04] text-zinc-300'}`}>{sec} с</button>
+                                                ))}
+                                            </div>
+                                            <label className="flex items-center gap-2 text-xs text-zinc-400">Своё время, секунд (5–300):
+                                                <input type="number" inputMode="numeric" min="5" max="300" value={settings.timerSec} onChange={e => patchSettings({ timerSec: Math.max(5, Math.min(300, Number(e.target.value) || 5)) })} className="w-20 h-9 px-3 rounded-xl bg-white/[0.04] border border-white/12 text-white text-sm outline-none focus:border-rose-500" />
+                                            </label>
+                                        </div>
+                                    )}
+                                </section>
+                                <div className="hairline-divider"></div>
+                                <section className="flex flex-col gap-3">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <div><div className="text-sm font-bold text-white">Наказания</div><div className="text-xs text-zinc-500 leading-snug">Случайное задание, если время вышло. Можно привязать к сложности вопроса.</div></div>
+                                        <SettingSwitch on={settings.punishOn} onChange={() => { SoundFX.click(); patchSettings({ punishOn: !settings.punishOn }); }} label="Наказания" />
+                                    </div>
+                                    {settings.punishOn && (
+                                        <div className="flex flex-col gap-2 fade-in">
+                                            <ul className="flex flex-col gap-1.5 max-h-44 overflow-y-auto pr-1">
+                                                {settings.punishments.map(p => (
+                                                    <li key={p.id} className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2">
+                                                        <span aria-hidden="true">{p.icon || '🎭'}</span>
+                                                        <span className="flex-1 text-xs text-zinc-200 leading-snug">{p.text}</span>
+                                                        <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">{(LEVEL_OPTIONS.find(o => o[0] === p.level) || LEVEL_OPTIONS[0])[1]}</span>
+                                                        <button type="button" aria-label="Удалить наказание" onClick={() => { SoundFX.click(); setSettings(st => ({ ...st, punishments: st.punishments.filter(x => x.id !== p.id) })); }} className="text-zinc-500 hover:text-rose-300 px-1">✕</button>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                            <div className="flex flex-col gap-2">
+                                                <input type="text" maxLength={80} value={newPunish} onChange={e => { setNewPunish(e.target.value); setPunishErr(''); }} placeholder="Своё наказание, например: спой припев" className="h-11 px-4 rounded-xl bg-white/[0.04] border border-white/12 text-sm text-white outline-none focus:border-rose-500" />
+                                                {punishErr && <span className="text-xs text-rose-400">{punishErr}</span>}
+                                                <div className="flex gap-2">
+                                                    <select value={newPunishLevel} onChange={e => setNewPunishLevel(e.target.value)} aria-label="Сложность вопроса" className="flex-1 h-11 px-3 rounded-xl bg-white/[0.04] border border-white/12 text-sm text-white outline-none">
+                                                        {LEVEL_OPTIONS.map(o => <option key={o[0]} value={o[0]} className="bg-[#09080c]">{o[1]}</option>)}
+                                                    </select>
+                                                    <button type="button" onClick={addPunishment} className="px-4 h-11 rounded-xl bg-white/[0.08] text-xs font-bold uppercase tracking-wider text-white">+ Добавить</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </section>
+                            </div>
+                        )}
+                        <button type="button" onClick={startFromPregame} className="w-full rounded-2xl btn-primary text-xs font-bold uppercase tracking-widest">Начать игру</button>
+                    </div>
+                </PopupModal>
+            );
+            const syncNewTopics = () => {
+                try {
+                    const seen = JSON.parse(localStorage.getItem('askme_seen_topics_v1') || '[]');
+                    const fresh = CATEGORIES.filter(c => c.custom && !seen.includes(c.id)).map(c => c.id);
+                    if (fresh.length) { setSelectedCats(prev => [...prev, ...fresh.filter(id => !prev.includes(id))]); localStorage.setItem('askme_seen_topics_v1', JSON.stringify([...seen, ...fresh])); }
+                } catch (e) {}
+            };
+            useEffect(() => {
+                let off = false;
+                (async () => {
+                    try {
+                        const res = await fetchWithTimeout(`${FIREBASE_BASE_URL}/topics.json?t=${Date.now()}`);
+                        if (!res.ok) return;
+                        const data = await res.json();
+                        if (off || !data) return;
+                        topicsDataRef.current = { custom: (data.custom && typeof data.custom === 'object') ? data.custom : {}, order: Array.isArray(data.order) ? data.order : Object.values(data.order || {}) };
+                        applyTopics(topicsDataRef.current);
+                        try { localStorage.setItem(TOPICS_CACHE_KEY, JSON.stringify(topicsDataRef.current)); } catch (e) {}
+                        syncNewTopics(); setTopicsVersion(v => v + 1);
+                    } catch (e) {}
+                })();
+                return () => { off = true; };
+            }, []);
+            const writeTopics = async (data) => {
+                const res = await fetchWithTimeout(`${FIREBASE_BASE_URL}/topics.json`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ custom: data.custom, order: data.order }) });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                topicsDataRef.current = data; applyTopics(data);
+                try { localStorage.setItem(TOPICS_CACHE_KEY, JSON.stringify(data)); } catch (e) {}
+                syncNewTopics(); setTopicsVersion(v => v + 1);
+            };
+            const addTopic = async () => {
+                const name = sanitizeInput(newTopicName, 30).trim();
+                const icon = (newTopicIcon || '').trim().slice(0, 8) || '✨';
+                if (name.length < 2) { SoundFX.warn(); setTopicErr('Назовите тему хотя бы двумя буквами'); return; }
+                if (CATEGORIES.some(c => c.name.toLowerCase() === name.toLowerCase())) { SoundFX.warn(); setTopicErr('Тема с таким названием уже есть'); return; }
+                if (CATEGORIES.length >= 30) { SoundFX.warn(); setTopicErr('Максимум — 30 тем'); return; }
+                setTopicBusy(true);
+                try {
+                    const id = 'c' + Date.now().toString(36);
+                    const order = CATEGORIES.map(c => c.id).concat(id);
+                    await writeTopics({ custom: { ...topicsDataRef.current.custom, [id]: { id, name, icon } }, order });
+                    setTopicDraft(order); setNewTopicName(''); setNewTopicIcon(''); setTopicErr('');
+                    SoundFX.success(); showToast('Тема добавлена');
+                } catch (e) { showErrorPopup('Тема не сохранилась', 'Проверьте интернет и вход владельца, затем попробуйте ещё раз.'); }
+                setTopicBusy(false);
+            };
+            const saveTopicOrder = async () => {
+                setTopicBusy(true);
+                try { await writeTopics({ custom: topicsDataRef.current.custom, order: topicDraft }); SoundFX.success(); showToast('Порядок тем сохранён'); }
+                catch (e) { showErrorPopup('Порядок не сохранился', 'Проверьте интернет и вход владельца, затем попробуйте ещё раз.'); }
+                setTopicBusy(false);
+            };
             const handleCloseRoulettePopup = () => {
                 rouletteTimeoutsRef.current.forEach(t => clearTimeout(t)); rouletteTimeoutsRef.current = [];
                 const p = pendingTurnRef.current; pendingTurnRef.current = null;
@@ -725,7 +1001,7 @@
                 if (!tHist[cIdx]) triggerRouletteForIndex(cIdx, tHist, restoredDeck);
             };
 
-            const handlePressStartButton = () => { SoundFX.click(); if(!profile) return; if (isAdmin) navigate('mode_select'); else startWithMode('normal'); };
+            const handlePressStartButton = () => { SoundFX.click(); if(!profile) return; if (isAdmin) navigate('mode_select'); else openPregame(); };
             const startWithMode = (mode) => {
                 SoundFX.click(); let pool = [];
                 if (mode === 'normal') { pool = profileDb.filter(q => !q.archived && !q.disabled && selectedCats.includes(q.categoryId) && selectedDiffs.includes(q.level)); if (pool.length === 0) { alert("Нет активных вопросов!"); return; } } else { const catsToUse = selectedCats.length > 0 ? selectedCats : CATEGORIES.map(c => c.id); const diffsToUse = selectedDiffs.length > 0 ? selectedDiffs : DIFFICULTIES.map(d => d.id); pool = profileDb.filter(q => catsToUse.includes(q.categoryId) && diffsToUse.includes(q.level)); if (pool.length === 0) { alert("В базе нет вопросов!"); return; } }
@@ -918,7 +1194,7 @@
             if (screen === 'mode_select') {
                 return (
                     <div className="safe-screen w-full flex flex-col items-center justify-between slide-up relative z-10">
-                        <ToastBanner />
+                        <ToastBanner /> {pregamePopup}
                         <header className="w-full max-w-md flex items-center justify-between pt-2">
                             <button onClick={() => { SoundFX.click(); navigate('menu'); }} className="p-3 bg-white/[0.04] rounded-2xl border border-white/10"><Icons.Back /></button>
                             <AskMeLogo size="xs" /><div className="w-10"></div>
@@ -926,7 +1202,7 @@
                         <main className="w-full max-w-md flex flex-col gap-6 my-auto py-8">
                             <div className="text-center space-y-1.5"><h2 className="font-display text-2xl font-bold text-white">Выберите режим</h2></div>
                             <div className="flex flex-col gap-3.5">
-                                <button disabled={stats.availableActive === 0} onClick={() => startWithMode('normal')} className="p-5 rounded-2xl text-left border border-rose-500/45 bg-rose-500/10 flex flex-col gap-2">
+                                <button disabled={stats.availableActive === 0} onClick={() => openPregame()} className="p-5 rounded-2xl text-left border border-rose-500/45 bg-rose-500/10 flex flex-col gap-2">
                                     <div className="flex justify-between"><span className="font-bold text-sm uppercase tracking-wider text-white">Обычный режим</span> <span className="text-xs font-bold px-2.5 py-0.5 rounded-lg bg-rose-500/25 text-rose-200">{stats.availableActive} вопр.</span></div>
                                     <p className="text-xs text-zinc-300 leading-relaxed">Случайный жребий первого ответа. Пройденные вопросы переносятся в Архив.</p>
                                 </button>
@@ -950,7 +1226,7 @@
 
                 return (
                     <div className="safe-screen w-full flex flex-col items-center justify-between slide-up relative z-10">
-                        <ToastBanner /> {exitConfirmPopup} <PwaInstallModal />
+                        <ToastBanner /> {pregamePopup} {exitConfirmPopup} <PwaInstallModal />
                         <div className="w-full max-w-md lg:max-w-4xl mx-auto flex flex-col gap-7 pt-1">
                             <header className="w-full flex items-center justify-between gap-2 flex-wrap">
                                 <button onClick={() => { if(profile) { SoundFX.click(); setPlayersForm(profile.players); navigate('profile_page'); } else navigate('onboarding'); }} className="px-3.5 py-2 rounded-full bg-white/[0.04] border border-white/10 text-xs font-semibold text-zinc-200 flex items-center gap-2 truncate">
@@ -966,17 +1242,19 @@
 
                             <div className="flex flex-col items-center text-center gap-3 py-1">
                                 <AskMeLogo size="lg" onClick={handleLogoSecretTap} />
-                                {profile && (
-                                    <div className="flex items-center gap-2.5 text-base font-semibold text-white mt-1">
-                                        {profile.players.map((p,i) => (<React.Fragment key={p.id}> <span>{p.name}</span> {i < pCount-1 && <span className="text-rose-500 text-sm">♥</span>} </React.Fragment>))}
-                                    </div>
-                                )}
                                 <p className="text-rose-400 text-[11px] sm:text-xs font-extrabold uppercase tracking-[0.24em] mt-0.5 drop-shadow-[0_0_14px_rgba(244,63,94,0.45)]">
                                     {isGroup ? "Откровенные разговоры для компании" : "Откровенные разговоры для двоих"}
                                 </p>
-                                <p className="text-white text-sm font-semibold">
-                                    {profile ? `${pCount} ${declOfNum(pCount, ['игрок', 'игрока', 'игроков'])}` : "Режим предпросмотра"}
-                                </p>
+                                {profile ? (
+                                    <div className="flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1 text-base font-semibold text-white max-w-sm">
+                                        {profile.players.map((p, i) => (
+                                            <React.Fragment key={p.id}>
+                                                <span className="truncate max-w-[9rem]">{p.name}</span>
+                                                {i < pCount - 1 && <span aria-hidden="true" className={isGroup ? 'text-base' : 'text-rose-500 text-sm'}>{isGroup ? GROUP_EMOJIS_SHUFFLED[i % GROUP_EMOJIS_SHUFFLED.length] : '♥'}</span>}
+                                            </React.Fragment>
+                                        ))}
+                                    </div>
+                                ) : ( <p className="text-white text-sm font-semibold">Режим предпросмотра</p> )}
                             </div>
                             <div className="hairline-divider"></div>
 
@@ -1058,9 +1336,12 @@
                         </header>
 
                         <main className="flex-1 flex flex-col items-center justify-center py-6 pb-28 select-none" style={{ touchAction: 'pan-y' }} onPointerDown={onSwipeStart} onPointerMove={onSwipeMove} onPointerUp={onSwipeEnd} onPointerCancel={onSwipeCancel}>
-                            <div ref={cardRef} className="w-full max-w-lg relative" style={{ willChange: 'transform' }}>
+                            <div className="relative w-full max-w-lg">
+                            <div aria-hidden="true" className="absolute inset-x-5 top-5 bottom-[-14px] rounded-[32px] border border-white/[0.06] bg-[#15121c] opacity-80 pointer-events-none"></div>
+                            <div aria-hidden="true" className="absolute inset-x-9 top-9 bottom-[-26px] rounded-[32px] border border-white/[0.04] bg-[#120f18] opacity-60 pointer-events-none"></div>
+                            <div ref={cardRef} className="relative z-10 w-full" style={{ willChange: 'transform, opacity', touchAction: 'pan-y' }}>
                             {swipeHint && ( <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-white/10 border border-white/15 text-zinc-100 pointer-events-none fade-in">{swipeHint}</div> )}
-                            <div className="w-full flex flex-col items-center slide-up" key={currentQ.dbKey + '_' + currentIndex}>
+                            <div className="w-full flex flex-col items-center justify-center slide-up rounded-[32px] border border-white/10 bg-gradient-to-b from-[#1b1824] to-[#100e16] px-6 pt-7 pb-6 sm:px-8 shadow-[0_32px_64px_-24px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.07)]" style={{ minHeight: 'min(60dvh, 540px)' }} key={currentQ.dbKey + '_' + currentIndex}>
                                 <div className="flex flex-col items-center gap-1.5 mb-6">
                                     <div className="flex items-center gap-2">
                                         <span className="text-zinc-500 text-[11px] uppercase tracking-[0.25em] font-bold"> Вопрос {currentQ.num} </span>
@@ -1083,6 +1364,12 @@
                                     <div className="mb-7 flex flex-col items-center gap-1.5 fade-in">
                                         <div className="px-4 py-1.5 rounded-2xl border border-rose-500/40 bg-rose-500/10 text-rose-200 text-xs font-bold uppercase tracking-wider text-center max-w-[80%]">Отвечает: {assignedPlayerName}</div>
                                         <span className="text-[11px] text-zinc-500 text-center px-6">{turnPending > 0 ? 'Нажмите «Далее» — выберем следующего игрока' : 'Нажмите «Далее», когда ответит последний игрок'}</span>
+                                        {timerKey && tm.key === timerKey && (
+                                            <div className="w-56 mt-2 flex flex-col items-center gap-1" role="timer">
+                                                <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden"><div className={`h-full rounded-full transition-all duration-1000 ease-linear ${tm.left <= 5 ? 'bg-rose-500' : tm.left <= 10 ? 'bg-amber-400' : 'bg-emerald-400'}`} style={{ width: `${Math.max(0, Math.min(100, (tm.left / settings.timerSec) * 100))}%` }}></div></div>
+                                                <span className={`font-display text-sm font-bold tabular-nums ${tm.left <= 5 ? 'text-rose-300 animate-pulse' : 'text-zinc-300'}`}>⏱ {Math.max(0, tm.left)} с</span>
+                                            </div>
+                                        )}
                                     </div>
                                 ) : null)}
 
@@ -1095,7 +1382,7 @@
                                     <button type="button" onClick={() => { SoundFX.click(); setShowSkipPopup(true); }} className="mt-4 text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-500 hover:text-zinc-200 transition-colors flex items-center gap-1.5"><span aria-hidden="true">↷</span> Пропустить вопрос</button>
                                 )}
                                 {currentIndex === 0 && ( <p className="mt-5 text-[11px] text-zinc-600 text-center">Листайте карточку свайпом или нажимайте «Далее»</p> )}
-                            </div></div>
+                            </div></div></div>
                         </main>
 
                         <div className="fixed bottom-0 left-0 right-0 p-4 sm:p-6 z-20 bg-gradient-to-t from-[#09080c] via-[#09080c]/90 to-transparent" style={{ paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom))' }}>
@@ -1118,6 +1405,21 @@
                                         <button onClick={handleCloseRoulettePopup} className="w-full rounded-2xl btn-primary text-xs font-bold uppercase tracking-widest">К вопросу</button>
                                     </div>
                                 )}
+                            </div>
+                        </PopupModal>
+
+                        <PopupModal isOpen={punish.open && gameMode === 'normal'} onClose={closePunish}>
+                            <div className="text-center flex flex-col items-center gap-4 pt-1">
+                                <div className="text-6xl animate-pulse" aria-hidden="true">{punish.icon}</div>
+                                <span className="text-[11px] font-bold uppercase tracking-[0.22em] text-rose-400">Время вышло</span>
+                                <h3 className="font-display text-xl font-bold text-white">{punish.player ? `${punish.player}, время вышло!` : 'Время вышло!'}</h3>
+                                {punish.text ? (
+                                    <div className="w-full rounded-2xl border border-rose-500/35 bg-rose-500/10 p-4">
+                                        <div className="text-[10px] font-bold uppercase tracking-widest text-rose-300 mb-1">Наказание</div>
+                                        <p className="text-base font-semibold text-white leading-snug">{punish.text}</p>
+                                    </div>
+                                ) : ( <p className="text-sm text-zinc-400">Ход переходит дальше.</p> )}
+                                <button type="button" onClick={closePunish} className="w-full rounded-2xl btn-primary text-xs font-bold uppercase tracking-widest">{punish.text ? 'Выполнено' : 'Продолжить'}</button>
                             </div>
                         </PopupModal>
 
@@ -1201,8 +1503,39 @@
                             <div className="flex items-center gap-3.5"><button onClick={() => { SoundFX.click(); navigate('menu'); }} className="p-3 bg-white/[0.04] rounded-2xl border border-white/10"><Icons.Back /></button><div><h2 className="font-display text-2xl font-bold text-white">Все вопросы</h2><p className="text-xs text-zinc-500 mt-0.5">Активно: {db.length - stats.archivedList.length - stats.disabledCount} из {db.length}</p></div></div>
                             {isAdmin && <button onClick={() => { SoundFX.click(); setAddStatus(null); setAddForm({ text: '', cat: 'family', diff: 'Простые', targetId: '' }); navigate('add_q'); }} className="hidden lg:flex px-5 h-12 rounded-2xl font-bold text-xs uppercase btn-primary items-center gap-2"><Icons.Plus /> Новый вопрос</button>}
                         </header>
-                        <div className="flex-1 flex flex-col gap-8 pb-24">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 divide-y md:divide-y-0 border-y border-white/[0.08] divide-white/[0.08]">
+                        \1{isAdmin && (
+                                <div className="rounded-2xl border border-white/10 bg-white/[0.03]">
+                                    <button type="button" aria-expanded={topicPanelOpen} onClick={() => { SoundFX.click(); if (!topicPanelOpen) { setTopicDraft(CATEGORIES.map(c => c.id)); setTopicErr(''); } setTopicPanelOpen(v => !v); }} className="w-full px-4 py-3.5 flex items-center justify-between text-left">
+                                        <span className="text-sm font-bold text-white">Управление темами</span>
+                                        <span aria-hidden="true" className="text-zinc-500">{topicPanelOpen ? '▴' : '▾'}</span>
+                                    </button>
+                                    {topicPanelOpen && (
+                                        <div className="px-4 pb-4 flex flex-col gap-5 fade-in">
+                                            <section className="flex flex-col gap-3">
+                                                <div><div className="text-sm font-bold text-white">Новая тема</div><div className="text-xs text-zinc-500 leading-snug mt-0.5">Выберите иконку и назовите тему. Она сразу появится на главной и в списках.</div></div>
+                                                <div className="flex flex-wrap gap-1.5">
+                                                    {TOPIC_EMOJIS.map(em => (
+                                                        <button key={em} type="button" aria-label={`Иконка ${em}`} aria-pressed={newTopicIcon === em} onClick={() => { SoundFX.click(); setNewTopicIcon(em); }} className={`w-10 h-10 rounded-xl border text-lg ${newTopicIcon === em ? 'border-rose-500 bg-rose-500/15' : 'border-white/10 bg-white/[0.04]'}`}>{em}</button>
+                                                    ))}
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <input type="text" value={newTopicIcon} maxLength={8} onChange={e => setNewTopicIcon(e.target.value)} placeholder="✨" aria-label="Иконка темы" className="w-16 h-12 rounded-xl bg-white/[0.04] border border-white/12 text-center text-xl text-white outline-none focus:border-rose-500" />
+                                                    <input type="text" value={newTopicName} maxLength={30} onChange={e => { setNewTopicName(e.target.value); setTopicErr(''); }} placeholder="Название темы, например: Путешествия" aria-label="Название темы" className="flex-1 min-w-0 h-12 px-4 rounded-xl bg-white/[0.04] border border-white/12 text-sm text-white outline-none focus:border-rose-500" />
+                                                </div>
+                                                {topicErr && <span className="text-xs text-rose-400">{topicErr}</span>}
+                                                <button type="button" disabled={topicBusy} onClick={addTopic} className="w-full h-12 rounded-2xl btn-primary text-xs font-bold uppercase tracking-widest disabled:opacity-50">{topicBusy ? 'Сохраняем…' : 'Добавить тему'}</button>
+                                            </section>
+                                            <div className="hairline-divider"></div>
+                                            <section className="flex flex-col gap-3">
+                                                <div><div className="text-sm font-bold text-white">Порядок тем</div><div className="text-xs text-zinc-500 leading-snug mt-0.5">Потяните за ⠿ или нажимайте стрелки. Порядок изменится на главной и во всех списках.</div></div>
+                                                <TopicReorderList items={topicDraft.map(id => CATEGORIES.find(c => c.id === id)).filter(Boolean)} onChange={items => setTopicDraft(items.map(c => c.id))} />
+                                                <button type="button" disabled={topicBusy || JSON.stringify(topicDraft) === JSON.stringify(CATEGORIES.map(c => c.id))} onClick={saveTopicOrder} className="w-full h-12 rounded-2xl border border-white/15 bg-white/[0.05] text-xs font-bold uppercase tracking-widest text-white disabled:opacity-40">Сохранить порядок</button>
+                                            </section>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                            \2 divide-y md:divide-y-0 border-y border-white/[0.08] divide-white/[0.08]">
                                 {CATEGORIES.map(cat => (
                                     <button key={cat.id} onClick={() => { SoundFX.click(); setViewCategory(cat.id); setVisibleLimit(60); navigate('q_list'); }} className="py-4 px-2 flex items-center justify-between text-left hover:bg-white/[0.02] transition-colors md:border-b md:border-white/[0.08]">
                                         <div className="flex items-center gap-3.5"><span className="text-2xl">{cat.icon}</span><div><div className="font-semibold text-base text-white">{cat.name}</div><div className="text-xs text-zinc-500">Активных: <span className="text-zinc-300 font-semibold">{stats.activeByCat[cat.id] || 0}</span> из {stats.totalByCat[cat.id] || 0}</div></div></div><span className="text-zinc-600"><Icons.Next /></span>
