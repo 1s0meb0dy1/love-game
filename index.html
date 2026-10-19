@@ -122,6 +122,9 @@
         @keyframes auroraA { from { transform: translate3d(0,0,0) scale(1); } to { transform: translate3d(14vmax,10vmax,0) scale(1.15); } }
         @keyframes auroraB { from { transform: translate3d(0,0,0) scale(1.1); } to { transform: translate3d(-12vmax,-8vmax,0) scale(0.95); } }
         @media (prefers-reduced-motion: reduce) { .bg-aurora i { animation: none; } }
+    
+        /* Доступность: заметный фокус при навигации с клавиатуры */
+        button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, [role="tab"]:focus-visible { outline: 2px solid rgba(244,63,94,0.75); outline-offset: 2px; }
     </style>
 </head>
 <body>
@@ -1093,9 +1096,9 @@
                     <div className="safe-screen w-full flex flex-col items-center justify-between slide-up relative z-10">
                         <ToastBanner />
                         <header className="w-full max-w-md flex items-center justify-between pt-2">
-                            <button onClick={() => { SoundFX.click(); navigate(profile ? 'menu' : 'onboarding'); }} className="p-3 bg-white/[0.04] rounded-2xl hover:bg-white/[0.08] text-zinc-300 border border-white/10"><Icons.Back /></button>
+                            <button aria-label="Назад" onClick={() => { SoundFX.click(); navigate(profile ? 'menu' : 'onboarding'); }} className="h-12 w-12 flex-shrink-0 flex items-center justify-center bg-white/[0.04] rounded-2xl border border-white/10 hover:bg-white/[0.08] text-zinc-300 transition-colors"><Icons.Back /></button>
                             <AskMeLogo size="xs" />
-                            <div className="w-10"></div>
+                            <div className="w-12"></div>
                         </header>
                         <main className="w-full max-w-sm flex flex-col items-center text-center gap-6 my-auto py-8">
                             <div className="w-14 h-14 rounded-2xl bg-rose-500/15 border border-rose-500/35 flex items-center justify-center text-rose-400"><Icons.Lock /></div>
@@ -1127,7 +1130,7 @@
                         <div className="flex-1 flex items-center justify-center w-full py-6">
                             <div className="w-full max-w-sm flex flex-col items-center text-center gap-6">
                                 <AskMeLogo size="md" />
-                                <div className="space-y-2"><h1 className="font-display text-2xl font-bold text-white">Сессия создана</h1><p className="text-xs text-zinc-400 leading-relaxed">Скопируйте ваш ID, чтобы всегда можно было вернуться в игру с любого устройства.</p></div>
+                                <div className="space-y-2"><h1 className="font-display text-2xl font-bold text-white">Сессия готова!</h1><p className="text-xs text-zinc-400 leading-relaxed">Сохраните ID сессии: по нему можно вернуться в игру с любого устройства.</p></div>
                                 <SessionIdBadge sessionKey={profile?.sessionKey} sessionId={profile.sessionId} onCopy={showToast} size="lg" />
                                 <button onClick={() => { SoundFX.click(); navigate('menu'); }} className="w-full rounded-2xl btn-primary font-bold text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-2 mt-2">Перейти к игре <Icons.Next /></button>
                             </div>
@@ -1184,7 +1187,7 @@
                     <div className="safe-screen w-full flex flex-col items-center slide-up relative z-10">
                         <ToastBanner /> <PwaInstallModal /> {exitConfirmPopup}
                         <header className="w-full max-w-md flex items-center justify-between pt-2">
-                            <button type="button" onClick={() => { SoundFX.click(); navigate('menu'); }} aria-label="Назад" className="h-12 w-12 flex items-center justify-center bg-white/[0.04] rounded-2xl border border-white/10"><Icons.Back /></button>
+                            <button type="button" onClick={() => { SoundFX.click(); navigate('menu'); }} aria-label="Назад" className="h-12 w-12 flex-shrink-0 flex items-center justify-center bg-white/[0.04] rounded-2xl border border-white/10 hover:bg-white/[0.08] text-zinc-300 transition-colors"><Icons.Back /></button>
                             <span className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-400">Меню</span>
                             <div className="w-12"></div>
                         </header>
@@ -1209,7 +1212,7 @@
                     <div className="safe-screen w-full flex flex-col items-center slide-up relative z-10">
                         <ToastBanner />
                         <header className="w-full max-w-md flex items-center justify-between pt-2">
-                            <button type="button" onClick={() => { SoundFX.click(); navigate('menu'); }} aria-label="Назад" className="h-12 w-12 flex items-center justify-center bg-white/[0.04] rounded-2xl border border-white/10"><Icons.Back /></button>
+                            <button type="button" onClick={() => { SoundFX.click(); navigate('menu'); }} aria-label="Назад" className="h-12 w-12 flex-shrink-0 flex items-center justify-center bg-white/[0.04] rounded-2xl border border-white/10 hover:bg-white/[0.08] text-zinc-300 transition-colors"><Icons.Back /></button>
                             <span className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-400">Настройки игры</span>
                             <div className="w-12"></div>
                         </header>
@@ -1225,7 +1228,7 @@
                     <div className="safe-screen w-full flex flex-col items-center slide-up relative z-10">
                         <ToastBanner />
                         <header className="w-full max-w-md flex items-center justify-between pt-2">
-                            <button type="button" onClick={() => { SoundFX.click(); navigate('cat_list'); }} aria-label="Назад" className="h-12 w-12 flex items-center justify-center bg-white/[0.04] rounded-2xl border border-white/10"><Icons.Back /></button>
+                            <button type="button" onClick={() => { SoundFX.click(); navigate('cat_list'); }} aria-label="Назад" className="h-12 w-12 flex-shrink-0 flex items-center justify-center bg-white/[0.04] rounded-2xl border border-white/10 hover:bg-white/[0.08] text-zinc-300 transition-colors"><Icons.Back /></button>
                             <span className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-400">Управление темами</span>
                             <div className="w-12"></div>
                         </header>
@@ -1265,9 +1268,9 @@
                     <div className="safe-screen w-full flex flex-col items-center justify-between slide-up relative z-10">
                         <ToastBanner /> <PwaInstallModal /> {exitConfirmPopup}
                         <header className="w-full max-w-md flex items-center justify-between pt-2">
-                            <button onClick={() => { SoundFX.click(); navigate('menu'); }} className="p-3 bg-white/[0.04] rounded-2xl border border-white/10"><Icons.Back /></button>
+                            <button aria-label="Назад" onClick={() => { SoundFX.click(); navigate('menu'); }} className="h-12 w-12 flex-shrink-0 flex items-center justify-center bg-white/[0.04] rounded-2xl border border-white/10 hover:bg-white/[0.08] text-zinc-300 transition-colors"><Icons.Back /></button>
                             <span className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-400">Игроки и сессия</span>
-                            <div className="w-10"></div>
+                            <div className="w-12"></div>
                         </header>
                         <main className="w-full max-w-sm flex flex-col gap-6 my-auto py-6">
                             <SessionIdBadge sessionKey={profile?.sessionKey} sessionId={profile?.sessionId} onCopy={showToast} size="lg" />
@@ -1307,17 +1310,17 @@
                     <div className="safe-screen w-full flex flex-col items-center justify-between slide-up relative z-10">
                         <ToastBanner />
                         <header className="w-full max-w-md flex items-center justify-between pt-2">
-                            <button onClick={() => { SoundFX.click(); navigate('menu'); }} className="p-3 bg-white/[0.04] rounded-2xl border border-white/10"><Icons.Back /></button>
-                            <AskMeLogo size="xs" /><div className="w-10"></div>
+                            <button aria-label="Назад" onClick={() => { SoundFX.click(); navigate('menu'); }} className="h-12 w-12 flex-shrink-0 flex items-center justify-center bg-white/[0.04] rounded-2xl border border-white/10 hover:bg-white/[0.08] text-zinc-300 transition-colors"><Icons.Back /></button>
+                            <AskMeLogo size="xs" /><div className="w-12"></div>
                         </header>
                         <main className="w-full max-w-md flex flex-col gap-6 my-auto py-8">
-                            <div className="text-center space-y-1.5"><h2 className="font-display text-2xl font-bold text-white">Выберите режим</h2></div>
+                            <div className="text-center space-y-1.5"><h2 className="font-display text-2xl font-bold text-white">Выберите режим</h2><p className="text-xs text-zinc-400 leading-relaxed">Обычный — для игры, тестовый — для проверки вопросов</p></div>
                             <div className="flex flex-col gap-3.5">
-                                <button disabled={stats.availableActive === 0} onClick={() => openPregame()} className="p-5 rounded-2xl text-left border border-rose-500/45 bg-rose-500/10 flex flex-col gap-2">
+                                <button disabled={stats.availableActive === 0} onClick={() => openPregame()} className="w-full p-5 rounded-2xl text-left border border-rose-500/45 bg-rose-500/10 flex flex-col gap-2 active:scale-[0.98] transition-transform disabled:opacity-40">
                                     <div className="flex justify-between"><span className="font-bold text-sm uppercase tracking-wider text-white">Обычный режим</span> <span className="text-xs font-bold px-2.5 py-0.5 rounded-lg bg-rose-500/25 text-rose-200">{stats.availableActive} вопр.</span></div>
                                     <p className="text-xs text-zinc-300 leading-relaxed">Случайный жребий первого ответа. Пройденные вопросы переносятся в Архив.</p>
                                 </button>
-                                <button onClick={() => startWithMode('test')} className="p-5 rounded-2xl text-left border border-white/15 bg-white/[0.03] flex flex-col gap-2">
+                                <button onClick={() => startWithMode('test')} className="w-full p-5 rounded-2xl text-left border border-white/15 bg-white/[0.03] flex flex-col gap-2 active:scale-[0.98] transition-transform">
                                     <div className="flex justify-between"><span className="font-bold text-sm uppercase tracking-wider text-zinc-200">Тестовый режим</span> <span className="text-xs font-bold px-2.5 py-0.5 rounded-lg bg-white/10 text-zinc-300">{stats.availableTotal > 0 ? stats.availableTotal : db.length} вопр.</span></div>
                                     <p className="text-xs text-zinc-400 leading-relaxed">Доступны все вопросы (включая Архив) и редактирование карточек.</p>
                                 </button>
@@ -1568,7 +1571,7 @@
                 const currentQ = gameQuestions[currentIndex]; const isSituation = aiType === 'situation';
                 return (
                     <div className="safe-screen w-full flex flex-col justify-between fade-in relative z-10">
-                        <header className="w-full max-w-2xl mx-auto flex items-center justify-between py-2 flex-shrink-0"> <button onClick={() => { SoundFX.click(); navigate('game'); }} className="p-3 bg-white/[0.04] rounded-2xl border border-white/10"><Icons.Back /></button> <AskMeLogo size="xs" /> <span className="text-xs font-bold uppercase tracking-widest text-zinc-500">№ {currentQ?.num}</span> </header>
+                        <header className="w-full max-w-2xl mx-auto flex items-center justify-between py-2 flex-shrink-0"> <button aria-label="Назад" onClick={() => { SoundFX.click(); navigate('game'); }} className="h-12 w-12 flex-shrink-0 flex items-center justify-center bg-white/[0.04] rounded-2xl border border-white/10 hover:bg-white/[0.08] text-zinc-300 transition-colors"><Icons.Back /></button> <AskMeLogo size="xs" /> <span className="text-xs font-bold uppercase tracking-widest text-zinc-500">№ {currentQ?.num}</span> </header>
                         <main className="flex-1 flex flex-col items-center py-6 pb-28 overflow-y-auto no-scrollbar">
                             <div className="w-full max-w-xl flex flex-col items-center slide-up gap-6">
                                 <div className="text-center space-y-2"> <span className="text-[11px] font-bold tracking-[0.22em] uppercase text-rose-400">{isSituation ? "Моделирование ситуации" : "Разбор психолога"}</span> <p className="text-base font-medium text-zinc-200 px-2">«{currentQ?.cleanText || currentQ?.text}»</p> </div>
@@ -1591,10 +1594,10 @@
                             {isAllAnswered ? (
                                 <div className="text-center space-y-3 py-2"><div className="text-[11px] font-bold uppercase tracking-[0.25em] text-rose-400">Все вопросы пройдены</div><h1 className="font-display text-2xl font-bold text-white">Вы ответили на все вопросы!</h1><p className="text-xs text-zinc-400 leading-relaxed">Вы прошли всю выбранную колоду до самого конца.</p><button onClick={() => SoundFX.romanticFinale()} className="px-4 py-2 rounded-full border border-rose-500/35 bg-rose-500/10 text-[11px] font-bold uppercase tracking-wider text-rose-300">🎵 Мелодия финала</button></div>
                             ) : (
-                                <div className="text-center space-y-1"><p className="text-xs font-bold uppercase tracking-widest text-zinc-500">Вы ответили на</p><div className="font-display text-6xl font-extrabold text-rose-500 py-1"><AnimatedCounter target={answered.length} /></div><p className="text-zinc-500 text-xs">вопросов (в архиве)</p></div>
+                                <div className="text-center space-y-1"><p className="text-xs font-bold uppercase tracking-widest text-zinc-500">Вы ответили на</p><div className="font-display text-6xl font-extrabold text-rose-500 py-1"><AnimatedCounter target={answered.length} /></div><p className="text-zinc-500 text-xs">вопросов — они переехали в архив</p></div>
                             )}
                             <div className="w-full flex flex-col divide-y divide-white/[0.08] border-y border-white/[0.08]">
-                                <div className="flex justify-between items-center py-4 px-2"><span className="font-bold text-xs uppercase tracking-widest diff-text-1">Легких</span><span className="font-display text-2xl font-bold text-white"><AnimatedCounter target={cEasy} /></span></div>
+                                <div className="flex justify-between items-center py-4 px-2"><span className="font-bold text-xs uppercase tracking-widest diff-text-1">Лёгких</span><span className="font-display text-2xl font-bold text-white"><AnimatedCounter target={cEasy} /></span></div>
                                 <div className="flex justify-between items-center py-4 px-2"><span className="font-bold text-xs uppercase tracking-widest diff-text-2">Средних</span><span className="font-display text-2xl font-bold text-white"><AnimatedCounter target={cMed} /></span></div>
                                 <div className="flex justify-between items-center py-4 px-2"><span className="font-bold text-xs uppercase tracking-widest diff-text-3">Глубоких</span><span className="font-display text-2xl font-bold text-white"><AnimatedCounter target={cHard} /></span></div>
                                 <div className="flex justify-between items-center py-4 px-2"><span className="font-bold text-xs uppercase tracking-widest text-zinc-400">Пропущено</span><span className="font-display text-2xl font-bold text-white"><AnimatedCounter target={skippedCount} /></span></div>
@@ -1610,7 +1613,7 @@
                 return (
                     <div className="safe-screen w-full flex flex-col fade-in max-w-md lg:max-w-3xl mx-auto relative z-10">
                         <header className="flex items-center justify-between gap-4 mb-6 pt-2">
-                            <div className="flex items-center gap-3.5"><button onClick={() => { SoundFX.click(); navigate('menu'); }} className="p-3 bg-white/[0.04] rounded-2xl border border-white/10"><Icons.Back /></button><div><h2 className="font-display text-2xl font-bold text-white">Все вопросы</h2><p className="text-xs text-zinc-500 mt-0.5">Активно: {db.length - stats.archivedList.length - stats.disabledCount} из {db.length}</p></div></div>
+                            <div className="flex items-center gap-3.5"><button aria-label="Назад" onClick={() => { SoundFX.click(); navigate('menu'); }} className="h-12 w-12 flex-shrink-0 flex items-center justify-center bg-white/[0.04] rounded-2xl border border-white/10 hover:bg-white/[0.08] text-zinc-300 transition-colors"><Icons.Back /></button><div><h2 className="font-display text-2xl font-bold text-white">Все вопросы</h2><p className="text-xs text-zinc-500 mt-0.5">Активно: {db.length - stats.archivedList.length - stats.disabledCount} из {db.length}</p></div></div>
                             {isAdmin && <button onClick={() => { SoundFX.click(); setAddStatus(null); setAddForm({ text: '', cat: 'family', diff: 'Простые', targetId: '' }); navigate('add_q'); }} className="hidden lg:flex px-5 h-12 rounded-2xl font-bold text-xs uppercase btn-primary items-center gap-2"><Icons.Plus /> Новый вопрос</button>}
                         </header>
                         <div className="flex-1 flex flex-col gap-8 pb-24">
@@ -1634,7 +1637,7 @@
             if (screen === 'archive_page') {
                 return (
                     <div className="safe-screen w-full flex flex-col fade-in max-w-2xl mx-auto relative z-10">
-                        <header className="flex items-center justify-between gap-3 mb-6 pt-2 flex-wrap"> <div className="flex items-center gap-3.5"><button onClick={() => { SoundFX.click(); navigate('cat_list'); }} className="p-3 bg-white/[0.04] rounded-2xl border border-white/10"><Icons.Back /></button><div><h2 className="font-display text-2xl font-bold text-white">Архив вопросов</h2></div></div> </header>
+                        <header className="flex items-center justify-between gap-3 mb-6 pt-2 flex-wrap"> <div className="flex items-center gap-3.5"><button aria-label="Назад" onClick={() => { SoundFX.click(); navigate('cat_list'); }} className="h-12 w-12 flex-shrink-0 flex items-center justify-center bg-white/[0.04] rounded-2xl border border-white/10 hover:bg-white/[0.08] text-zinc-300 transition-colors"><Icons.Back /></button><div><h2 className="font-display text-2xl font-bold text-white">Архив вопросов</h2></div></div> </header>
                         {stats.archivedList.length === 0 ? ( <div className="flex-1 flex flex-col items-center justify-center text-center py-16 gap-4"><div className="w-12 h-12 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center justify-center text-zinc-500"><Icons.Archive /></div><p className="text-sm text-zinc-400 max-w-xs leading-relaxed">Архив пуст.</p><button onClick={() => navigate('cat_list')} className="px-6 rounded-2xl btn-secondary text-xs font-bold mt-2">К темам</button></div> ) : ( <div className="flex-1 flex flex-col gap-6 pb-24"><div className="flex flex-col divide-y divide-white/[0.08] border-y border-white/[0.08]"> {filteredArchivedList.slice(0, archiveVisibleLimit).map(q => ( <div key={q.dbKey} className="py-4 flex items-start justify-between gap-4"><div className="text-sm text-zinc-200"><div className="flex items-center gap-2 text-[11px] mb-1"><span className="text-rose-400 font-bold">№ {q.num}</span></div>{q.cleanText}</div><button onClick={() => handleRestoreSingleFromArchive(q)} className="px-3.5 py-2 rounded-xl border border-white/15 bg-white/[0.04] text-[11px] font-bold"><Icons.Restore /> Вернуть</button></div> ))} </div> <button onClick={() => handleRestoreBatchFromArchive(stats.archivedList)} className="w-full rounded-2xl btn-primary text-xs font-bold uppercase flex items-center justify-center gap-2 mt-2"><Icons.Restore /> Вернуть все</button></div> )}
                     </div>
                 );
@@ -1645,7 +1648,7 @@
                 return (
                     <div className="safe-screen w-full flex flex-col fade-in max-w-2xl mx-auto relative z-10">
                         <header className="flex items-center justify-between gap-4 mb-7 pt-2 flex-shrink-0">
-                            <div className="flex items-center gap-3.5"><button onClick={() => { SoundFX.click(); navigate('cat_list'); }} className="p-3 bg-white/[0.04] rounded-2xl border border-white/10"><Icons.Back /></button><h2 className="font-display text-2xl font-bold text-white">{CATEGORIES.find(c => c.id === viewCategory)?.name}</h2></div>
+                            <div className="flex items-center gap-3.5"><button aria-label="Назад" onClick={() => { SoundFX.click(); navigate('cat_list'); }} className="h-12 w-12 flex-shrink-0 flex items-center justify-center bg-white/[0.04] rounded-2xl border border-white/10 hover:bg-white/[0.08] text-zinc-300 transition-colors"><Icons.Back /></button><h2 className="font-display text-2xl font-bold text-white">{CATEGORIES.find(c => c.id === viewCategory)?.name}</h2></div>
                             {isAdmin && <button onClick={() => { SoundFX.click(); setAddStatus(null); setAddForm({ text: '', cat: viewCategory || 'family', diff: 'Простые', targetId: '' }); navigate('add_q'); }} className="hidden lg:flex px-5 h-12 rounded-2xl font-bold text-xs uppercase btn-primary items-center gap-2"><Icons.Plus /> Новый вопрос</button>}
                         </header>
                         <div className="flex-1 flex flex-col gap-10 pb-24">
@@ -1661,7 +1664,7 @@
             if (screen === 'edit_q' && editingQuestion && isAdmin) {
                 return (
                     <div className="safe-screen w-full flex flex-col fade-in max-w-lg mx-auto relative z-10">
-                        <header className="flex items-center gap-3.5 mb-6 pt-2"><button onClick={() => { SoundFX.click(); navigate(returnScreen); }} className="p-3 bg-white/[0.04] rounded-2xl border border-white/10"><Icons.Back /></button><div><h2 className="font-display text-xl font-bold text-white">Редактирование</h2><p className="text-xs text-zinc-500">№ {editingQuestion.num}</p></div></header>
+                        <header className="flex items-center gap-3.5 mb-6 pt-2"><button aria-label="Назад" onClick={() => { SoundFX.click(); navigate(returnScreen); }} className="h-12 w-12 flex-shrink-0 flex items-center justify-center bg-white/[0.04] rounded-2xl border border-white/10 hover:bg-white/[0.08] text-zinc-300 transition-colors"><Icons.Back /></button><div><h2 className="font-display text-xl font-bold text-white">Редактирование</h2><p className="text-xs text-zinc-500">№ {editingQuestion.num}</p></div></header>
                         <div className="flex-1 flex flex-col gap-5 slide-up">
                             <textarea value={editForm.text} onChange={e => setEditForm({...editForm, text: e.target.value})} className="w-full p-4 rounded-2xl bg-white/[0.04] border border-white/12 text-base text-white h-36 focus:border-rose-500"></textarea>
                             <input type="text" placeholder="ID сессии (оставьте пустым для всех)" value={editForm.targetId} onChange={e => setEditForm({...editForm, targetId: e.target.value})} className="w-full h-[54px] px-5 rounded-2xl bg-white/[0.04] border border-white/12 text-white" />
@@ -1682,7 +1685,7 @@
             if (screen === 'add_q' && isAdmin) {
                 return (
                     <div className="safe-screen w-full flex flex-col fade-in max-w-lg mx-auto relative z-10">
-                        <header className="flex items-center gap-3.5 mb-6 pt-2"><button onClick={() => { SoundFX.click(); navigate(viewCategory ? 'q_list' : 'cat_list'); }} className="p-3 bg-white/[0.04] rounded-2xl border border-white/10"><Icons.Back /></button><h2 className="font-display text-xl font-bold text-white">Новый вопрос</h2></header>
+                        <header className="flex items-center gap-3.5 mb-6 pt-2"><button aria-label="Назад" onClick={() => { SoundFX.click(); navigate(viewCategory ? 'q_list' : 'cat_list'); }} className="h-12 w-12 flex-shrink-0 flex items-center justify-center bg-white/[0.04] rounded-2xl border border-white/10 hover:bg-white/[0.08] text-zinc-300 transition-colors"><Icons.Back /></button><h2 className="font-display text-xl font-bold text-white">Новый вопрос</h2></header>
                         {addStatus ? (
                             <div className="flex-1 flex flex-col items-center justify-center slide-up"><h3 className="font-display text-2xl font-bold text-white">{addStatus.ok ? 'Вопрос добавлен' : 'Ошибка'}</h3><p className="text-xs text-zinc-400 mb-4 mt-2">{addStatus.msg}</p><div className="grid grid-cols-2 gap-3 w-full max-w-xs"><button onClick={() => navigate(viewCategory ? 'q_list' : 'cat_list')} className="btn-secondary rounded-2xl uppercase text-xs p-3 font-bold">К списку</button><button onClick={() => setAddStatus(null)} className="btn-primary rounded-2xl uppercase text-xs p-3 font-bold">Еще один</button></div></div>
                         ) : (
