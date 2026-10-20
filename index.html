@@ -125,6 +125,11 @@
     
         /* Доступность: заметный фокус при навигации с клавиатуры */
         button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, [role="tab"]:focus-visible { outline: 2px solid rgba(244,63,94,0.75); outline-offset: 2px; }
+    
+        /* Дизайн-система: токены */
+        :root { --ui-btn-h: 54px; --ui-field-h: 54px; --ui-chip-h: 40px; --ui-radius: 16px; --ui-gap-block: 24px; --ui-gap-item: 12px; }
+        .btn-primary, .btn-secondary { min-height: var(--ui-btn-h); }
+        input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select { min-height: var(--ui-field-h); }
     </style>
 </head>
 <body>
@@ -675,7 +680,7 @@
                         {profile && <SessionIdBadge sessionKey={profile.sessionKey} sessionId={profile.sessionId} onCopy={showToast} size="lg" />}
                         <div className="w-full grid grid-cols-2 gap-3 pt-1">
                             <button type="button" onClick={() => setShowExitConfirm(false)} className="rounded-2xl btn-secondary text-xs font-bold uppercase tracking-widest">Остаться</button>
-                            <button type="button" onClick={handleExitSession} className="h-12 rounded-2xl border border-rose-500/40 bg-rose-500/10 text-rose-200 text-xs font-bold uppercase tracking-widest">Выйти</button>
+                            <button type="button" onClick={handleExitSession} className="h-[54px] rounded-2xl border border-rose-500/40 bg-rose-500/10 text-rose-200 text-xs font-bold uppercase tracking-widest">Выйти</button>
                         </div>
                     </div>
                 </PopupModal>
@@ -760,12 +765,20 @@
                 applyTurnStep(step);
                 return true;
             };
-            const skipForPlayer = () => {
-                setShowSkipPopup(false);
+            const performPlayerSkip = () => {
                 const e = normTurn(turnHistory[currentIndex]);
                 if (gameMode !== 'normal' || !profile?.players || !e || !e.cur) return;
                 const step = nextTurnStep({ ...e, skippedBy: [...e.skippedBy, e.cur] }, profile.players);
                 if (step) { SoundFX.click(); applyTurnStep(step); }
+            };
+            const skipForPlayer = () => {
+                setShowSkipPopup(false);
+                const e = normTurn(turnHistory[currentIndex]);
+                if (gameMode !== 'normal' || !profile?.players || !e || !e.cur) return;
+                const qNow = gameQuestions[currentIndex];
+                const pun = settings.punishOn ? pickPunishment(settings.punishments, qNow && qNow.level) : null;
+                if (pun) { const who = profile.players.find(p => p.id === e.cur); SoundFX.warn(); setPunish({ open: true, reason: 'skip', player: who ? who.name : '', text: pun.text, icon: pun.icon || '🎭' }); return; }
+                performPlayerSkip();
             };
             const skipForAll = () => {
                 setShowSkipPopup(false);
@@ -777,30 +790,43 @@
             const GROUP_EMOJIS_SHUFFLED = useMemo(() => { const a = [...GROUP_EMOJIS]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }, [profile?.sessionId]);
             useEffect(() => { document.title = SCREEN_TITLES[screen] || 'ASK ME — игра для пар и компаний'; }, [screen]);
             const cardRef = useRef(null);
+            const peekNextRef = useRef(null);
+            const peekPrevRef = useRef(null);
             const swipeRef = useRef({ id: null, x0: 0, y0: 0, locked: null, lx: 0, lt: 0, vx: 0 });
             const swipeTimerRef = useRef(null);
             const [swipeHint, setSwipeHint] = useState('');
             useEffect(() => () => clearTimeout(swipeTimerRef.current), []);
             const SWIPE_EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
+            const applyPeek = (dx, mode) => {
+                const p = Math.min(1, Math.abs(dx) / 110);
+                const tr = mode === 'out' ? 'opacity 300ms ease-out, transform 340ms cubic-bezier(0.22, 1, 0.36, 1)' : mode === 'spring' ? 'opacity 260ms ease-out, transform 420ms ease-out' : 'none';
+                [[peekNextRef.current, dx > 0], [peekPrevRef.current, dx < 0]].forEach(([el, on]) => {
+                    if (!el) return;
+                    const q = on ? (mode === 'out' ? 1 : p) : 0;
+                    el.style.transition = tr; el.style.opacity = String(q); el.style.transform = `scale(${0.94 + 0.06 * q})`;
+                });
+            };
             const applySwipe = (dx, mode, scale = 1) => {
                 const el = cardRef.current; if (!el) return;
                 el.style.transition = mode === 'out' ? `transform 340ms ${SWIPE_EASE}, opacity 300ms ease-out` : mode === 'spring' ? 'transform 460ms cubic-bezier(0.34, 1.45, 0.64, 1), opacity 260ms ease-out' : mode === 'enter' ? `transform 420ms ${SWIPE_EASE}, opacity 320ms ease-out` : 'none';
                 el.style.transformOrigin = '50% 115%';
                 el.style.transform = `translate3d(${dx}px,0,0) rotate(${dx * 0.045}deg) scale(${scale})`;
-                el.style.opacity = String(mode === 'out' ? 0 : 1 - Math.min(0.3, Math.abs(dx) / 700));
+                el.style.opacity = String(mode === 'out' ? 0 : 1);
+                applyPeek(mode === 'enter' ? 0 : dx, mode === 'enter' ? 'none' : mode);
             };
             const swipeBusy = () => turnPopup.open || showSkipPopup || showEndGameConfirm || punish.open;
             const swipeAllowed = (dir) => {
                 if (screen !== 'game' || !gameQuestions.length) return false;
                 const last = currentIndex === gameQuestions.length - 1;
-                if (gameMode === 'test') return dir === 'left' ? currentIndex > 0 : !last;
+                if (dir === 'left') return currentIndex > 0;
+                if (gameMode === 'test') return !last;
                 const e = normTurn(turnHistory[currentIndex]);
                 if (!e) return false;
                 const done = !e.cur && (profile?.players || []).every(p => e.answered.includes(p.id));
                 return !(done && last);
             };
-            const performSwipe = (dir) => { if (gameMode === 'test' && dir === 'left') handlePrevQuestion(); else handleNextQuestion(); };
-            const swipeLabel = (dir) => !swipeAllowed(dir) ? 'Здесь нельзя' : (gameMode === 'test' ? (dir === 'left' ? '← Предыдущий' : 'Следующий →') : (dir === 'left' ? '← Далее' : 'Далее →'));
+            const performSwipe = (dir) => { if (dir === 'left') handlePrevQuestion(); else handleNextQuestion(); };
+            const swipeLabel = (dir) => !swipeAllowed(dir) ? (dir === 'left' && currentIndex === 0 ? 'Это первый вопрос' : 'Здесь нельзя') : (dir === 'left' ? '← Назад' : 'Далее →');
             const onSwipeStart = (e) => {
                 if (swipeBusy() || (e.target.closest && e.target.closest('button,a,input,textarea,select'))) return;
                 if (e.pointerType === 'mouse' && e.button !== 0) return;
@@ -836,7 +862,7 @@
                 clearTimeout(swipeTimerRef.current);
                 swipeTimerRef.current = setTimeout(() => {
                     performSwipe(dir);
-                    applySwipe(dir === 'right' ? -56 : 56, 'none', 0.95);
+                    applySwipe(dir === 'right' ? -56 : 56, 'none', 0.95); applyPeek(0, 'none');
                     if (cardRef.current) cardRef.current.style.opacity = '0';
                     requestAnimationFrame(() => requestAnimationFrame(() => applySwipe(0, 'enter', 1)));
                 }, 260);
@@ -848,8 +874,7 @@
                     if (e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
                     if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
                     const wantNext = e.key === 'ArrowRight';
-                    if (gameMode !== 'test' && !wantNext) return;
-                    if (swipeBusy()) return;
+                                        if (swipeBusy()) return;
                     const dir = wantNext ? 'right' : 'left';
                     if (swipeAllowed(dir)) performSwipe(dir);
                 };
@@ -874,10 +899,10 @@
                     const qNow = gameQuestions[currentIndex];
                     const pun = settings.punishOn ? pickPunishment(settings.punishments, qNow && qNow.level) : null;
                     SoundFX.warn();
-                    setPunish({ open: true, player: who ? who.name : '', text: pun ? pun.text : '', icon: pun ? (pun.icon || '🎭') : '⏰' });
+                    setPunish({ open: true, reason: 'timer', player: who ? who.name : '', text: pun ? pun.text : '', icon: pun ? (pun.icon || '🎭') : '⏰' });
                 }
             }, [tm.left, tm.key, timerKey, timerPaused]);
-            const closePunish = () => { setPunish(p => ({ ...p, open: false })); skipForPlayer(); };
+            const closePunish = () => { setPunish(p => ({ ...p, open: false })); performPlayerSkip(); };
             const openPregame = () => { SoundFX.click(); setShowSettings(true); navigate('game_setup'); };
             const startFromPregame = () => { setPregameOpen(false); startWithMode('normal'); };
             const patchSettings = (patch) => setSettings(st => ({ ...st, ...patch }));
@@ -900,7 +925,7 @@
                             <span className={chip}>⏱ {settings.timerOn ? `${settings.timerSec} с на ответ` : 'без таймера'}</span>
                             <span className={chip}>🎭 {settings.punishOn ? 'наказания включены' : 'без наказаний'}</span>
                         </div>
-                        <button type="button" aria-expanded={showSettings} onClick={() => { SoundFX.click(); setShowSettings(v => !v); }} className="h-12 rounded-2xl border border-white/15 bg-white/[0.03] text-xs font-bold uppercase tracking-widest text-zinc-200 flex items-center justify-center gap-2">⚙ Настройки игры <span aria-hidden="true">{showSettings ? '▴' : '▾'}</span></button>
+                        <button type="button" aria-expanded={showSettings} onClick={() => { SoundFX.click(); setShowSettings(v => !v); }} className="h-[54px] rounded-2xl border border-white/15 bg-white/[0.03] text-xs font-bold uppercase tracking-widest text-zinc-200 flex items-center justify-center gap-2">⚙ Настройки игры <span aria-hidden="true">{showSettings ? '▴' : '▾'}</span></button>
                         {showSettings && (
                             <div className="flex flex-col gap-5 fade-in">
                                 <section className="flex flex-col gap-3">
@@ -912,7 +937,7 @@
                                         <div className="flex flex-col gap-2 fade-in">
                                             <div className="flex flex-wrap gap-2">
                                                 {[15, 30, 45, 60, 90].map(sec => (
-                                                    <button key={sec} type="button" onClick={() => { SoundFX.click(); patchSettings({ timerSec: sec }); }} className={`px-3.5 h-9 rounded-full border text-xs font-bold ${settings.timerSec === sec ? 'border-rose-500 bg-rose-500/15 text-rose-200' : 'border-white/12 bg-white/[0.04] text-zinc-300'}`}>{sec} с</button>
+                                                    <button key={sec} type="button" onClick={() => { SoundFX.click(); patchSettings({ timerSec: sec }); }} className={`px-3.5 h-10 rounded-full border text-xs font-bold ${settings.timerSec === sec ? 'border-rose-500 bg-rose-500/15 text-rose-200' : 'border-white/12 bg-white/[0.04] text-zinc-300'}`}>{sec} с</button>
                                                 ))}
                                             </div>
                                             <label className="flex items-center gap-2 text-xs text-zinc-400">Своё время, секунд (5–300):
@@ -1086,7 +1111,7 @@
                 } catch (err) { SoundFX.warn(); setResultModal({ ok: false, msg: `Ошибка: ${err.message}` }); } finally { setIsSaving(false); }
             };
 
-            const ToastBanner = () => { if (!toastMsg) return null; return ReactDOM.createPortal( <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[10000] px-4 py-2.5 rounded-full bg-[#161321] border border-rose-500/45 text-white text-xs font-bold tracking-wider shadow-[0_12px_35px_rgba(0,0,0,0.85)] flex items-center gap-2 fade-in"> <span className="text-rose-400"><Icons.Check /></span> <span>{toastMsg}</span> </div>, document.body ); };
+            const ToastBanner = () => { if (!toastMsg) return null; return ReactDOM.createPortal( <div style={{ top: 'calc(env(safe-area-inset-top, 0px) + 12px)' }} className="fixed left-1/2 -translate-x-1/2 z-[10000] max-w-[calc(100vw-2rem)] px-4 py-2.5 rounded-full bg-[#161321] border border-rose-500/45 text-white text-xs font-bold tracking-wider shadow-[0_12px_35px_rgba(0,0,0,0.85)] flex items-center gap-2 fade-in"> <span className="text-rose-400"><Icons.Check /></span> <span>{toastMsg}</span> </div>, document.body ); };
             const PwaInstallModal = () => ( <PopupModal isOpen={showPwaModal} onClose={() => setShowPwaModal(false)}> <div className="flex flex-col gap-4 pt-1"> <div className="pr-8"><AskMeLogo size="xs" /></div> <div className="space-y-1 text-left"> <h3 className="font-display text-xl font-bold text-white">Скачать на устройство</h3> <p className="text-xs text-zinc-400 leading-relaxed"> Установите <b className="text-white">ASK ME</b> на домашний экран. </p> </div> {isInAppWebView && ( <div className="p-3.5 rounded-2xl bg-rose-500/15 border border-rose-500/40 text-xs text-rose-200 leading-relaxed text-left"> ⚠️ Вы открыли сайт во встроенном браузере. Нажмите на иконку <b>Safari/Браузера</b>, чтобы появилась установка. </div> )} <div className="grid grid-cols-2 gap-2 p-1 rounded-2xl bg-white/[0.04] border border-white/10"> <button type="button" onClick={() => { SoundFX.click(); setPwaPlatformTab('ios'); }} className={`h-10 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${ pwaPlatformTab === 'ios' ? 'bg-rose-500 text-white' : 'text-zinc-400 hover:text-white' }`} >  iPhone </button> <button type="button" onClick={() => { SoundFX.click(); setPwaPlatformTab('android'); }} className={`h-10 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${ pwaPlatformTab === 'android' ? 'bg-rose-500 text-white' : 'text-zinc-400 hover:text-white' }`} > 🤖 Android </button> </div> {pwaPlatformTab === 'ios' ? ( <div className="flex flex-col gap-3 text-left text-xs text-zinc-200 bg-white/[0.03] p-4 rounded-2xl border border-white/10"> <div className="flex items-start gap-3"> <span className="w-6 h-6 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold flex items-center justify-center flex-shrink-0">1</span> <p className="leading-relaxed"> Нажмите кнопку <b className="text-white">«Поделиться»</b> в браузере Safari. </p> </div> <div className="hairline-divider"></div> <div className="flex items-start gap-3"> <span className="w-6 h-6 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold flex items-center justify-center flex-shrink-0">2</span> <p className="leading-relaxed"> Нажмите <b className="text-white">«На экран "Домой"»</b>. </p> </div> <button type="button" onClick={triggerIosNativeShareMenu} className="w-full h-12 mt-1 rounded-xl bg-rose-500/20 border border-rose-500/45 text-rose-200 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2" > <Icons.IosShare /> Открыть меню iOS </button> </div> ) : ( <div className="flex flex-col gap-3 text-left text-xs text-zinc-200 bg-white/[0.03] p-4 rounded-2xl border border-white/10"> <div className="flex items-start gap-3"> <span className="w-6 h-6 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold flex items-center justify-center flex-shrink-0">1</span> <p className="leading-relaxed"> Нажмите на меню браузера <b className="text-white">«⋮»</b>. </p> </div> <div className="hairline-divider"></div> <div className="flex items-start gap-3"> <span className="w-6 h-6 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold flex items-center justify-center flex-shrink-0">2</span> <p className="leading-relaxed"> Выберите <b className="text-white">«Установить приложение»</b>. </p> </div> </div> )} <button type="button" onClick={() => { SoundFX.click(); setShowPwaModal(false); }} className="w-full rounded-2xl btn-primary text-xs font-bold uppercase tracking-widest" > Понятно </button> </div> </PopupModal> );
 
             if (isLoading) return <div className="safe-screen w-full flex flex-col items-center justify-center fade-in relative z-10"><AskMeLogo size="lg" /><p className="text-zinc-500 font-semibold uppercase text-[11px] tracking-[0.25em] mt-5">Синхронизация...</p></div>;
@@ -1155,13 +1180,13 @@
                                         {playersForm.map((p, idx) => (
                                             <div key={p.id} className="flex gap-2 relative">
                                                 <input type="text" placeholder={`Игрок ${idx+1}`} required value={p.name} onChange={e => { const v = sanitizeName(e.target.value); setPlayersForm(playersForm.map((pl, i) => i === idx ? {...pl, name: v} : pl)); setPlayersError(''); }} className="flex-1 h-[54px] px-5 rounded-2xl bg-white/[0.04] border border-white/12 text-white outline-none focus:border-rose-500" />
-                                                <button type="button" onClick={() => { setPlayersForm(playersForm.map((pl, i) => i === idx ? {...pl, gender: pl.gender === 'guy' ? 'girl' : 'guy'} : pl)); SoundFX.click(); }} className="w-14 h-14 rounded-2xl bg-white/[0.04] border border-white/12 flex items-center justify-center text-xl hover:bg-white/[0.1] transition-all"> {p.gender === 'guy' ? '👨' : '👩'} </button>
+                                                <button type="button" onClick={() => { setPlayersForm(playersForm.map((pl, i) => i === idx ? {...pl, gender: pl.gender === 'guy' ? 'girl' : 'guy'} : pl)); SoundFX.click(); }} className="w-14 h-[54px] rounded-2xl bg-white/[0.04] border border-white/12 flex items-center justify-center text-xl hover:bg-white/[0.1] transition-all"> {p.gender === 'guy' ? '👨' : '👩'} </button>
                                                 {idx > 1 && <button type="button" onClick={() => setPlayersForm(playersForm.filter((_, i) => i !== idx))} className="absolute -left-3 -top-3 w-6 h-6 bg-rose-500 rounded-full flex items-center justify-center text-white text-xs border-2 border-[#09080c]"><Icons.Close /></button>}
                                             </div>
                                         ))}
                                         {playersForm.length >= MAX_PLAYERS && ( <span className="text-[11px] text-zinc-500 text-center">Максимум — {MAX_PLAYERS} игроков</span> )}
                                 {playersForm.length < MAX_PLAYERS && (
-                                            <button type="button" onClick={addPlayerField} className="h-12 border border-dashed border-white/20 rounded-2xl text-xs font-bold uppercase tracking-widest text-zinc-400 hover:text-white transition-all flex items-center justify-center gap-2 mt-1"> <Icons.Plus /> Добавить игрока </button>
+                                            <button type="button" onClick={addPlayerField} className="h-[54px] border border-dashed border-white/20 rounded-2xl text-xs font-bold uppercase tracking-widest text-zinc-400 hover:text-white transition-all flex items-center justify-center gap-2 mt-1"> <Icons.Plus /> Добавить игрока </button>
                                         )}
                                         {playersError && <p className="text-xs text-rose-400 text-center">{playersError}</p>}
                                 <button type="submit" className="w-full rounded-2xl btn-primary font-bold text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-2 mt-2"> Создать сессию <Icons.Next /> </button>
@@ -1242,7 +1267,7 @@
                                             <input type="text" value={newTopicName} maxLength={30} onChange={e => { setNewTopicName(e.target.value); setTopicErr(''); }} placeholder="Название темы" aria-label="Название темы" className="flex-1 min-w-0 px-4 text-sm" />
                                         </div>
                                         <div className="flex gap-1.5 overflow-x-auto pb-1" role="tablist">
-                                            {EMOJI_SETS.map((set, i) => ( <button key={set[0]} type="button" role="tab" aria-selected={emojiTab === i} onClick={() => { SoundFX.click(); setEmojiTab(i); }} className={`h-9 px-3 rounded-full border text-xs font-bold whitespace-nowrap ${emojiTab === i ? 'border-rose-500 bg-rose-500/15 text-rose-200' : 'border-white/10 bg-white/[0.04] text-zinc-300'}`}>{set[0]}</button> ))}
+                                            {EMOJI_SETS.map((set, i) => ( <button key={set[0]} type="button" role="tab" aria-selected={emojiTab === i} onClick={() => { SoundFX.click(); setEmojiTab(i); }} className={`h-10 px-3 rounded-full border text-xs font-bold whitespace-nowrap ${emojiTab === i ? 'border-rose-500 bg-rose-500/15 text-rose-200' : 'border-white/10 bg-white/[0.04] text-zinc-300'}`}>{set[0]}</button> ))}
                                         </div>
                                         <div className="grid grid-cols-7 gap-1.5 max-h-44 overflow-y-auto rounded-2xl border border-white/10 bg-white/[0.02] p-2">
                                             {EMOJI_SETS[emojiTab][1].split(' ').map(em => ( <button key={em} type="button" aria-label={`Эмодзи ${em}`} onClick={() => { SoundFX.click(); setNewTopicIcon(em); setTopicErr(''); }} className={`h-10 rounded-xl text-xl ${newTopicIcon === em ? 'bg-rose-500/20 ring-1 ring-rose-500' : 'hover:bg-white/[0.06]'}`}>{em}</button> ))}
@@ -1278,12 +1303,12 @@
                                 {playersForm.map((p, idx) => (
                                     <div key={p.id} className="flex gap-2 relative">
                                         <input type="text" placeholder={`Игрок ${idx+1}`} required value={p.name} onChange={e => { const v = sanitizeName(e.target.value); setPlayersForm(playersForm.map((pl, i) => i === idx ? {...pl, name: v} : pl)); setPlayersError(''); }} className="flex-1 h-[54px] px-5 rounded-2xl bg-white/[0.04] border border-white/12 text-white outline-none focus:border-rose-500" />
-                                        <button type="button" onClick={() => { setPlayersForm(playersForm.map((pl, i) => i === idx ? {...pl, gender: pl.gender === 'guy' ? 'girl' : 'guy'} : pl)); SoundFX.click(); }} className="w-14 h-14 rounded-2xl bg-white/[0.04] border border-white/12 flex items-center justify-center text-xl hover:bg-white/[0.1] transition-all"> {p.gender === 'guy' ? '👨' : '👩'} </button>
+                                        <button type="button" onClick={() => { setPlayersForm(playersForm.map((pl, i) => i === idx ? {...pl, gender: pl.gender === 'guy' ? 'girl' : 'guy'} : pl)); SoundFX.click(); }} className="w-14 h-[54px] rounded-2xl bg-white/[0.04] border border-white/12 flex items-center justify-center text-xl hover:bg-white/[0.1] transition-all"> {p.gender === 'guy' ? '👨' : '👩'} </button>
                                         {idx > 1 && <button type="button" onClick={() => setPlayersForm(playersForm.filter((_, i) => i !== idx))} className="absolute -left-3 -top-3 w-6 h-6 bg-rose-500 rounded-full flex items-center justify-center text-white text-xs border-2 border-[#09080c]"><Icons.Close /></button>}
                                     </div>
                                 ))}
                                 {playersForm.length >= MAX_PLAYERS && ( <span className="text-[11px] text-zinc-500 text-center">Максимум — {MAX_PLAYERS} игроков</span> )}
-                                {playersForm.length < MAX_PLAYERS && ( <button type="button" onClick={addPlayerField} className="h-12 border border-dashed border-white/20 rounded-2xl text-xs font-bold uppercase tracking-widest text-zinc-400 hover:text-white transition-all flex items-center justify-center gap-2 mt-1"> <Icons.Plus /> Добавить игрока </button> )}
+                                {playersForm.length < MAX_PLAYERS && ( <button type="button" onClick={addPlayerField} className="h-[54px] border border-dashed border-white/20 rounded-2xl text-xs font-bold uppercase tracking-widest text-zinc-400 hover:text-white transition-all flex items-center justify-center gap-2 mt-1"> <Icons.Plus /> Добавить игрока </button> )}
                                 {playersError && <p className="text-xs text-rose-400 text-center">{playersError}</p>}
                                 <button type="submit" className="w-full rounded-2xl btn-primary text-xs font-bold uppercase tracking-widest mt-1"> Сохранить имена </button>
                             </form>
@@ -1343,10 +1368,10 @@
                         <ToastBanner /> {exitConfirmPopup} <PwaInstallModal />
                         <div className="w-full max-w-md lg:max-w-4xl mx-auto flex flex-col gap-7 pt-1">
                             <header className="w-full flex items-center justify-between gap-3">
-                                <button onClick={() => { if(profile) { SoundFX.click(); setPlayersForm(profile.players); navigate('profile_page'); } else navigate('onboarding'); }} className="h-11 min-w-0 px-4 rounded-full bg-white/[0.04] border border-white/10 text-xs font-semibold text-zinc-200 flex items-center gap-2">
+                                <button onClick={() => { if(profile) { SoundFX.click(); setPlayersForm(profile.players); navigate('profile_page'); } else navigate('onboarding'); }} className="h-10 min-w-0 px-4 rounded-full bg-white/[0.04] border border-white/10 text-xs font-semibold text-zinc-200 flex items-center gap-2">
                                     <Icons.User /> <span className="truncate max-w-[120px] sm:max-w-[200px]">{pNamesStr}</span> {isAdmin && <span className="text-rose-400 text-[10px]">●</span>}
                                 </button>
-                                <button type="button" onClick={() => { SoundFX.click(); navigate('app_menu'); }} aria-label="Открыть меню" className="h-11 flex-shrink-0 px-4 rounded-full bg-white/[0.06] border border-white/12 text-sm font-semibold text-zinc-100 flex items-center gap-2.5">
+                                <button type="button" onClick={() => { SoundFX.click(); navigate('app_menu'); }} aria-label="Открыть меню" className="h-10 flex-shrink-0 px-4 rounded-full bg-white/[0.06] border border-white/12 text-sm font-semibold text-zinc-100 flex items-center gap-2.5">
                                     <span>Меню</span><span aria-hidden="true" className="text-lg leading-none">☰</span>
                                 </button>
                             </header>
@@ -1383,7 +1408,7 @@
                                     <div className="space-y-4">
                                         <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-400">Сложность</h2>
                                         <div className="grid grid-cols-3 gap-2.5">
-                                            {DIFFICULTIES.map(diff => ( <button key={diff.id} onClick={() => toggleDiff(diff.id)} className={`h-12 rounded-2xl text-xs font-bold uppercase tracking-wider ${ selectedDiffs.includes(diff.id) ? diff.classBg : 'border border-white/10 text-zinc-500' }`} >{diff.name}</button> ))}
+                                            {DIFFICULTIES.map(diff => ( <button key={diff.id} onClick={() => toggleDiff(diff.id)} className={`h-[54px] rounded-2xl text-xs font-bold uppercase tracking-wider ${ selectedDiffs.includes(diff.id) ? diff.classBg : 'border border-white/10 text-zinc-500' }`} >{diff.name}</button> ))}
                                         </div>
                                     </div>
                                 </div>
@@ -1394,8 +1419,6 @@
                                         <div className="flex items-center justify-between"><h2 className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-400">Список вопросов</h2><span className="text-xs text-zinc-500">В архиве: <b className="text-zinc-300">{stats.archivedList.length}</b></span></div>
                                         <button onClick={() => { SoundFX.click(); navigate('cat_list'); }} className="w-full rounded-2xl btn-secondary flex items-center justify-center gap-2.5 text-xs font-bold uppercase tracking-widest"><Icons.List /> Все вопросы</button>
                                     </div>
-                                    <div className="hairline-divider"></div>
-
                                     <div className="flex flex-col gap-5">
                                         <div className="flex items-center gap-3 w-full"><div className="h-[1px] flex-1 bg-white/10"></div><span className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-400">Доступно для новой игры</span><div className="h-[1px] flex-1 bg-white/10"></div></div>
                                         <div className="grid grid-cols-[1fr_auto_1fr] items-center py-1">
@@ -1404,16 +1427,13 @@
                                             <div className="flex flex-col items-center gap-1"><span className="font-display text-4xl font-bold text-rose-500 leading-none">{stats.availableActive}</span><span className="uppercase text-[10px] font-bold tracking-widest text-zinc-500">{declOfNum(stats.availableActive, ['Вопрос', 'Вопроса', 'Вопросов'])}</span></div>
                                         </div>
 
-                                        {hasSavedGame && profile && ( <button onClick={handleResumeSavedGame} className="w-full rounded-2xl border border-rose-500/50 bg-rose-500/15 text-rose-200 h-14 font-bold text-xs uppercase tracking-[0.16em] flex items-center justify-center gap-2"><Icons.Play /> Продолжить (Вопрос {(profile.savedGame.currentIndex || 0) + 1})</button> )}
+                                        {hasSavedGame && profile && ( <button onClick={handleResumeSavedGame} className="w-full rounded-2xl border border-rose-500/50 bg-rose-500/15 text-rose-200 h-[54px] font-bold text-xs uppercase tracking-[0.16em] flex items-center justify-center gap-2"><Icons.Play /> Продолжить (Вопрос {(profile.savedGame.currentIndex || 0) + 1})</button> )}
                                         <button onClick={handlePressStartButton} disabled={!profile || (!isAdmin && stats.availableActive === 0)} className={`w-full rounded-2xl font-bold text-sm uppercase tracking-[0.2em] flex items-center justify-center gap-2 ${profile ? 'btn-primary' : 'bg-white/10 text-zinc-500 cursor-not-allowed'}`} > <Icons.Play /> {profile ? "Начать игру" : "Введите имена для игры"} </button>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        <div className="w-full max-w-md lg:max-w-4xl mx-auto flex flex-col gap-3 pt-6">
-                            {profile && <SessionIdBadge sessionKey={profile.sessionKey} sessionId={profile.sessionId} onCopy={showToast} size="sm" />}
-                            {quickActions}
-                        </div>
+                        {profile && ( <p className="w-full max-w-md lg:max-w-4xl mx-auto pt-6 text-center text-xs text-zinc-500">ID сессии: <span className="font-semibold tracking-[0.18em] text-zinc-300 select-all">{profile.sessionId}</span></p> )}
                         <AppFooter />
                     </div>
                 );
@@ -1429,8 +1449,17 @@
                 const turnPending = (turnEntry && turnEntry.cur) ? (profile.players || []).filter(p => !turnEntry.answered.includes(p.id) && p.id !== turnEntry.cur).length : 0;
                 const turnDone = gameMode !== 'normal' || (!!turnEntry && !turnEntry.cur && (profile?.players || []).every(p => turnEntry.answered.includes(p.id)));
                 const turnSkipped = turnDone && gameMode === 'normal' && isTurnSkipped(turnEntry, profile?.players || []);
+                const skippedNames = (turnEntry ? turnEntry.skippedBy : []).map(id => (profile?.players || []).find(p => p.id === id)).filter(Boolean).map(p => p.name).join(', ');
                 const isPreviousQuestion = currentIndex < maxReachedIndex;
                 const progressPercent = Math.min(100, Math.round(((currentIndex + 1) / gameQuestions.length) * 100));
+                const nextQ = gameQuestions[currentIndex + 1], prevQ = currentIndex > 0 ? gameQuestions[currentIndex - 1] : null;
+                const showNextPeek = !!nextQ && (gameMode === 'test' || turnDone);
+                const showPrevPeek = !!prevQ;
+                const peekBody = (q) => {
+                    const c = CATEGORIES.find(x => x.id === q.categoryId) || CATEGORIES[0];
+                    const t = q.cleanText || q.text.replace(/^№\s*\d+\.\s*/, '');
+                    return ( <><div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-zinc-200 mb-6"><span>{c.icon}</span><span>{c.name}</span></div><div className="text-[24px] sm:text-[29px] font-medium leading-[1.18] text-white px-2">{t}</div></> );
+                };
 
                 return (
                     <div className="safe-screen w-full flex flex-col justify-between fade-in relative z-10">
@@ -1450,33 +1479,33 @@
 
                         <main className="flex-1 flex flex-col items-center justify-center py-6 pb-28 select-none" style={{ touchAction: 'pan-y' }} onPointerDown={onSwipeStart} onPointerMove={onSwipeMove} onPointerUp={onSwipeEnd} onPointerCancel={onSwipeCancel}>
                             <div className="relative w-full max-w-lg">
-                            <div aria-hidden="true" className="absolute inset-x-5 top-5 bottom-[-14px] rounded-[32px] border border-white/[0.06] bg-[#15121c] opacity-80 pointer-events-none"></div>
-                            <div aria-hidden="true" className="absolute inset-x-9 top-9 bottom-[-26px] rounded-[32px] border border-white/[0.04] bg-[#120f18] opacity-60 pointer-events-none"></div>
+                            <div aria-hidden="true" className="absolute inset-x-9 top-9 bottom-[-26px] rounded-[32px] border border-white/[0.05] bg-[#0f0d15] pointer-events-none"></div>
+                            <div aria-hidden="true" className="absolute inset-x-5 top-5 bottom-[-14px] rounded-[32px] border border-white/[0.07] bg-[#141119] pointer-events-none"></div>
+                            {showNextPeek && ( <div ref={peekNextRef} aria-hidden="true" data-peek="next" className="absolute inset-0 z-[5] rounded-[32px] border border-white/10 bg-gradient-to-b from-[#1b1824] to-[#100e16] px-6 pt-9 pb-6 flex flex-col items-center justify-center text-center pointer-events-none select-none overflow-hidden" style={{ opacity: 0, filter: 'blur(11px) brightness(0.9)', willChange: 'transform, opacity' }}>{peekBody(nextQ)}</div> )}
+                            {showPrevPeek && ( <div ref={peekPrevRef} aria-hidden="true" data-peek="prev" className="absolute inset-0 z-[5] rounded-[32px] border border-white/10 bg-gradient-to-b from-[#1b1824] to-[#100e16] px-6 pt-9 pb-6 flex flex-col items-center justify-center text-center pointer-events-none select-none overflow-hidden" style={{ opacity: 0, filter: 'grayscale(0.75) brightness(0.82)', willChange: 'transform, opacity' }}>{peekBody(prevQ)}</div> )}
                             <div ref={cardRef} className="relative z-10 w-full" style={{ willChange: 'transform, opacity', touchAction: 'pan-y' }}>
                             {swipeHint && ( <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-white/10 border border-white/15 text-zinc-100 pointer-events-none fade-in">{swipeHint}</div> )}
-                            <div className="w-full flex flex-col items-center justify-center slide-up rounded-[32px] border border-white/10 bg-gradient-to-b from-[#1b1824] to-[#100e16] px-6 pt-7 pb-6 sm:px-8 shadow-[0_32px_64px_-24px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.07)]" style={{ minHeight: 'min(60dvh, 540px)' }} key={currentQ.dbKey + '_' + currentIndex}>
-                                <div className="flex flex-col items-center gap-1.5 mb-6">
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-zinc-500 text-[11px] uppercase tracking-[0.25em] font-bold"> Вопрос {currentQ.num} </span>
-                                        {gameMode === 'test' && currentQ.archived && ( <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-md bg-white/10 text-zinc-300">В архиве</span> )}
-                                    </div>
+                            <div className="relative w-full flex flex-col items-center justify-center slide-up rounded-[32px] border border-white/10 bg-gradient-to-b from-[#1b1824] to-[#100e16] px-6 pt-7 pb-6 sm:px-8 shadow-[0_32px_64px_-24px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.07)]" style={{ minHeight: 'min(60dvh, 540px)' }} key={currentQ.dbKey + '_' + currentIndex}>
+                                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 h-7 rounded-full bg-[#1b1824] border border-white/15 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-300 whitespace-nowrap">Вопрос № {currentQ.num} {gameMode === 'test' && currentQ.archived && ( <span className="text-[10px] px-1.5 rounded bg-white/10 text-zinc-300">В архиве</span> )}</div>
+                                <div className="flex flex-col items-center gap-1.5 mb-6 pt-2">
+                                    
                                     <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-zinc-200"> <span>{categoryInfo.icon}</span> <span>{categoryInfo.name}</span> <span className="text-zinc-600">•</span> <span className={diffInfo.classText}>{diffInfo.name}</span> </div>
                                 </div>
 
+                                <h2 className="text-[24px] sm:text-[29px] font-medium text-center leading-[1.18] mb-6 text-white px-2"> {cleanText} </h2>
                                 {gameMode === 'normal' && (turnDone ? (
-                                    (turnSkipped ? (
-                                    <div className="mb-7 px-4 py-1.5 rounded-2xl border border-amber-500/40 bg-amber-500/10 text-amber-200 text-xs font-bold uppercase tracking-wider text-center flex items-center gap-2 fade-in">
-                                        <span aria-hidden="true">↷</span> Вопрос пропущен
+                                    <div className="mb-7 flex flex-col items-center gap-2 fade-in">
+                                        {turnSkipped ? (
+                                            <div className="px-4 py-1.5 rounded-2xl border border-amber-500/40 bg-amber-500/10 text-amber-200 text-xs font-bold uppercase tracking-wider text-center flex items-center gap-2"><span aria-hidden="true">↷</span> Вопрос пропущен</div>
+                                        ) : (
+                                            <div className="px-4 py-1.5 rounded-2xl border border-emerald-500/40 bg-emerald-500/10 text-emerald-200 text-xs font-bold uppercase tracking-wider text-center flex items-center gap-2"><span aria-hidden="true">✓</span> Вопрос пройден</div>
+                                        )}
+                                        {!turnSkipped && skippedNames && <span className="text-xs text-amber-200/80 text-center px-4">Пропустили: {skippedNames}</span>}
                                     </div>
-                                ) : (
-                                    <div className="mb-7 px-4 py-1.5 rounded-2xl border border-emerald-500/40 bg-emerald-500/10 text-emerald-200 text-xs font-bold uppercase tracking-wider text-center flex items-center gap-2 fade-in">
-                                        <span aria-hidden="true">✓</span> Вопрос пройден
-                                    </div>
-                                ))
                                 ) : assignedPlayerName ? (
-                                    <div className="mb-7 flex flex-col items-center gap-1.5 fade-in">
+                                    <div className="mb-7 flex flex-col items-center gap-2 fade-in">
                                         <div className="px-4 py-1.5 rounded-2xl border border-rose-500/40 bg-rose-500/10 text-rose-200 text-xs font-bold uppercase tracking-wider text-center max-w-[80%]">Отвечает: {assignedPlayerName}</div>
-                                        <span className="text-[11px] text-zinc-500 text-center px-6">{turnPending > 0 ? 'Нажмите «Далее» — выберем следующего игрока' : 'Нажмите «Далее», когда ответит последний игрок'}</span>
+                                        {skippedNames && <span className="text-xs text-amber-200/80 text-center px-4">Пропустили: {skippedNames}</span>}
                                         {timerKey && tm.key === timerKey && (
                                             <div className="w-56 mt-2 flex flex-col items-center gap-1" role="timer">
                                                 <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden"><div className={`h-full rounded-full transition-all duration-1000 ease-linear ${tm.left <= 5 ? 'bg-rose-500' : tm.left <= 10 ? 'bg-amber-400' : 'bg-emerald-400'}`} style={{ width: `${Math.max(0, Math.min(100, (tm.left / settings.timerSec) * 100))}%` }}></div></div>
@@ -1485,16 +1514,14 @@
                                         )}
                                     </div>
                                 ) : null)}
-
-                                <h2 className="text-[24px] sm:text-[29px] font-medium text-center leading-[1.18] mb-10 text-white px-2"> {cleanText} </h2>
                                 <div className="grid grid-cols-2 gap-3 w-full max-w-sm">
-                                    <button onClick={() => triggerAI('situation')} className="h-12 rounded-2xl border border-white/12 bg-white/[0.03] text-zinc-200 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2"> <span className="text-rose-400"><Icons.Sparkles /></span> Ситуация </button>
-                                    <button onClick={() => triggerAI('psych')} className="h-12 rounded-2xl border border-rose-500/35 bg-rose-500/10 text-rose-200 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2"> <Icons.Bulb /> Совет </button>
+                                    <button onClick={() => triggerAI('situation')} className="h-[54px] rounded-2xl border border-white/12 bg-white/[0.03] text-zinc-200 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2"> <span className="text-rose-400"><Icons.Sparkles /></span> Ситуация </button>
+                                    <button onClick={() => triggerAI('psych')} className="h-[54px] rounded-2xl border border-rose-500/35 bg-rose-500/10 text-rose-200 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2"> <Icons.Bulb /> Совет </button>
                                 </div>
                                 {gameMode === 'normal' && turnEntry && turnEntry.cur && !turnDone && (
-                                    <button type="button" onClick={() => { SoundFX.click(); setShowSkipPopup(true); }} className="mt-4 text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-500 hover:text-zinc-200 transition-colors flex items-center gap-1.5"><span aria-hidden="true">↷</span> Пропустить вопрос</button>
+                                    <button type="button" onClick={() => { SoundFX.click(); setShowSkipPopup(true); }} className="mt-3 w-full max-w-sm h-[54px] rounded-2xl border border-white/15 bg-transparent hover:bg-white/[0.05] text-zinc-300 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2.5 transition-colors"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></svg> Пропустить вопрос</button>
                                 )}
-                                {currentIndex === 0 && ( <p className="mt-5 text-[11px] text-zinc-600 text-center">Листайте карточку свайпом или нажимайте «Далее»</p> )}
+                                {currentIndex === 0 && ( <p className="mt-6 text-[11px] text-zinc-600 text-center">Листайте карточки свайпами или кнопками</p> )}
                             </div></div></div>
                         </main>
 
@@ -1506,26 +1533,21 @@
                         </div>
 
                         <PopupModal isOpen={gameMode === 'normal' && turnPopup.open} onClose={handleCloseRoulettePopup}>
-                            <div className="text-center flex flex-col items-center gap-5 pt-1">
-                                <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-500">Вопрос № {currentQ.num} • Очередь</span>
-                                <h3 className="font-display text-lg font-bold text-white">{turnPopup.spinning ? "Определяем, кто отвечает…" : "Отвечает:"}</h3>
-                                {turnPopup.candidates && turnPopup.candidates.length > 0 && (
-                                    <TurnReel key={turnPopup.spinId} players={turnPopup.candidates} winnerId={turnPopup.winner} spinning={turnPopup.spinning} />
-                                )}
-                                {!turnPopup.spinning && (
-                                    <div className="w-full flex flex-col gap-3.5 fade-in pt-1">
-                                        <p className="text-base font-bold text-white">{(turnPopup.candidates || []).find(c => c.id === turnPopup.winner)?.name}</p>
-                                        <button onClick={handleCloseRoulettePopup} className="w-full rounded-2xl btn-primary text-xs font-bold uppercase tracking-widest">К вопросу</button>
-                                    </div>
-                                )}
+                            <div className="text-center flex flex-col items-center justify-between gap-5 pt-1 min-h-[300px]">
+                                <div className="w-full flex flex-col items-center gap-4">
+                                    <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-500">Вопрос № {currentQ.num} • Очередь</span>
+                                    <h3 className="font-display text-lg font-bold text-white">{turnPopup.spinning ? "Определяем, кто отвечает…" : "Отвечает:"}</h3>
+                                    {turnPopup.candidates && turnPopup.candidates.length > 0 && ( <TurnReel key={turnPopup.spinId} players={turnPopup.candidates} winnerId={turnPopup.winner} spinning={turnPopup.spinning} /> )}
+                                </div>
+                                <button type="button" disabled={turnPopup.spinning} onClick={handleCloseRoulettePopup} className="w-full rounded-2xl btn-primary text-xs font-bold uppercase tracking-widest disabled:opacity-40">К вопросу</button>
                             </div>
                         </PopupModal>
 
                         <PopupModal isOpen={punish.open && gameMode === 'normal'} onClose={closePunish}>
                             <div className="text-center flex flex-col items-center gap-4 pt-1">
                                 <div className="text-6xl animate-pulse" aria-hidden="true">{punish.icon}</div>
-                                <span className="text-[11px] font-bold uppercase tracking-[0.22em] text-rose-400">Время вышло</span>
-                                <h3 className="font-display text-xl font-bold text-white">{punish.player ? `${punish.player}, время вышло!` : 'Время вышло!'}</h3>
+                                <span className="text-[11px] font-bold uppercase tracking-[0.22em] text-rose-400">{punish.reason === 'skip' ? 'Пропуск вопроса' : 'Время вышло'}</span>
+                                <h3 className="font-display text-xl font-bold text-white">{punish.reason === 'skip' ? (punish.player ? `${punish.player} пропускает вопрос` : 'Вопрос пропущен') : (punish.player ? `${punish.player}, время вышло!` : 'Время вышло!')}</h3>
                                 {punish.text ? (
                                     <div className="w-full rounded-2xl border border-rose-500/35 bg-rose-500/10 p-4">
                                         <div className="text-[10px] font-bold uppercase tracking-widest text-rose-300 mb-1">Наказание</div>
@@ -1614,7 +1636,7 @@
                     <div className="safe-screen w-full flex flex-col fade-in max-w-md lg:max-w-3xl mx-auto relative z-10">
                         <header className="flex items-center justify-between gap-4 mb-6 pt-2">
                             <div className="flex items-center gap-3.5"><button aria-label="Назад" onClick={() => { SoundFX.click(); navigate('menu'); }} className="h-12 w-12 flex-shrink-0 flex items-center justify-center bg-white/[0.04] rounded-2xl border border-white/10 hover:bg-white/[0.08] text-zinc-300 transition-colors"><Icons.Back /></button><div><h2 className="font-display text-2xl font-bold text-white">Все вопросы</h2><p className="text-xs text-zinc-500 mt-0.5">Активно: {db.length - stats.archivedList.length - stats.disabledCount} из {db.length}</p></div></div>
-                            {isAdmin && <button onClick={() => { SoundFX.click(); setAddStatus(null); setAddForm({ text: '', cat: 'family', diff: 'Простые', targetId: '' }); navigate('add_q'); }} className="hidden lg:flex px-5 h-12 rounded-2xl font-bold text-xs uppercase btn-primary items-center gap-2"><Icons.Plus /> Новый вопрос</button>}
+                            {isAdmin && <button onClick={() => { SoundFX.click(); setAddStatus(null); setAddForm({ text: '', cat: 'family', diff: 'Простые', targetId: '' }); navigate('add_q'); }} className="hidden lg:flex px-5 h-[54px] rounded-2xl font-bold text-xs uppercase btn-primary items-center gap-2"><Icons.Plus /> Новый вопрос</button>}
                         </header>
                         <div className="flex-1 flex flex-col gap-8 pb-24">
                             {isAdmin && ( <button type="button" onClick={() => { SoundFX.click(); setTopicDraft(CATEGORIES.map(c => c.id)); setTopicErr(''); navigate('topics_admin'); }} className="w-full rounded-2xl btn-secondary flex items-center justify-center gap-2.5 text-xs font-bold uppercase tracking-widest">⚙ Управление темами</button> )}
@@ -1649,7 +1671,7 @@
                     <div className="safe-screen w-full flex flex-col fade-in max-w-2xl mx-auto relative z-10">
                         <header className="flex items-center justify-between gap-4 mb-7 pt-2 flex-shrink-0">
                             <div className="flex items-center gap-3.5"><button aria-label="Назад" onClick={() => { SoundFX.click(); navigate('cat_list'); }} className="h-12 w-12 flex-shrink-0 flex items-center justify-center bg-white/[0.04] rounded-2xl border border-white/10 hover:bg-white/[0.08] text-zinc-300 transition-colors"><Icons.Back /></button><h2 className="font-display text-2xl font-bold text-white">{CATEGORIES.find(c => c.id === viewCategory)?.name}</h2></div>
-                            {isAdmin && <button onClick={() => { SoundFX.click(); setAddStatus(null); setAddForm({ text: '', cat: viewCategory || 'family', diff: 'Простые', targetId: '' }); navigate('add_q'); }} className="hidden lg:flex px-5 h-12 rounded-2xl font-bold text-xs uppercase btn-primary items-center gap-2"><Icons.Plus /> Новый вопрос</button>}
+                            {isAdmin && <button onClick={() => { SoundFX.click(); setAddStatus(null); setAddForm({ text: '', cat: viewCategory || 'family', diff: 'Простые', targetId: '' }); navigate('add_q'); }} className="hidden lg:flex px-5 h-[54px] rounded-2xl font-bold text-xs uppercase btn-primary items-center gap-2"><Icons.Plus /> Новый вопрос</button>}
                         </header>
                         <div className="flex-1 flex flex-col gap-10 pb-24">
                             {DIFFICULTIES.map(diff => {
