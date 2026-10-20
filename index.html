@@ -130,6 +130,9 @@
         :root { --ui-btn-h: 54px; --ui-field-h: 54px; --ui-chip-h: 40px; --ui-radius: 16px; --ui-gap-block: 24px; --ui-gap-item: 12px; }
         .btn-primary, .btn-secondary { min-height: var(--ui-btn-h); }
         input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select { min-height: var(--ui-field-h); }
+    
+        /* Футер всегда прижат к нижней границе экрана на страницах с .safe-screen */
+        .safe-screen > footer { margin-top: auto; }
     </style>
 </head>
 <body>
@@ -437,7 +440,7 @@
             ['Занятия', '🎬 🎤 🎧 🎮 🎲 🎯 🧩 🎭 🎨 📚 ✈️ 🚗 🏖️ ⛺ 🏔️ ⚽ 🏀 🎾 🏋️ 💼 💰 💎 📱 💻 📷 🔮 🧿'],
             ['Символы', '❤️ 🧡 💛 💚 💙 💜 🖤 🤍 💔 ❣️ 💕 💞 💘 💝 💬 💭 ❓ ❗ ✅ ⚡ 🔞 ♾️ ⚖️ ⏳ 🔒 🕊️ 🚩']
         ];
-        const SCREEN_TITLES = { app_menu: 'Меню — ASK ME', game_setup: 'Настройки игры — ASK ME', topics_admin: 'Управление темами — ASK ME', onboarding: 'ASK ME — начните игру', session_created: 'Сессия создана — ASK ME', menu: 'ASK ME — откровенные разговоры для двоих и компании', profile_page: 'Игроки и сессия — ASK ME', admin_login: 'Вход для владельца — ASK ME', mode_select: 'Режим игры — ASK ME', game: 'Игра — ASK ME', ai_response: 'Совет и ситуация — ASK ME', summary: 'Итоги игры — ASK ME', cat_list: 'Все темы — ASK ME', q_list: 'Вопросы — ASK ME', archive_page: 'Архив вопросов — ASK ME', add_q: 'Новый вопрос — ASK ME', edit_q: 'Редактирование вопроса — ASK ME' };
+        const SCREEN_TITLES = { app_menu: 'Меню — ASK ME', game_setup: 'Усложнённый режим — ASK ME', topics_admin: 'Управление темами — ASK ME', onboarding: 'ASK ME — начните игру', session_created: 'Сессия создана — ASK ME', menu: 'ASK ME — откровенные разговоры для двоих и компании', profile_page: 'Игроки и сессия — ASK ME', admin_login: 'Вход для владельца — ASK ME', mode_select: 'Режим игры — ASK ME', game: 'Игра — ASK ME', ai_response: 'Совет и ситуация — ASK ME', summary: 'Итоги игры — ASK ME', cat_list: 'Все темы — ASK ME', q_list: 'Вопросы — ASK ME', archive_page: 'Архив вопросов — ASK ME', add_q: 'Новый вопрос — ASK ME', edit_q: 'Редактирование вопроса — ASK ME' };
         const GROUP_EMOJIS = ['😈', '🤫', '😋', '🤔', '🤪', '😏', '😱', '🫣'];
         const MAX_PLAYERS = 10;
         const normTurn = (e) => {
@@ -611,6 +614,10 @@
             const [newPunish, setNewPunish] = useState(''); const [newPunishLevel, setNewPunishLevel] = useState('any'); const [punishErr, setPunishErr] = useState('');
             const [tm, setTm] = useState({ key: '', left: 0 });
             const [timerDismissKey, setTimerDismissKey] = useState('');
+            const [hardMode, setHardMode] = useState(() => { try { return localStorage.getItem('askme_hard_mode_v1') === '1'; } catch (e) { return false; } });
+            useEffect(() => { try { localStorage.setItem('askme_hard_mode_v1', hardMode ? '1' : '0'); } catch (e) {} }, [hardMode]);
+            const fx = hardMode ? settings : { ...settings, timerOn: false, punishOn: false };
+            const [showAddPunish, setShowAddPunish] = useState(false);
             const [punish, setPunish] = useState({ open: false, text: '', player: '', icon: '⏰' });
             
             const [playersForm, setPlayersForm] = useState(profile?.players || [ { id: 'p1', name: '', gender: 'guy' }, { id: 'p2', name: '', gender: 'girl' } ]);
@@ -801,7 +808,7 @@
                 const e = normTurn(turnHistory[currentIndex]);
                 if (gameMode !== 'normal' || !profile?.players || !e || !e.cur) return;
                 const qNow = gameQuestions[currentIndex];
-                const pun = settings.punishOn ? pickPunishment(settings.punishments, qNow && qNow.level) : null;
+                const pun = fx.punishOn ? pickPunishment(settings.punishments, qNow && qNow.level) : null;
                 if (pun) { const who = profile.players.find(p => p.id === e.cur); SoundFX.warn(); setPunish({ open: true, reason: 'skip', player: who ? who.name : '', text: pun.text, icon: pun.icon || '🎭' }); return; }
                 performPlayerSkip();
             };
@@ -908,7 +915,7 @@
             });
             useEffect(() => { try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) {} }, [settings]);
             const turnE = normTurn(turnHistory[currentIndex]);
-            const timerKey = (settings.timerOn && screen === 'game' && gameMode === 'normal' && turnE && turnE.cur) ? `${currentIndex}:${turnE.cur}:${turnE.answered.length}` : '';
+            const timerKey = (fx.timerOn && screen === 'game' && gameMode === 'normal' && turnE && turnE.cur) ? `${currentIndex}:${turnE.cur}:${turnE.answered.length}` : '';
             const timerPaused = turnPopup.open || showSkipPopup || showEndGameConfirm || punish.open;
             useEffect(() => { if (timerKey) setTm({ key: timerKey, left: settings.timerSec }); }, [timerKey, settings.timerSec]);
             useEffect(() => {
@@ -922,14 +929,14 @@
                 if (tm.left <= 0) {
                     const who = profile?.players?.find(p => p.id === turnE.cur);
                     const qNow = gameQuestions[currentIndex];
-                    const pun = settings.punishOn ? pickPunishment(settings.punishments, qNow && qNow.level) : null;
+                    const pun = fx.punishOn ? pickPunishment(settings.punishments, qNow && qNow.level) : null;
                     SoundFX.warn();
                     setPunish({ open: true, reason: 'timer', player: who ? who.name : '', text: pun ? pun.text : '', icon: pun ? (pun.icon || '🎭') : '⏰' });
                 }
             }, [tm.left, tm.key, timerKey, timerPaused]);
             const closePunish = () => { setPunish(p => ({ ...p, open: false })); performPlayerSkip(); };
             const openPregame = () => { SoundFX.click(); setShowSettings(true); navigate('game_setup'); };
-            const startFromPregame = () => { setPregameOpen(false); startWithMode('normal'); };
+            const startFromPregame = () => { if (!(settings.timerOn || settings.punishOn)) { SoundFX.warn(); return; } setPregameOpen(false); setHardMode(true); startWithMode('normal'); };
             const patchSettings = (patch) => setSettings(st => ({ ...st, ...patch }));
             const addPunishment = () => {
                 const t = sanitizeInput(newPunish, 80);
@@ -937,21 +944,20 @@
                 if (settings.punishments.length >= 60) { SoundFX.warn(); setPunishErr('Максимум 60 наказаний'); return; }
                 SoundFX.click();
                 setSettings(st => ({ ...st, punishments: [...st.punishments, { id: 'c' + Date.now(), text: t, level: newPunishLevel, icon: '🎭', custom: true }] }));
-                setNewPunish(''); setPunishErr('');
+                setNewPunish(''); setPunishErr(''); setShowAddPunish(false);
             };
             const chip = "px-3 py-1.5 rounded-full border border-white/12 bg-white/[0.04] text-zinc-200";
             const pregameContent = (
                 <div className="flex flex-col gap-5 text-left">
                         <div className="text-center">
-                            <h3 className="font-display text-lg font-bold text-white">Готовы начать?</h3>
-                            <p className="text-sm text-zinc-400 mt-1 leading-snug">Таймер и наказания — по желанию. Включите их в настройках, если хотите добавить азарта.</p>
+                            <h3 className="font-display text-lg font-bold text-white">Усложнённый режим</h3>
+                            <p className="text-sm text-zinc-400 mt-1 leading-snug">Добавьте азарта: включите хотя бы одно усложнение — таймер на ответ или наказания.</p>
                         </div>
                         <div className="flex flex-wrap justify-center gap-2 text-[11px] font-bold uppercase tracking-wider">
                             <span className={chip}>⏱ {settings.timerOn ? `${settings.timerSec} с на ответ` : 'без таймера'}</span>
                             <span className={chip}>🎭 {settings.punishOn ? 'наказания включены' : 'без наказаний'}</span>
                         </div>
-                        <button type="button" aria-expanded={showSettings} onClick={() => { SoundFX.click(); setShowSettings(v => !v); }} className="h-[54px] rounded-2xl border border-white/15 bg-white/[0.03] text-xs font-bold uppercase tracking-widest text-zinc-200 flex items-center justify-center gap-2">⚙ Настройки игры <span aria-hidden="true">{showSettings ? '▴' : '▾'}</span></button>
-                        {showSettings && (
+                        {(
                             <div className="flex flex-col gap-5 fade-in">
                                 <section className="flex flex-col gap-3">
                                     <div className="flex items-center justify-between gap-3">
@@ -979,32 +985,49 @@
                                     </div>
                                     {settings.punishOn && (
                                         <div className="flex flex-col gap-2 fade-in">
-                                            <ul className="flex flex-col gap-1.5 max-h-44 overflow-y-auto pr-1">
-                                                {settings.punishments.map(p => (
-                                                    <li key={p.id} className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2">
-                                                        <span aria-hidden="true">{p.icon || '🎭'}</span>
-                                                        <span className="flex-1 text-xs text-zinc-200 leading-snug">{p.text}</span>
-                                                        <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">{(LEVEL_OPTIONS.find(o => o[0] === p.level) || LEVEL_OPTIONS[0])[1]}</span>
-                                                        <button type="button" aria-label="Удалить наказание" onClick={() => { SoundFX.click(); setSettings(st => ({ ...st, punishments: st.punishments.filter(x => x.id !== p.id) })); }} className="text-zinc-500 hover:text-rose-300 px-1">✕</button>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                            <div className="flex flex-col gap-2">
-                                                <input type="text" maxLength={80} value={newPunish} onChange={e => { setNewPunish(e.target.value); setPunishErr(''); }} placeholder="Своё наказание, например: спой припев" className="h-[54px] px-4 rounded-xl bg-white/[0.04] border border-white/12 text-sm text-white outline-none focus:border-rose-500" />
-                                                {punishErr && <span className="text-xs text-rose-400">{punishErr}</span>}
-                                                <div className="flex gap-2">
-                                                    <select value={newPunishLevel} onChange={e => setNewPunishLevel(e.target.value)} aria-label="Сложность вопроса" className="flex-1 h-[54px] px-3 rounded-xl bg-white/[0.04] border border-white/12 text-sm text-white outline-none">
+                                            <div className="flex flex-col gap-5">
+                                                {LEVEL_OPTIONS.map(([lv, label]) => {
+                                                    const items = settings.punishments.filter(p => p.level === lv);
+                                                    if (!items.length) return null;
+                                                    return (
+                                                        <div key={lv} className="flex flex-col gap-2">
+                                                            <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500">{label}</h3>
+                                                            {items.map(p => (
+                                                                <div key={p.id} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-3.5 py-3">
+                                                                    <span aria-hidden="true" className="w-10 h-10 rounded-full bg-white/[0.06] flex items-center justify-center text-lg flex-shrink-0">{p.icon || '🎭'}</span>
+                                                                    <span className="flex-1 min-w-0 text-sm text-zinc-100 leading-snug">{p.text}</span>
+                                                                    <button type="button" aria-label="Удалить наказание" onClick={() => { SoundFX.click(); setSettings(st => ({ ...st, punishments: st.punishments.filter(x => x.id !== p.id) })); }} className="w-10 h-10 flex-shrink-0 rounded-xl text-zinc-500 hover:text-rose-300 hover:bg-white/[0.05]">✕</button>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                            {!showAddPunish ? (
+                                                <button type="button" onClick={() => { SoundFX.click(); setShowAddPunish(true); }} className="w-full rounded-2xl btn-secondary text-xs font-bold uppercase tracking-widest">+ Добавить наказание</button>
+                                            ) : (
+                                                <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/[0.02] p-4 fade-in">
+                                                    <h3 className="text-sm font-bold text-white">Новое наказание</h3>
+                                                    <input type="text" maxLength={80} value={newPunish} onChange={e => { setNewPunish(e.target.value); setPunishErr(''); }} placeholder="Например: спой припев любимой песни" aria-label="Текст наказания" className="px-4 text-sm" />
+                                                    {punishErr && <span className="text-xs text-rose-400">{punishErr}</span>}
+                                                    <select value={newPunishLevel} onChange={e => setNewPunishLevel(e.target.value)} aria-label="Для какой сложности вопроса" className="px-4 text-sm text-white">
                                                         {LEVEL_OPTIONS.map(o => <option key={o[0]} value={o[0]} className="bg-[#09080c]">{o[1]}</option>)}
                                                     </select>
-                                                    <button type="button" onClick={addPunishment} className="px-4 h-11 rounded-xl bg-white/[0.08] text-xs font-bold uppercase tracking-wider text-white">+ Добавить</button>
+                                                    <div className="grid grid-cols-2 gap-3">
+                                                        <button type="button" onClick={() => { SoundFX.click(); setShowAddPunish(false); setNewPunish(''); setPunishErr(''); }} className="rounded-2xl btn-secondary text-xs font-bold uppercase tracking-wider">Отмена</button>
+                                                        <button type="button" onClick={addPunishment} className="rounded-2xl btn-primary text-xs font-bold uppercase tracking-wider">Добавить</button>
+                                                    </div>
                                                 </div>
-                                            </div>
+                                            )}
                                         </div>
                                     )}
                                 </section>
                             </div>
                         )}
-                        <button type="button" onClick={startFromPregame} className="w-full rounded-2xl btn-primary text-xs font-bold uppercase tracking-widest">Начать игру</button>
+                        <div className="flex flex-col gap-2">
+                            <button type="button" disabled={!(settings.timerOn || settings.punishOn)} onClick={startFromPregame} className="w-full rounded-2xl btn-primary text-xs font-bold uppercase tracking-widest disabled:opacity-40">Начать игру</button>
+                            {!(settings.timerOn || settings.punishOn) && <p className="text-xs text-amber-300 text-center leading-snug">Включите хотя бы одно усложнение: таймер или наказания</p>}
+                        </div>
                     </div>
             );
             const syncNewTopics = () => {
@@ -1084,7 +1107,7 @@
                 if (!tHist[cIdx]) triggerRouletteForIndex(cIdx, tHist, restoredDeck);
             };
 
-            const handlePressStartButton = () => { SoundFX.click(); if(!profile) return; if (isAdmin) navigate('mode_select'); else openPregame(); };
+            const handlePressStartButton = () => { SoundFX.click(); if(!profile) return; navigate('mode_select'); };
             const startWithMode = (mode) => {
                 SoundFX.click(); let pool = [];
                 if (mode === 'normal') { pool = profileDb.filter(q => !q.archived && !q.disabled && selectedCats.includes(q.categoryId) && selectedDiffs.includes(q.level)); if (pool.length === 0) { alert("Нет активных вопросов!"); return; } } else { const catsToUse = selectedCats.length > 0 ? selectedCats : CATEGORIES.map(c => c.id); const diffsToUse = selectedDiffs.length > 0 ? selectedDiffs : DIFFICULTIES.map(d => d.id); pool = profileDb.filter(q => catsToUse.includes(q.categoryId) && diffsToUse.includes(q.level)); if (pool.length === 0) { alert("В базе нет вопросов!"); return; } }
@@ -1232,38 +1255,71 @@
                 );
             }
 
-            if (screen === 'app_menu') {
+if (screen === 'app_menu') {
+                const menuSections = [
+                    { title: 'Разделы', items: [
+                        { id: 'players', icon: '👥', title: 'Игроки и сессия', desc: 'Имена, состав и восстановление', onClick: () => { if (profile) { setPlayersForm(profile.players); navigate('profile_page'); } } },
+                        { id: 'questions', icon: '📚', title: 'Все вопросы', desc: 'Темы и список вопросов', onClick: () => navigate('cat_list') },
+                        { id: 'archive', icon: '🗂️', title: 'Архив', desc: `Пройдено вопросов: ${stats.archivedList.length}`, onClick: () => navigate('archive_page') },
+                        ...(isAdmin ? [{ id: 'topics', icon: '⚙️', title: 'Управление темами', desc: 'Добавление тем и порядок', onClick: () => { setTopicDraft(CATEGORIES.map(c => c.id)); setTopicErr(''); navigate('topics_admin'); } }] : [])
+                    ] },
+                    { title: 'Настройки', items: [
+                        { id: 'sound', icon: isMuted ? '🔇' : '🔊', title: 'Звук и вибрация', desc: isMuted ? 'Выключены' : 'Включены', right: <SettingSwitch on={!isMuted} onChange={toggleMute} label="Звук и вибрация" /> },
+                        ...(!isStandalonePWA ? [{ id: 'install', icon: '📲', title: 'Скачать на устройство', desc: 'Добавить на главный экран', onClick: handleInstallPwaClick }] : []),
+                        ...(isAdmin ? [{ id: 'owner', icon: '🔓', title: 'Режим владельца', desc: 'Выйти из режима владельца', onClick: handleLockAdmin }] : [])
+                    ] }
+                ];
                 return (
                     <div className="safe-screen w-full flex flex-col items-center slide-up relative z-10">
                         <ToastBanner /> <PwaInstallModal /> {exitConfirmPopup}
-                        <header className="w-full max-w-md flex items-center justify-between pt-2">
+                        <header className="w-full max-w-md flex items-center gap-3 pt-2">
                             <button type="button" onClick={() => { SoundFX.click(); navigate('menu'); }} aria-label="Назад" className="h-12 w-12 flex-shrink-0 flex items-center justify-center bg-white/[0.04] rounded-2xl border border-white/10 hover:bg-white/[0.08] text-zinc-300 transition-colors"><Icons.Back /></button>
-                            <span className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-400">Меню</span>
-                            <div className="w-12"></div>
+                            <h1 className="flex-1 text-center pr-12 font-display text-lg font-bold text-white">Меню</h1>
                         </header>
-                        <main className="w-full max-w-md flex flex-col gap-5 py-6">
+                        <main className="w-full max-w-md flex flex-col gap-6 pt-6 pb-6">
                             {profile && (
-                                <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5 flex flex-col gap-3">
-                                    <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">ID сессии</span>
+                                <section className="rounded-3xl border border-white/10 bg-gradient-to-b from-white/[0.06] to-white/[0.02] p-5 flex flex-col gap-3">
+                                    <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500">ID сессии</h2>
                                     <SessionIdBadge sessionKey={profile.sessionKey} sessionId={profile.sessionId} onCopy={showToast} size="lg" />
                                     <p className="text-xs text-zinc-500 leading-snug text-center">Для восстановления прогресса при выходе</p>
-                                </div>
+                                </section>
                             )}
-                            {quickActions}
-                            <button type="button" onClick={() => { if (profile) { SoundFX.click(); setPlayersForm(profile.players); navigate('profile_page'); } }} className="w-full rounded-2xl btn-secondary flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider"><Icons.User /> Игроки и сессия</button>
-                            {!isStandalonePWA && ( <button type="button" onClick={handleInstallPwaClick} className="w-full rounded-2xl btn-secondary flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider"><Icons.DownloadApp /> Скачать на устройство</button> )}
+                            {menuSections.map(sec => (
+                                <section key={sec.title} className="flex flex-col gap-2.5">
+                                    <h2 className="px-1 text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500">{sec.title}</h2>
+                                    <div className="rounded-3xl border border-white/10 bg-white/[0.03] divide-y divide-white/[0.06] overflow-hidden">
+                                        {sec.items.map(it => {
+                                            const body = (<>
+                                                <span aria-hidden="true" className="w-10 h-10 rounded-full bg-white/[0.06] flex items-center justify-center text-lg flex-shrink-0">{it.icon}</span>
+                                                <span className="flex-1 min-w-0 flex flex-col"><span className="text-sm font-semibold text-white truncate">{it.title}</span><span className="text-xs text-zinc-500 truncate">{it.desc}</span></span>
+                                            </>);
+                                            return it.right ? (
+                                                <div key={it.id} className="min-h-[64px] px-4 flex items-center gap-3.5">{body}{it.right}</div>
+                                            ) : (
+                                                <button key={it.id} type="button" onClick={() => { SoundFX.click(); it.onClick(); }} className="w-full min-h-[64px] px-4 flex items-center gap-3.5 text-left hover:bg-white/[0.04] active:bg-white/[0.07] transition-colors">{body}<span aria-hidden="true" className="text-zinc-600 text-xl leading-none">›</span></button>
+                                            );
+                                        })}
+                                    </div>
+                                </section>
+                            ))}
+                            <section className="rounded-3xl border border-rose-500/25 bg-gradient-to-br from-rose-500/[0.12] to-transparent p-5 flex flex-col gap-3">
+                                <div><h2 className="text-sm font-bold text-white">Поделиться игрой</h2><p className="text-xs text-zinc-400 leading-snug mt-1">Отправьте ссылку на игру — присоединиться можно с любого устройства.</p></div>
+                                <button type="button" onClick={handleShareGame} className="w-full rounded-2xl btn-primary flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-widest"><Icons.Share /> Поделиться</button>
+                            </section>
+                            {profile && ( <button type="button" onClick={() => { SoundFX.warn(); setShowExitConfirm(true); }} className="w-full rounded-2xl btn-secondary flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-widest text-rose-200"><Icons.Logout /> Выйти из сессии</button> )}
                         </main>
                         <AppFooter />
                     </div>
                 );
             }
+
             if (screen === 'game_setup') {
                 return (
                     <div className="safe-screen w-full flex flex-col items-center slide-up relative z-10">
                         <ToastBanner />
                         <header className="w-full max-w-md flex items-center justify-between pt-2">
-                            <button type="button" onClick={() => { SoundFX.click(); navigate('menu'); }} aria-label="Назад" className="h-12 w-12 flex-shrink-0 flex items-center justify-center bg-white/[0.04] rounded-2xl border border-white/10 hover:bg-white/[0.08] text-zinc-300 transition-colors"><Icons.Back /></button>
-                            <span className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-400">Настройки игры</span>
+                            <button type="button" onClick={() => { SoundFX.click(); navigate('mode_select'); }} aria-label="Назад" className="h-12 w-12 flex-shrink-0 flex items-center justify-center bg-white/[0.04] rounded-2xl border border-white/10 hover:bg-white/[0.08] text-zinc-300 transition-colors"><Icons.Back /></button>
+                            <span className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-400">Усложнённый режим</span>
                             <div className="w-12"></div>
                         </header>
                         <main className="w-full max-w-md flex flex-col gap-6 py-6">{pregameContent}</main>
@@ -1355,26 +1411,39 @@
                 );
             }
 
-            if (screen === 'mode_select') {
+if (screen === 'mode_select') {
                 return (
-                    <div className="safe-screen w-full flex flex-col items-center justify-between slide-up relative z-10">
+                    <div className="safe-screen w-full flex flex-col items-center slide-up relative z-10">
                         <ToastBanner />
-                        <header className="w-full max-w-md flex items-center justify-between pt-2">
+                        <header className="w-full max-w-md flex items-center gap-3 pt-2">
                             <button aria-label="Назад" onClick={() => { SoundFX.click(); navigate('menu'); }} className="h-12 w-12 flex-shrink-0 flex items-center justify-center bg-white/[0.04] rounded-2xl border border-white/10 hover:bg-white/[0.08] text-zinc-300 transition-colors"><Icons.Back /></button>
-                            <AskMeLogo size="xs" /><div className="w-12"></div>
+                            <h1 className="flex-1 text-center pr-12 font-display text-lg font-bold text-white">Выберите режим</h1>
                         </header>
-                        <main className="w-full max-w-md flex flex-col gap-6 my-auto py-8">
-                            <div className="text-center space-y-1.5"><h2 className="font-display text-2xl font-bold text-white">Выберите режим</h2><p className="text-xs text-zinc-400 leading-relaxed">Обычный — для игры, тестовый — для проверки вопросов</p></div>
-                            <div className="flex flex-col gap-3.5">
-                                <button disabled={stats.availableActive === 0} onClick={() => openPregame()} className="w-full p-5 rounded-2xl text-left border border-rose-500/45 bg-rose-500/10 flex flex-col gap-2 active:scale-[0.98] transition-transform disabled:opacity-40">
-                                    <div className="flex justify-between"><span className="font-bold text-sm uppercase tracking-wider text-white">Обычный режим</span> <span className="text-xs font-bold px-2.5 py-0.5 rounded-lg bg-rose-500/25 text-rose-200">{stats.availableActive} вопр.</span></div>
-                                    <p className="text-xs text-zinc-300 leading-relaxed">Случайный жребий первого ответа. Пройденные вопросы переносятся в Архив.</p>
+                        <main className="w-full max-w-md flex flex-col gap-4 pt-6 pb-8">
+                            <button disabled={stats.availableActive === 0} onClick={() => { SoundFX.click(); setHardMode(false); startWithMode('normal'); }} className="w-full text-left rounded-3xl border p-5 flex items-start gap-4 active:scale-[0.98] transition-transform disabled:opacity-40 border-rose-500/45 bg-rose-500/10">
+                                <span aria-hidden="true" className="w-12 h-12 rounded-2xl bg-rose-500/20 flex items-center justify-center text-2xl flex-shrink-0">💬</span>
+                                <span className="flex-1 min-w-0 flex flex-col gap-1.5">
+                                    <span className="flex items-center justify-between gap-2"><span className="font-bold text-sm uppercase tracking-wider text-white">Обычный режим</span> <span className="text-xs font-bold px-2.5 py-0.5 rounded-lg bg-rose-500/25 text-rose-200">{stats.availableActive} вопр.</span></span>
+                                    <span className="text-xs text-zinc-300 leading-relaxed">Без лишних настроек: жребий определяет, кто отвечает первым. Пройденные вопросы уходят в Архив.</span>
+                                </span>
+                            </button>
+                            <button disabled={stats.availableActive === 0} onClick={() => { SoundFX.click(); navigate('game_setup'); }} className="w-full text-left rounded-3xl border p-5 flex items-start gap-4 active:scale-[0.98] transition-transform disabled:opacity-40 border-amber-400/40 bg-amber-400/[0.07]">
+                                <span aria-hidden="true" className="w-12 h-12 rounded-2xl bg-amber-400/15 flex items-center justify-center text-2xl flex-shrink-0">🔥</span>
+                                <span className="flex-1 min-w-0 flex flex-col gap-2">
+                                    <span className="font-bold text-sm uppercase tracking-wider text-white">Усложнённый режим</span>
+                                    <span className="text-xs text-zinc-300 leading-relaxed">Больше азарта: добавьте таймер на ответ и наказания за пропуск. Нужно выбрать хотя бы одно усложнение.</span>
+                                    <span className="flex flex-wrap gap-1.5 text-[11px] font-bold text-amber-100/90"><span className="px-2.5 py-1 rounded-full bg-white/[0.07]">⏱ Таймер</span><span className="px-2.5 py-1 rounded-full bg-white/[0.07]">🎭 Наказания</span></span>
+                                </span>
+                            </button>
+                            {isAdmin && (
+                                <button onClick={() => { SoundFX.click(); setHardMode(false); startWithMode('test'); }} className="w-full text-left rounded-3xl border p-5 flex items-start gap-4 active:scale-[0.98] transition-transform disabled:opacity-40 border-white/15 bg-white/[0.03]">
+                                    <span aria-hidden="true" className="w-12 h-12 rounded-2xl bg-white/[0.07] flex items-center justify-center text-2xl flex-shrink-0">🧪</span>
+                                    <span className="flex-1 min-w-0 flex flex-col gap-1.5">
+                                        <span className="flex items-center justify-between gap-2"><span className="font-bold text-sm uppercase tracking-wider text-zinc-200">Тестовый режим</span> <span className="text-xs font-bold px-2.5 py-0.5 rounded-lg bg-white/10 text-zinc-300">{stats.availableTotal > 0 ? stats.availableTotal : db.length} вопр.</span></span>
+                                        <span className="text-xs text-zinc-400 leading-relaxed">Для владельца: все вопросы (включая Архив) и редактирование карточек.</span>
+                                    </span>
                                 </button>
-                                <button onClick={() => startWithMode('test')} className="w-full p-5 rounded-2xl text-left border border-white/15 bg-white/[0.03] flex flex-col gap-2 active:scale-[0.98] transition-transform">
-                                    <div className="flex justify-between"><span className="font-bold text-sm uppercase tracking-wider text-zinc-200">Тестовый режим</span> <span className="text-xs font-bold px-2.5 py-0.5 rounded-lg bg-white/10 text-zinc-300">{stats.availableTotal > 0 ? stats.availableTotal : db.length} вопр.</span></div>
-                                    <p className="text-xs text-zinc-400 leading-relaxed">Доступны все вопросы (включая Архив) и редактирование карточек.</p>
-                                </button>
-                            </div>
+                            )}
                         </main>
                         <AppFooter />
                     </div>
@@ -1585,7 +1654,7 @@
                                     </div>
                                 </div>
                                 <p className="text-sm text-zinc-300 leading-snug max-h-24 overflow-y-auto px-1">{cleanText}</p>
-                                {settings.punishOn && <span className="text-[11px] text-zinc-500">Не успеете — выпадет наказание</span>}
+                                {fx.punishOn && <span className="text-[11px] text-zinc-500">Не успеете — выпадет наказание</span>}
                                 <div className="w-full grid grid-cols-2 gap-3 pt-1">
                                     <button type="button" onClick={() => { SoundFX.click(); setShowSkipPopup(true); }} className="rounded-2xl btn-secondary text-xs font-bold uppercase tracking-wider">Пропустить</button>
                                     <button type="button" onClick={handleNextQuestion} className="rounded-2xl btn-primary text-xs font-bold uppercase tracking-wider">Ответил(а)</button>
