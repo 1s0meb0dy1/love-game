@@ -133,6 +133,30 @@
     
         /* Футер всегда прижат к нижней границе экрана на страницах с .safe-screen */
         .safe-screen > footer { margin-top: auto; }
+    
+        /* Итоги игры: появление блоков и конфетти (только transform/opacity) */
+        @keyframes revealUp { from { opacity: 0; transform: translate3d(0, 14px, 0); } to { opacity: 1; transform: none; } }
+        .reveal { opacity: 0; animation: revealUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+        @keyframes confettiFall { 0% { transform: translate3d(0, -12vh, 0) rotate(0deg); opacity: 0; } 8% { opacity: 1; } 100% { transform: translate3d(var(--dx, 0px), 108vh, 0) rotate(540deg); opacity: 0; } }
+        .confetti-piece { position: absolute; top: 0; will-change: transform, opacity; opacity: 0; animation: confettiFall var(--dur, 5s) linear var(--delay, 0s) 1 forwards; }
+        @media (prefers-reduced-motion: reduce) { .reveal { animation: none; opacity: 1; } .confetti-layer { display: none; } }
+    
+        /* Единая система полей: фон, рамка, отступы, шрифт, плейсхолдер и фокус */
+        input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, textarea { background-color: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.12); color: #fff; padding-left: 1rem; padding-right: 1rem; font-size: 0.9375rem; line-height: 1.3; transition: border-color 0.2s ease, box-shadow 0.2s ease; }
+        select { padding-right: 2.25rem; }
+        textarea { padding-top: 0.875rem; padding-bottom: 0.875rem; }
+        input::placeholder, textarea::placeholder { color: #71717a; }
+        input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus, select:focus, textarea:focus { outline: none; border-color: #f43f5e; box-shadow: 0 0 0 3px rgba(244,63,94,0.18); }
+        /* Кнопки: primary / secondary / ghost — одна высота и радиус */
+        .btn-ghost { min-height: var(--ui-btn-h); background: transparent; border: 1px solid rgba(255,255,255,0.15); color: #d4d4d8; border-radius: var(--ui-radius); transition: background-color 0.2s ease; }
+        .btn-ghost:hover { background: rgba(255,255,255,0.05); }
+        /* Сообщения об ошибках под полями */
+        .ui-error { display: block; margin-top: 0.375rem; font-size: 0.75rem; line-height: 1.3; color: #fb7185; }
+        /* Типографика: роли заголовков */
+        .ui-title-hero { font-family: inherit; font-size: 1.5rem; line-height: 1.2; font-weight: 700; }
+        .ui-title-page { font-size: 1.125rem; line-height: 1.3; font-weight: 700; }
+        .ui-title-section { font-size: 0.6875rem; line-height: 1.2; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: #71717a; }
+        .ui-hint { font-size: 0.75rem; line-height: 1.4; color: #71717a; }
     </style>
 </head>
 <body>
@@ -345,7 +369,7 @@
             const [open, setOpen] = useState(false); const containerRef = useRef(null);
             useEffect(() => { const handleOutsideClick = (e) => { if (containerRef.current && !containerRef.current.contains(e.target)) setOpen(false); }; document.addEventListener("mousedown", handleOutsideClick); document.addEventListener("touchstart", handleOutsideClick); return () => { document.removeEventListener("mousedown", handleOutsideClick); document.removeEventListener("touchstart", handleOutsideClick); }; }, []);
             const selectedOpt = options.find(o => o.value === value) || options[0];
-            return ( <div ref={containerRef} className="relative w-full select-none"> <button type="button" onClick={() => { SoundFX.click(); setOpen(prev => !prev); }} className={`w-full h-13 py-3.5 px-4 rounded-2xl bg-white/[0.04] hover:bg-white/[0.07] border transition-all flex items-center justify-between text-left ${ open ? 'border-rose-500 bg-white/[0.06]' : 'border-white/12' }`} > <div className="flex items-center gap-2.5 truncate"> {selectedOpt?.icon && <span className="text-base leading-none">{selectedOpt.icon}</span>} <span className="text-sm font-medium text-white truncate"> {selectedOpt ? selectedOpt.label : placeholder} </span> </div> <span className={`text-zinc-400 transition-transform duration-200 ${open ? 'rotate-180 text-rose-400' : ''}`}> <Icons.ChevronDown /> </span> </button> {open && ( <div className="absolute left-0 right-0 mt-2 bg-[#14121d] border border-white/15 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.85)] z-50 max-h-60 overflow-y-auto no-scrollbar p-1.5 fade-in"> {options.map(opt => { const isSelected = opt.value === value; return ( <button key={opt.value} type="button" onClick={() => { SoundFX.toggle(true); onChange(opt.value); setOpen(false); }} className={`w-full px-3.5 py-2.5 rounded-xl text-left text-sm flex items-center justify-between transition-colors mb-0.5 last:mb-0 ${ isSelected ? 'bg-rose-500/15 text-rose-300 font-semibold border border-rose-500/30' : 'text-zinc-300 hover:bg-white/[0.06] hover:text-white' }`} > <div className="flex items-center gap-2.5 truncate"> {opt.icon && <span className="text-base leading-none">{opt.icon}</span>} <span className="truncate">{opt.label}</span> </div> {isSelected && ( <span className="text-rose-400 flex-shrink-0"> <Icons.Check /> </span> )} </button> ); })} </div> )} </div> );
+            return ( <div ref={containerRef} className="relative w-full select-none"> <button type="button" onClick={() => { SoundFX.click(); setOpen(prev => !prev); }} className={`w-full h-[54px] px-4 rounded-2xl bg-white/[0.04] hover:bg-white/[0.07] border transition-all flex items-center justify-between text-left ${ open ? 'border-rose-500 bg-white/[0.06]' : 'border-white/12' }`} > <div className="flex items-center gap-2.5 truncate"> {selectedOpt?.icon && <span className="text-base leading-none">{selectedOpt.icon}</span>} <span className="text-sm font-medium text-white truncate"> {selectedOpt ? selectedOpt.label : placeholder} </span> </div> <span className={`text-zinc-400 transition-transform duration-200 ${open ? 'rotate-180 text-rose-400' : ''}`}> <Icons.ChevronDown /> </span> </button> {open && ( <div className="absolute left-0 right-0 mt-2 bg-[#14121d] border border-white/15 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.85)] z-50 max-h-60 overflow-y-auto no-scrollbar p-1.5 fade-in"> {options.map(opt => { const isSelected = opt.value === value; return ( <button key={opt.value} type="button" onClick={() => { SoundFX.toggle(true); onChange(opt.value); setOpen(false); }} className={`w-full px-3.5 py-2.5 rounded-xl text-left text-sm flex items-center justify-between transition-colors mb-0.5 last:mb-0 ${ isSelected ? 'bg-rose-500/15 text-rose-300 font-semibold border border-rose-500/30' : 'text-zinc-300 hover:bg-white/[0.06] hover:text-white' }`} > <div className="flex items-center gap-2.5 truncate"> {opt.icon && <span className="text-base leading-none">{opt.icon}</span>} <span className="truncate">{opt.label}</span> </div> {isSelected && ( <span className="text-rose-400 flex-shrink-0"> <Icons.Check /> </span> )} </button> ); })} </div> )} </div> );
         };
 
         const SETTINGS_KEY = "askme_game_settings_v1";
@@ -425,8 +449,8 @@
                             <button type="button" aria-label={`Перетащить тему «${c.name}»`} onPointerDown={e => onDown(e, c.id)} style={{ touchAction: 'none' }} className="w-10 h-10 flex items-center justify-center text-lg text-zinc-500 cursor-grab select-none">⠿</button>
                             <span aria-hidden="true" className="text-lg">{c.icon}</span>
                             <span className="flex-1 min-w-0 text-sm font-semibold text-white truncate">{c.name}</span>
-                            <button type="button" aria-label="Поднять выше" disabled={i === 0} onClick={() => move(i, i - 1)} className="w-9 h-9 text-zinc-400 disabled:opacity-25">▲</button>
-                            <button type="button" aria-label="Опустить ниже" disabled={i === items.length - 1} onClick={() => move(i, i + 1)} className="w-9 h-9 text-zinc-400 disabled:opacity-25">▼</button>
+                            <button type="button" aria-label="Поднять выше" disabled={i === 0} onClick={() => move(i, i - 1)} className="w-10 h-10 text-zinc-400 disabled:opacity-25">▲</button>
+                            <button type="button" aria-label="Опустить ниже" disabled={i === items.length - 1} onClick={() => move(i, i + 1)} className="w-10 h-10 text-zinc-400 disabled:opacity-25">▼</button>
                         </li>
                     ))}
                 </ul>
@@ -440,6 +464,51 @@
             ['Занятия', '🎬 🎤 🎧 🎮 🎲 🎯 🧩 🎭 🎨 📚 ✈️ 🚗 🏖️ ⛺ 🏔️ ⚽ 🏀 🎾 🏋️ 💼 💰 💎 📱 💻 📷 🔮 🧿'],
             ['Символы', '❤️ 🧡 💛 💚 💙 💜 🖤 🤍 💔 ❣️ 💕 💞 💘 💝 💬 💭 ❓ ❗ ✅ ⚡ 🔞 ♾️ ⚖️ ⏳ 🔒 🕊️ 🚩']
         ];
+        const SummaryRing = ({ frac, children }) => {
+            const [ready, setReady] = React.useState(false);
+            React.useEffect(() => { const t = setTimeout(() => setReady(true), 140); return () => clearTimeout(t); }, []);
+            const C = 339.29;
+            return (
+                <div className="relative w-[176px] h-[176px]">
+                    <svg viewBox="0 0 120 120" className="w-full h-full" aria-hidden="true">
+                        <defs><linearGradient id="sumGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#fb7185"></stop><stop offset="100%" stopColor="#f43f5e"></stop></linearGradient></defs>
+                        <circle cx="60" cy="60" r="54" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="7"></circle>
+                        <circle cx="60" cy="60" r="54" fill="none" stroke="url(#sumGrad)" strokeWidth="7" strokeLinecap="round" transform="rotate(-90 60 60)" style={{ strokeDasharray: C, strokeDashoffset: C * (1 - (ready ? frac : 0)), transition: 'stroke-dashoffset 1.3s cubic-bezier(0.22, 1, 0.36, 1)', filter: 'drop-shadow(0 0 6px rgba(244,63,94,0.55))' }}></circle>
+                    </svg>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">{children}</div>
+                </div>
+            );
+        };
+        const SummaryBars = ({ rows, total }) => {
+            const [ready, setReady] = React.useState(false);
+            React.useEffect(() => { const t = setTimeout(() => setReady(true), 220); return () => clearTimeout(t); }, []);
+            return (
+                <div className="flex flex-col gap-4">
+                    {rows.map(r => (
+                        <div key={r.label}>
+                            <div className="flex items-center justify-between mb-1.5">
+                                <span className={`font-bold text-xs uppercase tracking-widest ${r.cls}`}>{r.label}</span>
+                                <span className="font-display text-xl font-bold text-white"><AnimatedCounter target={r.count} /></span>
+                            </div>
+                            <div className="h-2 rounded-full bg-white/[0.07] overflow-hidden">
+                                <div className={`h-full rounded-full ${r.bar}`} style={{ width: ready ? `${Math.round((r.count / Math.max(1, total)) * 100)}%` : '0%', transition: 'width 1s cubic-bezier(0.22, 1, 0.36, 1)' }}></div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            );
+        };
+        const SummaryConfetti = () => {
+            const items = React.useMemo(() => Array.from({ length: 26 }, (_, i) => {
+                const r = (n) => { const x = Math.sin(i * 12.9898 + n * 78.233) * 43758.5453; return x - Math.floor(x); };
+                return { left: Math.round(r(1) * 100), dx: Math.round((r(2) - 0.5) * 120), dur: (3.6 + r(3) * 3).toFixed(2), delay: (r(4) * 1.4).toFixed(2), size: 14 + Math.round(r(5) * 10), glyph: ['❤️', '✨', '🎉', '💬', '🔥', '🫶'][i % 6] };
+            }), []);
+            return (
+                <div className="confetti-layer absolute inset-0 overflow-hidden pointer-events-none z-0" aria-hidden="true">
+                    {items.map((c, i) => ( <span key={i} className="confetti-piece" style={{ left: c.left + '%', fontSize: c.size, '--dx': c.dx + 'px', '--dur': c.dur + 's', '--delay': c.delay + 's' }}>{c.glyph}</span> ))}
+                </div>
+            );
+        };
         const SCREEN_TITLES = { app_menu: 'Меню — ASK ME', game_setup: 'Усложнённый режим — ASK ME', topics_admin: 'Управление темами — ASK ME', onboarding: 'ASK ME — начните игру', session_created: 'Сессия создана — ASK ME', menu: 'ASK ME — откровенные разговоры для двоих и компании', profile_page: 'Игроки и сессия — ASK ME', admin_login: 'Вход для владельца — ASK ME', mode_select: 'Режим игры — ASK ME', game: 'Игра — ASK ME', ai_response: 'Совет и ситуация — ASK ME', summary: 'Итоги игры — ASK ME', cat_list: 'Все темы — ASK ME', q_list: 'Вопросы — ASK ME', archive_page: 'Архив вопросов — ASK ME', add_q: 'Новый вопрос — ASK ME', edit_q: 'Редактирование вопроса — ASK ME' };
         const GROUP_EMOJIS = ['😈', '🤫', '😋', '🤔', '🤪', '😏', '😱', '🫣'];
         const MAX_PLAYERS = 10;
@@ -516,7 +585,7 @@
                 );
             }
             return (
-                <button type="button" onClick={handleCopyClick} title="Копировать ID" className={`px-3 py-1.5 rounded-full border text-[11px] font-bold tracking-wider flex items-center gap-1.5 transition-all active:scale-95 ${ copied ? 'border-rose-500 bg-rose-500/20 text-white' : 'border-white/12 bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 hover:text-white' }`} > <span className="text-zinc-500 font-semibold">ID:</span> <span className="font-display tracking-[0.12em] text-rose-300">{sessionId}</span> <span className="text-zinc-400">{copied ? <Icons.Check /> : <Icons.Copy />}</span> </button>
+                <button type="button" onClick={handleCopyClick} title="Копировать ID" className={`px-3.5 h-10 rounded-full border text-[11px] font-bold tracking-wider flex items-center gap-1.5 transition-all active:scale-95 ${ copied ? 'border-rose-500 bg-rose-500/20 text-white' : 'border-white/12 bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 hover:text-white' }`} > <span className="text-zinc-500 font-semibold">ID:</span> <span className="font-display tracking-[0.12em] text-rose-300">{sessionId}</span> <span className="text-zinc-400">{copied ? <Icons.Check /> : <Icons.Copy />}</span> </button>
             );
         };
 
@@ -606,7 +675,7 @@
             const [topicPanelOpen, setTopicPanelOpen] = useState(false);
             const [topicDraft, setTopicDraft] = useState([]);
             const [newTopicIcon, setNewTopicIcon] = useState(''); const [newTopicName, setNewTopicName] = useState('');
-            const [topicErr, setTopicErr] = useState(''); const [topicBusy, setTopicBusy] = useState(false); const [emojiTab, setEmojiTab] = useState(0);
+            const [topicErr, setTopicErr] = useState(''); const [topicBusy, setTopicBusy] = useState(false); const [emojiTab, setEmojiTab] = useState(0); const [qFormError, setQFormError] = useState('');
             const topicsDataRef = useRef(readTopicsCache());
             const [settings, setSettings] = useState(loadGameSettings);
             const [pregameOpen, setPregameOpen] = useState(false);
@@ -1009,7 +1078,7 @@
                                                 <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/[0.02] p-4 fade-in">
                                                     <h3 className="text-sm font-bold text-white">Новое наказание</h3>
                                                     <input type="text" maxLength={80} value={newPunish} onChange={e => { setNewPunish(e.target.value); setPunishErr(''); }} placeholder="Например: спой припев любимой песни" aria-label="Текст наказания" className="px-4 text-sm" />
-                                                    {punishErr && <span className="text-xs text-rose-400">{punishErr}</span>}
+                                                    {punishErr && <span className="ui-error">{punishErr}</span>}
                                                     <select value={newPunishLevel} onChange={e => setNewPunishLevel(e.target.value)} aria-label="Для какой сложности вопроса" className="px-4 text-sm text-white">
                                                         {LEVEL_OPTIONS.map(o => <option key={o[0]} value={o[0]} className="bg-[#09080c]">{o[1]}</option>)}
                                                     </select>
@@ -1128,7 +1197,7 @@
             const openEditScreen = (questionObj, fromScreen) => { if (!isAdmin) return; SoundFX.click(); setEditingQuestion(questionObj); setEditForm({ text: questionObj.cleanText || questionObj.text.replace(/^№\s*\d+\.\s*/, ''), cat: questionObj.categoryId, diff: questionObj.level, targetId: questionObj.targetId || '' }); setReturnScreen(fromScreen); setConfirmModal(null); setResultModal(null); navigate('edit_q'); };
 
             const handleAddQuestion = async (e) => {
-                e.preventDefault(); if (!isAdmin || !addForm.text.trim() || isSaving || !ActionGuard.canProceed(1000)) return; SoundFX.click(); setIsSaving(true);
+                e.preventDefault(); if (!isAdmin || isSaving) return; if (addForm.text.trim().length < 3) { SoundFX.warn(); setQFormError('Введите текст вопроса — минимум 3 символа'); return; } setQFormError(''); if (!ActionGuard.canProceed(1000)) return; SoundFX.click(); setIsSaving(true);
                 try {
                     const cleanInput = sanitizeInput(addForm.text.replace(/^№\s*\d+\.\s*/, ''), 500); if (!cleanInput) throw new Error("Пустой текст"); const nextNum = db.length + 1; const numericKeys = db.map(item => Number(item.dbKey)).filter(n => !isNaN(n)); const nextDbKey = numericKeys.length > 0 ? String(Math.max(...numericKeys) + 1) : String(db.length); const newId = `v_db_${nextNum}_${Math.random().toString(36).substring(2, 6)}`;
                     const payload = { id: newId, num: nextNum, categoryId: addForm.cat, level: addForm.diff, text: cleanInput, targetId: sanitizeInput(addForm.targetId, 8) };
@@ -1160,7 +1229,7 @@
             };
 
             const ToastBanner = () => { if (!toastMsg) return null; return ReactDOM.createPortal( <div style={{ top: 'calc(env(safe-area-inset-top, 0px) + 12px)' }} className="fixed left-1/2 -translate-x-1/2 z-[10000] max-w-[calc(100vw-2rem)] px-4 py-2.5 rounded-full bg-[#161321] border border-rose-500/45 text-white text-xs font-bold tracking-wider shadow-[0_12px_35px_rgba(0,0,0,0.85)] flex items-center gap-2 fade-in"> <span className="text-rose-400"><Icons.Check /></span> <span>{toastMsg}</span> </div>, document.body ); };
-            const PwaInstallModal = () => ( <PopupModal isOpen={showPwaModal} onClose={() => setShowPwaModal(false)}> <div className="flex flex-col gap-4 pt-1"> <div className="pr-8"><AskMeLogo size="xs" /></div> <div className="space-y-1 text-left"> <h3 className="font-display text-xl font-bold text-white">Скачать на устройство</h3> <p className="text-xs text-zinc-400 leading-relaxed"> Установите <b className="text-white">ASK ME</b> на домашний экран. </p> </div> {isInAppWebView && ( <div className="p-3.5 rounded-2xl bg-rose-500/15 border border-rose-500/40 text-xs text-rose-200 leading-relaxed text-left"> ⚠️ Вы открыли сайт во встроенном браузере. Нажмите на иконку <b>Safari/Браузера</b>, чтобы появилась установка. </div> )} <div className="grid grid-cols-2 gap-2 p-1 rounded-2xl bg-white/[0.04] border border-white/10"> <button type="button" onClick={() => { SoundFX.click(); setPwaPlatformTab('ios'); }} className={`h-10 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${ pwaPlatformTab === 'ios' ? 'bg-rose-500 text-white' : 'text-zinc-400 hover:text-white' }`} >  iPhone </button> <button type="button" onClick={() => { SoundFX.click(); setPwaPlatformTab('android'); }} className={`h-10 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${ pwaPlatformTab === 'android' ? 'bg-rose-500 text-white' : 'text-zinc-400 hover:text-white' }`} > 🤖 Android </button> </div> {pwaPlatformTab === 'ios' ? ( <div className="flex flex-col gap-3 text-left text-xs text-zinc-200 bg-white/[0.03] p-4 rounded-2xl border border-white/10"> <div className="flex items-start gap-3"> <span className="w-6 h-6 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold flex items-center justify-center flex-shrink-0">1</span> <p className="leading-relaxed"> Нажмите кнопку <b className="text-white">«Поделиться»</b> в браузере Safari. </p> </div> <div className="hairline-divider"></div> <div className="flex items-start gap-3"> <span className="w-6 h-6 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold flex items-center justify-center flex-shrink-0">2</span> <p className="leading-relaxed"> Нажмите <b className="text-white">«На экран "Домой"»</b>. </p> </div> <button type="button" onClick={triggerIosNativeShareMenu} className="w-full h-12 mt-1 rounded-xl bg-rose-500/20 border border-rose-500/45 text-rose-200 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2" > <Icons.IosShare /> Открыть меню iOS </button> </div> ) : ( <div className="flex flex-col gap-3 text-left text-xs text-zinc-200 bg-white/[0.03] p-4 rounded-2xl border border-white/10"> <div className="flex items-start gap-3"> <span className="w-6 h-6 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold flex items-center justify-center flex-shrink-0">1</span> <p className="leading-relaxed"> Нажмите на меню браузера <b className="text-white">«⋮»</b>. </p> </div> <div className="hairline-divider"></div> <div className="flex items-start gap-3"> <span className="w-6 h-6 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold flex items-center justify-center flex-shrink-0">2</span> <p className="leading-relaxed"> Выберите <b className="text-white">«Установить приложение»</b>. </p> </div> </div> )} <button type="button" onClick={() => { SoundFX.click(); setShowPwaModal(false); }} className="w-full rounded-2xl btn-primary text-xs font-bold uppercase tracking-widest" > Понятно </button> </div> </PopupModal> );
+            const PwaInstallModal = () => ( <PopupModal isOpen={showPwaModal} onClose={() => setShowPwaModal(false)}> <div className="flex flex-col gap-4 pt-1"> <div className="pr-8"><AskMeLogo size="xs" /></div> <div className="space-y-1 text-left"> <h3 className="font-display text-xl font-bold text-white">Скачать на устройство</h3> <p className="text-xs text-zinc-400 leading-relaxed"> Установите <b className="text-white">ASK ME</b> на домашний экран. </p> </div> {isInAppWebView && ( <div className="p-3.5 rounded-2xl bg-rose-500/15 border border-rose-500/40 text-xs text-rose-200 leading-relaxed text-left"> ⚠️ Вы открыли сайт во встроенном браузере. Нажмите на иконку <b>Safari/Браузера</b>, чтобы появилась установка. </div> )} <div className="grid grid-cols-2 gap-2 p-1 rounded-2xl bg-white/[0.04] border border-white/10"> <button type="button" onClick={() => { SoundFX.click(); setPwaPlatformTab('ios'); }} className={`h-10 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${ pwaPlatformTab === 'ios' ? 'bg-rose-500 text-white' : 'text-zinc-400 hover:text-white' }`} >  iPhone </button> <button type="button" onClick={() => { SoundFX.click(); setPwaPlatformTab('android'); }} className={`h-10 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${ pwaPlatformTab === 'android' ? 'bg-rose-500 text-white' : 'text-zinc-400 hover:text-white' }`} > 🤖 Android </button> </div> {pwaPlatformTab === 'ios' ? ( <div className="flex flex-col gap-3 text-left text-xs text-zinc-200 bg-white/[0.03] p-4 rounded-2xl border border-white/10"> <div className="flex items-start gap-3"> <span className="w-6 h-6 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold flex items-center justify-center flex-shrink-0">1</span> <p className="leading-relaxed"> Нажмите кнопку <b className="text-white">«Поделиться»</b> в браузере Safari. </p> </div> <div className="hairline-divider"></div> <div className="flex items-start gap-3"> <span className="w-6 h-6 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold flex items-center justify-center flex-shrink-0">2</span> <p className="leading-relaxed"> Нажмите <b className="text-white">«На экран "Домой"»</b>. </p> </div> <button type="button" onClick={triggerIosNativeShareMenu} className="w-full h-[54px] mt-1 rounded-2xl bg-rose-500/20 border border-rose-500/45 text-rose-200 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2" > <Icons.IosShare /> Открыть меню iOS </button> </div> ) : ( <div className="flex flex-col gap-3 text-left text-xs text-zinc-200 bg-white/[0.03] p-4 rounded-2xl border border-white/10"> <div className="flex items-start gap-3"> <span className="w-6 h-6 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold flex items-center justify-center flex-shrink-0">1</span> <p className="leading-relaxed"> Нажмите на меню браузера <b className="text-white">«⋮»</b>. </p> </div> <div className="hairline-divider"></div> <div className="flex items-start gap-3"> <span className="w-6 h-6 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold flex items-center justify-center flex-shrink-0">2</span> <p className="leading-relaxed"> Выберите <b className="text-white">«Установить приложение»</b>. </p> </div> </div> )} <button type="button" onClick={() => { SoundFX.click(); setShowPwaModal(false); }} className="w-full rounded-2xl btn-primary text-xs font-bold uppercase tracking-widest" > Понятно </button> </div> </PopupModal> );
 
             if (isLoading) return <div className="safe-screen w-full flex flex-col items-center justify-center fade-in relative z-10"><AskMeLogo size="lg" /><p className="text-zinc-500 font-semibold uppercase text-[11px] tracking-[0.25em] mt-5">Синхронизация...</p></div>;
 
@@ -1186,7 +1255,7 @@
                                 <form onSubmit={handleUnlockAdmin} className="w-full flex flex-col gap-4 pt-2">
                                     <input type="email" required value={adminForm.email} onChange={e => setAdminForm({...adminForm, email: e.target.value})} placeholder="Email (Firebase Auth)" className="w-full h-[54px] px-5 rounded-2xl bg-white/[0.04] border border-white/12 text-center text-base text-white outline-none focus:border-rose-500" />
                                     <input type="password" required value={adminForm.pass} onChange={e => setAdminForm({...adminForm, pass: e.target.value})} placeholder="Пароль" className="w-full h-[54px] px-5 rounded-2xl bg-white/[0.04] border border-white/12 text-center text-base text-white outline-none focus:border-rose-500" />
-                                    {adminPinError && <span className="text-xs text-rose-400 font-medium">{adminPinError}</span>}
+                                    {adminPinError && <span className="ui-error font-medium">{adminPinError}</span>}
                                     <button type="submit" className="w-full rounded-2xl btn-primary font-bold text-xs uppercase tracking-widest">Войти</button>
                                 </form>
                             )}
@@ -1236,17 +1305,17 @@
                                 {playersForm.length < MAX_PLAYERS && (
                                             <button type="button" onClick={addPlayerField} className="h-[54px] border border-dashed border-white/20 rounded-2xl text-xs font-bold uppercase tracking-widest text-zinc-400 hover:text-white transition-all flex items-center justify-center gap-2 mt-1"> <Icons.Plus /> Добавить игрока </button>
                                         )}
-                                        {playersError && <p className="text-xs text-rose-400 text-center">{playersError}</p>}
+                                        {playersError && <p className="ui-error text-center">{playersError}</p>}
                                 <button type="submit" className="w-full rounded-2xl btn-primary font-bold text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-2 mt-2"> Создать сессию <Icons.Next /> </button>
                                     </form>
                                 ) : (
                                     <form onSubmit={handleRestoreBySessionId} className="w-full flex flex-col gap-4 text-left fade-in">
                                         <input type="text" required maxLength={400} value={restoreIdInput} onChange={e => setRestoreIdInput(e.target.value.slice(0, 400))} placeholder="Ссылка из игры или ID" className="w-full h-[54px] px-5 rounded-2xl bg-white/[0.04] border border-white/12 font-display text-center text-sm text-white placeholder-zinc-600 outline-none focus:border-rose-500" />
-                                        {restoreError && <p className="text-xs text-rose-400 text-center font-medium">{restoreError}</p>}
+                                        {restoreError && <p className="ui-error text-center font-medium">{restoreError}</p>}
                                         <button type="submit" disabled={isRestoringSession || !restoreIdInput.trim()} className="w-full rounded-2xl btn-primary font-bold text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-2 mt-2 disabled:opacity-40"> {isRestoringSession ? "Поиск..." : "Восстановить прогресс"} <Icons.Next /> </button>
                                     </form>
                                 )}
-                                {!isStandalonePWA && ( <button type="button" onClick={handleInstallPwaClick} className="px-5 py-2.5 rounded-full border border-rose-500/35 bg-rose-500/10 hover:bg-rose-500/15 text-xs font-bold uppercase tracking-wider text-rose-200 flex items-center gap-2"> <Icons.DownloadApp /> Скачать на устройство </button> )}
+                                {!isStandalonePWA && ( <button type="button" onClick={handleInstallPwaClick} className="px-5 h-10 rounded-full border border-rose-500/35 bg-rose-500/10 hover:bg-rose-500/15 text-xs font-bold uppercase tracking-wider text-rose-200 flex items-center gap-2"> <Icons.DownloadApp /> Скачать на устройство </button> )}
                                 {profile && ( <button type="button" onClick={() => { SoundFX.click(); navigate('menu'); }} className="text-xs text-zinc-400 hover:text-white underline underline-offset-4"> Вернуться в текущую сессию </button> )}
                             </div>
                         </div>
@@ -1353,7 +1422,7 @@ if (screen === 'app_menu') {
                                         <div className="grid grid-cols-7 gap-1.5 max-h-44 overflow-y-auto rounded-2xl border border-white/10 bg-white/[0.02] p-2">
                                             {EMOJI_SETS[emojiTab][1].split(' ').map(em => ( <button key={em} type="button" aria-label={`Эмодзи ${em}`} onClick={() => { SoundFX.click(); setNewTopicIcon(em); setTopicErr(''); }} className={`h-10 rounded-xl text-xl ${newTopicIcon === em ? 'bg-rose-500/20 ring-1 ring-rose-500' : 'hover:bg-white/[0.06]'}`}>{em}</button> ))}
                                         </div>
-                                        {topicErr && <span className="text-xs text-rose-400">{topicErr}</span>}
+                                        {topicErr && <span className="ui-error">{topicErr}</span>}
                                         <button type="button" disabled={topicBusy} onClick={addTopic} className="w-full rounded-2xl btn-primary text-xs font-bold uppercase tracking-widest disabled:opacity-50">{topicBusy ? 'Сохраняем…' : 'Добавить тему'}</button>
                                     </section>
                                     <div className="hairline-divider"></div>
@@ -1390,7 +1459,7 @@ if (screen === 'app_menu') {
                                 ))}
                                 {playersForm.length >= MAX_PLAYERS && ( <span className="text-[11px] text-zinc-500 text-center">Максимум — {MAX_PLAYERS} игроков</span> )}
                                 {playersForm.length < MAX_PLAYERS && ( <button type="button" onClick={addPlayerField} className="h-[54px] border border-dashed border-white/20 rounded-2xl text-xs font-bold uppercase tracking-widest text-zinc-400 hover:text-white transition-all flex items-center justify-center gap-2 mt-1"> <Icons.Plus /> Добавить игрока </button> )}
-                                {playersError && <p className="text-xs text-rose-400 text-center">{playersError}</p>}
+                                {playersError && <p className="ui-error text-center">{playersError}</p>}
                                 <button type="submit" className="w-full rounded-2xl btn-primary text-xs font-bold uppercase tracking-widest mt-1"> Сохранить имена </button>
                             </form>
                             <div className="hairline-divider"></div>
@@ -1398,13 +1467,13 @@ if (screen === 'app_menu') {
                                 <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-400 ml-1"> Восстановить другую сессию </label>
                                 <div className="flex gap-2">
                                     <input type="text" maxLength={400} value={restoreIdInput} onChange={e => setRestoreIdInput(e.target.value.slice(0, 400))} placeholder="Ссылка или ID" className="flex-1 h-[54px] px-4 rounded-xl bg-white/[0.04] border border-white/12 text-sm text-white outline-none focus:border-rose-500" />
-                                    <button type="submit" disabled={isRestoringSession || !restoreIdInput.trim()} className="px-4 h-12 rounded-xl bg-white/[0.08] text-xs font-bold uppercase tracking-wider text-white"> {isRestoringSession ? "..." : "Войти"} </button>
+                                    <button type="submit" disabled={isRestoringSession || !restoreIdInput.trim()} className="px-4 h-[54px] rounded-2xl bg-white/[0.08] text-xs font-bold uppercase tracking-wider text-white"> {isRestoringSession ? "..." : "Войти"} </button>
                                 </div>
-                                {restoreError && <span className="text-xs text-rose-400">{restoreError}</span>}
+                                {restoreError && <span className="ui-error">{restoreError}</span>}
                             </form>
                             <div className="hairline-divider"></div>
-                            <button type="button" onClick={() => { SoundFX.warn(); setShowExitConfirm(true); }} className="w-full py-3.5 rounded-2xl border border-white/12 bg-white/[0.03] text-zinc-300 hover:text-white text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-colors"><Icons.Logout /> Выйти из сессии</button>
-                            {isAdmin && ( <><div className="hairline-divider"></div> <button onClick={() => { SoundFX.click(); navigate('admin_login'); }} className="w-full py-3.5 rounded-2xl border border-rose-500/35 bg-rose-500/10 text-rose-300 text-xs font-bold uppercase tracking-wider"> 👑 Управление доступом владельца </button></> )}
+                            <button type="button" onClick={() => { SoundFX.warn(); setShowExitConfirm(true); }} className="w-full h-[54px] rounded-2xl border border-white/12 bg-white/[0.03] text-zinc-300 hover:text-white text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-colors"><Icons.Logout /> Выйти из сессии</button>
+                            {isAdmin && ( <><div className="hairline-divider"></div> <button onClick={() => { SoundFX.click(); navigate('admin_login'); }} className="w-full h-[54px] rounded-2xl border border-rose-500/35 bg-rose-500/10 text-rose-300 text-xs font-bold uppercase tracking-wider"> 👑 Управление доступом владельца </button></> )}
                         </main>
                         <AppFooter />
                     </div>
@@ -1725,25 +1794,50 @@ if (screen === 'mode_select') {
                 );
             }
 
-            if (screen === 'summary') {
+if (screen === 'summary') {
                 const skipIdx = new Set(); gameQuestions.slice(0, answeredCount).forEach((q, i) => { const e = normTurn(turnHistory[i]); if (e && isTurnSkipped(e, profile?.players || [])) skipIdx.add(i); }); const skippedCount = skipIdx.size; const answered = gameQuestions.slice(0, answeredCount).filter((q, i) => !skipIdx.has(i)); const cEasy = answered.filter(q => q.level === 'Простые').length; const cMed = answered.filter(q => q.level === 'Средние').length; const cHard = answered.filter(q => q.level === 'Глубокие').length;
                 const isAllAnswered = completedAllFlag || stats.availableActive === 0;
+                const total = answered.length;
+                const frac = (total + skippedCount) > 0 ? total / (total + skippedCount) : 0;
+                const titleBadge = isAllAnswered ? '🏆 Прошли всю колоду' : (skippedCount === 0 && total >= 5) ? '💪 Без пропусков' : (cHard >= Math.max(3, total * 0.5)) ? '🌊 Любители глубины' : (skippedCount > total) ? '🛡️ Осторожные' : total >= 15 ? '🔥 Разговорчивые' : '✨ Хорошее начало';
+                const namesLine = (profile?.players || []).map(p => p.name).join(' · ');
+                const canReplay = stats.availableActive > 0;
                 return (
-                    <div className="safe-screen w-full flex flex-col items-center justify-between slide-up relative z-10 overflow-hidden">
-                        <div className="flex-1 flex flex-col items-center justify-center w-full max-w-sm py-6 gap-6">
-                            <AskMeLogo size="md" />
-                            {isAllAnswered ? (
-                                <div className="text-center space-y-3 py-2"><div className="text-[11px] font-bold uppercase tracking-[0.25em] text-rose-400">Все вопросы пройдены</div><h1 className="font-display text-2xl font-bold text-white">Вы ответили на все вопросы!</h1><p className="text-xs text-zinc-400 leading-relaxed">Вы прошли всю выбранную колоду до самого конца.</p><button onClick={() => SoundFX.romanticFinale()} className="px-4 py-2 rounded-full border border-rose-500/35 bg-rose-500/10 text-[11px] font-bold uppercase tracking-wider text-rose-300">🎵 Мелодия финала</button></div>
-                            ) : (
-                                <div className="text-center space-y-1"><p className="text-xs font-bold uppercase tracking-widest text-zinc-500">Вы ответили на</p><div className="font-display text-6xl font-extrabold text-rose-500 py-1"><AnimatedCounter target={answered.length} /></div><p className="text-zinc-500 text-xs">вопросов — они переехали в архив</p></div>
-                            )}
-                            <div className="w-full flex flex-col divide-y divide-white/[0.08] border-y border-white/[0.08]">
-                                <div className="flex justify-between items-center py-4 px-2"><span className="font-bold text-xs uppercase tracking-widest diff-text-1">Лёгких</span><span className="font-display text-2xl font-bold text-white"><AnimatedCounter target={cEasy} /></span></div>
-                                <div className="flex justify-between items-center py-4 px-2"><span className="font-bold text-xs uppercase tracking-widest diff-text-2">Средних</span><span className="font-display text-2xl font-bold text-white"><AnimatedCounter target={cMed} /></span></div>
-                                <div className="flex justify-between items-center py-4 px-2"><span className="font-bold text-xs uppercase tracking-widest diff-text-3">Глубоких</span><span className="font-display text-2xl font-bold text-white"><AnimatedCounter target={cHard} /></span></div>
-                                <div className="flex justify-between items-center py-4 px-2"><span className="font-bold text-xs uppercase tracking-widest text-zinc-400">Пропущено</span><span className="font-display text-2xl font-bold text-white"><AnimatedCounter target={skippedCount} /></span></div>
+                    <div className="safe-screen w-full flex flex-col items-center justify-between relative z-10 overflow-hidden">
+                        <SummaryConfetti />
+                        <div className="relative z-10 flex-1 flex flex-col items-center justify-center w-full max-w-sm py-6 gap-6">
+                            <div className="reveal" style={{ animationDelay: '0ms' }}><AskMeLogo size="md" /></div>
+                            <div className="reveal text-center space-y-1.5" style={{ animationDelay: '80ms' }}>
+                                <div className="text-[11px] font-bold uppercase tracking-[0.25em] text-rose-400">{isAllAnswered ? 'Все вопросы пройдены' : 'Игра завершена'}</div>
+                                {namesLine && <p className="text-sm text-zinc-400 truncate max-w-[18rem] mx-auto">{namesLine}</p>}
                             </div>
-                            <button onClick={() => { SoundFX.click(); navigate('menu'); }} className="w-full rounded-2xl font-bold text-xs uppercase tracking-[0.2em] btn-primary flex items-center justify-center gap-2"><Icons.Check /> В меню</button>
+                            <div className="reveal flex flex-col items-center gap-3" style={{ animationDelay: '160ms' }}>
+                                <SummaryRing frac={frac}>
+                                    <div className="font-display text-5xl font-extrabold text-white leading-none"><AnimatedCounter target={total} /></div>
+                                    <span className="text-[11px] font-bold uppercase tracking-widest text-zinc-500 mt-2">отвечено</span>
+                                </SummaryRing>
+                                <p className="text-zinc-500 text-xs">Пройденные вопросы переехали в архив</p>
+                            </div>
+                            <div className="reveal flex flex-col items-center gap-2.5" style={{ animationDelay: '260ms' }}>
+                                <span className="inline-flex px-4 py-2 rounded-full border border-rose-500/35 bg-rose-500/10 text-sm font-semibold text-rose-100">{titleBadge}</span>
+                                {isAllAnswered && ( <button type="button" onClick={() => SoundFX.romanticFinale()} className="px-4 h-10 rounded-full border border-white/15 bg-transparent text-[11px] font-bold uppercase tracking-wider text-zinc-300">🎵 Мелодия финала</button> )}
+                            </div>
+                            <div className="reveal w-full rounded-3xl border border-white/10 bg-white/[0.03] p-5 flex flex-col gap-5" style={{ animationDelay: '360ms' }}>
+                                <SummaryBars total={total} rows={[
+                                    { label: 'Лёгкие', count: cEasy, cls: 'diff-text-1', bar: 'bg-emerald-400' },
+                                    { label: 'Средние', count: cMed, cls: 'diff-text-2', bar: 'bg-amber-400' },
+                                    { label: 'Глубокие', count: cHard, cls: 'diff-text-3', bar: 'bg-rose-500' }
+                                ]} />
+                                <div className="hairline-divider"></div>
+                                <div className="flex items-center justify-between">
+                                    <span className="flex items-center gap-2 font-bold text-xs uppercase tracking-widest text-zinc-400"><span aria-hidden="true">↷</span> Пропущено</span>
+                                    <span className="font-display text-xl font-bold text-white"><AnimatedCounter target={skippedCount} /></span>
+                                </div>
+                            </div>
+                            <div className={`reveal w-full grid gap-3 ${canReplay ? 'grid-cols-2' : 'grid-cols-1'}`} style={{ animationDelay: '460ms' }}>
+                                {canReplay && ( <button type="button" onClick={() => { SoundFX.click(); navigate('mode_select'); }} className="rounded-2xl btn-secondary text-xs font-bold uppercase tracking-[0.18em]">Играть ещё</button> )}
+                                <button type="button" onClick={() => { SoundFX.click(); navigate('menu'); }} className="rounded-2xl font-bold text-xs uppercase tracking-[0.18em] btn-primary flex items-center justify-center gap-2"><Icons.Check /> В меню</button>
+                            </div>
                         </div>
                         <AppFooter />
                     </div>
@@ -1807,11 +1901,12 @@ if (screen === 'mode_select') {
                     <div className="safe-screen w-full flex flex-col fade-in max-w-lg mx-auto relative z-10">
                         <header className="flex items-center gap-3.5 mb-6 pt-2"><button aria-label="Назад" onClick={() => { SoundFX.click(); navigate(returnScreen); }} className="h-12 w-12 flex-shrink-0 flex items-center justify-center bg-white/[0.04] rounded-2xl border border-white/10 hover:bg-white/[0.08] text-zinc-300 transition-colors"><Icons.Back /></button><div><h2 className="font-display text-xl font-bold text-white">Редактирование</h2><p className="text-xs text-zinc-500">№ {editingQuestion.num}</p></div></header>
                         <div className="flex-1 flex flex-col gap-5 slide-up">
-                            <textarea value={editForm.text} onChange={e => setEditForm({...editForm, text: e.target.value})} className="w-full p-4 rounded-2xl bg-white/[0.04] border border-white/12 text-base text-white h-36 focus:border-rose-500"></textarea>
+                            <textarea value={editForm.text} onChange={e => { setEditForm({...editForm, text: e.target.value}); setQFormError(''); }} className="w-full p-4 rounded-2xl bg-white/[0.04] border border-white/12 text-base text-white h-36 focus:border-rose-500"></textarea>
+                            {qFormError && <span className="ui-error">{qFormError}</span>}
                             <input type="text" placeholder="ID сессии (оставьте пустым для всех)" value={editForm.targetId} onChange={e => setEditForm({...editForm, targetId: e.target.value})} className="w-full h-[54px] px-5 rounded-2xl bg-white/[0.04] border border-white/12 text-white" />
                             <div className="grid grid-cols-2 gap-4"><CustomSelect value={editForm.cat} onChange={val => setEditForm({...editForm, cat: val})} options={CATEGORIES.map(c=>({value:c.id, label:c.name}))} /><CustomSelect value={editForm.diff} onChange={val => setEditForm({...editForm, diff: val})} options={DIFFICULTIES.map(d=>({value:d.id, label:d.name}))} /></div>
-                            <button onClick={() => setConfirmModal({ action: 'delete', title: 'Удалить вопрос?' })} className="w-full h-13 py-3.5 rounded-2xl border border-rose-500/40 bg-rose-500/10 text-rose-300 font-bold uppercase text-xs flex items-center justify-center gap-2"><Icons.Trash /> Удалить</button>
-                            <div className="mt-auto pt-4 grid grid-cols-2 gap-3.5"><button onClick={() => navigate(returnScreen)} className="w-full rounded-2xl btn-secondary font-bold text-xs uppercase">Отмена</button><button onClick={() => setConfirmModal({ action: 'save', title: 'Сохранить?' })} disabled={isSaving} className="w-full rounded-2xl btn-primary font-bold text-xs uppercase"><Icons.Check /> Сохранить</button></div>
+                            <button onClick={() => setConfirmModal({ action: 'delete', title: 'Удалить вопрос?' })} className="w-full h-[54px] rounded-2xl border border-rose-500/40 bg-rose-500/10 text-rose-300 font-bold uppercase text-xs flex items-center justify-center gap-2"><Icons.Trash /> Удалить</button>
+                            <div className="mt-auto pt-4 grid grid-cols-2 gap-3.5"><button onClick={() => navigate(returnScreen)} className="w-full rounded-2xl btn-secondary font-bold text-xs uppercase">Отмена</button><button onClick={() => { if (editForm.text.trim().length < 3) { SoundFX.warn(); setQFormError('Введите текст вопроса — минимум 3 символа'); return; } setQFormError(''); setConfirmModal({ action: 'save', title: 'Сохранить?' }); }} disabled={isSaving} className="w-full rounded-2xl btn-primary font-bold text-xs uppercase"><Icons.Check /> Сохранить</button></div>
                         </div>
                         <PopupModal isOpen={Boolean(confirmModal)} onClose={() => setConfirmModal(null)}>
                             {confirmModal && <div className="text-center gap-5 pt-2"><h3 className="font-display font-bold text-white mb-4">{confirmModal.title}</h3><div className="grid grid-cols-2 gap-3 w-full"><button onClick={() => setConfirmModal(null)} className="btn-secondary rounded-2xl uppercase font-bold text-xs p-3">Отмена</button><button onClick={() => confirmModal.action === 'delete' ? executeDeleteQuestion() : executeSaveEdit()} className="btn-primary rounded-2xl uppercase font-bold text-xs p-3">Да</button></div></div>}
@@ -1830,11 +1925,12 @@ if (screen === 'mode_select') {
                         {addStatus ? (
                             <div className="flex-1 flex flex-col items-center justify-center slide-up"><h3 className="font-display text-2xl font-bold text-white">{addStatus.ok ? 'Вопрос добавлен' : 'Ошибка'}</h3><p className="text-xs text-zinc-400 mb-4 mt-2">{addStatus.msg}</p><div className="grid grid-cols-2 gap-3 w-full max-w-xs"><button onClick={() => navigate(viewCategory ? 'q_list' : 'cat_list')} className="btn-secondary rounded-2xl uppercase text-xs p-3 font-bold">К списку</button><button onClick={() => setAddStatus(null)} className="btn-primary rounded-2xl uppercase text-xs p-3 font-bold">Еще один</button></div></div>
                         ) : (
-                            <form onSubmit={handleAddQuestion} className="flex-1 flex flex-col gap-5 slide-up">
-                                <textarea required value={addForm.text} onChange={e => setAddForm({...addForm, text: e.target.value})} className="w-full p-4 rounded-2xl bg-white/[0.04] border border-white/12 text-base text-white h-36 focus:border-rose-500" placeholder="Введите вопрос..."></textarea>
+                            <form noValidate onSubmit={handleAddQuestion} className="flex-1 flex flex-col gap-5 slide-up">
+                                <textarea value={addForm.text} onChange={e => { setAddForm({...addForm, text: e.target.value}); setQFormError(''); }} className="w-full p-4 rounded-2xl bg-white/[0.04] border border-white/12 text-base text-white h-36 focus:border-rose-500" placeholder="Введите вопрос..."></textarea>
+                            {qFormError && <span className="ui-error">{qFormError}</span>}
                                 <input type="text" placeholder="ID сессии (оставьте пустым для всех)" value={addForm.targetId} onChange={e => setAddForm({...addForm, targetId: e.target.value})} className="w-full h-[54px] px-5 rounded-2xl bg-white/[0.04] border border-white/12 text-white" />
                                 <div className="grid grid-cols-2 gap-4"><CustomSelect value={addForm.cat} onChange={val => setAddForm({...addForm, cat: val})} options={CATEGORIES.map(c=>({value:c.id, label:c.name}))} /><CustomSelect value={addForm.diff} onChange={val => setAddForm({...addForm, diff: val})} options={DIFFICULTIES.map(d=>({value:d.id, label:d.name}))} /></div>
-                                <button type="button" disabled={isGeneratingQuestion} onClick={handleGenerateQuestionAI} className="w-full h-13 rounded-2xl border border-rose-500/40 bg-rose-500/10 text-rose-200 font-bold uppercase text-xs flex items-center justify-center gap-2"><Icons.Sparkles /> {isGeneratingQuestion ? "Генерация..." : "Идея от ИИ"}</button>
+                                <button type="button" disabled={isGeneratingQuestion} onClick={handleGenerateQuestionAI} className="w-full h-[54px] rounded-2xl border border-rose-500/40 bg-rose-500/10 text-rose-200 font-bold uppercase text-xs flex items-center justify-center gap-2"><Icons.Sparkles /> {isGeneratingQuestion ? "Генерация..." : "Идея от ИИ"}</button>
                                 <div className="mt-auto pt-4 grid grid-cols-2 gap-3.5"><button type="button" onClick={() => navigate(viewCategory ? 'q_list' : 'cat_list')} className="w-full rounded-2xl btn-secondary font-bold text-xs uppercase">Отмена</button><button type="submit" disabled={isSaving || !addForm.text.trim()} className="w-full rounded-2xl btn-primary font-bold text-xs uppercase flex items-center justify-center gap-2"><Icons.Plus /> Сохранить</button></div>
                             </form>
                         )}
