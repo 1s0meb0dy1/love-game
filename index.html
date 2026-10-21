@@ -294,8 +294,8 @@
             { id: "Глубокие", name: "Глубокие", classText: "diff-text-3", classBg: "diff-pill-3" }
         ];
 
-        const SCREEN_TO_HASH = { onboarding: '#/welcome', session_created: '#/session-ready', menu: '#/', app_menu: '#/more', game_setup: '#/setup', topics_admin: '#/topics/manage', profile_page: '#/profile', admin_login: '#/admin', mode_select: '#/mode', game: '#/play', ai_response: '#/ai', summary: '#/summary', cat_list: '#/topics', q_list: '#/questions', archive_page: '#/archive', add_q: '#/add', edit_q: '#/edit' };
-        const HASH_TO_SCREEN = { '#/welcome': 'onboarding', '#/session-ready': 'session_created', '#/': 'menu', '#/menu': 'menu', '#/profile': 'profile_page', '#/more': 'app_menu', '#/setup': 'game_setup', '#/topics/manage': 'topics_admin', '#/admin': 'admin_login', '#/mode': 'mode_select', '#/play': 'game', '#/ai': 'ai_response', '#/summary': 'summary', '#/topics': 'cat_list', '#/questions': 'q_list', '#/archive': 'archive_page', '#/add': 'add_q', '#/edit': 'edit_q' };
+        const SCREEN_TO_HASH = { onboarding: '#/welcome', session_created: '#/session-ready', menu: '#/', app_menu: '#/more', game_setup: '#/setup', topics_admin: '#/topics/manage', punish_admin: '#/punishments/manage', profile_page: '#/profile', admin_login: '#/admin', mode_select: '#/mode', game: '#/play', ai_response: '#/ai', summary: '#/summary', cat_list: '#/topics', q_list: '#/questions', archive_page: '#/archive', add_q: '#/add', edit_q: '#/edit' };
+        const HASH_TO_SCREEN = { '#/welcome': 'onboarding', '#/session-ready': 'session_created', '#/': 'menu', '#/menu': 'menu', '#/profile': 'profile_page', '#/more': 'app_menu', '#/setup': 'game_setup', '#/topics/manage': 'topics_admin', '#/punishments/manage': 'punish_admin', '#/admin': 'admin_login', '#/mode': 'mode_select', '#/play': 'game', '#/ai': 'ai_response', '#/summary': 'summary', '#/topics': 'cat_list', '#/questions': 'q_list', '#/archive': 'archive_page', '#/add': 'add_q', '#/edit': 'edit_q' };
 
         const SoundFX = {
             ctx: null, filter: null, muted: false, unlocked: false,
@@ -385,16 +385,23 @@
         ];
         const LEVEL_OPTIONS = [['any', 'Любая сложность'], ['Простые', 'Лёгкие'], ['Средние', 'Средние'], ['Глубокие', 'Глубокие']];
         const loadGameSettings = () => {
-            const base = { timerOn: false, timerSec: 30, punishOn: false, punishments: DEFAULT_PUNISHMENTS };
+            const base = { timerOn: false, timerSec: 30, punishOn: false, punishments: [], hiddenTemplates: [] };
             try {
                 const p = JSON.parse(localStorage.getItem(SETTINGS_KEY) || 'null');
                 if (p && typeof p === 'object') {
-                    const list = Array.isArray(p.punishments) ? p.punishments.filter(x => x && typeof x.text === 'string' && x.text.trim()).slice(0, 60).map(x => ({ id: String(x.id || Math.random()), text: x.text.slice(0, 80), level: LEVEL_OPTIONS.some(o => o[0] === x.level) ? x.level : 'any', icon: x.icon || '🎭', custom: !!x.custom })) : [];
-                    return { timerOn: !!p.timerOn, timerSec: Math.max(5, Math.min(300, Number(p.timerSec) || 30)), punishOn: !!p.punishOn, punishments: list.length ? list : DEFAULT_PUNISHMENTS };
+                    const own = Array.isArray(p.punishments) ? p.punishments.filter(x => x && x.custom === true && typeof x.text === 'string' && x.text.trim()).slice(0, 60).map(x => ({ id: String(x.id || Math.random()), text: x.text.slice(0, 80), level: LEVEL_OPTIONS.some(o => o[0] === x.level) ? x.level : 'any', icon: x.icon || '🎭', custom: true })) : [];
+                    const hidden = Array.isArray(p.hiddenTemplates) ? p.hiddenTemplates.filter(x => typeof x === 'string').slice(0, 200) : [];
+                    return { timerOn: !!p.timerOn, timerSec: Math.max(5, Math.min(300, Number(p.timerSec) || 30)), punishOn: !!p.punishOn, punishments: own, hiddenTemplates: hidden };
                 }
             } catch (e) {}
             return base;
         };
+        const PUNISH_CACHE_KEY = "askme_punish_templates_v1";
+        const PUNISH_LEVELS = ['any', 'Простые', 'Средние', 'Глубокие'];
+        const sanitizeTemplates = (arr) => (Array.isArray(arr) ? arr : []).filter(x => x && typeof x.id === 'string' && typeof x.text === 'string' && x.text.trim() && PUNISH_LEVELS.includes(x.level)).slice(0, 100).map(x => ({ id: x.id, text: x.text.slice(0, 80), level: x.level, icon: String(x.icon || '🎭').slice(0, 16), n: Number(x.n) || 0 }));
+        const templatesFromDb = (data) => sanitizeTemplates(data && typeof data === 'object' ? Object.values(data) : []).sort((a, b) => a.n - b.n);
+        const readPunishCache = () => { try { const l = sanitizeTemplates(JSON.parse(localStorage.getItem(PUNISH_CACHE_KEY) || 'null')); return l.length ? l : DEFAULT_PUNISHMENTS; } catch (e) { return DEFAULT_PUNISHMENTS; } };
+        const PUNISH_EMOJIS = ['🎤', '💃', '🐒', '💧', '😄', '🤫', '📱', '🫶', '🍋', '🎭', '🧘', '🤸'];
         const pickPunishment = (list, level, rnd = Math.random) => {
             const pool = (list || []).filter(p => p.level === 'any' || p.level === level);
             return pool.length ? pool[Math.floor(rnd() * pool.length)] : null;
@@ -509,7 +516,7 @@
                 </div>
             );
         };
-        const SCREEN_TITLES = { app_menu: 'Меню — ASK ME', game_setup: 'Усложнённый режим — ASK ME', topics_admin: 'Управление темами — ASK ME', onboarding: 'ASK ME — начните игру', session_created: 'Сессия создана — ASK ME', menu: 'ASK ME — откровенные разговоры для двоих и компании', profile_page: 'Игроки и сессия — ASK ME', admin_login: 'Вход для владельца — ASK ME', mode_select: 'Режим игры — ASK ME', game: 'Игра — ASK ME', ai_response: 'Совет и ситуация — ASK ME', summary: 'Итоги игры — ASK ME', cat_list: 'Все темы — ASK ME', q_list: 'Вопросы — ASK ME', archive_page: 'Архив вопросов — ASK ME', add_q: 'Новый вопрос — ASK ME', edit_q: 'Редактирование вопроса — ASK ME' };
+        const SCREEN_TITLES = { app_menu: 'Меню — ASK ME', game_setup: 'Усложнённый режим — ASK ME', topics_admin: 'Управление темами — ASK ME', punish_admin: 'Шаблоны наказаний — ASK ME', onboarding: 'ASK ME — начните игру', session_created: 'Сессия создана — ASK ME', menu: 'ASK ME — откровенные разговоры для двоих и компании', profile_page: 'Игроки и сессия — ASK ME', admin_login: 'Вход для владельца — ASK ME', mode_select: 'Режим игры — ASK ME', game: 'Игра — ASK ME', ai_response: 'Совет и ситуация — ASK ME', summary: 'Итоги игры — ASK ME', cat_list: 'Все темы — ASK ME', q_list: 'Вопросы — ASK ME', archive_page: 'Архив вопросов — ASK ME', add_q: 'Новый вопрос — ASK ME', edit_q: 'Редактирование вопроса — ASK ME' };
         const GROUP_EMOJIS = ['😈', '🤫', '😋', '🤔', '🤪', '😏', '😱', '🫣'];
         const MAX_PLAYERS = 10;
         const normTurn = (e) => {
@@ -687,6 +694,10 @@
             useEffect(() => { try { localStorage.setItem('askme_hard_mode_v1', hardMode ? '1' : '0'); } catch (e) {} }, [hardMode]);
             const fx = hardMode ? settings : { ...settings, timerOn: false, punishOn: false };
             const [showAddPunish, setShowAddPunish] = useState(false);
+            const [punishTemplates, setPunishTemplates] = useState(readPunishCache);
+            const allPunishments = [...punishTemplates.filter(t => !(settings.hiddenTemplates || []).includes(t.id)), ...settings.punishments];
+            const [ptEdit, setPtEdit] = useState(null); const [ptText, setPtText] = useState(''); const [ptIcon, setPtIcon] = useState(''); const [ptLevel, setPtLevel] = useState('any');
+            const [ptErr, setPtErr] = useState(''); const [ptBusy, setPtBusy] = useState(false); const [ptConfirmId, setPtConfirmId] = useState('');
             const [punish, setPunish] = useState({ open: false, text: '', player: '', icon: '⏰' });
             
             const [playersForm, setPlayersForm] = useState(profile?.players || [ { id: 'p1', name: '', gender: 'guy' }, { id: 'p2', name: '', gender: 'girl' } ]);
@@ -877,7 +888,7 @@
                 const e = normTurn(turnHistory[currentIndex]);
                 if (gameMode !== 'normal' || !profile?.players || !e || !e.cur) return;
                 const qNow = gameQuestions[currentIndex];
-                const pun = fx.punishOn ? pickPunishment(settings.punishments, qNow && qNow.level) : null;
+                const pun = fx.punishOn ? pickPunishment(allPunishments, qNow && qNow.level) : null;
                 if (pun) { const who = profile.players.find(p => p.id === e.cur); SoundFX.warn(); setPunish({ open: true, reason: 'skip', player: who ? who.name : '', text: pun.text, icon: pun.icon || '🎭' }); return; }
                 performPlayerSkip();
             };
@@ -998,7 +1009,7 @@
                 if (tm.left <= 0) {
                     const who = profile?.players?.find(p => p.id === turnE.cur);
                     const qNow = gameQuestions[currentIndex];
-                    const pun = fx.punishOn ? pickPunishment(settings.punishments, qNow && qNow.level) : null;
+                    const pun = fx.punishOn ? pickPunishment(allPunishments, qNow && qNow.level) : null;
                     SoundFX.warn();
                     setPunish({ open: true, reason: 'timer', player: who ? who.name : '', text: pun ? pun.text : '', icon: pun ? (pun.icon || '🎭') : '⏰' });
                 }
@@ -1010,7 +1021,7 @@
             const addPunishment = () => {
                 const t = sanitizeInput(newPunish, 80);
                 if (t.length < 3) { SoundFX.warn(); setPunishErr('Опишите наказание хотя бы парой слов'); return; }
-                if (settings.punishments.length >= 60) { SoundFX.warn(); setPunishErr('Максимум 60 наказаний'); return; }
+                if (allPunishments.length >= 60) { SoundFX.warn(); setPunishErr('Максимум 60 наказаний'); return; }
                 SoundFX.click();
                 setSettings(st => ({ ...st, punishments: [...st.punishments, { id: 'c' + Date.now(), text: t, level: newPunishLevel, icon: '🎭', custom: true }] }));
                 setNewPunish(''); setPunishErr(''); setShowAddPunish(false);
@@ -1056,7 +1067,7 @@
                                         <div className="flex flex-col gap-2 fade-in">
                                             <div className="flex flex-col gap-5">
                                                 {LEVEL_OPTIONS.map(([lv, label]) => {
-                                                    const items = settings.punishments.filter(p => p.level === lv);
+                                                    const items = allPunishments.filter(p => p.level === lv);
                                                     if (!items.length) return null;
                                                     return (
                                                         <div key={lv} className="flex flex-col gap-2">
@@ -1065,12 +1076,13 @@
                                                                 <div key={p.id} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-3.5 py-3">
                                                                     <span aria-hidden="true" className="w-10 h-10 rounded-full bg-white/[0.06] flex items-center justify-center text-lg flex-shrink-0">{p.icon || '🎭'}</span>
                                                                     <span className="flex-1 min-w-0 text-sm text-zinc-100 leading-snug">{p.text}</span>
-                                                                    <button type="button" aria-label="Удалить наказание" onClick={() => { SoundFX.click(); setSettings(st => ({ ...st, punishments: st.punishments.filter(x => x.id !== p.id) })); }} className="w-10 h-10 flex-shrink-0 rounded-xl text-zinc-500 hover:text-rose-300 hover:bg-white/[0.05]">✕</button>
+                                                                    <button type="button" aria-label={p.custom ? 'Удалить наказание' : 'Скрыть наказание'} title={p.custom ? 'Удалить' : 'Скрыть у меня'} onClick={() => { SoundFX.click(); setSettings(st => p.custom ? ({ ...st, punishments: st.punishments.filter(x => x.id !== p.id) }) : ({ ...st, hiddenTemplates: [...(st.hiddenTemplates || []), p.id] })); }} className="w-10 h-10 flex-shrink-0 rounded-xl text-zinc-500 hover:text-rose-300 hover:bg-white/[0.05]">✕</button>
                                                                 </div>
                                                             ))}
                                                         </div>
                                                     );
                                                 })}
+                                                {(settings.hiddenTemplates || []).length > 0 && ( <button type="button" onClick={() => { SoundFX.click(); setSettings(st => ({ ...st, hiddenTemplates: [] })); }} className="text-xs text-zinc-400 hover:text-white underline underline-offset-4 self-start">Вернуть скрытые ({(settings.hiddenTemplates || []).length})</button> )}
                                             </div>
                                             {!showAddPunish ? (
                                                 <button type="button" onClick={() => { SoundFX.click(); setShowAddPunish(true); }} className="w-full rounded-2xl btn-secondary text-xs font-bold uppercase tracking-widest">+ Добавить наказание</button>
@@ -1159,6 +1171,48 @@
                     {profile && <button type="button" onClick={() => { SoundFX.warn(); setShowExitConfirm(true); }} className="col-span-2 rounded-2xl btn-secondary flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider text-rose-200"><Icons.Logout /> Выйти из сессии</button>}
                 </div>
             );
+            useEffect(() => {
+                let off = false;
+                (async () => {
+                    try {
+                        const res = await fetchWithTimeout(`${FIREBASE_BASE_URL}/punishments.json?t=${Date.now()}`);
+                        if (!res.ok) return;
+                        const list = templatesFromDb(await res.json());
+                        if (off || !list.length) return;
+                        setPunishTemplates(list);
+                        try { localStorage.setItem(PUNISH_CACHE_KEY, JSON.stringify(list)); } catch (e) {}
+                    } catch (e) {}
+                })();
+                return () => { off = true; };
+            }, []);
+            const writePunishTemplates = async (list) => {
+                const obj = {}; list.forEach((t, i) => { obj[t.id] = { id: t.id, text: t.text, level: t.level, icon: t.icon || '🎭', n: i }; });
+                const res = await fetchWithTimeout(`${FIREBASE_BASE_URL}/punishments.json`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(obj) });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                setPunishTemplates(list);
+                try { localStorage.setItem(PUNISH_CACHE_KEY, JSON.stringify(list)); } catch (e) {}
+            };
+            const startPtEdit = (t) => { SoundFX.click(); setPtEdit(t ? t.id : 'new'); setPtText(t ? t.text : ''); setPtIcon(t ? t.icon : ''); setPtLevel(t ? t.level : 'any'); setPtErr(''); setPtConfirmId(''); };
+            const savePt = async () => {
+                const text = sanitizeInput(ptText, 80).trim(); const icon = (ptIcon || '').trim().slice(0, 16) || '🎭';
+                if (text.length < 3) { SoundFX.warn(); setPtErr('Опишите наказание хотя бы парой слов'); return; }
+                if (!/\p{Extended_Pictographic}/u.test(icon)) { SoundFX.warn(); setPtErr('Введите эмодзи, например 🎤'); return; }
+                if (ptEdit === 'new' && punishTemplates.length >= 100) { SoundFX.warn(); setPtErr('Максимум — 100 шаблонов'); return; }
+                setPtBusy(true);
+                try {
+                    const next = ptEdit === 'new' ? [...punishTemplates, { id: 't' + Date.now().toString(36), text, level: ptLevel, icon }] : punishTemplates.map(t => t.id === ptEdit ? { ...t, text, level: ptLevel, icon } : t);
+                    await writePunishTemplates(next); SoundFX.success(); showToast('Шаблон сохранён'); setPtEdit(null); setPtErr('');
+                } catch (e) { showErrorPopup('Шаблон не сохранился', 'Проверьте интернет и вход владельца, затем попробуйте ещё раз.'); }
+                setPtBusy(false);
+            };
+            const deletePt = async (id) => {
+                if (ptConfirmId !== id) { SoundFX.warn(); setPtConfirmId(id); setPtErr(''); return; }
+                if (punishTemplates.length <= 1) { SoundFX.warn(); setPtErr('Нужен хотя бы один шаблон'); setPtConfirmId(''); return; }
+                setPtBusy(true);
+                try { await writePunishTemplates(punishTemplates.filter(t => t.id !== id)); SoundFX.success(); showToast('Шаблон удалён'); }
+                catch (e) { showErrorPopup('Шаблон не удалился', 'Проверьте интернет и вход владельца, затем попробуйте ещё раз.'); }
+                setPtConfirmId(''); setPtBusy(false);
+            };
             const handleCloseRoulettePopup = () => {
                 rouletteTimeoutsRef.current.forEach(t => clearTimeout(t)); rouletteTimeoutsRef.current = [];
                 const p = pendingTurnRef.current; pendingTurnRef.current = null;
@@ -1330,7 +1384,7 @@ if (screen === 'app_menu') {
                         { id: 'players', icon: '👥', title: 'Игроки и сессия', desc: 'Имена, состав и восстановление', onClick: () => { if (profile) { setPlayersForm(profile.players); navigate('profile_page'); } } },
                         { id: 'questions', icon: '📚', title: 'Все вопросы', desc: 'Темы и список вопросов', onClick: () => navigate('cat_list') },
                         { id: 'archive', icon: '🗂️', title: 'Архив', desc: `Пройдено вопросов: ${stats.archivedList.length}`, onClick: () => navigate('archive_page') },
-                        ...(isAdmin ? [{ id: 'topics', icon: '⚙️', title: 'Управление темами', desc: 'Добавление тем и порядок', onClick: () => { setTopicDraft(CATEGORIES.map(c => c.id)); setTopicErr(''); navigate('topics_admin'); } }] : [])
+                        ...(isAdmin ? [{ id: 'topics', icon: '⚙️', title: 'Управление темами', desc: 'Добавление тем и порядок', onClick: () => { setTopicDraft(CATEGORIES.map(c => c.id)); setTopicErr(''); navigate('topics_admin'); } }, { id: 'punish', icon: '🎭', title: 'Шаблоны наказаний', desc: 'Список для всех игроков', onClick: () => { setPtEdit(null); setPtErr(''); setPtConfirmId(''); navigate('punish_admin'); } }] : [])
                     ] },
                     { title: 'Настройки', items: [
                         { id: 'sound', icon: isMuted ? '🔇' : '🔊', title: 'Звук и вибрация', desc: isMuted ? 'Выключены' : 'Включены', right: <SettingSwitch on={!isMuted} onChange={toggleMute} label="Звук и вибрация" /> },
@@ -1431,6 +1485,65 @@ if (screen === 'app_menu') {
                                         <TopicReorderList items={draft.map(id => CATEGORIES.find(c => c.id === id)).filter(Boolean)} onChange={items => setTopicDraft(items.map(c => c.id))} />
                                         <button type="button" disabled={topicBusy || !orderChanged} onClick={saveTopicOrder} className="w-full rounded-2xl btn-secondary text-xs font-bold uppercase tracking-widest disabled:opacity-40">Сохранить порядок</button>
                                     </section>
+                                </>
+                            )}
+                        </main>
+                        <AppFooter />
+                    </div>
+                );
+            }
+            if (screen === 'punish_admin') {
+                return (
+                    <div className="safe-screen w-full flex flex-col items-center slide-up relative z-10">
+                        <ToastBanner />
+                        <header className="w-full max-w-md flex items-center gap-3 pt-2">
+                            <button type="button" onClick={() => { SoundFX.click(); navigate('app_menu'); }} aria-label="Назад" className="h-12 w-12 flex-shrink-0 flex items-center justify-center bg-white/[0.04] rounded-2xl border border-white/10 hover:bg-white/[0.08] text-zinc-300 transition-colors"><Icons.Back /></button>
+                            <h1 className="flex-1 text-center pr-12 font-display text-lg font-bold text-white">Шаблоны наказаний</h1>
+                        </header>
+                        <main className="w-full max-w-md flex flex-col gap-6 pt-6 pb-6">
+                            {!isAdmin ? ( <p className="text-sm text-zinc-400 text-center">Раздел доступен только владельцу.</p> ) : (
+                                <>
+                                    <p className="ui-hint">Эти наказания видят все игроки в усложнённом режиме. Каждый игрок может скрыть любой шаблон у себя или добавить свои.</p>
+                                    {ptEdit === null ? (
+                                        <button type="button" onClick={() => startPtEdit(null)} className="w-full rounded-2xl btn-primary text-xs font-bold uppercase tracking-widest">+ Новый шаблон</button>
+                                    ) : (
+                                        <section className="flex flex-col gap-3 rounded-3xl border border-white/10 bg-white/[0.03] p-4 fade-in">
+                                            <h2 className="text-sm font-bold text-white">{ptEdit === 'new' ? 'Новый шаблон' : 'Редактирование шаблона'}</h2>
+                                            <div className="flex gap-2">
+                                                <input type="text" value={ptIcon} maxLength={16} onChange={e => { setPtIcon(e.target.value); setPtErr(''); }} placeholder="🎭" aria-label="Эмодзи шаблона" className="w-20 text-center text-2xl" />
+                                                <input type="text" value={ptText} maxLength={80} onChange={e => { setPtText(e.target.value); setPtErr(''); }} placeholder="Например: спой припев" aria-label="Текст наказания" className="flex-1 min-w-0 text-sm" />
+                                            </div>
+                                            <div className="flex flex-wrap gap-1.5">
+                                                {PUNISH_EMOJIS.map(em => ( <button key={em} type="button" aria-label={`Иконка ${em}`} onClick={() => { SoundFX.click(); setPtIcon(em); setPtErr(''); }} className={`w-10 h-10 rounded-xl border text-lg ${ptIcon === em ? 'border-rose-500 bg-rose-500/15' : 'border-white/10 bg-white/[0.04]'}`}>{em}</button> ))}
+                                            </div>
+                                            <select value={ptLevel} onChange={e => setPtLevel(e.target.value)} aria-label="Для какой сложности вопроса" className="text-sm text-white">
+                                                {LEVEL_OPTIONS.map(o => <option key={o[0]} value={o[0]} className="bg-[#09080c]">{o[1]}</option>)}
+                                            </select>
+                                            {ptErr && <span className="ui-error">{ptErr}</span>}
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <button type="button" onClick={() => { SoundFX.click(); setPtEdit(null); setPtErr(''); }} className="rounded-2xl btn-secondary text-xs font-bold uppercase tracking-wider">Отмена</button>
+                                                <button type="button" disabled={ptBusy} onClick={savePt} className="rounded-2xl btn-primary text-xs font-bold uppercase tracking-wider disabled:opacity-50">{ptBusy ? 'Сохраняем…' : 'Сохранить'}</button>
+                                            </div>
+                                        </section>
+                                    )}
+                                    {ptEdit === null && ptErr && <span className="ui-error">{ptErr}</span>}
+                                    {LEVEL_OPTIONS.map(([lv, label]) => {
+                                        const items = punishTemplates.filter(t => t.level === lv);
+                                        if (!items.length) return null;
+                                        return (
+                                            <section key={lv} className="flex flex-col gap-2">
+                                                <h2 className="ui-title-section">{label}</h2>
+                                                {items.map(t => (
+                                                    <div key={t.id} className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.03] px-3.5 py-3">
+                                                        <span aria-hidden="true" className="w-10 h-10 rounded-full bg-white/[0.06] flex items-center justify-center text-lg flex-shrink-0">{t.icon}</span>
+                                                        <span className="flex-1 min-w-0 text-sm text-zinc-100 leading-snug">{t.text}</span>
+                                                        <button type="button" aria-label={`Изменить: ${t.text}`} onClick={() => startPtEdit(t)} className="w-10 h-10 flex-shrink-0 rounded-xl text-zinc-400 hover:text-white hover:bg-white/[0.05]">✎</button>
+                                                        <button type="button" disabled={ptBusy} aria-label={ptConfirmId === t.id ? 'Подтвердить удаление' : `Удалить: ${t.text}`} onClick={() => deletePt(t.id)} className={`h-10 flex-shrink-0 rounded-xl text-xs font-bold ${ptConfirmId === t.id ? 'px-3 bg-rose-500/20 text-rose-200 border border-rose-500/40' : 'w-10 text-zinc-500 hover:text-rose-300 hover:bg-white/[0.05]'}`}>{ptConfirmId === t.id ? 'Точно?' : '🗑'}</button>
+                                                    </div>
+                                                ))}
+                                            </section>
+                                        );
+                                    })}
                                 </>
                             )}
                         </main>
