@@ -294,8 +294,8 @@
             { id: "Глубокие", name: "Глубокие", classText: "diff-text-3", classBg: "diff-pill-3" }
         ];
 
-        const SCREEN_TO_HASH = { onboarding: '#/welcome', session_created: '#/session-ready', menu: '#/', app_menu: '#/more', game_setup: '#/setup', topics_admin: '#/topics/manage', punish_admin: '#/punishments/manage', analytics: '#/analytics', analytics_sessions: '#/analytics/sessions', profile_page: '#/profile', admin_login: '#/admin', mode_select: '#/mode', game: '#/play', ai_response: '#/ai', summary: '#/summary', cat_list: '#/topics', q_list: '#/questions', archive_page: '#/archive', add_q: '#/add', edit_q: '#/edit' };
-        const HASH_TO_SCREEN = { '#/welcome': 'onboarding', '#/session-ready': 'session_created', '#/': 'menu', '#/menu': 'menu', '#/profile': 'profile_page', '#/more': 'app_menu', '#/setup': 'game_setup', '#/topics/manage': 'topics_admin', '#/punishments/manage': 'punish_admin', '#/analytics': 'analytics', '#/analytics/sessions': 'analytics_sessions', '#/admin': 'admin_login', '#/mode': 'mode_select', '#/play': 'game', '#/ai': 'ai_response', '#/summary': 'summary', '#/topics': 'cat_list', '#/questions': 'q_list', '#/archive': 'archive_page', '#/add': 'add_q', '#/edit': 'edit_q' };
+        const SCREEN_TO_HASH = { onboarding: '#/welcome', session_created: '#/session-ready', menu: '#/', app_menu: '#/more', game_setup: '#/setup', topics_admin: '#/topics/manage', punish_admin: '#/punishments/manage', analytics: '#/analytics', analytics_sessions: '#/analytics/sessions', hidden_q: '#/questions/hidden', profile_page: '#/profile', admin_login: '#/admin', mode_select: '#/mode', game: '#/play', ai_response: '#/ai', summary: '#/summary', cat_list: '#/topics', q_list: '#/questions', archive_page: '#/archive', add_q: '#/add', edit_q: '#/edit' };
+        const HASH_TO_SCREEN = { '#/welcome': 'onboarding', '#/session-ready': 'session_created', '#/': 'menu', '#/menu': 'menu', '#/profile': 'profile_page', '#/more': 'app_menu', '#/setup': 'game_setup', '#/topics/manage': 'topics_admin', '#/punishments/manage': 'punish_admin', '#/analytics': 'analytics', '#/analytics/sessions': 'analytics_sessions', '#/questions/hidden': 'hidden_q', '#/admin': 'admin_login', '#/mode': 'mode_select', '#/play': 'game', '#/ai': 'ai_response', '#/summary': 'summary', '#/topics': 'cat_list', '#/questions': 'q_list', '#/archive': 'archive_page', '#/add': 'add_q', '#/edit': 'edit_q' };
 
         const SoundFX = {
             ctx: null, filter: null, muted: false, unlocked: false,
@@ -544,7 +544,32 @@
             const answered = sum(g => g.answered), skipped = sum(g => g.skipped);
             return { sessions: recs.length, games: games.length, avgPlayers: games.length ? sum(g => g.players) / n : 0, avgAnswered: games.length ? answered / n : 0, avgDuration: games.length ? sum(g => g.durationSec) / n : 0, avgAnswerSec: withAnswerTime.length ? withAnswerTime.reduce((a, g) => a + g.avgAnswerSec, 0) / withAnswerTime.length : 0, skipRate: (answered + skipped) ? skipped / (answered + skipped) : 0, hardShare: games.length ? games.filter(g => g.mode === 'hard').length / n : 0, timerShare: games.length ? games.filter(g => g.timerSec > 0).length / n : 0, avgTimer: games.filter(g => g.timerSec > 0).length ? games.filter(g => g.timerSec > 0).reduce((a, g) => a + g.timerSec, 0) / games.filter(g => g.timerSec > 0).length : 0, topCats: top(cat), levels: lvl, topSkipped: top(skip, 5), topPunish: top(pun, 5), punishShown: sum(g => g.punishCount) };
         };
-        const SCREEN_TITLES = { analytics: 'Аналитика — ASK ME', analytics_sessions: 'Сессии — Аналитика — ASK ME', app_menu: 'Меню — ASK ME', game_setup: 'Усложнённый режим — ASK ME', topics_admin: 'Управление темами — ASK ME', punish_admin: 'Шаблоны наказаний — ASK ME', onboarding: 'ASK ME — начните игру', session_created: 'Сессия создана — ASK ME', menu: 'ASK ME — откровенные разговоры для двоих и компании', profile_page: 'Игроки и сессия — ASK ME', admin_login: 'Вход для владельца — ASK ME', mode_select: 'Режим игры — ASK ME', game: 'Игра — ASK ME', ai_response: 'Совет и ситуация — ASK ME', summary: 'Итоги игры — ASK ME', cat_list: 'Все темы — ASK ME', q_list: 'Вопросы — ASK ME', archive_page: 'Архив вопросов — ASK ME', add_q: 'Новый вопрос — ASK ME', edit_q: 'Редактирование вопроса — ASK ME' };
+        const DECK_ARC = 24;
+        const SHARP_CATS = ['intimacy'];
+        const deckWeight = (q, t) => {
+            const bell = Math.exp(-Math.pow((t - 0.5) / 0.2, 2));
+            const lv = q.level === 'Глубокие' ? 0.25 + 1.75 * bell : q.level === 'Средние' ? 1 + 0.3 * bell : 1.6 - 1.0 * bell;
+            return lv * (SHARP_CATS.includes(q.categoryId) ? 0.6 + 0.8 * bell : 1);
+        };
+        const buildDeck = (pool, rnd = Math.random) => {
+            const buckets = new Map();
+            pool.forEach(q => { const k = q.categoryId + '|' + q.level; if (!buckets.has(k)) buckets.set(k, []); buckets.get(k).push(q); });
+            buckets.forEach(arr => { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } });
+            const keys = [...buckets.keys()], deck = [];
+            for (let i = 0; i < pool.length; i++) {
+                const t = (i % DECK_ARC) / (DECK_ARC - 1);
+                const last = deck[i - 1], prev = deck[i - 2];
+                const blocked = last && prev && last.categoryId === prev.categoryId ? last.categoryId : null;
+                let cands = keys.filter(k => buckets.get(k).length > 0 && buckets.get(k)[0].categoryId !== blocked);
+                if (cands.length === 0) cands = keys.filter(k => buckets.get(k).length > 0);
+                let sum = 0; const w = cands.map(k => { const arr = buckets.get(k); const x = arr.length * deckWeight(arr[0], t); sum += x; return x; });
+                let r = rnd() * sum, pick = cands[cands.length - 1];
+                for (let c = 0; c < cands.length; c++) { r -= w[c]; if (r <= 0) { pick = cands[c]; break; } }
+                deck.push(buckets.get(pick).pop());
+            }
+            return deck;
+        };
+        const SCREEN_TITLES = { hidden_q: 'Скрытые вопросы — ASK ME', analytics: 'Аналитика — ASK ME', analytics_sessions: 'Сессии — Аналитика — ASK ME', app_menu: 'Меню — ASK ME', game_setup: 'Усложнённый режим — ASK ME', topics_admin: 'Управление темами — ASK ME', punish_admin: 'Шаблоны наказаний — ASK ME', onboarding: 'ASK ME — начните игру', session_created: 'Сессия создана — ASK ME', menu: 'ASK ME — откровенные разговоры для двоих и компании', profile_page: 'Игроки и сессия — ASK ME', admin_login: 'Вход для владельца — ASK ME', mode_select: 'Режим игры — ASK ME', game: 'Игра — ASK ME', ai_response: 'Совет и ситуация — ASK ME', summary: 'Итоги игры — ASK ME', cat_list: 'Все темы — ASK ME', q_list: 'Вопросы — ASK ME', archive_page: 'Архив вопросов — ASK ME', add_q: 'Новый вопрос — ASK ME', edit_q: 'Редактирование вопроса — ASK ME' };
         const GROUP_EMOJIS = ['😈', '🤫', '😋', '🤔', '🤪', '😏', '😱', '🫣'];
         const MAX_PLAYERS = 10;
         const normTurn = (e) => {
@@ -729,7 +754,7 @@
             const [analyticsOn, setAnalyticsOn] = useState(() => { try { return localStorage.getItem('askme_analytics_v1') !== '0'; } catch (e) { return true; } });
             useEffect(() => { try { localStorage.setItem('askme_analytics_v1', analyticsOn ? '1' : '0'); } catch (e) {} }, [analyticsOn]);
             const [anData, setAnData] = useState(null); const [anLoading, setAnLoading] = useState(false); const [anErr, setAnErr] = useState('');
-            const [anView, setAnView] = useState('full'); const [anSel, setAnSel] = useState(null); const [anConfirm, setAnConfirm] = useState(''); const [anBusy, setAnBusy] = useState(false);
+            const [anView, setAnView] = useState('full'); const [anSel, setAnSel] = useState(null); const [anConfirm, setAnConfirm] = useState(''); const [anBusy, setAnBusy] = useState(false); const [hqBusy, setHqBusy] = useState(''); const [hqConfirmAll, setHqConfirmAll] = useState(false);
             const gameLogRef = useRef(null);
             const [punish, setPunish] = useState({ open: false, text: '', player: '', icon: '⏰' });
             
@@ -839,7 +864,7 @@
 
             const parseDatabaseObject = (rawObj) => {
                 const entries = Object.entries(rawObj); const parsed = [];
-                for (let i = 0; i < entries.length; i++) { const [dbKey, item] = entries[i]; if (!item || typeof item !== 'object' || !item.text) continue; if (item.categoryId === "_session" || String(dbKey).startsWith("sess_")) continue; const matchNum = String(item.text).match(/^№\s*(\d+)\.\s*(.*)/s); const cleanText = matchNum ? matchNum[2].trim() : String(item.text).trim(); parsed.push({ dbKey: String(dbKey), id: item.id || `q_${i + 1}`, origNum: item.num ? Number(item.num) : (matchNum ? Number(matchNum[1]) : i + 1), categoryId: item.categoryId || "family", level: item.level || "Простые", cleanText: cleanText, targetId: item.targetId || "" }); }
+                for (let i = 0; i < entries.length; i++) { const [dbKey, item] = entries[i]; if (!item || typeof item !== 'object' || !item.text) continue; if (item.categoryId === "_session" || String(dbKey).startsWith("sess_")) continue; const matchNum = String(item.text).match(/^№\s*(\d+)\.\s*(.*)/s); const cleanText = matchNum ? matchNum[2].trim() : String(item.text).trim(); parsed.push({ dbKey: String(dbKey), id: item.id || `q_${i + 1}`, origNum: item.num ? Number(item.num) : (matchNum ? Number(matchNum[1]) : i + 1), categoryId: item.categoryId || "family", level: item.level || "Простые", cleanText: cleanText, targetId: item.targetId || "", hidden: item.hidden === true }); }
                 parsed.sort((a, b) => a.origNum - b.origNum); return reindexSequential(parsed);
             };
 
@@ -852,14 +877,14 @@
 
             const profileDb = useMemo(() => {
                 const archSet = new Set(profile?.archivedIds || []); const disSet = new Set(profile?.disabledIds || []); const mySid = profile?.sessionId;
-                return db.filter(q => !q.targetId || String(q.targetId).trim() === '' || q.targetId === mySid).map(q => ({ ...q, archived: archSet.has(q.id) || archSet.has(q.dbKey), disabled: disSet.has(q.id) || disSet.has(q.dbKey) }));
-            }, [db, profile]);
+                return db.filter(q => (!q.hidden || isAdmin) && (!q.targetId || String(q.targetId).trim() === '' || q.targetId === mySid)).map(q => ({ ...q, archived: archSet.has(q.id) || archSet.has(q.dbKey), disabled: disSet.has(q.id) || disSet.has(q.dbKey) }));
+            }, [db, profile, isAdmin]);
 
             const stats = useMemo(() => {
                 const activeByCat = {}; const totalByCat = {}; const archivedByCat = {}; CATEGORIES.forEach(c => { activeByCat[c.id] = 0; totalByCat[c.id] = 0; archivedByCat[c.id] = 0; });
-                let availableActive = 0, availableTotal = 0, disabledCount = 0; const archivedList = [];
-                for (let i = 0; i < profileDb.length; i++) { const q = profileDb[i]; if (totalByCat[q.categoryId] !== undefined) totalByCat[q.categoryId]++; const matchesDiff = selectedDiffs.includes(q.level); const matchesCat = selectedCats.includes(q.categoryId); if (q.disabled) disabledCount++; if (q.archived) { archivedList.push(q); if (archivedByCat[q.categoryId] !== undefined) archivedByCat[q.categoryId]++; } else if (!q.disabled) { if (activeByCat[q.categoryId] !== undefined) activeByCat[q.categoryId]++; if (matchesCat && matchesDiff) availableActive++; } if (matchesCat && matchesDiff) availableTotal++; }
-                return { activeByCat, totalByCat, archivedByCat, availableActive, availableTotal, disabledCount, archivedList };
+                let availableActive = 0, availableTotal = 0, disabledCount = 0, hiddenCount = 0; const archivedList = [];
+                for (let i = 0; i < profileDb.length; i++) { const q = profileDb[i]; if (q.hidden) { hiddenCount++; continue; } if (totalByCat[q.categoryId] !== undefined) totalByCat[q.categoryId]++; const matchesDiff = selectedDiffs.includes(q.level); const matchesCat = selectedCats.includes(q.categoryId); if (q.disabled) disabledCount++; if (q.archived) { archivedList.push(q); if (archivedByCat[q.categoryId] !== undefined) archivedByCat[q.categoryId]++; } else if (!q.disabled) { if (activeByCat[q.categoryId] !== undefined) activeByCat[q.categoryId]++; if (matchesCat && matchesDiff) availableActive++; } if (matchesCat && matchesDiff) availableTotal++; }
+                return { activeByCat, totalByCat, archivedByCat, availableActive, availableTotal, disabledCount, archivedList, hiddenCount };
             }, [profileDb, selectedCats, selectedDiffs, topicsVersion]);
             const filteredArchivedList = useMemo(() => { return stats.archivedList.filter(q => { if (archiveFilterCat !== 'all' && q.categoryId !== archiveFilterCat) return false; if (archiveFilterDiff !== 'all' && q.level !== archiveFilterDiff) return false; if (archiveSearch.trim() !== '') { const s = archiveSearch.toLowerCase().trim(); if (!q.cleanText.toLowerCase().includes(s) && !String(q.num).includes(s)) return false; } return true; }); }, [stats.archivedList, archiveFilterCat, archiveFilterDiff, archiveSearch]);
 
@@ -1288,6 +1313,31 @@
                     if (!gameLogRef.current && gameMode === 'normal') gameLogRef.current = { startedAt: Date.now(), mode: hardMode ? 'hard' : 'normal', timerSec: fx.timerOn ? settings.timerSec : 0, punishOn: !!fx.punishOn, durations: [], punishments: [], turnStart: 0 };
                 } else if (screen !== 'ai_response' && screen !== 'summary') { gameLogRef.current = null; }
             }, [screen]);
+            const setQuestionHidden = async (q, hide) => {
+                if (!isAdmin || hqBusy) return;
+                setHqBusy(q.dbKey);
+                try {
+                    const res = await fetchWithTimeout(`${FIREBASE_BASE_URL}${dbSubPath}/${q.dbKey}.json`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(hide ? { hidden: true, hiddenAt: Date.now() } : { hidden: null, hiddenAt: null }) });
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    setDb(prev => { const next = prev.map(x => x.dbKey === q.dbKey ? { ...x, hidden: !!hide } : x); try { localStorage.setItem(OFFLINE_DB_CACHE_KEY, JSON.stringify(next)); } catch (e) {} return next; });
+                    SoundFX.success(); showToast(hide ? 'Вопрос скрыт для всех' : 'Вопрос снова доступен');
+                } catch (e) { showErrorPopup('Не удалось изменить вопрос', 'Проверьте интернет и вход владельца, затем попробуйте ещё раз.'); }
+                setHqBusy('');
+            };
+            const restoreAllHidden = async () => {
+                if (!isAdmin || hqBusy) return;
+                if (!hqConfirmAll) { SoundFX.warn(); setHqConfirmAll(true); return; }
+                const keys = db.filter(q => q.hidden).map(q => q.dbKey); if (!keys.length) { setHqConfirmAll(false); return; }
+                setHqBusy('all');
+                try {
+                    const body = {}; keys.forEach(k => { body[k + '/hidden'] = null; body[k + '/hiddenAt'] = null; });
+                    const res = await fetchWithTimeout(`${FIREBASE_BASE_URL}${dbSubPath}.json`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    setDb(prev => { const next = prev.map(x => x.hidden ? { ...x, hidden: false } : x); try { localStorage.setItem(OFFLINE_DB_CACHE_KEY, JSON.stringify(next)); } catch (e) {} return next; });
+                    SoundFX.success(); showToast('Все вопросы возвращены');
+                } catch (e) { showErrorPopup('Не удалось вернуть вопросы', 'Проверьте интернет и вход владельца, затем попробуйте ещё раз.'); }
+                setHqConfirmAll(false); setHqBusy('');
+            };
             const handleCloseRoulettePopup = () => {
                 rouletteTimeoutsRef.current.forEach(t => clearTimeout(t)); rouletteTimeoutsRef.current = [];
                 const p = pendingTurnRef.current; pendingTurnRef.current = null;
@@ -1308,8 +1358,8 @@
             const handlePressStartButton = () => { SoundFX.click(); if(!profile) return; navigate('mode_select'); };
             const startWithMode = (mode) => {
                 SoundFX.click(); let pool = [];
-                if (mode === 'normal') { pool = profileDb.filter(q => !q.archived && !q.disabled && selectedCats.includes(q.categoryId) && selectedDiffs.includes(q.level)); if (pool.length === 0) { alert("Нет активных вопросов!"); return; } } else { const catsToUse = selectedCats.length > 0 ? selectedCats : CATEGORIES.map(c => c.id); const diffsToUse = selectedDiffs.length > 0 ? selectedDiffs : DIFFICULTIES.map(d => d.id); pool = profileDb.filter(q => catsToUse.includes(q.categoryId) && diffsToUse.includes(q.level)); if (pool.length === 0) { alert("В базе нет вопросов!"); return; } }
-                const shuffled = [...pool]; for (let i = shuffled.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]; }
+                if (mode === 'normal') { pool = profileDb.filter(q => !q.hidden && !q.archived && !q.disabled && selectedCats.includes(q.categoryId) && selectedDiffs.includes(q.level)); if (pool.length === 0) { alert("Нет активных вопросов!"); return; } } else { const catsToUse = selectedCats.length > 0 ? selectedCats : CATEGORIES.map(c => c.id); const diffsToUse = selectedDiffs.length > 0 ? selectedDiffs : DIFFICULTIES.map(d => d.id); pool = profileDb.filter(q => catsToUse.includes(q.categoryId) && diffsToUse.includes(q.level)); if (pool.length === 0) { alert("В базе нет вопросов!"); return; } }
+                let shuffled = [...pool]; if (mode === 'normal') { shuffled = buildDeck(pool); } else { for (let i = shuffled.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]; } }
                 setGameMode(mode); setGameQuestions(shuffled); setCurrentIndex(0); setMaxReachedIndex(0); setTurnHistory({}); setAnsweredCount(0); setCompletedAllFlag(false); setShowEndGameConfirm(false); navigate('game');
                 if (mode === 'normal') { updateSavedGameProgress(shuffled, 0, 0, {}); triggerRouletteForIndex(0, {}, shuffled); }
             };
@@ -1459,7 +1509,7 @@ if (screen === 'app_menu') {
                         { id: 'players', icon: '👥', title: 'Игроки и сессия', desc: 'Имена, состав и восстановление', onClick: () => { if (profile) { setPlayersForm(profile.players); navigate('profile_page'); } } },
                         { id: 'questions', icon: '📚', title: 'Все вопросы', desc: 'Темы и список вопросов', onClick: () => navigate('cat_list') },
                         { id: 'archive', icon: '🗂️', title: 'Архив', desc: `Пройдено вопросов: ${stats.archivedList.length}`, onClick: () => navigate('archive_page') },
-                        ...(isAdmin ? [{ id: 'topics', icon: '⚙️', title: 'Управление темами', desc: 'Добавление тем и порядок', onClick: () => { setTopicDraft(CATEGORIES.map(c => c.id)); setTopicErr(''); navigate('topics_admin'); } }, { id: 'punish', icon: '🎭', title: 'Шаблоны наказаний', desc: 'Список для всех игроков', onClick: () => { setPtEdit(null); setPtErr(''); setPtConfirmId(''); navigate('punish_admin'); } }, { id: 'analytics', icon: '📊', title: 'Аналитика', desc: 'Сессии, вопросы, наказания', onClick: () => { setAnSel(null); setAnConfirm(''); navigate('analytics'); } }] : [])
+                        ...(isAdmin ? [{ id: 'topics', icon: '⚙️', title: 'Управление темами', desc: 'Добавление тем и порядок', onClick: () => { setTopicDraft(CATEGORIES.map(c => c.id)); setTopicErr(''); navigate('topics_admin'); } }, { id: 'punish', icon: '🎭', title: 'Шаблоны наказаний', desc: 'Список для всех игроков', onClick: () => { setPtEdit(null); setPtErr(''); setPtConfirmId(''); navigate('punish_admin'); } }, { id: 'analytics', icon: '📊', title: 'Аналитика', desc: 'Сессии, вопросы, наказания', onClick: () => { setAnSel(null); setAnConfirm(''); navigate('analytics'); } }, { id: 'hidden', icon: '🙈', title: 'Скрытые вопросы', desc: `Сейчас скрыто: ${stats.hiddenCount}`, onClick: () => { setHqConfirmAll(false); navigate('hidden_q'); } }] : [])
                     ] },
                     { title: 'Настройки', items: [
                         { id: 'sound', icon: isMuted ? '🔇' : '🔊', title: 'Звук и вибрация', desc: isMuted ? 'Выключены' : 'Включены', right: <SettingSwitch on={!isMuted} onChange={toggleMute} label="Звук и вибрация" /> },
@@ -1724,6 +1774,37 @@ if (screen === 'app_menu') {
                                     <button type="button" disabled={anBusy} onClick={() => deleteAnSession(anSel)} className={`w-full rounded-2xl btn-secondary text-xs font-bold uppercase tracking-wider disabled:opacity-50 ${anConfirm === anSel ? 'border-rose-500/50 text-rose-200 bg-rose-500/15' : 'text-rose-200'}`}>{anConfirm === anSel ? 'Точно удалить? Нажмите ещё раз' : '🗑 Удалить сессию и все её данные'}</button>
                                     <p className="ui-hint text-center">Удаляются и полные, и обезличенные данные этой сессии.</p>
                                 </>); })()}
+                            </>)}
+                        </main>
+                        <AppFooter />
+                    </div>
+                );
+            }
+            if (screen === 'hidden_q') {
+                const hid = profileDb.filter(q => q.hidden);
+                return (
+                    <div className="safe-screen w-full flex flex-col items-center slide-up relative z-10">
+                        <ToastBanner />
+                        <header className="w-full max-w-md flex items-center gap-3 pt-2">
+                            <button type="button" onClick={() => { SoundFX.click(); navigate('app_menu'); }} aria-label="Назад" className="h-12 w-12 flex-shrink-0 flex items-center justify-center bg-white/[0.04] rounded-2xl border border-white/10 hover:bg-white/[0.08] text-zinc-300 transition-colors"><Icons.Back /></button>
+                            <h1 className="flex-1 text-center pr-12 font-display text-lg font-bold text-white">Скрытые вопросы</h1>
+                        </header>
+                        <main className="w-full max-w-md flex flex-col gap-6 pt-6 pb-6">
+                            {!isAdmin ? ( <p className="text-sm text-zinc-400 text-center">Раздел доступен только владельцу.</p> ) : (<>
+                                <p className="ui-hint">Эти вопросы временно скрыты: игроки их не видят, и они не попадают в игру. Вернуть вопрос можно в любой момент.</p>
+                                {hid.length === 0 ? ( <p className="text-sm text-zinc-400 text-center py-6">Скрытых вопросов нет. Скрыть вопрос можно в списке вопросов кнопкой 🙈.</p> ) : (<>
+                                    {CATEGORIES.map(c => { const items = hid.filter(q => q.categoryId === c.id); if (!items.length) return null; return (
+                                        <section key={c.id} className="flex flex-col gap-2">
+                                            <h2 className="ui-title-section">{c.icon} {c.name} · {items.length}</h2>
+                                            {items.map(q => (
+                                                <div key={q.dbKey} className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-3.5 py-3">
+                                                    <span className="flex-1 min-w-0 text-sm text-zinc-100 leading-snug">{q.cleanText}</span>
+                                                    <button type="button" disabled={!!hqBusy} onClick={() => setQuestionHidden(q, false)} className="h-10 px-3.5 flex-shrink-0 rounded-full border border-white/15 bg-white/[0.05] text-xs font-bold uppercase tracking-wider text-zinc-100 disabled:opacity-40">Вернуть</button>
+                                                </div>
+                                            ))}
+                                        </section> ); })}
+                                    <button type="button" disabled={!!hqBusy} onClick={restoreAllHidden} className={`w-full rounded-2xl btn-secondary text-xs font-bold uppercase tracking-wider disabled:opacity-50 ${hqConfirmAll ? 'border-amber-400/50 text-amber-100 bg-amber-400/10' : ''}`}>{hqConfirmAll ? `Точно вернуть все (${hid.length})? Нажмите ещё раз` : `Вернуть все (${hid.length})`}</button>
+                                </>)}
                             </>)}
                         </main>
                         <AppFooter />
@@ -2181,7 +2262,7 @@ if (screen === 'summary') {
                         <div className="flex-1 flex flex-col gap-10 pb-24">
                             {DIFFICULTIES.map(diff => {
                                 const diffQs = qs.filter(q => q.level === diff.id); if (diffQs.length === 0) return null;
-                                return ( <div key={diff.id} className="space-y-3"><h3 className={`font-display text-sm font-bold uppercase ${diff.classText}`}>{diff.name}</h3><div className="flex flex-col divide-y divide-white/[0.08] border-y border-white/[0.08]"> {diffQs.slice(0, visibleLimit).map(q => ( <div key={q.dbKey} className="py-4 flex items-start justify-between gap-4"> <div className="text-[15px] text-zinc-100 flex-1"><span className="text-rose-400 font-bold mr-2">№ {q.num}.</span>{q.cleanText}</div> <div className="flex items-center gap-2 flex-shrink-0"> {isAdmin && <button onClick={() => openEditScreen(q, 'q_list')} className="p-2 rounded-xl bg-white/[0.04] text-zinc-400 border border-white/10"><Icons.Edit /></button>} </div> </div> ))} </div></div> );
+                                return ( <div key={diff.id} className="space-y-3"><h3 className={`font-display text-sm font-bold uppercase ${diff.classText}`}>{diff.name}</h3><div className="flex flex-col divide-y divide-white/[0.08] border-y border-white/[0.08]"> {diffQs.slice(0, visibleLimit).map(q => ( <div key={q.dbKey} className="py-4 flex items-start justify-between gap-4"> <div className="text-[15px] text-zinc-100 flex-1"><span className="text-rose-400 font-bold mr-2">№ {q.num}.</span>{q.cleanText}{q.hidden && <span className="ml-2 text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-200 align-middle">Скрыт</span>}</div> <div className="flex items-center gap-2 flex-shrink-0"> {isAdmin && <button disabled={!!hqBusy} onClick={() => setQuestionHidden(q, !q.hidden)} aria-label={q.hidden ? 'Вернуть вопрос' : 'Скрыть вопрос для всех'} title={q.hidden ? 'Вернуть вопрос' : 'Скрыть для всех'} className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/[0.04] text-lg border border-white/10 disabled:opacity-40">{q.hidden ? '👁' : '🙈'}</button>} {isAdmin && <button onClick={() => openEditScreen(q, 'q_list')} className="p-2 rounded-xl bg-white/[0.04] text-zinc-400 border border-white/10"><Icons.Edit /></button>} </div> </div> ))} </div></div> );
                             })}
                         </div>
                     </div>
