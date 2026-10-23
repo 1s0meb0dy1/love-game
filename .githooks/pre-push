@@ -1,0 +1,4 @@
+#!/bin/sh
+# Проверка перед отправкой на GitHub: тесты, сборка и вес. Включить: git config core.hooksPath .githooks
+echo "Проверка перед отправкой..."
+npm run verify || { echo "Проверка не пройдена — отправка отменена."; exit 1; }

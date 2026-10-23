@@ -1,0 +1,35 @@
+Object.assign(globalThis, require('../harness.js')());
+w.localStorage.setItem('askme_game_settings_v1',JSON.stringify({timerOn:false,timerSec:30,punishOn:true,punishments:[{id:'x',text:'Спой припев',level:'any',icon:'🎤'}]}));
+const ptr=(el,type,x,y)=>{const e=new w.Event(type,{bubbles:true,cancelable:true}); Object.defineProperties(e,{pointerId:{value:1},clientX:{value:x},clientY:{value:y},pointerType:{value:'touch'},button:{value:0}}); el.dispatchEvent(e);};
+const qnum=()=>{const m=D.body.textContent.match(/Вопрос № (\d+)/); return m?+m[1]:null;};
+const mainEl=()=>D.querySelector('main.select-none');
+(async()=>{ try{
+  w.eval(code); await sleep(1800);
+  const inputs=[...D.querySelectorAll('input[type="text"]')]; setVal(inputs[0],'Макс'); setVal(inputs[1],'Аня'); await sleep(200);
+  await click('Создать сессию',1200); await click('Перейти к игре',900);
+  await click('Начать игру',600); await click('Обычный режим',3800); 
+  await click('К вопросу',500); const q1=qnum();
+  const peekN=()=>D.querySelector('[data-peek="next"]'), peekP=()=>D.querySelector('[data-peek="prev"]');
+  const layers=[...D.querySelectorAll('[aria-hidden="true"][class*="rounded-[28px]"]')];
+  const far=layers.find(l=>/bg-\[#0f0d15\]/.test(l.className)), near=layers.find(l=>/bg-\[#141119\]/.test(l.className));
+  T('стопка: обе подложки непрозрачные (без opacity-*), дальняя в DOM раньше ближней',!!far&&!!near&&!/opacity-/.test(far.className+near.className)&&!!(far.compareDocumentPosition(near)&4));
+  T('пока вопрос не пройден, размытой «следующей» карточки нет (идёт очередь игроков)',!peekN());
+  T('на первом вопросе «предыдущей» карточки нет',!peekP());
+  await click('Далее',500); await click('Далее',500); T('вопрос пройден',has('Вопрос пройден'));
+  T('следующая карточка есть, скрыта и размыта',!!peekN()&&peekN().style.opacity==='0'&&/blur\(/.test(peekN().style.filter));
+  const mn=mainEl(); mn.getBoundingClientRect=()=>({width:400,height:700,top:0,left:0,right:400,bottom:700}); ptr(mn,'pointerdown',100,300); ptr(mn,'pointermove',150,302); await sleep(120); ptr(mn,'pointermove',210,303); await sleep(120); await sleep(30);
+  T('тянем вправо: следующая карточка проявляется (opacity>0), оставаясь размытой',+peekN().style.opacity>0&&/blur\(/.test(peekN().style.filter));
+  ptr(mn,'pointerup',140,303); await sleep(700);
+  T('отпустили, не дотянув: карточка вернулась, подсказка скрыта',+peekN().style.opacity===0);
+  ptr(mn,'pointerdown',100,300); ptr(mn,'pointermove',150,302); await sleep(120); ptr(mn,'pointermove',240,303); await sleep(120); ptr(mn,'pointerup',240,303); await sleep(3900);
+  await click('К вопросу',500); const q2=qnum(); T('дотянули вправо: открылся следующий вопрос ('+q1+' → '+q2+')',q2&&q2!==q1);
+  T('подсказки скрыты после перехода (нет остаточной размытой карточки)',!peekN()||+peekN().style.opacity===0);
+  T('теперь есть «предыдущая» карточка, обесцвечена только как подсказка (grayscale), скрыта в покое',!!peekP()&&+peekP().style.opacity===0&&/grayscale\(/.test(peekP().style.filter));
+  ptr(mn,'pointerdown',200,300); ptr(mn,'pointermove',150,302); await sleep(120); ptr(mn,'pointermove',90,303); await sleep(120); await sleep(30);
+  T('тянем влево: предыдущая проявляется, а следующей нет на виду',!!peekP()&&+peekP().style.opacity>0&&(!peekN()||+peekN().style.opacity===0));
+  ptr(mn,'pointerup',60,303); await sleep(900);
+  T('вернулись на предыдущий вопрос ('+qnum()+'): карточка в обычных цветах (нет фильтров на основной карточке)',qnum()===q1&&!/grayscale|blur/.test((D.querySelector('[class*="relative z-10 w-full"]').style.filter||'')));
+  T('основная карточка в покое: без прозрачности и сдвига',(()=>{const c=D.querySelector('[class*="relative z-10 w-full"]'); return c.style.opacity==='1'&&/translate3d\(0px/.test(c.style.transform);})());
+  console.log(res.join('\n')); console.log('--- captured runtime errors:',errors.length); errors.slice(0,8).forEach(e=>console.log(' ',e)); process.exit(0);
+ }catch(err){ console.log(res.join('\n')); console.log('TEST CRASH:',err.message.split('\n')[0],'| body:',D.body.textContent.replace(/\s+/g,' ').slice(0,200)); console.log('errors:',errors.slice(0,5)); process.exit(1);} })();
+async function clickEl2(el,ms=250){ if(!el) throw new Error('нет элемента'); el.dispatchEvent(new w.MouseEvent('click',{bubbles:true})); await sleep(ms); }

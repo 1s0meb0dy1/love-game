@@ -1,0 +1,22 @@
+Object.assign(globalThis, require('../harness.js')());
+w.localStorage.setItem('askme_auth_v2',JSON.stringify({owner:{idToken:'t',refreshToken:'r',expiresAt:Date.now()+3.6e6}}));
+const puts=[]; const baseFetch=w.fetch; w.fetch=async(url,opt)=>{ url=String(url); if(opt&&opt.method==='PUT'&&url.includes('/questions/')) puts.push(url); return baseFetch(url,opt); };
+const clickEl=async(el,ms=250)=>{ if(!el) throw new Error('нет элемента'); el.dispatchEvent(new w.MouseEvent('click',{bubbles:true})); await sleep(ms); };
+(async()=>{ try{
+  w.eval(code); await sleep(1800);
+  const inputs=[...D.querySelectorAll('input[type="text"]')]; setVal(inputs[0],'Макс'); setVal(inputs[1],'Аня'); await sleep(200);
+  await click('Создать сессию',1200); await click('Перейти к игре',900);
+  w.location.hash='#/topics'; w.dispatchEvent(new w.HashChangeEvent('hashchange')); await sleep(600);
+  await click('Новый вопрос',600);
+  const form=D.querySelector('form'); const ta=D.querySelector('form textarea');
+  T('форма нового вопроса: без системных «пузырей» (noValidate, нет required)',!!form&&form.noValidate&&!ta.hasAttribute('required'));
+  form.dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true})); await sleep(300);
+  T('пустой текст -> ошибка под полем «Введите текст вопроса — минимум 3 символа»',!!D.querySelector('.ui-error')&&/минимум 3 символа/.test(D.querySelector('.ui-error').textContent));
+  T('ошибка стоит сразу под полем ввода',ta.nextElementSibling&&ta.nextElementSibling.classList.contains('ui-error'));
+  const sv=Object.getOwnPropertyDescriptor(w.HTMLTextAreaElement.prototype,'value').set; sv.call(ta,'ab'); ta.dispatchEvent(new w.Event('input',{bubbles:true})); await sleep(100);
+  T('при вводе ошибка исчезает',!D.querySelector('.ui-error'));
+  form.dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true})); await sleep(200); T('2 символа — всё ещё ошибка',!!D.querySelector('.ui-error'));
+  sv.call(ta,'Какой момент нашей истории ты хотел(а) бы пережить заново?'); ta.dispatchEvent(new w.Event('input',{bubbles:true})); await sleep(100);
+  form.dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true})); await sleep(700); T('корректный текст: запрос на сохранение отправлен, ошибки нет',puts.length===1&&!D.querySelector('form .ui-error'));
+  console.log(res.join('\n')); console.log('--- captured runtime errors:',errors.length); errors.slice(0,6).forEach(e=>console.log(' ',e)); process.exit(0);
+ }catch(err){ console.log(res.join('\n')); console.log('TEST CRASH:',err.message.split('\n')[0],'| title:',D.title,'| body:',D.body.textContent.replace(/\s+/g,' ').slice(0,200)); process.exit(1);} })();

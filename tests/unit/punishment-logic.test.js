@@ -1,0 +1,15 @@
+const src=require('../src-loader.js')(); const g=(re)=>src.match(re)[0];
+const store={}; const ls={getItem:k=>store[k]??null,setItem:(k,v)=>{store[k]=v}};
+const f=new Function('localStorage',g(/const SETTINGS_KEY = [^\n]*\n/)+g(/const DEFAULT_PUNISHMENTS = \[[\s\S]*?\n        \];\n/)+g(/const LEVEL_OPTIONS = [^\n]*\n/)+g(/const loadGameSettings = [\s\S]*?\n        \};\n/)+g(/const pickPunishment = [\s\S]*?\n        \};\n/)+g(/const PUNISH_CACHE_KEY = [^\n]*\n/)+g(/const PUNISH_LEVELS = [^\n]*\n/)+g(/const sanitizeTemplates = [^\n]*\n/)+g(/const templatesFromDb = [^\n]*\n/)+g(/const readPunishCache = [^\n]*\n/)+'return {loadGameSettings,pickPunishment,templatesFromDb,sanitizeTemplates,readPunishCache,DEFAULT_PUNISHMENTS,SETTINGS_KEY,PUNISH_CACHE_KEY};')(ls);
+const out=[]; const t=(n,c)=>out.push((c?'PASS ':'FAIL ')+n);
+const d=f.loadGameSettings(); t('по умолчанию: пустой список своих наказаний и скрытых',d.punishments.length===0&&d.hiddenTemplates.length===0&&!d.timerOn&&!d.punishOn);
+store[f.SETTINGS_KEY]=JSON.stringify({timerOn:true,timerSec:9999,punishOn:true,punishments:[{id:'old',text:'Старый шаблон',level:'any'},{id:'u1',text:'Моё',level:'Средние',custom:true},{id:'u2',text:'  ',level:'any',custom:true},{id:'u3',text:'Плохой уровень',level:'???',custom:true}],hiddenTemplates:['a',5,'b']});
+const s=f.loadGameSettings(); t('миграция: шаблоны прошлой версии отброшены, остались только свои (custom), уровень проверен, пустые удалены',s.punishments.length===2&&s.punishments[0].id==='u1'&&s.punishments[1].level==='any');
+t('скрытые шаблоны: только строки; секунды ограничены 300',JSON.stringify(s.hiddenTemplates)==='["a","b"]'&&s.timerSec===300);
+const db=f.templatesFromDb({b:{id:'b',text:'Второй',level:'Средние',n:1},a:{id:'a',text:'Первый',level:'any',icon:'🎤',n:0},bad:{id:'bad',text:'',level:'any'},x:{id:'x',text:'Нет уровня',level:'Невозможный'},y:5,z:{id:5,text:'числовой id',level:'any'}});
+t('шаблоны из БД: мусор отброшен, порядок по полю n',db.length===2&&db[0].id==='a'&&db[1].id==='b'&&db[0].icon==='🎤'&&db[1].icon==='🎭');
+t('пустая/битая БД -> null-безопасно',f.templatesFromDb(null).length===0&&f.templatesFromDb('x').length===0);
+store[f.PUNISH_CACHE_KEY]='{битый'; t('битый кэш шаблонов -> встроенные по умолчанию',f.readPunishCache()===f.DEFAULT_PUNISHMENTS);
+store[f.PUNISH_CACHE_KEY]=JSON.stringify(db); t('кэш шаблонов читается',f.readPunishCache().length===2);
+const hidden=['a']; const eff=[...db.filter(x=>!hidden.includes(x.id)),...s.punishments]; let ok=true; for(let i=0;i<300;i++){const p=f.pickPunishment(eff,'Средние'); if(!p||p.id==='a') ok=false;} t('скрытый шаблон никогда не выпадает',ok);
+console.log(out.join('\n'));
