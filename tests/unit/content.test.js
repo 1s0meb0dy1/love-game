@@ -37,6 +37,56 @@ T('legal: в документе «Cookies» перечислены все клю
   const pats = [...text.matchAll(/askme_[A-Za-z0-9_*<>]+/g)].filter(m => m[0] !== 'askme_*').map(m => new RegExp('^' + m[0].replace(/<ID>/g, '.*').replace(/\*/g, '.*') + '$')); // в таблице допустимы шаблоны: askme_*_cache_*, askme_sess_<ID>
   const miss = keys.filter(k => !skip.includes(k) && !text.includes(k) && !pats.some(r => r.test(k))); if (miss.length) console.log('не описаны в cookies:', miss.join(', ')); return miss.length === 0; })());
 
+// --- стартовый набор «Правда или действие» (src/content/tod-cards.js): загружается так же, как about; карточки проверяет та же модель, что и приложение ---
+{
+  let TOD_STARTER = null, todCleanCard = null;
+  try { TOD_STARTER = load('tod-cards', 'TOD_STARTER'); } catch (e) { T('tod-cards: файл загружается — ' + (e && e.message), false); }
+  try { ({ todCleanCard } = require('../tod-load.js').loadTod(['tod/model.js'], ['todCleanCard'])); } catch (e) { T('tod-cards: модель src/tod/model.js загружается — ' + (e && e.message), false); }
+  if (Array.isArray(TOD_STARTER) && todCleanCard) {
+    const S = TOD_STARTER; const TYPES = ['truth', 'dare'], LEVELS = ['easy', 'medium', 'hard'];
+    const norm = (s) => String(s).toLowerCase().replace(/ё/g, 'е').replace(/[^a-zа-я0-9]+/g, ' ').trim(); // для поиска «почти одинаковых» текстов: без регистра, ё/е и знаков
+    // стоп-список: война и её приметы, армия, политика и политики, государства. Слова ищутся с начала слова (кириллица не работает с \b);
+    // у неоднозначных основ перечислены точные формы, чтобы не ловить «двойной», «странный», «родинка», «трамплин», «генеральная уборка», «призывно», «ракетка», «пленительный»
+    const L = '(?<![а-яёa-z])', R = '(?![а-яёa-z])';
+    const STOP = new RegExp([
+      'войн', 'воен', 'воева', 'воюе', 'воюю', 'фронт', 'окоп', 'оккупа', 'окупант', 'окупац', 'мобилиз', 'обстрел', 'снаряд', 'взрыв', 'бомб', 'шахед', 'укрыти', 'блэкаут', 'блекаут', 'повестк', 'стрельб', 'казарм', 'дезертир', 'погиб', 'воздушн[а-яё]* тревог',
+      'ракет(?:а|ы|у|ой|е|ам|ами|ах)?' + R, 'дрон(?:а|у|ом|е|ы|ов|ам|ами|ах)?' + R, 'призыв(?:а|у|ом|е|ник[а-яё]*)?' + R, 'плен(?:а|у|ом|е|ник[а-яё]*|ные|ных)?' + R,
+      'арми', 'солдат', 'офицер', 'полковник', 'сержант', 'лейтенант', 'оружи', 'генерал(?:а|у|ом|е|ы|ов|ам)?' + R, 'танк(?:а|у|ом|е|и|ов|ам|ами|ах|ист[а-яё]*)?' + R,
+      'зсу' + R, 'всу' + R, 'тцк' + R, 'нато' + R, 'оон' + R,
+      'полити', 'президент', 'депутат', 'министр', 'парламент', 'верховн[а-яё]* рад', 'кабмин', 'санкци', 'пропаганд', 'патриот', 'кремл', 'путин', 'зеленск', 'порошенк', 'янукович', 'лукашенк', 'байден',
+      'трамп(?:а|у|ом|е)?' + R, 'выбор(?:ы|ов|ах)' + R, 'гимн(?:а|у|ом|е|ы)?' + R, 'сепар', 'рашист', 'рашк', 'русня', 'кацап', 'москал', 'хохол' + R, 'хохл(?:а|у|ом|е|ы|ов|ам|ами|ах)?' + R, 'бандер', 'ватник', 'орк(?:и|ов|ам|ами|ах)' + R,
+      'государств', 'держав', 'отечеств', 'стран(?:а|ы|е|у|ой|ам|ами|ах)?' + R, 'родин(?:а|ы|у|ой|е)?' + R, 'росси', 'русск', 'рф' + R, 'украин', 'україн', 'сша' + R, 'америк', 'беларус', 'белорус',
+      'кита(?:й|я|ю|ем|е)' + R, 'германи', 'франци', 'польш', 'израил', 'иран(?:а|у|ом|е)?' + R, 'турци', 'япони', 'англи(?:я|и|ю|ей)' + R, 'британи', 'евросоюз',
+      'war' + R, 'army', 'military', 'putin', 'president', 'politic', 'russia', 'ukrain', 'nato' + R, 'usa' + R,
+    ].map(p => L + p).join('|'), 'iu');
+    T('tod-cards: стоп-список ловит примеры (война, армия, президент, Россия, страна, ракета, «воздушная тревога») и не ловит похожие слова (двойной, странный, родинка, трамплин, ракетка…)',
+      ['Война', 'армия', 'президент', 'Россия', 'страна', 'ракета', 'воздушная тревога', 'в окопе', 'Путин', 'государство', 'генерал', 'танки', 'в плену', 'гимн', 'выборы', 'США', 'Украина'].every(s => STOP.test(s))
+      && ['двойное свидание', 'странный', 'гармония', 'родинка', 'трамплин', 'генеральная уборка', 'призывно', 'танкетка', 'ракетка', 'пленительный', 'хохолок', 'окупается', 'гимнастика', 'твой выбор', 'спокойно', 'партия', 'ватные ноги', 'польщён', 'китайская еда', 'английский'].every(s => !STOP.test(s)));
+    const grp = (t, d) => S.filter(c => c && c.type === t && c.difficulty === d).length;
+    T('tod-cards: TOD_STARTER — массив из 120 карточек', S.length === 120);
+    T('tod-cards: id по порядку td_s001…td_s120', S.every((c, i) => c && c.id === 'td_s' + String(i + 1).padStart(3, '0')));
+    T('tod-cards: по 20 карточек в каждой из шести групп «тип × уровень» (' + TYPES.map(t => LEVELS.map(d => t + '.' + d + '=' + grp(t, d)).join(' ')).join(' ') + ')', TYPES.every(t => LEVELS.every(d => grp(t, d) === 20)));
+    T('tod-cards: id не повторяются', new Set(S.map(c => c && c.id)).size === S.length);
+    const dupT = S.map(c => norm(c && c.text)).filter((x, i, a) => a.indexOf(x) !== i);
+    T('tod-cards: тексты не повторяются (без учёта регистра, ё/е и знаков)' + (dupT.length ? ' — повторы: ' + dupT.join(' | ') : ''), dupT.length === 0);
+    const changed = S.filter(c => JSON.stringify(todCleanCard(c)) !== JSON.stringify(c));
+    T('tod-cards: все карточки проходят todCleanCard без изменений (поля, значения, текст без <>, управляющих символов и пробелов по краям)' + (changed.length ? ' — не проходят: ' + changed.map(c => c && c.id).join(', ') : ''), changed.length === 0);
+    T('tod-cards: все карточки активны (isActive: true) и без updatedAt', S.every(c => c && c.isActive === true && !('updatedAt' in c)));
+    T('tod-cards: весь набор проходит правила tod (tests/fixtures/tod-rules.json) — его можно загрузить в базу и по одной карточке, и целиком', (() => {
+      const r = require('../rules-eval.js').makeRules(JSON.parse(fs.readFileSync(path.join(__dirname, '../fixtures/tod-rules.json'), 'utf8'))); const OWNER = { uid: 'OWNER_UID' };
+      return S.every(c => r.check('PUT', ['tod', c.id], OWNER, c) === null) && r.check('PUT', ['tod'], OWNER, Object.fromEntries(S.map(c => [c.id, c]))) === null; })());
+    const badQ = S.filter(c => c && c.type === 'truth' && !/\?$/.test(c.text));
+    T('tod-cards: у «Правды» текст оканчивается на «?»' + (badQ.length ? ' — нет: ' + badQ.map(c => c.id).join(', ') : ''), badQ.length === 0);
+    const badD = S.filter(c => c && c.type === 'dare' && /\?$/.test(c.text));
+    T('tod-cards: «Действие» — просьба, а не вопрос (не оканчивается на «?»)' + (badD.length ? ' — с вопросом: ' + badD.map(c => c.id).join(', ') : ''), badD.length === 0);
+    const maxLen = Math.max(...S.map(c => String(c && c.text).length));
+    T('tod-cards: длина текста 1–300 знаков (самый длинный — ' + maxLen + ')', S.every(c => c && typeof c.text === 'string' && c.text.length >= 1 && c.text.length <= 300));
+    const stop = S.filter(c => c && STOP.test(c.text));
+    T('tod-cards: в карточках нет войны, армии, политиков и государств' + (stop.length ? ' — найдено: ' + stop.map(c => c.id + ' «' + c.text.match(STOP)[0] + '»').join(', ') : ''), stop.length === 0);
+    T('tod-cards: нет заготовок {…}, двойных пробелов и переносов строк (карточка выводится как есть)', S.every(c => c && !/[{}]|\s{2}|\n/.test(c.text)));
+  }
+}
+
 // приватность самих текстов: никаких адресов почты и телефонов, имён владельца по паспорту и т. п.
 const pii = [...aboutStr, ...legalStr].filter(([, s]) => EMAIL.test(s) || PHONE.test(s.replace(/\d{4}-\d{2}-\d{2}/g, '')));
 T('в текстах нет адресов почты и номеров телефона' + (pii.length ? ' — найдено: ' + pii.map(x => x[0]).join(', ') : ''), pii.length === 0);
