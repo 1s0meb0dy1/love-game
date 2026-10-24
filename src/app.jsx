@@ -6,6 +6,9 @@ import { ABOUT } from './content/about.js';
 import { LEGAL } from './content/legal.js';
 import { createSessionTasks, createSessionStore, createLiveWriter, mergeTurnHistories } from './session-io.js';
 import { t as tr, setLang as i18nSetLang, getLang, catName as catLabel, diffName as diffLabel, audienceLabel, AUDIENCE_LABELS, CATEGORY_UK, DIFFICULTY_UK, SUPPORTED_LANGS, DEFAULT_LANG, LANG_STORAGE_KEY } from './i18n.js';
+import { TOD_STARTER } from './content/tod-cards.js';
+import { todCleanList } from './tod/model.js';
+import { todLoadCards, todSaveCard, todSeedStarter, todActive, todReadCache, todWriteCache } from './tod/cards.js';
 const ReactDOM = { ...ReactDOMAll, createRoot };
 
 // Рання ініціалізація мови з localStorage (щоб t() працювала ще до монтування React).
@@ -1016,6 +1019,8 @@ i18nSetLang(readStoredLang());
         };
 
         const PwaInstallModal = ({ showPwaModal, setShowPwaModal, isInAppWebView, pwaPlatformTab, setPwaPlatformTab, triggerIosNativeShareMenu }) => ( <PopupModal isOpen={showPwaModal} onClose={() => setShowPwaModal(false)}> <div className="flex flex-col gap-4 pt-1"> <div className="pr-8"><AskMeLogo size="xs" /></div> <div className="space-y-1 text-left"> <h3 className="text-xl font-bold text-white">{tr("Скачать на устройство")}</h3> <p className="text-xs text-zinc-400 leading-relaxed"> {tr("Установите")} <b className="text-white">ASK ME</b> {tr("на домашний экран.")} </p> </div> {isInAppWebView && ( <div className="p-3.5 rounded-[20px] bg-rose-500/15 border border-rose-500/40 text-xs text-rose-200 leading-relaxed text-left"> {tr("⚠️ Вы открыли сайт во встроенном браузере. Нажмите на иконку")} <b>Safari/Браузера</b>{tr(", чтобы появилась установка.")} </div> )} <div className="seg"> <button type="button" onClick={() => { SoundFX.click(); setPwaPlatformTab('ios'); }} className={`seg-btn ${ pwaPlatformTab === 'ios' ? 'is-active' : '' }`} >  iPhone </button> <button type="button" onClick={() => { SoundFX.click(); setPwaPlatformTab('android'); }} className={`seg-btn ${ pwaPlatformTab === 'android' ? 'is-active' : '' }`} > 🤖 Android </button> </div> {pwaPlatformTab === 'ios' ? ( <div className="flex flex-col gap-3 text-left text-xs text-zinc-200 bg-white/[0.04] p-4 rounded-[20px] border border-white/10"> <div className="flex items-start gap-3"> <span className="w-6 h-6 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold flex items-center justify-center flex-shrink-0">1</span> <p className="leading-relaxed"> {tr("Нажмите кнопку")} <b className="text-white">{tr("«Поделиться»")}</b> {tr("в браузере Safari.")} </p> </div> <div className="hairline-divider"></div> <div className="flex items-start gap-3"> <span className="w-6 h-6 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold flex items-center justify-center flex-shrink-0">2</span> <p className="leading-relaxed"> {tr("Нажмите")} <b className="text-white">{tr("«На экран \"Домой\"»")}</b>. </p> </div> <button type="button" onClick={triggerIosNativeShareMenu} className="btn-accent w-full mt-1 flex items-center justify-center gap-2" > <Icons.IosShare /> {tr("Открыть меню iOS")} </button> </div> ) : ( <div className="flex flex-col gap-3 text-left text-xs text-zinc-200 bg-white/[0.04] p-4 rounded-[20px] border border-white/10"> <div className="flex items-start gap-3"> <span className="w-6 h-6 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold flex items-center justify-center flex-shrink-0">1</span> <p className="leading-relaxed"> {tr("Нажмите на меню браузера")} <b className="text-white">«⋮»</b>. </p> </div> <div className="hairline-divider"></div> <div className="flex items-start gap-3"> <span className="w-6 h-6 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold flex items-center justify-center flex-shrink-0">2</span> <p className="leading-relaxed"> {tr("Выберите")} <b className="text-white">{tr("«Установить приложение»")}</b>. </p> </div> </div> )} <button type="button" onClick={() => { SoundFX.click(); setShowPwaModal(false); }} className="btn-primary w-full" > {tr("Понятно")} </button> </div> </PopupModal> );
+        // Режим «Правда или действие»: всё, что нужно модулю карточек (src/tod/cards.js) от приложения — адрес базы, запрос с токеном входа, хранилище и стартовый набор
+        const todCardsEnv = { baseUrl: FIREBASE_BASE_URL, fetch: fetchWithTimeout, storage: (() => { try { return localStorage; } catch (e) { return null; } })(), starter: TOD_STARTER };
 
         function App() {
             const [loadError, setLoadError] = useState(''); const [dbLoadAttempt, setDbLoadAttempt] = useState(0);
@@ -1079,6 +1084,9 @@ i18nSetLang(readStoredLang());
             const [showAddPunish, setShowAddPunish] = useState(false);
             const [punishTemplates, setPunishTemplates] = useState(readPunishCache);
             const allPunishments = useMemo(() => [...punishTemplates.filter(t => !(settings.hiddenTemplates || []).includes(t.id)), ...settings.punishments], [punishTemplates, settings.hiddenTemplates, settings.punishments]);
+            // карточки режима «Правда или действие»: сначала кэш устройства (или стартовый набор), затем эффект ниже подменяет их данными из базы; source — откуда сейчас список: 'db' | 'cache' | 'starter'
+            const [todBoot] = useState(() => { const cached = todReadCache(todCardsEnv.storage); return cached.length ? { list: cached, source: 'cache' } : { list: todCleanList(TOD_STARTER), source: 'starter' }; });
+            const [todCards, setTodCards] = useState(todBoot.list); const [todSource, setTodSource] = useState(todBoot.source);
             const [ptEdit, setPtEdit] = useState(null); const [ptText, setPtText] = useState(''); const [ptIcon, setPtIcon] = useState(''); const [ptLevel, setPtLevel] = useState('any');
             const [ptErr, setPtErr] = useState(''); const [ptBusy, setPtBusy] = useState(false); const [ptConfirmId, setPtConfirmId] = useState('');
             const [analyticsOn, setAnalyticsOn] = useState(() => { try { return localStorage.getItem('askme_analytics_v1') !== '0'; } catch (e) { return true; } });
@@ -1810,6 +1818,11 @@ i18nSetLang(readStoredLang());
                         try { localStorage.setItem(PUNISH_CACHE_KEY, JSON.stringify(list)); } catch (e) {}
                     } catch (e) {}
                 })();
+                return () => { off = true; };
+            }, []);
+            useEffect(() => {
+                let off = false;
+                todLoadCards(todCardsEnv).then(r => { if (!off) { setTodCards(r.list); setTodSource(r.source); } }).catch(() => {});
                 return () => { off = true; };
             }, []);
             const writePunishTemplates = async (list) => {
