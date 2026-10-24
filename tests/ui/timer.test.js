@@ -1,0 +1,22 @@
+Object.assign(globalThis, require('../harness.js')());
+w.localStorage.setItem('askme_game_settings_v1',JSON.stringify({timerOn:true,timerSec:7,punishOn:true,punishments:[{id:'x',text:'Спой припев',level:'any',icon:'🎤',custom:true}]}));
+const ring=()=>D.querySelector('svg circle[stroke-dasharray], svg circle[style*="stroke-dashoffset"]'); const secs=()=>{const t=D.querySelector('[role="timer"]'); return t?+t.querySelector('.font-display').textContent:null;};
+(async()=>{ try{
+  w.eval(code); await sleep(1800);
+  const inputs=[...D.querySelectorAll('input[type="text"]')]; setVal(inputs[0],'Макс'); setVal(inputs[1],'Аня'); await sleep(200);
+  await click('Создать сессию',1200); await click('Перейти к игре',900); await click('Начать игру',600); await click('Усложнённый режим',700);
+  const sb=[...D.querySelectorAll('button')].reverse().find(b=>b.textContent.trim()==='Начать игру'); sb.dispatchEvent(new w.MouseEvent('click',{bubbles:true})); await sleep(3800);
+  await click('К вопросу',600);
+  T('таймер в POP-UP: показана очередь игрока',/Очередь:\s*(Макс|Аня)/.test(D.body.textContent));
+  const t0=secs(); const off0=ring()&&ring().style.strokeDashoffset; T('кольцо-таймер и секунды видны (role="timer")',t0!==null&&t0<=7&&!!ring());
+  T('в окне виден текст вопроса и подсказка про наказание',has('Не успеете — выпадет наказание')&&!!D.querySelector('.viewport-popup-box p.text-sm'));
+  await sleep(2300); const t1=secs(); T('обратный отсчёт идёт ('+t0+' → '+t1+' с), кольцо заполняется',t1<t0&&parseFloat(ring().style.strokeDashoffset)>parseFloat(off0));
+  const who0=D.body.textContent.match(/Очередь:\s*(\S+?)(?=\d)/); 
+  T('кнопки «Пропустить» и «Ответил(а)» в одну линию 50/50',(()=>{const g=[...D.querySelectorAll('.viewport-popup-box .grid')].find(x=>/Пропустить/.test(x.textContent)); return g&&g.className.includes('grid-cols-2')&&g.children.length===2;})());
+  await click('Ответил(а)',700);
+  T('«Ответил(а)» передаёт ход следующему: новое окно таймера, отсчёт заново',/Очередь:/.test(D.body.textContent)&&secs()>=6);
+  const ov=D.querySelector('.viewport-popup-overlay'); ov&&ov.dispatchEvent(new w.MouseEvent('click',{bubbles:true})); await sleep(500);
+  T('закрыли окно: таймер остался компактной полосой «⏱ N с»',!D.querySelector('.viewport-popup-box [role="timer"]')&&has('⏱'));
+  await sleep(7600); T('время вышло -> окно наказания',has('Время вышло')&&has('Наказание'));
+  console.log(res.join('\n')); console.log('--- captured runtime errors:',errors.length); errors.slice(0,8).forEach(e=>console.log(' ',e)); process.exit(0);
+ }catch(err){ console.log(res.join('\n')); console.log('TEST CRASH:',err.message.split('\n')[0],'| body:',D.body.textContent.replace(/\s+/g,' ').slice(0,240)); console.log('errors:',errors.slice(0,5)); process.exit(1);} })();

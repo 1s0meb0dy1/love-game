@@ -1,0 +1,3017 @@
+import React from 'react';
+import * as ReactDOMAll from 'react-dom';
+import { createRoot } from 'react-dom/client';
+import qrcode from 'qrcode-generator';
+import { ABOUT } from './content/about.js';
+import { LEGAL } from './content/legal.js';
+import { t as tr, setLang as i18nSetLang, getLang, catName as catLabel, diffName as diffLabel, audienceLabel, AUDIENCE_LABELS, CATEGORY_UK, DIFFICULTY_UK, SUPPORTED_LANGS, DEFAULT_LANG, LANG_STORAGE_KEY } from './i18n.js';
+const ReactDOM = { ...ReactDOMAll, createRoot };
+
+// Рання ініціалізація мови з localStorage (щоб t() працювала ще до монтування React).
+const readStoredLang = () => { try { const v = localStorage.getItem(LANG_STORAGE_KEY); return SUPPORTED_LANGS.includes(v) ? v : DEFAULT_LANG; } catch (e) { return DEFAULT_LANG; } };
+i18nSetLang(readStoredLang());
+
+        const { useState, useEffect, useRef, useMemo } = React;
+
+        const FIREBASE_BASE_URL = "https://project-x-5e16a-default-rtdb.europe-west1.firebasedatabase.app";
+        const PROFILE_STORAGE_KEY = "askme_device_profile_v4";
+        const ADMIN_STORAGE_KEY = "askme_admin_unlocked_v4";
+        const OFFLINE_DB_CACHE_KEY = "askme_offline_db_cache_v2";
+
+        const declOfNum = (number, titles) => {
+            const cases = [2, 0, 1, 1, 1, 2];
+            return titles[ (number%100>4 && number%100<20)? 2 : cases[(number%10<5)?number%10:5] ];
+        };
+
+        const fetchWithTimeout = async (url, options = {}, ms = 20000) => {
+            if (typeof url === "string" && url.startsWith(FIREBASE_BASE_URL)) {
+                const token = await Auth.token();
+                if (token) url += (url.includes("?") ? "&" : "?") + "auth=" + encodeURIComponent(token);
+            }
+            const ctrl = new AbortController();
+            const timer = setTimeout(() => ctrl.abort(), ms);
+            try { return await fetch(url, { ...options, signal: ctrl.signal }); } 
+            finally { clearTimeout(timer); }
+        };
+
+        const FIREBASE_API_KEY = "AIzaSyDBE1-ZGgrHOVVUzl0Pcnkua-heJyRyoqg"; 
+        const AUTH_STORAGE_KEY = "askme_auth_v2";
+        const AUTH_BASE = "https://identitytoolkit.googleapis.com/v1/accounts";
+        
+        const Auth = {
+            store: (() => { try { return JSON.parse(localStorage.getItem(AUTH_STORAGE_KEY)) || {}; } catch (e) { return {}; } })(),
+            anonPending: null,
+            persist() { try { localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(this.store)); } catch (e) {} },
+            pack(d) { const ttl = Number(d.expiresIn || d.expires_in || 3600); return { idToken: d.idToken || d.id_token, refreshToken: d.refreshToken || d.refresh_token, expiresAt: Date.now() + (ttl - 60) * 1000 }; },
+            async post(url, body, form) {
+                const r = await fetchWithTimeout(url, { method: "POST", headers: { "Content-Type": form ? "application/x-www-form-urlencoded" : "application/json" }, body: form ? new URLSearchParams(body).toString() : JSON.stringify(body) }, 15000);
+                const d = await r.json(); if (!r.ok) throw new Error((d && d.error && d.error.message) || "AUTH_ERROR"); return d;
+            },
+            async fresh(kind) {
+                const rec = this.store[kind]; if (!rec) return null; if (rec.expiresAt > Date.now()) return rec.idToken;
+                try { const d = await this.post(`https://securetoken.googleapis.com/v1/token?key=${FIREBASE_API_KEY}`, { grant_type: "refresh_token", refresh_token: rec.refreshToken }, true); this.store[kind] = this.pack(d); this.persist(); return this.store[kind].idToken; } catch (e) { delete this.store[kind]; this.persist(); return null; }
+            },
+            async token() {
+                if (!FIREBASE_API_KEY) return null; const owner = await this.fresh("owner"); if (owner) return owner; const anon = await this.fresh("anon"); if (anon) return anon;
+                if (!this.anonPending) { this.anonPending = this.post(`${AUTH_BASE}:signUp?key=${FIREBASE_API_KEY}`, { returnSecureToken: true }).then(d => { this.store.anon = this.pack(d); this.persist(); return this.store.anon.idToken; }).catch(() => null).finally(() => { this.anonPending = null; }); }
+                return this.anonPending;
+            },
+            hasOwner() { return !!this.store.owner; },
+            ownerLogout() { delete this.store.owner; this.persist(); }
+        };
+
+        const verifyAdminSecret = async (email, password) => {
+            try {
+                if (!FIREBASE_API_KEY || !email) return false;
+                const d = await Auth.post(`${AUTH_BASE}:signInWithPassword?key=${FIREBASE_API_KEY}`, { email: email, password: String(password || ""), returnSecureToken: true });
+                Auth.store.owner = Auth.pack(d); Auth.persist(); return true;
+            } catch (e) { return false; }
+        };
+
+        const SESSION_ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+        const generateSessionId = () => { // ID открывает сессию (вход по ID), поэтому берём криптографический генератор; 256 делится на 32 без остатка — перекоса нет
+            const r = crypto.getRandomValues(new Uint8Array(8)); let id = ""; for (let i = 0; i < 8; i++) id += SESSION_ALPHABET[r[i] % SESSION_ALPHABET.length];
+            return id;
+        };
+        const isValidSessionIdFormat = (rawId) => /^[A-Z0-9]{8}$/.test(String(rawId || "").trim().toUpperCase());
+        const hashSessionIdForDb = (sessionId) => {
+            const clean = String(sessionId || "").trim().toUpperCase(); let h1 = 0x811c9dc5; let h2 = 0x1b873593; const s1 = "askme_vault_k1_" + clean + "_2026"; const s2 = "askme_vault_k2_" + clean + "_secure";
+            for (let i = 0; i < s1.length; i++) { h1 ^= s1.charCodeAt(i); h1 = Math.imul(h1, 0x01000193); }
+            for (let i = 0; i < s2.length; i++) { h2 ^= s2.charCodeAt(i); h2 = Math.imul(h2, 0x85ebca6b); }
+            return (h1 >>> 0).toString(16).padStart(8, '0') + (h2 >>> 0).toString(16).padStart(8, '0');
+        };
+        const decryptSessionPayload = (encStr, pwd) => {
+            try {
+                const raw = atob(encStr); let res = "";
+                for (let i = 0; i < raw.length; i++) res += String.fromCharCode(raw.charCodeAt(i) ^ pwd.charCodeAt(i % pwd.length));
+                return JSON.parse(decodeURIComponent(res));
+            } catch (e) { return null; }
+        };
+
+        const copyTextToClipboard = async (text) => {
+            try { if (navigator.clipboard && navigator.clipboard.writeText) { await navigator.clipboard.writeText(text); return true; } } catch (e) {}
+            try { const ta = document.createElement("textarea"); ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0"; document.body.appendChild(ta); ta.focus(); ta.select(); document.execCommand("copy"); document.body.removeChild(ta); return true; } catch (e) { return false; }
+        };
+        // облачная копия расшифровывается ключом, который знают все, у кого есть ссылка или ID, — типы полей проверяем, прежде чем класть их в состояние
+        const cleanPlayers = (v) => Array.isArray(v) ? v.filter(p => p && typeof p === 'object' && (typeof p.id === 'string' || typeof p.id === 'number')).slice(0, MAX_PLAYERS).map(p => ({ id: String(p.id).slice(0, 40), name: String(p.name || '').slice(0, 25), gender: p.gender === 'girl' ? 'girl' : 'guy' })) : [];
+        const cleanSavedGame = (g) => (g && typeof g === 'object' && Array.isArray(g.questionIds) && g.questionIds.length) ? { ...g, questionIds: cleanIdList(g.questionIds), currentIndex: Number(g.currentIndex) || 0, maxReachedIndex: Number(g.maxReachedIndex) || 0, turnHistory: (g.turnHistory && typeof g.turnHistory === 'object') ? g.turnHistory : {} } : null;
+        const cleanIdList = (v, max = 5000) => Array.isArray(v) ? v.filter(x => typeof x === 'string' || typeof x === 'number').slice(0, max) : [];
+
+        let lastSyncToastAt = 0;
+        const bufToB64Url = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+        const b64UrlToBuf = (str) => { const b64 = str.replace(/-/g, "+").replace(/_/g, "/"); const bin = atob(b64 + "=".repeat((4 - b64.length % 4) % 4)); const out = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i); return out; };
+        const generateAESKey = async () => bufToB64Url(await crypto.subtle.exportKey("raw", await crypto.subtle.generateKey({ name: "AES-GCM", length: 128 }, true, ["encrypt", "decrypt"])));
+        const importAESKey = (keyStr, usage) => crypto.subtle.importKey("raw", b64UrlToBuf(keyStr), { name: "AES-GCM" }, false, [usage]);
+        const isValidAESKey = (k) => typeof k === "string" && /^[A-Za-z0-9_-]{22}$/.test(k);
+        const encryptSessionAES = async (obj, keyStr) => {
+            try { const iv = crypto.getRandomValues(new Uint8Array(12)); const ct = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv }, await importAESKey(keyStr, "encrypt"), new TextEncoder().encode(JSON.stringify(obj)))); const out = new Uint8Array(12 + ct.length); out.set(iv, 0); out.set(ct, 12); return bufToB64Url(out); } catch (e) { return null; }
+        };
+        const decryptSessionAES = async (cipher, keyStr) => {
+            try { const all = b64UrlToBuf(cipher); const pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv: all.slice(0, 12) }, await importAESKey(keyStr, "decrypt"), all.slice(12)); return JSON.parse(new TextDecoder().decode(pt)); } catch (e) { return null; }
+        };
+        const sessionDbKey = async (keyStr) => {
+            const h = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode("askme-session-v1:" + keyStr)));
+            return "s_" + Array.from(h).map(b => b.toString(16).padStart(2, "0")).join("");
+        };
+        const CYR_TO_LAT = { "А": "A", "В": "B", "С": "C", "Е": "E", "Н": "H", "К": "K", "М": "M", "Р": "P", "Т": "T", "Х": "X", "У": "Y" };
+        const parseRestoreInput = (raw) => {
+            const text = String(raw || "").trim(); let sid = "", key = ""; const mSid = text.match(/sid=([A-Za-z0-9]{8})/i), mKey = text.match(/key=([A-Za-z0-9_-]{22})/);
+            if (mSid || mKey) { sid = mSid ? mSid[1] : ""; key = mKey ? mKey[1] : ""; } else if (text.includes("|")) { [sid, key] = text.split("|").map(x => x.trim()); } else { sid = text.replace(/[\s-]+/g, ""); } // голый ID: пробелы и дефисы (если ID вставили по частям) не мешают
+            return { sid: sid.toUpperCase().replace(/[АВСЕНКМРТХУ]/g, c => CYR_TO_LAT[c]), key: isValidAESKey(key) ? key : "" }; // на украинской раскладке «А», «В», «К» … выглядят как латинские — это те же буквы ID
+        };
+
+        // ---- вход по 8-значному ID ----
+        // Настоящий ключ сессии (128 бит) есть только на устройствах и в ссылке-приглашении, а ID — это всего 40 бит. Чтобы по одному ID можно было войти на новом устройстве,
+        // устройство кладёт в облако «замок»: ключ сессии, зашифрованный ключом, который выводится из ID медленной функцией PBKDF2. Из того же вывода берётся и адрес замка (j_…),
+        // поэтому ID по адресу не найти, а каждая попытка подбора стоит полного прогона PBKDF2. Это защита уровня «код комнаты»: знающий ID может войти (см. политику конфиденциальности).
+        const JOIN_ITERATIONS = 300000, JOIN_REFRESH_MS = 7 * 24 * 3600 * 1000;
+        const joinCodeParts = async (sid) => {
+            const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(String(sid || "").trim().toUpperCase()), "PBKDF2", false, ["deriveBits"]);
+            const bits = new Uint8Array(await crypto.subtle.deriveBits({ name: "PBKDF2", hash: "SHA-256", salt: new TextEncoder().encode("askme-join-v1"), iterations: JOIN_ITERATIONS }, base, 384));
+            return { path: "j_" + Array.from(bits.slice(0, 32)).map(b => b.toString(16).padStart(2, "0")).join(""), lockKey: bufToB64Url(bits.slice(32, 48)) };
+        };
+        const joinCodeUrl = (path) => `${FIREBASE_BASE_URL}/sessions/${path}.json`;
+        const publishJoinCode = async (sid, key) => {
+            try {
+                if (!isValidSessionIdFormat(sid) || !isValidAESKey(key)) return false;
+                const { path, lockKey } = await joinCodeParts(sid); const payload = await encryptSessionAES({ k: key }, lockKey); if (!payload) return false;
+                const r = await fetchWithTimeout(joinCodeUrl(path), { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ payload, updatedAt: Date.now() }) }); return r.ok;
+            } catch (e) { return false; }
+        };
+        const lookupJoinCode = async (sid) => { // ключ сессии по ID; "" — замка нет / не открылся; null — облако не ответило (сеть, отказ базы)
+            try {
+                if (!isValidSessionIdFormat(sid)) return "";
+                const { path, lockKey } = await joinCodeParts(sid); const r = await fetchWithTimeout(joinCodeUrl(path) + "?t=" + Date.now()); if (!r.ok) return null; const data = await r.json();
+                const dec = data && typeof data.payload === "string" ? await decryptSessionAES(data.payload, lockKey) : null; return dec && isValidAESKey(dec.k) ? dec.k : "";
+            } catch (e) { return null; }
+        };
+        const removeJoinCode = async (sid) => { try { if (!isValidSessionIdFormat(sid)) return true; const { path } = await joinCodeParts(sid); return (await fetchWithTimeout(joinCodeUrl(path), { method: "DELETE" }, 10000)).ok; } catch (e) { return false; } };
+
+        const sanitizeInput = (str, maxLength = 600) => String(str||"").replace(/[<>]/g, "").replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "").trim().slice(0, maxLength);
+        const sanitizeName = (str) => sanitizeInput(str, 20).replace(/\d/g, ''); 
+
+        const ActionGuard = { lastActionTime: 0, canProceed(cooldownMs = 650) { const now = Date.now(); if (now - this.lastActionTime < cooldownMs) return false; this.lastActionTime = now; return true; } };
+
+        const CATEGORIES = [
+            { id: "family", name: "Семья", icon: "👨‍👩‍👧‍👦" }, { id: "intimacy", name: "Интим", icon: "🔞" },
+            { id: "future", name: "Будущее", icon: "🎯" }, { id: "secrets", name: "Секреты", icon: "🤫" },
+            { id: "romance", name: "Романтика", icon: "❤️" }, { id: "past", name: "Прошлое", icon: "⏳" },
+            { id: "values", name: "Ценности", icon: "⚖️" }, { id: "fears", name: "Страхи", icon: "👻" },
+            { id: "money", name: "Деньги", icon: "💰" }, { id: "life", name: "Быт", icon: "🏠" }
+        ];
+
+        const DIFFICULTIES = [
+            { id: "Простые", name: "Легкие", classText: "diff-text-1", classBg: "diff-pill-1" },
+            { id: "Средние", name: "Средние", classText: "diff-text-2", classBg: "diff-pill-2" },
+            { id: "Глубокие", name: "Глубокие", classText: "diff-text-3", classBg: "diff-pill-3" }
+        ];
+
+        const SCREEN_TO_HASH = { onboarding: '#/welcome', session_created: '#/session-ready', menu: '#/', app_menu: '#/more', game_setup: '#/setup', topics_admin: '#/topics/manage', punish_admin: '#/punishments/manage', analytics: '#/analytics', analytics_sessions: '#/analytics/sessions', hidden_q: '#/questions/hidden', profile_page: '#/profile', admin_login: '#/admin', mode_select: '#/mode', game: '#/play', ai_response: '#/ai', summary: '#/summary', cat_list: '#/topics', q_list: '#/questions', archive_page: '#/archive', add_q: '#/add', edit_q: '#/edit', invite: '#/invite', join: '#/join', about: '#/about', privacy: '#/privacy', terms: '#/terms', cookies: '#/cookies', age: '#/age' };
+        const HASH_TO_SCREEN = { '#/welcome': 'onboarding', '#/session-ready': 'session_created', '#/': 'menu', '#/menu': 'menu', '#/profile': 'profile_page', '#/more': 'app_menu', '#/setup': 'game_setup', '#/topics/manage': 'topics_admin', '#/punishments/manage': 'punish_admin', '#/analytics': 'analytics', '#/analytics/sessions': 'analytics_sessions', '#/questions/hidden': 'hidden_q', '#/admin': 'admin_login', '#/mode': 'mode_select', '#/play': 'game', '#/ai': 'ai_response', '#/summary': 'summary', '#/topics': 'cat_list', '#/questions': 'q_list', '#/archive': 'archive_page', '#/add': 'add_q', '#/edit': 'edit_q', '#/invite': 'invite', '#/join': 'join', '#/about': 'about', '#/privacy': 'privacy', '#/terms': 'terms', '#/cookies': 'cookies', '#/age': 'age' };
+        // страницы, которые открываются без сессии (по общей ссылке): «Об игре», юридические, быстрое подключение
+        const PUBLIC_SCREENS = ['about', 'privacy', 'terms', 'cookies', 'age', 'join'];
+        // экраны, которые после перезагрузки страницы нечем наполнить (итоги и разбор опираются на данные партии в памяти): открываем меню
+        const RELOAD_TO_MENU = ['ai_response', 'summary'];
+        const hashPath = (h) => String(h || '').split('?')[0];
+        const hasInviteParams = (h) => /sid=/.test(String(h || '')) && /key=/.test(String(h || ''));
+
+        const SoundFX = {
+            ctx: null, filter: null, muted: false, unlocked: false,
+            triggerHaptic(pattern = 12) {
+                if (this.muted) return; const nowTs = Date.now(); if (nowTs - (this.lastHaptic || 0) < 25) return; this.lastHaptic = nowTs;
+                try { if (navigator.vibrate) { navigator.vibrate(pattern); return; } const iosLabel = document.getElementById('ios-taptic-label'); if (iosLabel) iosLabel.click(); } catch (e) {}
+            },
+            init() {
+                try {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext; if (!AudioCtx) return;
+                    if (!this.ctx) { this.ctx = new AudioCtx(); this.filter = this.ctx.createBiquadFilter(); this.filter.type = "lowpass"; this.filter.frequency.value = 1650; this.filter.connect(this.ctx.destination); }
+                    if (this.ctx.state === 'suspended' || this.ctx.state === 'interrupted') { try { this.ctx.resume(); } catch (e) {} }
+                    if (!this.unlocked && this.ctx) { const b = this.ctx.createBuffer(1, 1, 22050); const s = this.ctx.createBufferSource(); s.buffer = b; s.connect(this.ctx.destination); if (s.start) s.start(0); this.unlocked = true; }
+                } catch (e) {}
+            },
+            playAcousticNote(freq, duration = 0.12, vol = 0.24, endFreq = null) {
+                if (this.muted) return; try {
+                    this.init(); if (!this.ctx || !this.filter) return; const now = this.ctx.currentTime;
+                    const osc = this.ctx.createOscillator(); const subOsc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
+                    osc.type = 'sine'; subOsc.type = 'triangle'; osc.frequency.setValueAtTime(freq, now); subOsc.frequency.setValueAtTime(freq * 0.5, now);
+                    if (endFreq) osc.frequency.exponentialRampToValueAtTime(endFreq, now + duration);
+                    gain.gain.setValueAtTime(0.001, now); gain.gain.linearRampToValueAtTime(vol, now + 0.014); gain.gain.exponentialRampToValueAtTime(0.0008, now + duration);
+                    osc.connect(gain); subOsc.connect(gain); gain.connect(this.filter); osc.start(now); subOsc.start(now); osc.stop(now + duration + 0.015); subOsc.stop(now + duration + 0.015);
+                } catch (e) {}
+            },
+            click() { if (this.muted) return; this.triggerHaptic(8); this.playAcousticNote(780, 0.055, 0.12, 540); this.playAcousticNote(1170, 0.04, 0.035, 820); },
+            getNoise() {
+                if (!this.noiseBuf && this.ctx) {
+                    const len = Math.floor(this.ctx.sampleRate * 0.4); const b = this.ctx.createBuffer(1, len, this.ctx.sampleRate); const d = b.getChannelData(0);
+                    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+                    this.noiseBuf = b;
+                }
+                return this.noiseBuf;
+            },
+            flip(dir = 'right') {
+                if (this.muted) return;
+                if (this.skipNextFlip) { this.skipNextFlip = false; return; }
+                this.triggerHaptic(8);
+                try {
+                    this.init(); if (!this.ctx) return;
+                    const now = this.ctx.currentTime, buf = this.getNoise(); if (!buf) return;
+                    const src = this.ctx.createBufferSource(); src.buffer = buf;
+                    const bp = this.ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 0.9;
+                    const up = dir === 'right';
+                    bp.frequency.setValueAtTime(up ? 700 : 2200, now); bp.frequency.exponentialRampToValueAtTime(up ? 2200 : 700, now + 0.16);
+                    const g = this.ctx.createGain(); g.gain.setValueAtTime(0.0001, now); g.gain.linearRampToValueAtTime(0.11, now + 0.045); g.gain.exponentialRampToValueAtTime(0.0008, now + 0.18);
+                    src.connect(bp); bp.connect(g); g.connect(this.ctx.destination); src.start(now); src.stop(now + 0.2);
+                    setTimeout(() => this.playAcousticNote(190, 0.07, 0.1, 150), 120);
+                } catch (e) {}
+            },
+            toggle(active = true) { if (this.muted) return; this.triggerHaptic(14); if (active) { this.playAcousticNote(440, 0.08, 0.2); setTimeout(() => this.playAcousticNote(587.33, 0.1, 0.22), 55); } else { this.playAcousticNote(523.25, 0.08, 0.18); setTimeout(() => this.playAcousticNote(392.00, 0.1, 0.18), 55); } },
+            rouletteTick() { if (this.muted) return; this.triggerHaptic(8); this.playAcousticNote(310, 0.045, 0.18, 220); },
+            rouletteWin() { if (this.muted) return; this.triggerHaptic([18, 45, 30]); this.init(); const chord = [523.25, 659.25, 783.99, 987.77]; chord.forEach((f, idx) => setTimeout(() => this.playAcousticNote(f, 0.28, 0.22), idx * 85)); },
+            romanticFinale() { if (this.muted) return; this.triggerHaptic([25, 60, 25, 60, 45]); this.init(); const notes = [{ f: 440, d: 0.45, t: 0 }, { f: 554.37, d: 0.45, t: 130 }, { f: 659.25, d: 0.50, t: 260 }, { f: 830.61, d: 0.55, t: 390 }, { f: 987.77, d: 0.85, t: 530 }]; notes.forEach(n => setTimeout(() => this.playAcousticNote(n.f, n.d, 0.26), n.t)); },
+            magic() { if (this.muted) return; this.triggerHaptic([12, 35, 18]); this.init(); this.playAcousticNote(493.88, 0.14, 0.2, 659.25); setTimeout(() => this.playAcousticNote(783.99, 0.22, 0.22), 90); },
+            success() { if (this.muted) return; this.triggerHaptic([14, 30, 20]); this.init(); this.playAcousticNote(523.25, 0.12, 0.22); setTimeout(() => this.playAcousticNote(783.99, 0.26, 0.26), 95); },
+            warn() { if (this.muted) return; this.triggerHaptic([25, 40, 25]); this.playAcousticNote(280, 0.15, 0.22, 190); }
+        };
+
+        if (typeof window !== 'undefined') { const unlockHandler = () => SoundFX.init(); window.addEventListener('touchstart', unlockHandler, { passive: true, once: true }); window.addEventListener('click', unlockHandler, { passive: true, once: true }); }
+
+        const Icons = {
+            Play: () => <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5.14v14l11-7-11-7z" /></svg>, Menu: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>, Back: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>, Next: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>, Sparkles: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>, List: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>, Plus: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>, Check: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>, Bulb: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>, Edit: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>, Trash: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>, Restore: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>, Archive: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>, SoundOn: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>, SoundOff: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" /></svg>, User: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>, Lock: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>, Copy: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>, Share: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>, IosShare: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>, Eye: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>, EyeOff: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>, ChevronDown: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>, DownloadApp: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>, Close: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M6 18L18 6M6 6l12 12" /></svg>, Logout: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+            , Skip: () => <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M5 5.5l9.5 6.5L5 18.5v-13z" /><path d="M19 5v14" /></svg>
+        };
+
+        const PopupModal = ({ isOpen, onClose, children }) => {
+            if (!isOpen) return null; return ReactDOM.createPortal(<div className="viewport-popup-overlay fade-in" onClick={() => { if (onClose) { SoundFX.click(); onClose(); } }}> <div className="viewport-popup-box slide-up" role="dialog" aria-modal="true" onClick={e => e.stopPropagation()}> {onClose && ( <button type="button" onClick={() => { SoundFX.click(); onClose(); }} aria-label="Закрыть" className="btn-icon absolute top-3 right-3" > <Icons.Close /> </button> )} {children} </div> </div>, document.body);
+        };
+
+        // ---- Всплывающие уведомления ----
+        // Свой корень поверх приложения: уведомление не пересоздаётся при перерисовке экрана и не зависит от того, где показано.
+        // Виды: ok — сделано, turn — ход перешёл, info — к сведению, warn — не получилось (читается скринридером сразу).
+        const TOAST_ICONS = { ok: () => <Icons.Check />, turn: () => <Icons.User />, info: () => <b>i</b>, warn: () => <b>!</b> };
+        const toastBus = { push: null, seq: 0 };
+        const showToast = (msg, ms = 2800, kind = 'ok') => { if (toastBus.push) toastBus.push({ msg: String(msg), ms, kind: Object.prototype.hasOwnProperty.call(TOAST_ICONS, kind) ? kind : 'ok', id: ++toastBus.seq }); };
+        const ToastHost = () => {
+            const [t, setT] = useState(null);
+            useEffect(() => { toastBus.push = setT; return () => { toastBus.push = null; }; }, []);
+            useEffect(() => { if (!t) return undefined; const id = setTimeout(() => setT(null), t.ms); return () => clearTimeout(id); }, [t]);
+            const Icon = t ? TOAST_ICONS[t.kind] : null;
+            return (<div className="toast-layer" aria-live="polite">{t && <div key={t.id} role={t.kind === 'warn' ? 'alert' : 'status'} className={`toast toast-${t.kind}`} style={{ '--toast-ms': t.ms + 'ms' }}><span className="toast-ico" aria-hidden="true"><Icon /></span><span className="toast-text">{t.msg}</span></div>}</div>);
+        };
+
+        const CustomSelect = ({ value, onChange, options, placeholder = "Выберите..." }) => {
+            const [open, setOpen] = useState(false); const containerRef = useRef(null);
+            useEffect(() => { const handleOutsideClick = (e) => { if (containerRef.current && !containerRef.current.contains(e.target)) setOpen(false); }; document.addEventListener("mousedown", handleOutsideClick); document.addEventListener("touchstart", handleOutsideClick); return () => { document.removeEventListener("mousedown", handleOutsideClick); document.removeEventListener("touchstart", handleOutsideClick); }; }, []);
+            const selectedOpt = options.find(o => o.value === value) || options[0];
+            return ( <div ref={containerRef} className="relative w-full select-none"> <button type="button" onClick={() => { SoundFX.click(); setOpen(prev => !prev); }} className={`field-btn ${ open ? 'is-open' : '' }`} > <div className="flex items-center gap-2.5 truncate"> {selectedOpt?.icon && <span className="text-base leading-none">{selectedOpt.icon}</span>} <span className="text-sm font-medium text-white truncate"> {selectedOpt ? selectedOpt.label : placeholder} </span> </div> <span className={`text-zinc-400 transition-transform duration-200 ${open ? 'rotate-180 text-rose-400' : ''}`}> <Icons.ChevronDown /> </span> </button> {open && ( <div className="absolute left-0 right-0 mt-2 bg-[#14121d] border border-white/[0.16] rounded-[20px] shadow-[0_20px_50px_rgba(0,0,0,0.85)] z-50 max-h-60 overflow-y-auto no-scrollbar p-1.5 fade-in"> {options.map(opt => { const isSelected = opt.value === value; return ( <button key={opt.value} type="button" onClick={() => { SoundFX.toggle(true); onChange(opt.value); setOpen(false); }} className={`menu-opt mb-0.5 last:mb-0 ${ isSelected ? 'is-on' : '' }`} > <div className="flex items-center gap-2.5 truncate"> {opt.icon && <span className="text-base leading-none">{opt.icon}</span>} <span className="truncate">{opt.label}</span> </div> {isSelected && ( <span className="text-rose-400 flex-shrink-0"> <Icons.Check /> </span> )} </button> ); })} </div> )} </div> );
+        };
+
+        const SETTINGS_KEY = "askme_game_settings_v1";
+        const DEFAULT_PUNISHMENTS = [
+            { id: 'd1', text: 'Сделай искренний комплимент каждому игроку', level: 'any', icon: '💌' },
+            { id: 'd2', text: 'Станцуй 15 секунд без музыки', level: 'any', icon: '💃' },
+            { id: 'd3', text: 'Изобрази животное — остальные угадывают', level: 'any', icon: '🐒' },
+            { id: 'd4', text: 'Выпей стакан воды залпом', level: 'Простые', icon: '💧' },
+            { id: 'd5', text: 'Расскажи смешную историю из своей жизни', level: 'Простые', icon: '😄' },
+            { id: 'd6', text: 'Расскажи неловкий секрет из детства', level: 'Средние', icon: '🤫' },
+            { id: 'd7', text: 'Прочитай вслух последнее сообщение в телефоне, которое можно показать', level: 'Средние', icon: '📱' },
+            { id: 'd8', text: 'Скажи, за что ты по-настоящему благодарен(на) партнёру', level: 'Глубокие', icon: '🫶' }
+        ];
+        const LEVEL_OPTIONS = [['any', 'Любая сложность'], ['Простые', 'Лёгкие'], ['Средние', 'Средние'], ['Глубокие', 'Глубокие']];
+        // время на ответ в усложнённом режиме: в настройках — от 30 секунд до 7 минут. Значения короче 30 с (от прошлых версий) при чтении сохранения не трогаем: нижняя граница там 5 с
+        const TIMER_MIN = 30, TIMER_MAX = 420, TIMER_STORED_MIN = 5;
+        const loadGameSettings = () => {
+            const base = { timerOn: false, timerSec: 30, punishOn: false, punishments: [], hiddenTemplates: [] };
+            try {
+                const p = JSON.parse(localStorage.getItem(SETTINGS_KEY) || 'null');
+                if (p && typeof p === 'object') {
+                    const own = Array.isArray(p.punishments) ? p.punishments.filter(x => x && x.custom === true && typeof x.text === 'string' && x.text.trim()).slice(0, 60).map(x => ({ id: String(x.id || Math.random()), text: x.text.slice(0, 80), level: LEVEL_OPTIONS.some(o => o[0] === x.level) ? x.level : 'any', icon: x.icon || '🎭', custom: true })) : [];
+                    const hidden = Array.isArray(p.hiddenTemplates) ? p.hiddenTemplates.filter(x => typeof x === 'string').slice(0, 200) : [];
+                    return { timerOn: !!p.timerOn, timerSec: Math.max(TIMER_STORED_MIN, Math.min(TIMER_MAX, Number(p.timerSec) || 30)), punishOn: !!p.punishOn, punishments: own, hiddenTemplates: hidden };
+                }
+            } catch (e) {}
+            return base;
+        };
+        const PUNISH_CACHE_KEY = "askme_punish_templates_v1";
+        const PUNISH_LEVELS = ['any', 'Простые', 'Средние', 'Глубокие'];
+        const sanitizeTemplates = (arr) => (Array.isArray(arr) ? arr : []).filter(x => x && typeof x.id === 'string' && typeof x.text === 'string' && x.text.trim() && PUNISH_LEVELS.includes(x.level)).slice(0, 100).map(x => ({ id: x.id, text: x.text.slice(0, 80), level: x.level, icon: String(x.icon || '🎭').slice(0, 16), n: Number(x.n) || 0 }));
+        const templatesFromDb = (data) => sanitizeTemplates(data && typeof data === 'object' ? Object.values(data) : []).sort((a, b) => a.n - b.n);
+        const readPunishCache = () => { try { const l = sanitizeTemplates(JSON.parse(localStorage.getItem(PUNISH_CACHE_KEY) || 'null')); return l.length ? l : DEFAULT_PUNISHMENTS; } catch (e) { return DEFAULT_PUNISHMENTS; } };
+        const PUNISH_EMOJIS = ['🎤', '💃', '🐒', '💧', '😄', '🤫', '📱', '🫶', '🍋', '🎭', '🧘', '🤸'];
+        const pickPunishment = (list, level, rnd = Math.random) => {
+            const pool = (list || []).filter(p => p.level === 'any' || p.level === level);
+            return pool.length ? pool[Math.floor(rnd() * pool.length)] : null;
+        };
+        const SettingSwitch = ({ on, onChange, label }) => (
+            <button type="button" role="switch" aria-checked={on} aria-label={label} onClick={onChange} className={`switch ${on ? 'is-on' : ''}`}>
+                <span className="switch-knob"></span>
+            </button>
+        );
+        // Блок «Таймер на ответ» усложнённого режима: крупное значение, шаг ±5 с, ползунок и пять быстрых значений
+        const TIMER_PRESETS = [30, 45, 60, 90, 120];
+        const timerCaption = (s) => s <= 30 ? 'Живой темп: отвечать нужно сразу' : s <= 60 ? 'Есть время подумать' : s <= 120 ? 'Для глубоких вопросов' : s <= 240 ? 'Без спешки' : 'Для долгих разговоров';
+        const fmtSec = (s) => s >= 60 ? `${Math.floor(s / 60)} мин${s % 60 ? ' ' + (s % 60) + ' с' : ''}` : `${s} с`;
+        const clampTimer = (n) => Math.max(TIMER_MIN, Math.min(TIMER_MAX, Math.round(Number(n) || 0)));
+        const FxTimerCard = ({ on, sec, onToggle, onSec }) => {
+            const [draft, setDraft] = useState(null); // пока человек печатает своё число, не навязываем границы
+            const commit = () => { if (draft !== null) { if (draft !== '' && isFinite(Number(draft))) onSec(clampTimer(draft)); setDraft(null); } };
+            const step = (d) => { SoundFX.click(); setDraft(null); onSec(clampTimer(sec + d)); };
+            const pct = ((Math.max(TIMER_MIN, Math.min(TIMER_MAX, sec)) - TIMER_MIN) / (TIMER_MAX - TIMER_MIN)) * 100;
+            return (
+                <section className={`fx-card ${on ? 'is-on' : ''}`}>
+                    <div className="flex items-center gap-3">
+                        <span aria-hidden="true" className="fx-ico">⏱</span>
+                        <div className="flex-1 min-w-0"><div className="text-sm font-bold text-white">Таймер на ответ</div><div className="text-xs text-zinc-400 leading-snug">Не успел — наказание, и ход переходит дальше</div></div>
+                        <SettingSwitch on={on} onChange={onToggle} label="Таймер на ответ" />
+                    </div>
+                    {on && (
+                        <div className="fx-body fade-in">
+                            <div className="timer-stepper">
+                                <button type="button" className="btn-icon timer-step" aria-label="Меньше на 5 секунд" disabled={sec <= TIMER_MIN} onClick={() => step(-5)}>−</button>
+                                <div className="timer-readout">
+                                    <input type="number" inputMode="numeric" min={TIMER_MIN} max={TIMER_MAX} aria-label="Секунд на ответ" value={draft !== null ? draft : sec} style={{ width: `${Math.max(1, String(draft !== null ? draft : sec).length) + 0.5}ch` }} onChange={e => setDraft(e.target.value)} onBlur={commit} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); commit(); e.target.blur(); } }} className="timer-num font-display" />
+                                    <span className="timer-unit">сек</span>
+                                </div>
+                                <button type="button" className="btn-icon timer-step" aria-label="Больше на 5 секунд" disabled={sec >= TIMER_MAX} onClick={() => step(5)}>+</button>
+                            </div>
+                            <div className="text-xs text-zinc-400 text-center -mt-1">{timerCaption(sec)}{sec >= 60 ? ` · ${fmtSec(sec)}` : ''}</div>
+                            <input type="range" min={TIMER_MIN} max={TIMER_MAX} step="5" value={sec} onChange={e => { setDraft(null); onSec(clampTimer(e.target.value)); }} aria-label="Время на ответ, секунд" className="timer-range" style={{ '--p': pct + '%' }} />
+                            <div className="timer-presets" role="group" aria-label="Быстрый выбор времени">
+                                {TIMER_PRESETS.map(p => ( <button key={p} type="button" aria-pressed={sec === p} onClick={() => { SoundFX.click(); setDraft(null); onSec(p); }} className={`chip ${sec === p ? 'is-on' : ''}`}>{p} с</button> ))}
+                            </div>
+                        </div>
+                    )}
+                </section>
+            );
+        };
+        const BASE_CATEGORIES = CATEGORIES.slice();
+        const TOPICS_CACHE_KEY = "askme_topics_cache_v1";
+        const readTopicsCache = () => {
+            try {
+                const p = JSON.parse(localStorage.getItem(TOPICS_CACHE_KEY) || 'null');
+                if (p && typeof p === 'object') return { custom: (p.custom && typeof p.custom === 'object') ? p.custom : {}, order: Array.isArray(p.order) ? p.order : Object.values(p.order || {}) };
+            } catch (e) {}
+            return { custom: {}, order: [] };
+        };
+        const applyTopics = (data) => {
+            const custom = data && data.custom && typeof data.custom === 'object'
+                ? Object.values(data.custom).filter(c => c && typeof c.id === 'string' && typeof c.name === 'string' && c.name.trim()).map(c => ({ id: c.id, name: String(c.name).slice(0, 30), icon: String(c.icon || '✨').slice(0, 16), custom: true }))
+                : [];
+            const all = [...BASE_CATEGORIES, ...custom.filter(c => !BASE_CATEGORIES.some(b => b.id === c.id))];
+            const baseIdx = new Map(all.map((c, i) => [c.id, i]));
+            const orderArr = data && data.order ? (Array.isArray(data.order) ? data.order : Object.values(data.order)) : [];
+            const rank = new Map(); orderArr.forEach((id, i) => { if (typeof id === 'string' && !rank.has(id)) rank.set(id, i); });
+            all.sort((a, b) => (rank.has(a.id) ? rank.get(a.id) : 1000 + baseIdx.get(a.id)) - (rank.has(b.id) ? rank.get(b.id) : 1000 + baseIdx.get(b.id)));
+            CATEGORIES.splice(0, CATEGORIES.length, ...all);
+        };
+        applyTopics(readTopicsCache());
+        const TopicReorderList = ({ items, onChange }) => {
+            const [dragId, setDragId] = React.useState(null);
+            const listRef = React.useRef(null);
+            const move = (from, to) => {
+                if (to < 0 || to >= items.length || from === to) return;
+                const next = items.slice(); const [it] = next.splice(from, 1); next.splice(to, 0, it); onChange(next);
+            };
+            const onDown = (e, id) => { e.preventDefault(); try { listRef.current.setPointerCapture(e.pointerId); } catch (err) {} setDragId(id); };
+            const onMove = (e) => {
+                if (!dragId || !listRef.current) return;
+                const rows = [...listRef.current.querySelectorAll('[data-topic-id]')].filter(r => r.dataset.topicId !== dragId);
+                let target = 0; rows.forEach(r => { const b = r.getBoundingClientRect(); if (e.clientY > b.top + b.height / 2) target++; });
+                const from = items.findIndex(c => c.id === dragId);
+                if (from >= 0 && target !== from) move(from, target);
+            };
+            const onUp = () => setDragId(null);
+            return (
+                <ul ref={listRef} className="flex flex-col gap-1.5" onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}>
+                    {items.map((c, i) => (
+                        <li key={c.id} data-topic-id={c.id} className={`flex items-center gap-1.5 rounded-xl border px-1.5 py-1 transition-colors ${dragId === c.id ? 'border-rose-500/60 bg-rose-500/10' : 'border-white/10 bg-white/[0.04]'}`}>
+                            <button type="button" aria-label={`Перетащить тему «${c.name}»`} onPointerDown={e => onDown(e, c.id)} style={{ touchAction: 'none' }} className="btn-icon plain cursor-grab">⠿</button>
+                            <span aria-hidden="true" className="text-lg">{c.icon}</span>
+                            <span className="flex-1 min-w-0 text-sm font-semibold text-white truncate">{c.name}</span>
+                            <button type="button" aria-label="Поднять выше" disabled={i === 0} onClick={() => move(i, i - 1)} className="btn-icon plain">▲</button>
+                            <button type="button" aria-label="Опустить ниже" disabled={i === items.length - 1} onClick={() => move(i, i + 1)} className="btn-icon plain">▼</button>
+                        </li>
+                    ))}
+                </ul>
+            );
+        };
+        const EMOJI_SETS = [
+            ['Смайлы', '😀 😃 😄 😁 😆 😅 😂 🤣 😊 😇 🙂 😉 😍 🥰 😘 😋 😛 😜 🤪 🤔 🤫 🤭 😏 😒 🙄 😬 😌 😔 😴 🥱 😷 🥵 🥶 😵 🤯 🥳 😎 🤓 😕 😮 😲 😳 🥺 😢 😭 😱 😖 😤 😡 🤬 😈 👿 💀 👻 🤡 🫣 🫶'],
+            ['Люди', '👋 ✋ 👌 🤌 ✌️ 🤞 🤟 🤘 👍 👎 👏 🙌 🙏 💪 👀 👅 👄 🧠 👶 🧒 👩 👨 🧑 👫 👭 👬 💏 💑 👪 💃 🕺 🧘 🏃 🙋 🤷 🤦'],
+            ['Природа', '🌍 🌎 🌙 ⭐ ✨ 🔥 💧 🌈 ☀️ ⛅ ❄️ 🌸 🌹 🌻 🌿 🍀 🌴 🌵 🍄 🐶 🐱 🦊 🐻 🐼 🦁 🐯 🐸 🐵 🦄 🐝 🦋 🐢 🐙 🐬 🦈'],
+            ['Еда и дом', '🍷 🍸 🍺 🥂 ☕ 🍕 🍔 🍟 🌮 🍣 🍰 🍫 🍎 🍓 🍒 🥑 🏠 🛏️ 🛁 🔑 🚪 🕯️ 🛋️ 🎁 🎈 🎉 🎂 💍 💐'],
+            ['Занятия', '🎬 🎤 🎧 🎮 🎲 🎯 🧩 🎭 🎨 📚 ✈️ 🚗 🏖️ ⛺ 🏔️ ⚽ 🏀 🎾 🏋️ 💼 💰 💎 📱 💻 📷 🔮 🧿'],
+            ['Символы', '❤️ 🧡 💛 💚 💙 💜 🖤 🤍 💔 ❣️ 💕 💞 💘 💝 💬 💭 ❓ ❗ ✅ ⚡ 🔞 ♾️ ⚖️ ⏳ 🔒 🕊️ 🚩']
+        ];
+        const SummaryRing = ({ frac, children }) => {
+            const [ready, setReady] = React.useState(false);
+            React.useEffect(() => { const t = setTimeout(() => setReady(true), 140); return () => clearTimeout(t); }, []);
+            const C = 339.29;
+            return (
+                <div className="relative w-[176px] h-[176px]">
+                    <svg viewBox="0 0 120 120" className="w-full h-full" aria-hidden="true">
+                        <defs><linearGradient id="sumGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#fb7185"></stop><stop offset="100%" stopColor="#f43f5e"></stop></linearGradient></defs>
+                        <circle cx="60" cy="60" r="54" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="7"></circle>
+                        <circle cx="60" cy="60" r="54" fill="none" stroke="url(#sumGrad)" strokeWidth="7" strokeLinecap="round" transform="rotate(-90 60 60)" style={{ strokeDasharray: C, strokeDashoffset: C * (1 - (ready ? frac : 0)), transition: 'stroke-dashoffset 1.3s cubic-bezier(0.22, 1, 0.36, 1)', filter: 'drop-shadow(0 0 6px rgba(244,63,94,0.55))' }}></circle>
+                    </svg>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">{children}</div>
+                </div>
+            );
+        };
+        const SummaryBars = ({ rows, total }) => {
+            const [ready, setReady] = React.useState(false);
+            React.useEffect(() => { const t = setTimeout(() => setReady(true), 220); return () => clearTimeout(t); }, []);
+            return (
+                <div className="flex flex-col gap-4">
+                    {rows.map(r => (
+                        <div key={r.label}>
+                            <div className="flex items-center justify-between mb-1.5">
+                                <span className={`font-bold text-xs ${r.cls}`}>{r.label}</span>
+                                <span className="font-display text-xl font-bold text-white"><AnimatedCounter target={r.count} /></span>
+                            </div>
+                            <div className="h-2 rounded-full bg-white/[0.07] overflow-hidden">
+                                <div className={`h-full rounded-full ${r.bar}`} style={{ width: ready ? `${Math.round((r.count / Math.max(1, total)) * 100)}%` : '0%', transition: 'width 1s cubic-bezier(0.22, 1, 0.36, 1)' }}></div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            );
+        };
+        const SummaryConfetti = () => {
+            const items = React.useMemo(() => Array.from({ length: 26 }, (_, i) => {
+                const r = (n) => { const x = Math.sin(i * 12.9898 + n * 78.233) * 43758.5453; return x - Math.floor(x); };
+                return { left: Math.round(r(1) * 100), dx: Math.round((r(2) - 0.5) * 120), dur: (3.6 + r(3) * 3).toFixed(2), delay: (r(4) * 1.4).toFixed(2), size: 14 + Math.round(r(5) * 10), glyph: ['❤️', '✨', '🎉', '💬', '🔥', '🫶'][i % 6] };
+            }), []);
+            return (
+                <div className="confetti-layer absolute inset-0 overflow-hidden pointer-events-none z-0" aria-hidden="true">
+                    {items.map((c, i) => ( <span key={i} className="confetti-piece" style={{ left: c.left + '%', fontSize: c.size, '--dx': c.dx + 'px', '--dur': c.dur + 's', '--delay': c.delay + 's' }}>{c.glyph}</span> ))}
+                </div>
+            );
+        };
+        const fmtDur = (sec) => { sec = Math.round(sec || 0); if (sec < 60) return sec + ' с'; const m = Math.floor(sec / 60); return m + ' мин' + (sec % 60 ? ' ' + (sec % 60) + ' с' : ''); };
+        const fmtDate = (ts) => { try { return new Date(ts).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }); } catch (e) { return ''; } };
+        const gamesOf = (rec) => Object.values((rec && rec.games) || {}).filter(g => g && typeof g === 'object').sort((a, b) => (b.startedAt || 0) - (a.startedAt || 0));
+        // Порог аналитики: в сводку идут игры, где отвечено не меньше AN_MIN вопросов, и все полностью пройденные колоды. Задаёт владелец.
+        const SESSION_PAYLOAD_MAX = 59000; // правило базы для sessions/$sid/payload: короче 60000 знаков (копия правила: tests/fixtures/sessions-rules.json). Поднимаете правило — поднимите и это число (на 1000 меньше)
+        const AN_MIN_KEY = 'askme_an_min_v1', AN_MIN_DEFAULT = 50, AN_FLOOR = 10, AN_MIN_CHOICES = [0, 10, 20, 30, 50, 100];
+        const readAnMin = () => { try { const raw = localStorage.getItem(AN_MIN_KEY); const n = raw === null ? NaN : Number(raw); return Number.isFinite(n) && n >= 0 ? Math.min(1000, Math.round(n)) : AN_MIN_DEFAULT; } catch (e) { return AN_MIN_DEFAULT; } };
+        const gameCounts = (g, min) => !!g && typeof g === 'object' && (g.complete === 1 || g.complete === true || (Number(g.answered) || 0) >= min);
+        const filterAnalytics = (data, min) => { const out = {}; Object.entries(data || {}).forEach(([aid, rec]) => { if (!rec || typeof rec !== 'object') return; const games = {}; Object.entries(rec.games || {}).forEach(([gid, g]) => { if (gameCounts(g, min)) games[gid] = g; }); if (Object.keys(games).length) out[aid] = { ...rec, games }; }); return out; };
+        const countAnalyticsGames = (data) => Object.values(data || {}).reduce((a, r) => a + Object.values((r && r.games) || {}).filter(g => g && typeof g === 'object').length, 0);
+        const buildGameReports = ({ log, players, questions, history, total, customs, now, complete, partial }) => {
+            const answeredIds = [], skippedIds = [], byCat = {}, byLevel = {};
+            const per = (players || []).map(p => ({ id: p.id, name: String(p.name || '').slice(0, 25), answered: 0, skipped: 0 }));
+            let answered = 0, skipped = 0;
+            (questions || []).slice(0, total).forEach((q, i) => {
+                const e = normTurn(history[i]); const qid = String(q.id || q.dbKey || i);
+                if (e && isTurnSkipped(e, players)) { skipped++; if (skippedIds.length < 400) skippedIds.push(qid); }
+                else { answered++; if (answeredIds.length < 400) answeredIds.push(qid); byCat[q.categoryId] = (byCat[q.categoryId] || 0) + 1; byLevel[q.level] = (byLevel[q.level] || 0) + 1; }
+                if (e) e.answered.forEach(id => { const r = per.find(x => x.id === id); if (!r) return; if (e.skippedBy.includes(id)) r.skipped++; else r.answered++; });
+            });
+            const d = log.durations || [];
+            const anonGame = { startedAt: log.startedAt, endedAt: now, durationSec: Math.max(0, Math.round((now - log.startedAt) / 1000)), mode: log.mode, timerSec: log.timerSec || 0, punishOn: !!log.punishOn, players: per.length, answered, skipped, avgAnswerSec: d.length ? Math.round(d.reduce((a, b) => a + b, 0) / d.length) : 0, byCat, byLevel, answeredIds, skippedIds, punishCount: (log.punishments || []).length, punishTpl: (log.punishments || []).filter(p => p.tpl).map(p => p.t).slice(0, 50), ...(complete ? { complete: 1 } : {}), ...(partial ? { partial: 1 } : {}) };
+            const fullGame = { ...anonGame, perPlayer: per.map(r => ({ name: r.name, answered: r.answered, skipped: r.skipped })), punishAll: (log.punishments || []).map(p => p.t).slice(0, 50), customPunishments: (customs || []).slice(0, 60) };
+            return { anonGame, fullGame };
+        };
+        const aggregateAnalytics = (anon) => {
+            const recs = Object.values(anon || {}).filter(r => r && typeof r === 'object'); const games = recs.flatMap(r => gamesOf(r));
+            const sum = (f) => games.reduce((a, g) => a + (Number(f(g)) || 0), 0); const n = games.length || 1;
+            const cat = {}, lvl = {}, skip = {}, pun = {};
+            games.forEach(g => { Object.entries(g.byCat || {}).forEach(([k, v]) => { cat[k] = (cat[k] || 0) + v; }); Object.entries(g.byLevel || {}).forEach(([k, v]) => { lvl[k] = (lvl[k] || 0) + v; }); (g.skippedIds || []).forEach(id => { skip[id] = (skip[id] || 0) + 1; }); (g.punishTpl || []).forEach(t => { pun[t] = (pun[t] || 0) + 1; }); });
+            const top = (o, k = 6) => Object.entries(o).sort((a, b) => b[1] - a[1]).slice(0, k);
+            const withAnswerTime = games.filter(g => g.avgAnswerSec > 0);
+            const answered = sum(g => g.answered), skipped = sum(g => g.skipped);
+            return { sessions: recs.length, games: games.length, avgPlayers: games.length ? sum(g => g.players) / n : 0, avgAnswered: games.length ? answered / n : 0, avgDuration: games.length ? sum(g => g.durationSec) / n : 0, avgAnswerSec: withAnswerTime.length ? withAnswerTime.reduce((a, g) => a + g.avgAnswerSec, 0) / withAnswerTime.length : 0, skipRate: (answered + skipped) ? skipped / (answered + skipped) : 0, hardShare: games.length ? games.filter(g => g.mode === 'hard').length / n : 0, timerShare: games.length ? games.filter(g => g.timerSec > 0).length / n : 0, avgTimer: games.filter(g => g.timerSec > 0).length ? games.filter(g => g.timerSec > 0).reduce((a, g) => a + g.timerSec, 0) / games.filter(g => g.timerSec > 0).length : 0, topCats: top(cat), levels: lvl, topSkipped: top(skip, 5), topPunish: top(pun, 5), punishShown: sum(g => g.punishCount) };
+        };
+        const DECK_ARC = 24;
+        const SHARP_CATS = ['intimacy'];
+        const deckWeight = (q, t) => {
+            const bell = Math.exp(-Math.pow((t - 0.5) / 0.2, 2));
+            const lv = q.level === 'Глубокие' ? 0.25 + 1.75 * bell : q.level === 'Средние' ? 1 + 0.3 * bell : 1.6 - 1.0 * bell;
+            return lv * (SHARP_CATS.includes(q.categoryId) ? 0.6 + 0.8 * bell : 1);
+        };
+        const buildDeck = (pool, rnd = Math.random) => {
+            const buckets = new Map();
+            pool.forEach(q => { const k = q.categoryId + '|' + q.level; if (!buckets.has(k)) buckets.set(k, []); buckets.get(k).push(q); });
+            buckets.forEach(arr => { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } });
+            const keys = [...buckets.keys()], deck = [], left = {};
+            pool.forEach(q => { left[q.categoryId] = (left[q.categoryId] || 0) + 1; });
+            for (let i = 0; i < pool.length; i++) {
+                const t = (i % DECK_ARC) / (DECK_ARC - 1);
+                const last = deck[i - 1], prev = deck[i - 2];
+                const blocked = last && prev && last.categoryId === prev.categoryId ? last.categoryId : null;
+                let cands = keys.filter(k => buckets.get(k).length > 0 && buckets.get(k)[0].categoryId !== blocked);
+                // хвост колоды: если одна тема заняла больше 2/3 оставшихся вопросов, без «тройки» подряд уже не расставить — берём её сразу
+                const n = pool.length - i; let urgent = null; for (const c in left) if (left[c] * 3 + 6 > 2 * n && left[c] > 1) urgent = c;
+                if (urgent && urgent !== blocked) { const forced = keys.filter(k => buckets.get(k).length > 0 && buckets.get(k)[0].categoryId === urgent); if (forced.length) cands = forced; }
+                if (cands.length === 0) cands = keys.filter(k => buckets.get(k).length > 0);
+                let sum = 0; const w = cands.map(k => { const arr = buckets.get(k); const x = arr.length * deckWeight(arr[0], t); sum += x; return x; });
+                let r = rnd() * sum, pick = cands[cands.length - 1];
+                for (let c = 0; c < cands.length; c++) { r -= w[c]; if (r <= 0) { pick = cands[c]; break; } }
+                const picked = buckets.get(pick).pop(); left[picked.categoryId]--; deck.push(picked);
+            }
+            return deck;
+        };
+        const SCREEN_TITLES = { hidden_q: 'Скрытые вопросы — ASK ME', analytics: 'Аналитика — ASK ME', analytics_sessions: 'Сессии — Аналитика — ASK ME', app_menu: 'Меню — ASK ME', game_setup: 'Усложнённый режим — ASK ME', topics_admin: 'Управление темами — ASK ME', punish_admin: 'Шаблоны наказаний — ASK ME', onboarding: 'ASK ME — начните игру', session_created: 'Сессия создана — ASK ME', menu: 'ASK ME — откровенные разговоры для двоих и компании', profile_page: 'Игроки и сессия — ASK ME', admin_login: 'Вход для владельца — ASK ME', mode_select: 'Режим игры — ASK ME', game: 'Игра — ASK ME', ai_response: 'Совет и ситуация — ASK ME', summary: 'Итоги игры — ASK ME', cat_list: 'Все темы — ASK ME', q_list: 'Вопросы — ASK ME', archive_page: 'Архив вопросов — ASK ME', add_q: 'Новый вопрос — ASK ME', edit_q: 'Редактирование вопроса — ASK ME', invite: 'Пригласить игроков — ASK ME', join: 'Присоединиться к игре — ASK ME', about: 'Об игре — ASK ME', privacy: 'Политика конфиденциальности — ASK ME', terms: 'Пользовательское соглашение — ASK ME', cookies: 'Cookies и локальное хранилище — ASK ME', age: 'Возраст и откровенный контент — ASK ME' };
+        const GROUP_EMOJIS = ['😈', '🤫', '😋', '🤔', '🤪', '😏', '😱', '🫣'];
+        const MAX_PLAYERS = 10;
+        const LIVE_POLL_MS = 1000, LIVE_INVITE_MS = 3000, LIVE_BEAT_MS = 8000, LIVE_ALIVE_MS = 30000, LIVE_STALE_MS = 120000, LIVE_TAKEOVER_S = 6, LIVE_TAKEOVER_STEP_S = 4, LIVE_TAP_GUARD_MS = 500, LIVE_SOLO_MS = 2000, LIVE_JOIN_WAIT_MS = 15000, LIVE_MAX_DEVICES = MAX_PLAYERS;
+        // в одной партии устройств не больше, чем игроков в сессии (но не больше LIVE_MAX_DEVICES): каждое подключившееся устройство — это игрок
+        // snap — снимок комнаты: у присоединяющегося копия сессии может отставать от хозяйской, поэтому берём большее из своих игроков и игроков в комнате
+        const deviceCap = (prof, snap) => { let n = ((prof && prof.players) || []).length; try { const pl = snap && typeof snap.pl === 'string' ? JSON.parse(snap.pl) : null; if (Array.isArray(pl)) n = Math.max(n, pl.length); } catch (e) {} return Math.min(LIVE_MAX_DEVICES, Math.max(2, n)); };
+        const clampIdx = (v, n) => Math.max(0, Math.min(n - 1, Math.floor(Number(v) || 0))); // индекс вопроса из комнаты — только внутри колоды
+        const liveHash = (idx, max, hist) => idx + '|' + max + '|' + hist;
+        // короткий «отпечаток» колоды: по нему устройства узнают, что у них одна и та же партия, не скачивая всю колоду
+        const liveDeckKey = (idsStr) => { let h = 2166136261; for (let i = 0; i < idsStr.length; i++) { h ^= idsStr.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return idsStr.split(',').length + '-' + h.toString(36); };
+        // у каждого устройства своя дробная часть версии: две одновременные записи никогда не получают одинаковый номер
+        const liveFrac = (id) => { let h = 0; String(id).split('').forEach(ch => { h = (h * 31 + ch.charCodeAt(0)) % 999983; }); return (h + 1) / 1000000; };
+        const liveVerNext = (prev, id) => Math.floor(Number(prev) || 0) + 1 + liveFrac(id);
+        // версия первой записи новой партии отсчитывается от времени (десятые доли секунды): так она заведомо не совпадёт с версиями прошлых партий в этой комнате,
+        // и устройства, ещё сидящие в старой партии, заметят, что в комнате что-то поменялось
+        const liveVerStart = (id, now = Date.now()) => liveVerNext(Math.floor(now / 100), id);
+        // кто сейчас в игре: отметки присутствия {устройство: время}; «живое» — отметка моложе 30 с, мусор старше 2 мин убирается
+        const liveAlive = (p, now, selfId) => {
+            const alive = [], stale = [];
+            Object.entries(p && typeof p === 'object' ? p : {}).forEach(([id, ts]) => { const t = Number(ts); if (!isFinite(t)) { stale.push(id); return; } const age = now - t; if (age <= LIVE_ALIVE_MS) alive.push(id); else if (age > LIVE_STALE_MS) stale.push(id); });
+            return { alive, others: alive.filter(id => id !== selfId), stale };
+        };
+        // история ходов в базе ограничена по размеру: если не влезает, отбрасываем самые старые записи
+        const liveHistStr = (hist) => {
+            const h = { ...(hist || {}) }; let str = JSON.stringify(h);
+            if (str.length <= 28000) return str;
+            Object.keys(h).map(Number).sort((a, b) => a - b).some(k => { delete h[k]; str = JSON.stringify(h); return str.length <= 28000; });
+            return str;
+        };
+        const liveRoomKey = async (key) => { const h = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode('askme-live-v1:' + key))); return 'l_' + Array.from(h).map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 40); };
+        const makeDeviceId = () => { const rnd = () => Math.random().toString(36).slice(2, 10); try { let v = sessionStorage.getItem('askme_dev_v1'); if (!v) { v = rnd(); sessionStorage.setItem('askme_dev_v1', v); } return v; } catch (e) { return rnd(); } };
+        const normTurn = (e) => {
+            if (!e) return null;
+            if (typeof e === 'string') return { cur: e, answered: [], skippedBy: [], skippedAll: false };
+            if (Array.isArray(e)) return { cur: null, answered: e.map(p => p && p.id).filter(Boolean), skippedBy: [], skippedAll: false };
+            return { cur: e.cur || null, answered: Array.isArray(e.answered) ? e.answered : [], skippedBy: Array.isArray(e.skippedBy) ? e.skippedBy : [], skippedAll: !!e.skippedAll };
+        };
+        const isTurnSkipped = (e, players) => !!e && !e.cur && (e.skippedAll || (players.length > 0 && players.every(p => e.skippedBy.includes(p.id))));
+        const nextTurnStep = (rawEntry, players) => {
+            const e = normTurn(rawEntry);
+            if (!e || !e.cur) return null;
+            const answered = [...e.answered, e.cur];
+            const remaining = players.filter(p => !answered.includes(p.id));
+            if (remaining.length === 0) return { type: 'done', entry: { cur: null, answered, skippedBy: e.skippedBy, skippedAll: false } };
+            if (remaining.length === 1) return { type: 'auto', entry: { cur: remaining[0].id, answered, skippedBy: e.skippedBy, skippedAll: false }, player: remaining[0] };
+            return { type: 'spin', answered, skippedBy: e.skippedBy, candidates: remaining };
+        };
+        const REEL = { CARD: 84, GAP: 8, TARGET: 30, TRAVEL: 22 };
+        const reelTarget = (k, winnerIdx) => REEL.TARGET + ((winnerIdx - (REEL.TARGET % k)) % k + k) % k;
+        const reelGeometry = (w, tIndex, jit = 0) => {
+            const stride = REEL.CARD + REEL.GAP;
+            const final = w / 2 - (tIndex * stride + REEL.CARD / 2) + jit;
+            return { t: tIndex, final, start: final - REEL.TRAVEL * stride };
+        };
+        const TurnReel = ({ players, winnerId, spinning }) => {
+            const k = players.length;
+            const t = reelTarget(k, Math.max(0, players.findIndex(p => p.id === winnerId)));
+            const wrapRef = React.useRef(null);
+            const [pos, setPos] = React.useState({ x: 0, anim: false, ready: false });
+            React.useLayoutEffect(() => {
+                const w = wrapRef.current ? wrapRef.current.getBoundingClientRect().width : 300;
+                const g = reelGeometry(w, t, (Math.random() - 0.5) * REEL.CARD * 0.5);
+                const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                if (reduce) { setPos({ x: g.final, anim: false, ready: true }); return; }
+                setPos({ x: g.start, anim: false, ready: true });
+                let r2;
+                const r1 = requestAnimationFrame(() => { r2 = requestAnimationFrame(() => setPos({ x: g.final, anim: true, ready: true })); });
+                return () => { cancelAnimationFrame(r1); if (r2) cancelAnimationFrame(r2); };
+            }, []);
+            return (
+                <div ref={wrapRef} className="relative w-full h-[112px] overflow-hidden rounded-[20px] border border-white/10 bg-white/[0.04]">
+                    <div className="absolute top-0 bottom-0 left-0 flex items-center" style={{ gap: REEL.GAP, transform: `translate3d(${pos.x}px,0,0)`, transition: pos.anim ? 'transform 2.2s cubic-bezier(0.08,0.6,0.12,1)' : 'none', willChange: 'transform', opacity: pos.ready ? 1 : 0 }}>
+                        {Array.from({ length: t + 8 }, (_, i) => {
+                            const p = players[i % k];
+                            const win = !spinning && i === t;
+                            return (
+                                <div key={i} style={{ width: REEL.CARD, flex: '0 0 auto' }} className={`h-[92px] rounded-xl border flex flex-col items-center justify-center gap-1 transition-all duration-300 ${win ? 'bg-rose-500/15 border-rose-500 scale-105' : 'bg-white/[0.04] border-white/10'} ${(!spinning && !win) ? 'opacity-35' : ''}`}>
+                                    <span className="text-2xl">{p.gender === 'guy' ? '👨' : '👩'}</span>
+                                    <span className="text-xs font-bold text-white truncate max-w-[72px]">{p.name}</span>
+                                </div>
+                            );
+                        })}
+                    </div>
+                    <div className="pointer-events-none absolute inset-y-0 left-0 w-10 bg-gradient-to-r from-black/60 to-transparent" />
+                    <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-black/60 to-transparent" />
+                    <div className="pointer-events-none absolute inset-y-0 left-1/2 w-[2px] -translate-x-1/2 bg-rose-400 shadow-[0_0_12px_rgba(251,113,133,0.9)]" />
+                </div>
+            );
+        };
+
+        const SessionIdBadge = ({ sessionId, sessionKey, onCopy, size = "sm" }) => {
+            const [copied, setCopied] = useState(false); if (!sessionId) return null;
+            const handleCopyClick = async (e) => { e.stopPropagation(); SoundFX.success(); await copyTextToClipboard(sessionKey ? `${window.location.origin}${window.location.pathname}#/welcome?sid=${sessionId}&key=${sessionKey}` : sessionId); setCopied(true); if (onCopy) onCopy("Ссылка для входа скопирована!"); setTimeout(() => setCopied(false), 2000); };
+            if (size === "lg") {
+                return (
+                    <div className="w-full p-5 rounded-[20px] bg-[#13111a] border border-white/10 flex items-center gap-4 shadow-lg">
+                        <div className="flex-1 min-w-0 flex flex-col gap-1">
+                            <span className="text-xs font-bold text-zinc-500">ID вашей сессии</span>
+                            <span className="font-display text-[26px] leading-tight font-bold text-white tracking-[0.06em] break-all">{sessionId}</span>
+                            <span className="text-xs text-zinc-400">Для восстановления прогресса при выходе</span>
+                        </div>
+                        <button type="button" onClick={handleCopyClick} aria-label="Скопировать" className={`btn-icon flex-shrink-0 ${copied ? 'is-on' : ''}`}>{copied ? <Icons.Check /> : <Icons.Copy />}</button>
+                    </div>
+                );
+            }
+            return (
+                <button type="button" onClick={handleCopyClick} title="Копировать ID" className={`btn-sm ${ copied ? 'btn-accent' : 'btn-secondary' }`} > <span className="text-zinc-500 font-semibold">ID:</span> <span className="text-rose-300">{sessionId}</span> <span className="text-zinc-400">{copied ? <Icons.Check /> : <Icons.Copy />}</span> </button>
+            );
+        };
+
+        const AskMeLogo = ({ size = "lg", onClick = null }) => {
+            if (size === "xs") return ( <div onClick={onClick} className={`inline-flex items-center gap-1.5 select-none ${onClick ? 'cursor-pointer' : ''}`}> <span className="w-2 h-2 rounded-full bg-rose-600"></span> <span className="font-display text-sm font-extrabold uppercase tracking-[0.14em] text-white"> ASK<span className="text-rose-500 ml-0.5">ME</span> </span> </div> );
+            if (size === "md") return ( <div onClick={onClick} className={`inline-flex items-center gap-2.5 select-none ${onClick ? 'cursor-pointer' : ''}`}> <div className="w-8 h-8 rounded-xl bg-rose-500/15 border border-rose-500/40 flex items-center justify-center"> <svg className="w-4 h-4 text-rose-500" viewBox="0 0 24 24" fill="currentColor"> <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/> </svg> </div> <span className="font-display text-3xl font-extrabold uppercase tracking-[0.1em] text-white"> ASK<span className="text-rose-500 ml-1">ME</span> </span> </div> );
+            return ( <div onClick={onClick} className={`inline-flex flex-col items-center select-none ${onClick ? 'cursor-pointer' : ''}`}> <div className="flex items-center gap-3.5"> <div className="w-11 h-11 md:w-12 md:h-12 rounded-xl bg-gradient-to-br from-rose-500 to-rose-700 flex items-center justify-center shadow-[0_8px_28px_rgba(225,29,72,0.4)] pulse-soft"> <svg className="w-5 h-5 md:w-6 md:h-6 text-white" viewBox="0 0 24 24" fill="currentColor"> <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/> </svg> </div> <div className="font-display text-[32px] md:text-5xl font-extrabold tracking-[0.05em] text-white leading-none flex items-center"> <span>ASK</span> <span className="text-rose-500 ml-2">ME</span> </div> </div> </div> );
+        };
+
+        // divider: тонкая линия над подвалом (на «Меню» и экранах начала игры не нужна); wide — под широкую вёрстку главной на компьютере
+        const AppFooter = ({ noLinks = false, divider = true, wide = false }) => (
+            <footer className="w-full py-6 flex flex-col items-center justify-center gap-3 select-none z-10">
+                {divider && <div aria-hidden="true" className={`footer-rule mb-3 ${wide ? 'is-wide' : ''}`}></div>}
+                <div className="flex items-center justify-center gap-3 opacity-60 hover:opacity-100 transition-opacity"> <AskMeLogo size="xs" /> <span className="text-white/20 text-xs">•</span> <span className="text-xs text-zinc-400 font-semibold"> by <span className="text-rose-400">yedvinn</span> </span> </div>
+                {!noLinks && <nav aria-label="Информация" className="footer-links"><a href="#/about">Об игре</a><a href="#/privacy">Конфиденциальность</a><a href="#/terms">Соглашение</a></nav>}
+            </footer>
+        );
+
+        const callNeuralNet = async (systemPrompt, userPrompt, maxTokens = 900) => {
+            const randomSeed = Math.floor(Math.random() * 10000000);
+            try { const response = await fetchWithTimeout("https://text.pollinations.ai/openai", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: "openai", seed: randomSeed, temperature: 0.92, messages: [ { role: "system", content: systemPrompt }, { role: "user", content: userPrompt } ] }) }); if (response.ok) { const data = await response.json(); const content = data?.choices?.[0]?.message?.content; if (content) return content.trim(); } } catch (e) {}
+            try { const compactPrompt = userPrompt.slice(0, 520); const fallbackUrl = `https://text.pollinations.ai/${encodeURIComponent(compactPrompt)}?seed=${randomSeed}&model=openai`; const response = await fetchWithTimeout(fallbackUrl); if (response.ok) { const text = await response.text(); if (text && text.length > 10 && !text.includes("<!DOCTYPE")) return text.trim(); } } catch (e) {} return null;
+        };
+
+        // Визначити, чи текст українською (за специфічними літерами).
+        const looksUkrainian = (s) => /[іїєґІЇЄҐ]|ʼ|ʼ/.test(String(s || ''));
+        // Автопереклад короткого тексту через Pollinations. target: 'uk' | 'ru'. Повертає переклад або "".
+        const translateText = async (text, target) => {
+            const clean = String(text || '').replace(/^№\s*\d+\.\s*/, '').trim();
+            if (!clean) return '';
+            const sys = target === 'uk'
+                ? "Ти професійний перекладач з російської на українську. Виводь ЛИШЕ переклад, природною грамотною українською, звертання на 'ти'. Якщо є форми роду '(а)','(ла)' — передай українськими відповідниками для обох родів. Без пояснень і лапок навколо."
+                : "Ты профессиональный переводчик с украинского на русский. Выводи ТОЛЬКО перевод, естественным грамотным русским, обращение на 'ты'. Если есть формы рода '(а)','(ла)' — сохрани их. Без пояснений и кавычек вокруг.";
+            const out = await callNeuralNet(sys, "Переклади / Переведи:\n" + clean, 400);
+            if (!out) return '';
+            return out.replace(/^\s*\d+[\.\)]\s*/, '').replace(/^["'«»\s]+|["'«»\s]+$/g, '').trim();
+        };
+        // Побудувати пару {ru, uk} з уведеного адміном тексту (мова визначається автоматично).
+        const buildBilingual = async (typed) => {
+            const clean = String(typed || '').replace(/^№\s*\d+\.\s*/, '').trim();
+            if (looksUkrainian(clean)) { const ru = await translateText(clean, 'ru'); return { ru: ru || clean, uk: clean }; }
+            const uk = await translateText(clean, 'uk'); return { ru: clean, uk: uk || '' };
+        };
+
+        const synthesizeSmartFallback = (promptType, cleanQuestion, catId, p1Name, p2Name) => {
+            const catObj = CATEGORIES.find(c => c.id === catId) || CATEGORIES[0];
+            const settings = [ `Поздний вечер, за окном мягко светятся огни ночного города, а мы сидим в полумраке с чашками горячего чая`, `Мы едем в машине по ночной трассе, играет тихий плейлист, и атмосфера располагает к откровенности` ];
+            const chosenSetting = settings[Math.floor(Math.random() * settings.length)];
+
+            if (promptType === "situation") { return `🎬 Моделирование ситуации:\n${chosenSetting}. Я ловлю твой взгляд, делаю паузу и с искренним любопытством спрашиваю: «${cleanQuestion}»\n\n👩👨 Как бы ответили большинство:\n• Для большинства это вопрос про эмоциональный подтекст, чувство безопасности и доверие.\n• Кто-то склонен воспринимать такой вопрос более прямолинейно и практично.`; }
+            return `🧠 Как лучше поступить:\nОбсуждая вопрос «${cleanQuestion}» (тема «${catObj.name}»), важно отказаться от оценочных суждений.\n\n👩👨 Как обычно отвечают большинство:\nМногие отвечают на этот вопрос через призму чувств, контекста отношений и долгосрочной надежности.\n\n💡 Интересные факты:\nИсследования нейробиологов показывают, что когда партнеры честно отвечают на непростые вопросы, снижается активность миндалевидного тела.\n\n📊 Статистика:\nОколо 72% людей замалчивают подобные вопросы, однако те, кто открыто проговаривают их, демонстрируют на 40% более высокий уровень удовлетворенности.\n\n🔗 Как это влияет на отношения:\nПрямой разговор снимает напряжение и избавляет от додумывания.\n\n🛠️ Психологические советы:\n1. Говорите о своих ощущениях через «Я-сообщения».\n2. Уточняйте с интересом, а не с претензией.`;
+        };
+
+        const fetchFromAI = async (promptType, questionText, catId, pNames) => {
+            const cleanQuestion = questionText.replace(/^№\s*\d+\.\s*/, '').trim(); const catObj = CATEGORIES.find(c => c.id === catId); const catName = catObj ? catObj.name : "Отношения"; const randomSeed = Math.floor(Math.random() * 999999);
+            let systemPrompt = "", userPrompt = "";
+            if (promptType === "situation") { systemPrompt = "Ты креативный сценарист и психолог отношений. Пиши живо, реалистично, без шаблонов."; userPrompt = `Мы играем (${pNames}). Вопрос из темы "${catName}": "${cleanQuestion}". Сгенерируй новый ответ (код ${randomSeed}) из 2 блоков:\n\n🎬 Моделирование ситуации:\n(1 реалистичная жизненная ситуация из 3 предложений, которая происходит с нами сейчас и подводит к вопросу "${cleanQuestion}". От первого лица "мы").\n\n👩👨 Как бы ответили большинство девушек и парней:\n(Как на этот вопрос обычно отвечают).`; } 
+            else { systemPrompt = "Ты практикующий семейный психотерапевт и сексолог."; userPrompt = `Разбери вопрос для игроков (${pNames}) из темы "${catName}": "${cleanQuestion}" (код ${randomSeed}) строго по 6 пунктам:\n\n🧠 Как лучше поступить в этой ситуации:\n👩👨 Как обычно отвечают большинство девушек и парней:\n💡 Интересные факты:\n📊 Статистика:\n🔗 Как это влияет на отношения:\n🛠️ Психологические советы:`; }
+            const netResponse = await callNeuralNet(systemPrompt, userPrompt, 950);
+            if (netResponse) return netResponse; return synthesizeSmartFallback(promptType, cleanQuestion, catId, pNames);
+        };
+
+        const generateUniqueQuestionAI = async (targetCat, targetDiff, allExistingQuestions, pNames) => {
+            const existingSet = new Set(allExistingQuestions.map(q => (q.cleanText || "").toLowerCase().trim()));
+            const diffDesc = targetDiff.id === "Простые" ? "Легкий (прямой, жизненный или пикантный вопрос)" : targetDiff.id === "Средние" ? "Средний (вопрос про личный опыт, желания или отношения)" : "Глубокий (максимально откровенный, психологический или провокационный вопрос)";
+            const systemPrompt = "Ты автор глубоких и острых игр."; const userPrompt = `Придумай ОДИН совершенно новый, уникальный вопрос для игроков (${pNames}). Тема: "${targetCat.name}". Сложность: "${targetDiff.name}" — ${diffDesc}. Код вариации: ${Math.floor(Math.random() * 999999)}. Выведи ТОЛЬКО чистый текст самого вопроса на русском языке на "ты" без кавычек и без номера.`;
+            const aiResult = await callNeuralNet(systemPrompt, userPrompt, 150);
+            if (aiResult) { const cleaned = aiResult.replace(/^["«№\d\.\-\s]+|["»]+$/g, '').trim(); if (cleaned.length > 10 && !existingSet.has(cleaned.toLowerCase())) return cleaned; }
+            return "Какой совет об отношениях ты считаешь самым устаревшим и неправильным?";
+        };
+
+        const reindexSequential = (items) => { return items.map((item, idx) => { const seqNum = idx + 1; const clean = item.cleanText || String(item.text || '').replace(/^№\s*\d+\.\s*/, '').trim(); return { ...item, num: seqNum, cleanText: clean, text: `№ ${seqNum}. ${clean}` }; }); };
+
+        const AnimatedCounter = ({ target }) => { const [count, setCount] = useState(0); useEffect(() => { if (!target || target === 0) { setCount(0); return; } let current = 0; const stepTime = Math.max(5, Math.floor(900 / target)); const timer = setInterval(() => { current += 1; setCount(current); if (current >= target) clearInterval(timer); }, stepTime); return () => clearInterval(timer); }, [target]); return <span>{count}</span>; };
+
+        // ============ Страницы: «Об игре», юридические документы, приглашение и быстрое подключение ============
+        // Текст «Об игре» и документов лежит в src/content/*.js. Подстановки: {questions}, {topics#форма1,форма2,форма3}, {players}, {devices}.
+        const aboutFill = (str, nums) => String(str).replace(/\{(\w+)(?:#([^}]+))?\}/g, (m, k, forms) => {
+            if (nums[k] === undefined) return m; const v = String(nums[k]);
+            if (!forms) return v; const f = forms.split(',').map(x => x.trim());
+            return /^\d+$/.test(v) ? v + ' ' + declOfNum(Number(v), f) : v + ' ' + (f[2] || f[0]);
+        });
+        const siteUrl = (hash) => `${window.location.origin}${window.location.pathname}${hash}`;
+        const inviteUrlFor = (prof) => (prof && isValidSessionIdFormat(prof.sessionId) && isValidAESKey(prof.sessionKey)) ? siteUrl(`#/join?sid=${prof.sessionId}&key=${prof.sessionKey}`) : '';
+        // системное окно «Поделиться», а если его нет (компьютер, старый браузер) — копирование ссылки
+        const shareOrCopy = async ({ title, text, url }, doneMsg, toast) => {
+            if (navigator.share) { try { await navigator.share({ title, text, url }); return true; } catch (e) { if (e && e.name === 'AbortError') return false; } }
+            await copyTextToClipboard(url); if (toast) toast(doneMsg); return true;
+        };
+
+        const PageHeader = ({ title, onBack, right = null }) => (
+            <header className="w-full max-w-md flex items-center gap-3 pt-2">
+                <button type="button" onClick={() => { SoundFX.click(); onBack(); }} aria-label="Назад" className="btn-icon flex-shrink-0"><Icons.Back /></button>
+                <h1 className="flex-1 text-center text-lg font-bold text-white">{title}</h1>
+                {right || <div className="w-11 flex-shrink-0" aria-hidden="true"></div>}
+            </header>
+        );
+
+        // QR-код рисуется прямо в разметке (векторно), чтобы не зависеть от внешних сервисов и не отправлять ссылку-ключ в интернет
+        const QrSvg = ({ text, label }) => {
+            const model = useMemo(() => { try { const qr = qrcode(0, 'M'); qr.addData(text); qr.make(); const n = qr.getModuleCount(); let d = ''; for (let r = 0; r < n; r++) { let c = 0; while (c < n) { if (!qr.isDark(r, c)) { c++; continue; } let e = c; while (e < n && qr.isDark(r, e)) e++; d += `M${c + 4} ${r + 4}h${e - c}v1h-${e - c}z`; c = e; } } return { n, d }; } catch (e) { return null; } }, [text]);
+            if (!model) return <p className="ui-error text-center">Не получилось построить QR-код — отправьте ссылку.</p>;
+            const size = model.n + 8;
+            return (<svg className="qr-svg" viewBox={`0 0 ${size} ${size}`} role="img" aria-label={label} shapeRendering="crispEdges" data-qr-modules={model.n}><rect width={size} height={size} rx="3" fill="#fff" /><path d={model.d} fill="#0a0710" /></svg>);
+        };
+
+        // ---- юридические страницы ----
+        const LegalRich = ({ text }) => String(text).split(/(\{contact\}|\{operator\})/).map((part, i) => part === '{contact}'
+            ? <a key={i} className="legal-link" href={LEGAL.contact.url} target="_blank" rel="noopener noreferrer">{LEGAL.contact.label}</a>
+            : part === '{operator}' ? LEGAL.operator : part);
+        const LegalPage = ({ docId, onBack }) => {
+            const doc = LEGAL.docs[docId]; if (!doc) return null;
+            return (<>
+                <PageHeader title={doc.title} onBack={onBack} />
+                <main className="w-full max-w-md flex flex-col gap-5 pt-5 pb-4 legal-doc">
+                    <p className="text-[15px] text-zinc-200 leading-relaxed">{doc.lead}</p>
+                    <p className="text-[13px] text-zinc-500">Обновлено: {LEGAL.updatedHuman}</p>
+                    {doc.sections.map((sec, i) => (
+                        <section key={i} className="legal-sec">
+                            <h2>{sec.h.replace(/\s*\*$/, '')}</h2>
+                            {(sec.p || []).map((t, j) => <p key={j}><LegalRich text={t} /></p>)}
+                            {sec.list && <ul>{sec.list.map((t, j) => <li key={j}><LegalRich text={t} /></li>)}</ul>}
+                            {sec.table && <div className="legal-table" role="table">{sec.table.map((r, j) => (<div key={j} role="row" className="legal-trow"><span role="cell" className="legal-key">{r[0]}</span><span role="cell">{r[1]}</span><span role="cell" className="legal-ttl">{r[2]}</span></div>))}</div>}
+                            {sec.after && <p><LegalRich text={sec.after} /></p>}
+                        </section>
+                    ))}
+                    <p className="text-[13px] text-zinc-500 leading-relaxed">{LEGAL.contactNote}</p>
+                    <nav aria-label="Другие документы" className="legal-others">
+                        {LEGAL.order.filter(id => id !== docId).map(id => <a key={id} href={SCREEN_TO_HASH[id]}>{LEGAL.docs[id].menu}</a>)}
+                    </nav>
+                </main>
+            </>);
+        };
+
+        // ---- «Об игре» ----
+        const AboutPage = ({ profileDb, topicCount, hasProfile, onBack, onStart, onShare }) => {
+            const [lvl, setLvl] = useState(DIFFICULTIES[0].id); const [step, setStep] = useState(0);
+            const [group, setGroup] = useState('all'); const [openF, setOpenF] = useState(null); const [openQ, setOpenQ] = useState(null);
+            const visible = useMemo(() => (profileDb || []).filter(q => q && !q.hidden), [profileDb]);
+            const nums = { questions: visible.length ? String(visible.length) : ABOUT.fallbackNumbers.questions, topics: String(topicCount || CATEGORIES.length), players: String(MAX_PLAYERS), devices: String(MAX_PLAYERS) };
+            const F = (t) => aboutFill(t, nums);
+            // «Попробуйте»: по три примера на глубину из файла содержимого (настоящие вопросы игры, без темы «Интим»); «Следующий пример» листает их по кругу
+            const list = ABOUT.demo.examples[lvl] || []; const question = list.length ? list[step % list.length] : '';
+            const feats = ABOUT.features.filter(f => group === 'all' || f.group === group);
+            const levelOf = (id) => DIFFICULTIES.findIndex(d => d.id === id) + 1;
+            return (<>
+                <PageHeader title="Об игре" onBack={onBack} right={<button type="button" onClick={() => { SoundFX.click(); onShare(); }} aria-label="Поделиться страницей" className="btn-icon flex-shrink-0"><Icons.Share /></button>} />
+                <main className="w-full max-w-md flex flex-col gap-8 pt-6 pb-4 about-page">
+                    <section className="about-hero">
+                        <AskMeLogo size="md" />
+                        <h2 className="about-title">{ABOUT.hero.title}</h2>
+                        <p className="about-lead">{ABOUT.hero.lead}</p>
+                        <button type="button" onClick={() => { SoundFX.click(); onStart(); }} className="btn-primary w-full">{hasProfile ? ABOUT.hero.ctaHave : ABOUT.hero.cta}</button>
+                    </section>
+
+                    <section aria-labelledby="about-demo" className="flex flex-col gap-3">
+                        <h2 id="about-demo" className="about-h2">{ABOUT.demo.title}</h2>
+                        <p className="text-sm text-zinc-400 leading-snug">{F(ABOUT.demo.hint)}</p>
+                        <div className="seg w-full" role="tablist" aria-label="Глубина вопроса">
+                            {DIFFICULTIES.map(d => (<button key={d.id} type="button" role="tab" aria-selected={lvl === d.id} onClick={() => { SoundFX.click(); setLvl(d.id); setStep(0); }} className={`seg-btn ${lvl === d.id ? 'is-active' : ''}`}>{d.name}</button>))}
+                        </div>
+                        <div key={lvl + ':' + step} className={`about-q lvl-${levelOf(lvl)} fade-in`} aria-live="polite"><p>{question}</p></div>
+                        <p className="text-[13px] text-zinc-500 text-center" aria-hidden="true">{`${step % list.length + 1} / ${list.length}`}</p>
+                        <button type="button" onClick={() => { SoundFX.click(); setStep(n => (n + 1) % list.length); }} className="btn-secondary w-full">{ABOUT.demo.next}</button>
+                    </section>
+
+                    <section aria-label="Игра в цифрах" className="about-numbers">
+                        {ABOUT.numbers.map((n, i) => (<div key={i} className="about-num"><span className="about-num-v">{F(n.value)}</span><span className="about-num-l">{F(n.label)}</span></div>))}
+                    </section>
+
+                    <section aria-labelledby="about-steps" className="flex flex-col gap-3">
+                        <h2 id="about-steps" className="about-h2">{ABOUT.stepsTitle}</h2>
+                        <ol className="about-steps">
+                            {ABOUT.steps.map((st, i) => (<li key={i}><span className="about-step-n" aria-hidden="true">{i + 1}</span><div><h3>{F(st.title)}</h3><p>{F(st.text)}</p></div></li>))}
+                        </ol>
+                    </section>
+
+                    <section aria-labelledby="about-feat" className="flex flex-col gap-3">
+                        <h2 id="about-feat" className="about-h2">{ABOUT.featuresTitle}</h2>
+                        <div className="about-chips" role="tablist" aria-label="Категории возможностей">
+                            {ABOUT.featureGroups.map(g => (<button key={g.id} type="button" role="tab" aria-selected={group === g.id} onClick={() => { SoundFX.click(); setGroup(g.id); setOpenF(null); }} className={`chip flex-shrink-0 ${group === g.id ? 'is-on' : ''}`}>{g.label}</button>))}
+                        </div>
+                        <div className="about-acc">
+                            {feats.map(f => (<div key={f.id} className="about-acc-item">
+                                <button type="button" className="row" aria-expanded={openF === f.id} onClick={() => { SoundFX.click(); setOpenF(openF === f.id ? null : f.id); }}>
+                                    <span aria-hidden="true" className="w-10 h-10 rounded-full bg-white/[0.07] flex items-center justify-center text-lg flex-shrink-0">{f.icon}</span>
+                                    <span className="flex-1 min-w-0 flex flex-col"><span className="text-sm font-semibold text-white">{F(f.title)}</span><span className="text-[13px] text-zinc-400">{F(f.short)}</span></span>
+                                    <span aria-hidden="true" className={`about-chev ${openF === f.id ? 'is-open' : ''}`}>›</span>
+                                </button>
+                                {openF === f.id && <p className="about-more fade-in">{F(f.more)}</p>}
+                            </div>))}
+                        </div>
+                    </section>
+
+                    <section aria-labelledby="about-uniq" className="flex flex-col gap-3">
+                        <h2 id="about-uniq" className="about-h2">{ABOUT.unique.title}</h2>
+                        <div className="flex flex-col gap-2.5">
+                            {ABOUT.unique.items.map((u, i) => (<div key={i} className="about-card"><h3>{F(u.title)}</h3><p>{F(u.text)}</p></div>))}
+                        </div>
+                    </section>
+
+                    <section aria-labelledby="about-faq" className="flex flex-col gap-3">
+                        <h2 id="about-faq" className="about-h2">{ABOUT.faqTitle}</h2>
+                        <div className="about-acc">
+                            {ABOUT.faq.map((it, i) => (<div key={i} className="about-acc-item">
+                                <button type="button" className="row" aria-expanded={openQ === i} onClick={() => { SoundFX.click(); setOpenQ(openQ === i ? null : i); }}>
+                                    <span className="flex-1 text-sm font-semibold text-white">{F(it.q)}</span>
+                                    <span aria-hidden="true" className={`about-chev ${openQ === i ? 'is-open' : ''}`}>›</span>
+                                </button>
+                                {openQ === i && <p className="about-more fade-in">{F(it.a)}</p>}
+                            </div>))}
+                        </div>
+                    </section>
+
+                    <section className="about-cta">
+                        <h2>{ABOUT.cta.title}</h2>
+                        <p>{ABOUT.cta.text}</p>
+                        <button type="button" onClick={() => { SoundFX.click(); onStart(); }} className="btn-primary w-full">{hasProfile ? ABOUT.hero.ctaHave : ABOUT.hero.cta}</button>
+                        <button type="button" onClick={() => { SoundFX.click(); onShare(); }} className="btn-ghost w-full flex items-center justify-center gap-2"><Icons.Share /> Поделиться страницей</button>
+                    </section>
+                    <p className="text-[13px] text-zinc-500 text-center">Версия страницы {ABOUT.version} · обновлена {ABOUT.updated}</p>
+                </main>
+            </>);
+        };
+
+        // ---- приглашение ----
+        const InvitePage = ({ profile, onBack, showToast }) => {
+            const url = inviteUrlFor(profile); const [copied, setCopied] = useState(false);
+            const doCopy = async () => { SoundFX.success(); await copyTextToClipboard(url); setCopied(true); showToast('Ссылка-приглашение скопирована'); setTimeout(() => setCopied(false), 2000); };
+            const doShare = async () => { SoundFX.click(); await shareOrCopy({ title: 'Играем в ASK ME', text: 'Присоединяйся к нашей игре в ASK ME', url }, 'Ссылка-приглашение скопирована', showToast); };
+            return (<>
+                <PageHeader title="Пригласить игроков" onBack={onBack} />
+                <main className="w-full max-w-md flex flex-col gap-6 pt-6 pb-4 invite-page">
+                    <p className="text-[15px] text-zinc-200 leading-relaxed">Отправьте ссылку или покажите код — второй телефон сразу окажется в вашей сессии, и вы сможете играть одну партию вместе.</p>
+                    {url ? (<>
+                        <section className="qr-card" aria-label="QR-код приглашения">
+                            <QrSvg text={url} label="QR-код приглашения в сессию" />
+                            <p>Наведите камеру телефона на код</p>
+                        </section>
+                        <section className="flex flex-col gap-3">
+                            <div className="invite-link" aria-label="Ссылка-приглашение"><span className="invite-link-t">Ссылка-приглашение</span><span className="invite-link-v">{siteUrl('#/join?sid=' + profile.sessionId + '&key=')}••••••••</span></div>
+                            <button type="button" onClick={doShare} className="btn-primary w-full flex items-center justify-center gap-2"><Icons.Share /> Поделиться ссылкой</button>
+                            <button type="button" onClick={doCopy} className="btn-secondary w-full">{copied ? 'Скопировано' : 'Скопировать ссылку'}</button>
+                        </section>
+                    </>) : (
+                        <p className="ui-error text-center">Ссылка для этой сессии ещё готовится. Закройте и откройте страницу снова через несколько секунд.</p>
+                    )}
+                    <section aria-labelledby="inv-how" className="flex flex-col gap-3">
+                        <h2 id="inv-how" className="about-h2">Как подключиться</h2>
+                        <ol className="about-steps">
+                            <li><span className="about-step-n" aria-hidden="true">1</span><div><p>Откройте ссылку или отсканируйте код на втором телефоне.</p></div></li>
+                            <li><span className="about-step-n" aria-hidden="true">2</span><div><p>Нажмите «Присоединиться» — регистрироваться не нужно.</p></div></li>
+                            <li><span className="about-step-n" aria-hidden="true">3</span><div><p>Играйте вместе: до {deviceCap(profile)} устройств — столько же, сколько игроков в сессии. Вопросы, очередь и таймер у всех одинаковые.</p></div></li>
+                        </ol>
+                    </section>
+                    <div className="invite-warn" role="note"><b>Берегите ссылку.</b> Она открывает всю сессию: имена игроков и прогресс. Отправляйте её только тем, кому доверяете.</div>
+                    <p className="text-[13px] text-zinc-500 text-center">ID сессии: <span className="font-display tracking-[0.06em] text-zinc-300">{profile.sessionId}</span></p>
+                </main>
+            </>);
+        };
+
+        // ---- быстрое подключение по приглашению ----
+        const JoinPage = ({ invite, profile, busy, error, onJoin, onStay, onManual, onAbout }) => {
+            const valid = !!(invite && isValidAESKey(invite.key)); const same = !!(valid && profile && profile.sessionKey === invite.key);
+            const other = !!(valid && profile && !same); let body;
+            if (!valid) body = (<>
+                <h1 className="join-h">Ссылка не подошла</h1>
+                <p className="join-p">Похоже, ссылка обрезалась при пересылке. Попросите отправить её ещё раз или введите ID сессии вручную.</p>
+                <button type="button" onClick={onManual} className="btn-primary w-full">Ввести вручную</button>
+                <button type="button" onClick={onAbout} className="btn-ghost w-full">Что это за игра</button>
+            </>); else if (same) body = (<>
+                <h1 className="join-h">Вы уже в этой сессии</h1>
+                <p className="join-p">Эта ссылка открывает ту же сессию, что и на этом устройстве. Можно играть.</p>
+                <button type="button" onClick={onStay} className="btn-primary w-full">К игре</button>
+            </>); else body = (<>
+                <h1 className="join-h">{other ? 'Перейти в другую сессию?' : 'Вас пригласили в ASK ME'}</h1>
+                <p className="join-p">{other ? 'На этом устройстве сейчас открыта своя сессия. Если присоединиться, здесь откроется приглашённая. Прежняя останется в облаке: вернуться в неё можно по её ссылке (она есть в меню) — сохраните её заранее.' : 'Присоединитесь к сессии — и будете играть вместе с остальными: общие вопросы, очередь и таймер. Регистрироваться не нужно.'}</p>
+                {isValidSessionIdFormat(invite.sid) && <span className="join-chip">Сессия {invite.sid}</span>}
+                {error && <p className="inline-error" role="alert">{error}</p>}
+                <button type="button" disabled={busy} onClick={onJoin} className="btn-primary w-full">{busy ? 'Подключаемся…' : 'Присоединиться'}</button>
+                {other ? <button type="button" disabled={busy} onClick={onStay} className="btn-ghost w-full">Остаться в своей сессии</button> : <button type="button" disabled={busy} onClick={onAbout} className="btn-ghost w-full">Что это за игра</button>}
+            </>);
+            return (<main className="w-full max-w-sm flex flex-col items-center gap-4 text-center my-auto py-8 join-page"><AskMeLogo size="lg" />{body}</main>);
+        };
+
+        function App() {
+            const [db, setDb] = useState([]); const [dbSubPath, setDbSubPath] = useState("/questions"); const [isLoading, setIsLoading] = useState(true);
+            const [lang, setLangState] = useState(() => getLang());
+            // Перемикання мови: оновлюємо модуль-дзеркало (для t()), стан (для ререндера), localStorage та <html lang>.
+            const changeLang = (next) => { const l = SUPPORTED_LANGS.includes(next) ? next : DEFAULT_LANG; i18nSetLang(l); setLangState(l); try { localStorage.setItem(LANG_STORAGE_KEY, l); } catch (e) {} try { document.documentElement.lang = l; } catch (e) {} };
+            const toggleLang = () => { SoundFX.toggle(true); changeLang(lang === 'uk' ? 'ru' : 'uk'); };
+            useEffect(() => { try { document.documentElement.lang = lang; } catch (e) {} }, [lang]);
+            // Показ тексту питання за поточною мовою: укр — cleanTextUk з м'яким фолбеком на рос.
+            const qDisplay = (q) => { if (!q) return ''; const ru = q.cleanText || String(q.text || '').replace(/^№\s*\d+\.\s*/, ''); if (lang === 'uk') return (q.cleanTextUk && q.cleanTextUk.trim()) ? q.cleanTextUk : ru; return ru; };
+
+            const [isStandalonePWA, setIsStandalonePWA] = useState(() => { try { return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true; } catch (e) { return false; } });
+            const [deferredPwaPrompt, setDeferredPwaPrompt] = useState(null); const [showPwaModal, setShowPwaModal] = useState(false); const [pwaPlatformTab, setPwaPlatformTab] = useState(() => { const ua = navigator.userAgent || ""; return /iPad|iPhone|iPod/i.test(ua) ? 'ios' : 'android'; });
+            const isInAppWebView = useMemo(() => /Telegram|Instagram|FBAN|FBAV|TikTok|BytedanceWebview|Viber/i.test(navigator.userAgent || ""), []);
+
+            useEffect(() => { const handleBeforeInstallPrompt = (e) => { e.preventDefault(); setDeferredPwaPrompt(e); }; const handleAppInstalled = () => { setIsStandalonePWA(true); setDeferredPwaPrompt(null); setShowPwaModal(false); showToast("Приложение ASK ME установлено!"); }; window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt); window.addEventListener('appinstalled', handleAppInstalled); return () => { window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt); window.removeEventListener('appinstalled', handleAppInstalled); }; }, []);
+
+            const handleInstallPwaClick = async () => { SoundFX.click(); if (deferredPwaPrompt) { deferredPwaPrompt.prompt(); const { outcome } = await deferredPwaPrompt.userChoice; if (outcome === 'accepted') setDeferredPwaPrompt(null); return; } setShowPwaModal(true); };
+            const triggerIosNativeShareMenu = async () => { SoundFX.click(); const cleanAppUrl = `${window.location.origin}${window.location.pathname}`; if (navigator.share) { try { await navigator.share({ title: "Ask Me", url: cleanAppUrl }); return; } catch (e) {} } showToast("Нажмите на кнопку «Поделиться» [↑] на панели самого браузера Safari", 4500, 'info'); };
+            const showErrorPopup = (title, msg) => { SoundFX.warn(); setResultModal({ ok: false, title, msg }); };
+
+            const [profile, setProfile] = useState(() => {
+                try {
+                    const saved = localStorage.getItem(PROFILE_STORAGE_KEY) || localStorage.getItem("askme_device_profile_v3");
+                    if (saved) {
+                        const parsed = JSON.parse(saved);
+                        if (parsed && (parsed.players || (parsed.guyName && parsed.girlName))) {
+                            let pts = parsed.players;
+                            if(!pts) { pts = [ { id: 'p1', name: sanitizeName(parsed.guyName || ''), gender: 'guy' }, { id: 'p2', name: sanitizeName(parsed.girlName || ''), gender: 'girl' } ]; }
+                            const sid = (parsed.sessionId && isValidSessionIdFormat(parsed.sessionId)) ? parsed.sessionId.toUpperCase() : generateSessionId();
+                            return { sessionId: sid, sessionKey: isValidAESKey(parsed.sessionKey) ? parsed.sessionKey : undefined, players: pts, archivedIds: Array.isArray(parsed.archivedIds) ? parsed.archivedIds : [], disabledIds: Array.isArray(parsed.disabledIds) ? parsed.disabledIds : [], savedGame: parsed.savedGame || null, joinAt: Math.min(Number(parsed.joinAt) || 0, Date.now()), updatedAt: parsed.updatedAt || Date.now() };
+                        }
+                    }
+                } catch (e) {} return null;
+            });
+
+            const [isPreviewMode, setIsPreviewMode] = useState(false);
+            // Дефолт аудиторії за кількістю гравців: 2 — пара, 3+ — компанія (гравець може перемкнути вручну).
+            useEffect(() => { const n = profile?.players?.length || 0; if (n >= 3) setAudienceMode('group'); else if (n === 2) setAudienceMode('couple'); }, [profile?.players?.length]);
+            const [isAdmin, setIsAdmin] = useState(() => { try { return Auth.hasOwner(); } catch (e) { return false; } });
+            const [authTab, setAuthTab] = useState('create');
+            const [showExitConfirm, setShowExitConfirm] = useState(false);
+            const [playersError, setPlayersError] = useState('');
+            const [showSkipPopup, setShowSkipPopup] = useState(false);
+            const [topicsVersion, setTopicsVersion] = useState(0);
+            const [topicDraft, setTopicDraft] = useState([]);
+            const [newTopicIcon, setNewTopicIcon] = useState(''); const [newTopicName, setNewTopicName] = useState('');
+            const [topicErr, setTopicErr] = useState(''); const [topicBusy, setTopicBusy] = useState(false); const [emojiTab, setEmojiTab] = useState(0); const [qFormError, setQFormError] = useState('');
+            const topicsDataRef = useRef(readTopicsCache());
+            const [settings, setSettings] = useState(loadGameSettings);
+            const [newPunish, setNewPunish] = useState(''); const [newPunishLevel, setNewPunishLevel] = useState('any'); const [punishErr, setPunishErr] = useState('');
+            const [tm, setTm] = useState({ key: '', left: 0 });
+            const [timerDismissKey, setTimerDismissKey] = useState('');
+            const [hardMode, setHardMode] = useState(() => { try { return localStorage.getItem('askme_hard_mode_v1') === '1'; } catch (e) { return false; } });
+            useEffect(() => { try { localStorage.setItem('askme_hard_mode_v1', hardMode ? '1' : '0'); } catch (e) {} }, [hardMode]);
+            const [liveFx, setLiveFx] = useState(null);
+            const fx = liveFx || (hardMode ? settings : { ...settings, timerOn: false, punishOn: false });
+            const [showAddPunish, setShowAddPunish] = useState(false);
+            const [punishTemplates, setPunishTemplates] = useState(readPunishCache);
+            const allPunishments = [...punishTemplates.filter(t => !(settings.hiddenTemplates || []).includes(t.id)), ...settings.punishments];
+            const [ptEdit, setPtEdit] = useState(null); const [ptText, setPtText] = useState(''); const [ptIcon, setPtIcon] = useState(''); const [ptLevel, setPtLevel] = useState('any');
+            const [ptErr, setPtErr] = useState(''); const [ptBusy, setPtBusy] = useState(false); const [ptConfirmId, setPtConfirmId] = useState('');
+            const [analyticsOn, setAnalyticsOn] = useState(() => { try { return localStorage.getItem('askme_analytics_v1') !== '0'; } catch (e) { return true; } });
+            useEffect(() => { try { localStorage.setItem('askme_analytics_v1', analyticsOn ? '1' : '0'); } catch (e) {} }, [analyticsOn]);
+            const [anMin, setAnMinState] = useState(readAnMin); const [anData, setAnData] = useState(null); const [anLoading, setAnLoading] = useState(false); const [anErr, setAnErr] = useState('');
+            const [anView, setAnView] = useState('full'); const [anSel, setAnSel] = useState(null); const [anConfirm, setAnConfirm] = useState(''); const [anBusy, setAnBusy] = useState(false); const [hqBusy, setHqBusy] = useState(''); const [hqConfirmAll, setHqConfirmAll] = useState(false);
+            const gameLogRef = useRef(null);
+            const [punish, setPunish] = useState({ open: false, text: '', player: '', icon: '⏰' });
+            
+            const [playersForm, setPlayersForm] = useState(profile?.players || [ { id: 'p1', name: '', gender: 'guy' }, { id: 'p2', name: '', gender: 'girl' } ]);
+            
+            const [restoreIdInput, setRestoreIdInput] = useState('');
+            useEffect(() => { try { const h = window.location.hash || ""; if (/key=/.test(h) && /sid=/.test(h)) { setAuthTab('restore'); setRestoreIdInput(window.location.href); window.history.replaceState(null, "", window.location.pathname + window.location.search + "#/welcome"); } } catch (e) {} }, []);
+            const [restoreError, setRestoreError] = useState(''); const [isRestoringSession, setIsRestoringSession] = useState(false);
+            
+            const [adminForm, setAdminForm] = useState({ email: '', pass: '' });
+            const [adminPinError, setAdminPinError] = useState('');
+            const [logoTapCount, setLogoTapCount] = useState(0);
+
+            // приглашение из ссылки (#/join?sid=…&key=…; старые ссылки #/welcome?sid=…&key=… тоже): читаем один раз и сразу убираем секрет из адресной строки
+            const readInviteFromHash = () => { try { const h = window.location.hash || ''; const hp = hashPath(h); if ((hp !== '#/join' && hp !== '#/welcome') || !hasInviteParams(h)) return null; const r = parseRestoreInput(h); return r.key ? r : null; } catch (e) { return null; } };
+            const [joinInvite, setJoinInvite] = useState(readInviteFromHash); const [joinBusy, setJoinBusy] = useState(false); const [joinError, setJoinError] = useState(''); const joinAutoRef = useRef(0);
+            const [screen, setScreenState] = useState(() => { const h = window.location.hash, hp = hashPath(h); if (hp === '#/admin') return 'admin_login'; if (hp === '#/join') return 'join'; if (hp === '#/welcome') return (profile && hasInviteParams(h)) ? 'join' : 'onboarding'; const pub = HASH_TO_SCREEN[hp]; if (PUBLIC_SCREENS.includes(pub)) return pub; if (!profile && !isPreviewMode) return 'onboarding'; if (pub && RELOAD_TO_MENU.includes(pub)) { try { window.history.replaceState(null, '', window.location.pathname + window.location.search + '#/'); } catch (e) {} return 'menu'; } return pub || 'menu'; });
+            const navigate = (nextScreen) => { setScreenState(nextScreen); const targetHash = SCREEN_TO_HASH[nextScreen] || '#/'; if (window.location.hash !== targetHash) { window.history.pushState(null, '', targetHash); } window.scrollTo(0, 0); };
+            useEffect(() => { if (joinInvite && (screen === 'join')) { try { window.history.replaceState(null, '', window.location.pathname + window.location.search + '#/join'); } catch (e) {} } }, []);
+            useEffect(() => { const onHashChange = () => { const h = window.location.hash || '#/', hp = hashPath(h); if (hp === '#/admin') { setScreenState('admin_login'); return; } if (hp === '#/join' || (hp === '#/welcome' && profile && hasInviteParams(h))) { const inv = readInviteFromHash(); if (inv) { setJoinInvite(inv); setJoinError(''); try { window.history.replaceState(null, '', window.location.pathname + window.location.search + '#/join'); } catch (e) {} } setScreenState('join'); return; } if (hp === '#/welcome') { setScreenState('onboarding'); return; } const mapped = HASH_TO_SCREEN[hp]; if (PUBLIC_SCREENS.includes(mapped)) { setScreenState(mapped); return; } if (!profile && !isPreviewMode) { setScreenState('onboarding'); return; } if (mapped) setScreenState(mapped); }; window.addEventListener('hashchange', onHashChange); window.addEventListener('popstate', onHashChange); return () => { window.removeEventListener('hashchange', onHashChange); window.removeEventListener('popstate', onHashChange); }; }, [profile, isPreviewMode]);
+
+            const [selectedCats, setSelectedCats] = useState(CATEGORIES.map(c => c.id)); const [selectedDiffs, setSelectedDiffs] = useState(DIFFICULTIES.map(d => d.id)); const [isMuted, setIsMuted] = useState(false);
+            // Аудиторія колоди: 'couple' = пара (couple + both), 'group' = компанія (лише both). Гравець обирає сам.
+            const [audienceMode, setAudienceMode] = useState('couple');
+            const audienceAllows = (q) => audienceMode === 'group' ? (q.audience !== 'couple') : true;
+            const [gameMode, setGameMode] = useState('normal'); const [gameQuestions, setGameQuestions] = useState([]); const [currentIndex, setCurrentIndex] = useState(0); const [maxReachedIndex, setMaxReachedIndex] = useState(0); const [turnHistory, setTurnHistory] = useState({}); const [answeredCount, setAnsweredCount] = useState(0); const [completedAllFlag, setCompletedAllFlag] = useState(false); const [showEndGameConfirm, setShowEndGameConfirm] = useState(false);
+            const [turnPopup, setTurnPopup] = useState({ open: false, spinning: false, highlight: 'guy', winner: null, candidates: [] }); const rouletteTimeoutsRef = useRef([]);
+            const [aiType, setAiType] = useState('situation'); const [aiContent, setAiContent] = useState(''); const [isAiTyping, setIsAiTyping] = useState(false); const typingIntervalRef = useRef(null);
+            const [viewCategory, setViewCategory] = useState(null); const [qLevel, setQLevel] = useState('all'); const [startErrTick, setStartErrTick] = useState(0); const [newGameConfirm, setNewGameConfirm] = useState(false); const [visibleLimit, setVisibleLimit] = useState(60);
+            // страница «Пригласить игроков» открывается из меню и с экранов начала игры: «Назад» возвращает туда, откуда пришли
+            const [inviteFrom, setInviteFrom] = useState('app_menu');
+            const openInvite = (from) => { SoundFX.click(); setInviteFrom(from); navigate('invite'); };
+            const [addForm, setAddForm] = useState({ text: '', cat: 'family', diff: 'Простые', targetId: '', aud: 'both' }); const [addStatus, setAddStatus] = useState(null); const [isSaving, setIsSaving] = useState(false); const [isGeneratingQuestion, setIsGeneratingQuestion] = useState(false);
+            const [editingQuestion, setEditingQuestion] = useState(null); const [editForm, setEditForm] = useState({ text: '', cat: 'family', diff: 'Простые', targetId: '', aud: 'both' }); const [returnScreen, setReturnScreen] = useState('menu'); const [confirmModal, setConfirmModal] = useState(null); const [resultModal, setResultModal] = useState(null);
+
+            const syncSessionToCloud = async (profData) => {
+                if (!profData || !profData.sessionId) return;
+                try { localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profData)); localStorage.setItem(`askme_sess_${profData.sessionId}`, JSON.stringify(profData)); } catch (e) {}
+                if (!isValidAESKey(profData.sessionKey)) return;
+                try {
+                    const updatedAt = profData.updatedAt || Date.now();
+                    const pack = (withGame) => encryptSessionAES({ players: profData.players, archivedIds: profData.archivedIds || [], disabledIds: profData.disabledIds || [], savedGame: withGame ? (profData.savedGame || null) : null, updatedAt }, profData.sessionKey);
+                    let encrypted = await pack(true); if (!encrypted) throw new Error("encrypt");
+                    // правило базы: payload короче 60000 знаков (предел задаётся в консоли Firebase). Незавершённая партия со всей колодой может его превысить, и тогда база молча отклоняла бы и имена, и архив:
+                    // в таком случае в облако уходит сессия без сохранённой партии (на самом устройстве партия остаётся)
+                    if (encrypted.length >= SESSION_PAYLOAD_MAX) { const lite = await pack(false); if (lite) encrypted = lite; }
+                    if (encrypted.length >= SESSION_PAYLOAD_MAX) throw new Error("too-big");
+                    const res = await fetchWithTimeout(`${FIREBASE_BASE_URL}/sessions/${await sessionDbKey(profData.sessionKey)}.json`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ payload: encrypted, updatedAt }) });
+                    if (!res.ok) throw new Error("HTTP " + res.status);
+                } catch (e) { if (Date.now() - lastSyncToastAt > 60000) { lastSyncToastAt = Date.now(); showToast(String(e && e.message) === "too-big" ? "Сессия стала слишком большой для облака — прогресс сохранён только на этом устройстве" : "Нет связи с облаком — прогресс сохранён на устройстве", 5000, 'warn'); } }
+            };
+
+            useEffect(() => { if (!profile || isLoading) return; try { localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profile)); } catch (e) {} const timer = setTimeout(() => { syncSessionToCloud(profile); }, 350); return () => clearTimeout(timer); }, [profile, isLoading]);
+            useEffect(() => {
+                if (!isValidAESKey(profile?.sessionKey) || isLoading) return;
+                (async () => {
+                    try { const res = await fetchWithTimeout(`${FIREBASE_BASE_URL}/sessions/${await sessionDbKey(profile.sessionKey)}.json?t=${Date.now()}`); if (!res.ok) return; const data = await res.json(); const dec = data && data.payload ? await decryptSessionAES(data.payload, profile.sessionKey) : null; const cloudPlayers = dec ? cleanPlayers(dec.players) : []; if (cloudPlayers.length && (Number(dec.updatedAt) || 0) > (profile.updatedAt || 0)) { setProfile({ ...profile, players: cloudPlayers, archivedIds: cleanIdList(dec.archivedIds), disabledIds: cleanIdList(dec.disabledIds), savedGame: cleanSavedGame(dec.savedGame), updatedAt: Number(dec.updatedAt) }); } } catch (e) {}
+                })();
+            }, [isLoading, profile?.sessionKey]);
+            // «замок» для входа по ID (см. publishJoinCode): кладём в облако при первом запуске сессии на устройстве и обновляем раз в неделю, чтобы он не устарел
+            useEffect(() => {
+                if (!profile || isLoading || !isValidAESKey(profile.sessionKey) || !isValidSessionIdFormat(profile.sessionId) || Date.now() - (profile.joinAt || 0) < JOIN_REFRESH_MS) return;
+                let on = true; const sid = profile.sessionId, key = profile.sessionKey;
+                publishJoinCode(sid, key).then(ok => { if (ok && on) setProfile(p => (p && p.sessionId === sid && p.sessionKey === key) ? { ...p, joinAt: Date.now() } : p); });
+                return () => { on = false; };
+            }, [isLoading, profile && profile.sessionId, profile && profile.sessionKey, profile && profile.joinAt]);
+            useEffect(() => {
+                if (!profile || profile.sessionKey || isLoading) return; let alive = true; generateAESKey().then(k => { if (!alive) return; fetchWithTimeout(`${FIREBASE_BASE_URL}/sessions/sess_${hashSessionIdForDb(profile.sessionId)}.json`, { method: "DELETE" }).catch(() => {}); setProfile(pr => (pr && !pr.sessionKey) ? { ...pr, sessionKey: k, updatedAt: Date.now() } : pr); }); return () => { alive = false; };
+            }, [profile, isLoading]);
+
+            const cleanupOldSessions = async (token) => {
+                try {
+                    const res = await fetch(`${FIREBASE_BASE_URL}/sessions.json?auth=${token}&shallow=true`);
+                    const keys = await res.json(); if(!keys) return;
+                    const now = Date.now(); const checks = Object.keys(keys).slice(0, 30);
+                    for(let k of checks) {
+                        const r = await fetch(`${FIREBASE_BASE_URL}/sessions/${k}.json?auth=${token}`);
+                        const data = await r.json(); if(data && data.updatedAt && (now - data.updatedAt > 32 * 24 * 60 * 60 * 1000)) { await fetch(`${FIREBASE_BASE_URL}/sessions/${k}.json?auth=${token}`, {method:'DELETE'}); }
+                    }
+                } catch(e){}
+            };
+
+            // открыть сессию по ID/ключу (форма «Восстановить», страница быстрого подключения); setErr — куда писать ошибку; возвращает true при успехе
+            const runRestore = async (sid, key, setErr) => {
+                let okRestore = false;
+                setIsRestoringSession(true); setErr("");
+                const toProfile = (dec, sessionId, sessionKey) => {
+                    let pts = cleanPlayers(dec.players); if (!pts.length && dec.guyName && dec.girlName) pts = [{id:'p1', name:String(dec.guyName).slice(0, 25), gender:'guy'}, {id:'p2', name:String(dec.girlName).slice(0, 25), gender:'girl'}];
+                    if (!pts.length) return null;
+                    return { sessionId, sessionKey, players: pts, archivedIds: cleanIdList(dec.archivedIds), disabledIds: cleanIdList(dec.disabledIds), savedGame: cleanSavedGame(dec.savedGame), updatedAt: Date.now() };
+                };
+                try {
+                    let restored = null, legacyPath = null, offline = false;
+                    try { const found = key || await lookupJoinCode(sid); if (found === null) offline = true; const useKey = found || ""; if (useKey) { const res = await fetchWithTimeout(`${FIREBASE_BASE_URL}/sessions/${await sessionDbKey(useKey)}.json?t=${Date.now()}`); const data = res.ok ? await res.json() : null; const dec = data && data.payload ? await decryptSessionAES(data.payload, useKey) : null; if (dec && (dec.players || dec.guyName)) restored = toProfile(dec, isValidSessionIdFormat(sid) ? sid : generateSessionId(), useKey); } if (!restored && !key) { const lp = "sess_" + hashSessionIdForDb(sid); const res = await fetchWithTimeout(`${FIREBASE_BASE_URL}/sessions/${lp}.json?t=${Date.now()}`); const data = res.ok ? await res.json() : null; const dec = data && data.payload ? decryptSessionPayload(data.payload, sid) : null; if (dec && (dec.players || dec.guyName)) { restored = toProfile(dec, sid, await generateAESKey()); legacyPath = lp; } } } catch (err) { offline = true; }
+                    if (restored) { SoundFX.success(); if (legacyPath) fetchWithTimeout(`${FIREBASE_BASE_URL}/sessions/${legacyPath}.json`, { method: "DELETE" }).catch(() => {}); try { window.history.replaceState(null, "", window.location.pathname + window.location.search + "#/welcome"); } catch (err) {} setProfile(restored); setPlayersForm(restored.players); setRestoreIdInput(""); setIsPreviewMode(false); showToast(`Сессия ${restored.sessionId} успешно восстановлена!`); okRestore = true; navigate('menu'); } else { SoundFX.warn(); setErr(offline ? "Нет связи с облаком. Проверьте интернет и попробуйте ещё раз." : key ? "Сессия не найдена. Ссылка устарела или сессию удалили." : "Сессия с таким ID не найдена. Проверьте ID. Если сессия создана давно — один раз откройте игру на старом устройстве: вход по ID включится сам."); }
+                } catch (err) { SoundFX.warn(); setErr("Ошибка соединения."); } finally { setIsRestoringSession(false); }
+                return okRestore;
+            };
+            const handleRestoreBySessionId = async (e) => {
+                e.preventDefault(); const { sid, key } = parseRestoreInput(restoreIdInput); if (!key && !isValidSessionIdFormat(sid)) { SoundFX.warn(); setRestoreError("Вставьте ссылку на сессию или 8-значный ID"); return; }
+                await runRestore(sid, key, setRestoreError);
+            };
+
+            // ---- быстрое подключение по приглашению (#/join) ----
+            const handleJoinInvite = async () => {
+                if (!joinInvite || joinBusy) return; SoundFX.click(); setJoinBusy(true); setJoinError('');
+                const okJ = await runRestore(joinInvite.sid, joinInvite.key, setJoinError);
+                setJoinBusy(false); if (okJ) { joinAutoRef.current = Date.now(); setJoinInvite(null); }
+            };
+            const joinContinue = () => { SoundFX.click(); joinAutoRef.current = Date.now(); setJoinInvite(null); navigate(profile ? 'menu' : 'onboarding'); };
+            const joinDecline = () => { SoundFX.click(); joinAutoRef.current = 0; setJoinInvite(null); navigate(profile ? 'menu' : 'onboarding'); };
+            const joinManual = () => { SoundFX.click(); setJoinInvite(null); if (profile) { setPlayersForm(profile.players); navigate('profile_page'); } else { setAuthTab('restore'); setRestoreError(''); navigate('onboarding'); } };
+            const sharePage = async () => { await shareOrCopy({ title: ABOUT.share.title, text: ABOUT.share.text, url: siteUrl('#/about') }, ABOUT.share.done, showToast); };
+
+            // ---- удаление всех данных пользователя: облако (сессия, общая комната, записи статистики этого устройства) и локальное хранилище ----
+            const [delDataOpen, setDelDataOpen] = useState(false); const [delDataBusy, setDelDataBusy] = useState(false);
+            const handleDeleteMyData = async () => {
+                if (!profile || delDataBusy) return; setDelDataBusy(true);
+                const sid = profile.sessionId, key = profile.sessionKey; let aid = null; try { aid = localStorage.getItem('askme_aid_' + sid); } catch (e) {}
+                const del = (url) => fetchWithTimeout(url, { method: 'DELETE' }, 10000).then(r => r.ok).catch(() => false);
+                const jobs = [isValidAESKey(key) ? sessionDbKey(key).then(k => del(`${FIREBASE_BASE_URL}/sessions/${k}.json`)) : del(`${FIREBASE_BASE_URL}/sessions/sess_${hashSessionIdForDb(sid)}.json`)];
+                jobs.push(removeJoinCode(sid));
+                const room = liveRoomIdRef.current; if (room) { jobs.push(del(roomUrl(room))); jobs.push(del(roomUrl(room + '_d'))); }
+                if (aid) ['anon', 'full'].forEach(k => jobs.push(del(`${FIREBASE_BASE_URL}/analytics/${k}/${aid}.json`)));
+                const results = await Promise.all(jobs);
+                if (results.some(ok => !ok)) { setDelDataBusy(false); SoundFX.warn(); showToast('Не удалось удалить данные из облака. Проверьте интернет и повторите — ничего не потеряно', 6000, 'warn'); return; }
+                try { const rm = []; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && (k === PROFILE_STORAGE_KEY || k.startsWith('askme_sess_') || k.startsWith('askme_aid_') || [SETTINGS_KEY, 'askme_hard_mode_v1', 'askme_analytics_v1', 'askme_seen_topics_v1', AN_MIN_KEY].includes(k))) rm.push(k); } rm.forEach(k => localStorage.removeItem(k)); } catch (e) {}
+                setDelDataOpen(false); setDelDataBusy(false); setProfile(null); setIsPreviewMode(false);
+                setPlayersForm([{ id: 'p1', name: '', gender: 'guy' }, { id: 'p2', name: '', gender: 'girl' }]); setPlayersError(''); setRestoreIdInput(''); setRestoreError('');
+                SoundFX.success(); navigate('onboarding'); showToast('Все ваши данные удалены', 4000);
+            };
+
+            const handleShareGame = async () => { SoundFX.click(); const shareUrl = `${window.location.origin}${window.location.pathname}#/welcome`; if (navigator.share) { try { await navigator.share({ title: "ASK ME — Игра", text: "Откровенные разговоры ❤️", url: shareUrl }); return; } catch (e) { if (e.name === 'AbortError') return; } } await copyTextToClipboard(shareUrl); showToast("Ссылка на игру скопирована!"); };
+            const toggleMute = () => { const nextState = !isMuted; setIsMuted(nextState); SoundFX.muted = nextState; if (!nextState) SoundFX.click(); };
+            const handleLogoSecretTap = () => { const nextCount = logoTapCount + 1; setLogoTapCount(nextCount); if (nextCount >= 5) { SoundFX.magic(); setLogoTapCount(0); setAdminPinError(''); navigate('admin_login'); } };
+
+            const handleSaveProfileNames = async (e) => {
+                e.preventDefault(); const validPlayers = playersForm.filter(p => p.name.trim().length > 0);
+                if (validPlayers.length < 2) { SoundFX.warn(); setPlayersError("Введите минимум два имени, чтобы начать игру"); return; }
+                SoundFX.success(); setPlayersError('');
+                const isNewSession = (!profile?.sessionId || isPreviewMode); const newSid = isNewSession ? generateSessionId() : profile.sessionId; const newKey = (!isNewSession && isValidAESKey(profile?.sessionKey)) ? profile.sessionKey : await generateAESKey();
+                const updatedProfile = { sessionId: newSid, sessionKey: newKey, players: validPlayers, archivedIds: isNewSession ? [] : (profile?.archivedIds || []), disabledIds: isNewSession ? [] : (profile?.disabledIds || []), savedGame: isNewSession ? null : (profile?.savedGame || null), joinAt: isNewSession ? 0 : (profile?.joinAt || 0), updatedAt: Date.now() };
+                setProfile(updatedProfile); syncSessionToCloud(updatedProfile); setIsPreviewMode(false); if (isNewSession) navigate('session_created'); else { showToast("Имена сохранены"); navigate('menu'); }
+            };
+            const handleExitSession = () => {
+                try { localStorage.removeItem(PROFILE_STORAGE_KEY); } catch (e) {}
+                setShowExitConfirm(false); setProfile(null);
+                setPlayersForm([{ id: 'p1', name: '', gender: 'guy' }, { id: 'p2', name: '', gender: 'girl' }]);
+                setPlayersError(''); SoundFX.click(); navigate('onboarding');
+            };
+            const exitConfirmPopup = (
+                <PopupModal isOpen={showExitConfirm && !!profile} onClose={() => setShowExitConfirm(false)}>
+                    <div className="text-center flex flex-col items-center gap-4 pt-1">
+                        <h3 className="text-lg font-bold text-white">Выйти из сессии?</h3>
+                        <p className="text-sm text-zinc-400 leading-snug">Прогресс сохранён. Чтобы вернуться, понадобится ID сессии — скопируйте его, пока он перед глазами.</p>
+                        {profile && <SessionIdBadge sessionKey={profile.sessionKey} sessionId={profile.sessionId} onCopy={showToast} size="lg" />}
+                        <div className="w-full grid grid-cols-2 gap-3 pt-1">
+                            <button type="button" onClick={() => setShowExitConfirm(false)} className="btn-secondary">Остаться</button>
+                            <button type="button" onClick={handleExitSession} className="btn-danger">Выйти</button>
+                        </div>
+                    </div>
+                </PopupModal>
+            );
+            const addPlayerField = () => { if(playersForm.length >= MAX_PLAYERS) return; SoundFX.click(); setPlayersForm([...playersForm, { id: 'p'+Date.now(), name: '', gender: 'guy' }]); };
+
+            const handleUnlockAdmin = async (e) => {
+                e.preventDefault(); if (await verifyAdminSecret(adminForm.email, adminForm.pass)) { const t = await Auth.token(); SoundFX.success(); setIsAdmin(true); localStorage.setItem(ADMIN_STORAGE_KEY, "true"); setAdminForm({email:'', pass:''}); setAdminPinError(''); if(t) cleanupOldSessions(t); } else { SoundFX.warn(); setAdminPinError('Неверный Email или Пароль'); }
+            };
+            const handleLockAdmin = () => { SoundFX.click(); setIsAdmin(false); localStorage.removeItem(ADMIN_STORAGE_KEY); Auth.ownerLogout(); };
+
+            const parseDatabaseObject = (rawObj) => {
+                const entries = Object.entries(rawObj); const parsed = [];
+                for (let i = 0; i < entries.length; i++) { const [dbKey, item] = entries[i]; if (!item || typeof item !== 'object' || !item.text) continue; if (item.categoryId === "_session" || String(dbKey).startsWith("sess_")) continue; const matchNum = String(item.text).match(/^№\s*(\d+)\.\s*(.*)/s); const cleanText = matchNum ? matchNum[2].trim() : String(item.text).trim(); parsed.push({ dbKey: String(dbKey), id: item.id || `q_${i + 1}`, origNum: item.num ? Number(item.num) : (matchNum ? Number(matchNum[1]) : i + 1), categoryId: item.categoryId || "family", level: item.level || "Простые", cleanText: cleanText, cleanTextUk: (item.text_uk ? String(item.text_uk).replace(/^№\s*\d+\.\s*/, '').trim() : ""), audience: (item.audience === 'couple' || item.audience === 'group') ? item.audience : 'both', targetId: item.targetId || "", hidden: item.hidden === true }); }
+                parsed.sort((a, b) => a.origNum - b.origNum); return reindexSequential(parsed);
+            };
+
+            useEffect(() => {
+                const initDatabase = async () => {
+                    try { const cachedRaw = localStorage.getItem(OFFLINE_DB_CACHE_KEY); if (cachedRaw) { const cachedParsed = JSON.parse(cachedRaw); if (Array.isArray(cachedParsed) && cachedParsed.length > 0) { setDb(cachedParsed); setIsLoading(false); } } } catch (e) {}
+                    try { const res = await fetchWithTimeout(`${FIREBASE_BASE_URL}/questions.json?t=${Date.now()}`); if (!res.ok) throw new Error(`HTTP ${res.status}`); const data = await res.json(); if (data) { setDbSubPath("/questions"); const parsedDb = parseDatabaseObject(data); setDb(parsedDb); try { localStorage.setItem(OFFLINE_DB_CACHE_KEY, JSON.stringify(parsedDb)); } catch (e) {} setIsLoading(false); } } catch (err) {}
+                }; initDatabase();
+            }, []);
+
+            const profileDb = useMemo(() => {
+                const archSet = new Set(profile?.archivedIds || []); const disSet = new Set(profile?.disabledIds || []); const mySid = profile?.sessionId;
+                return db.filter(q => (!q.hidden || isAdmin) && (!q.targetId || String(q.targetId).trim() === '' || q.targetId === mySid)).map(q => ({ ...q, archived: archSet.has(q.id) || archSet.has(q.dbKey), disabled: disSet.has(q.id) || disSet.has(q.dbKey) }));
+            }, [db, profile, isAdmin]);
+
+            const stats = useMemo(() => {
+                const activeByCat = {}; const totalByCat = {}; const archivedByCat = {}; CATEGORIES.forEach(c => { activeByCat[c.id] = 0; totalByCat[c.id] = 0; archivedByCat[c.id] = 0; });
+                let availableActive = 0, availableTotal = 0, disabledCount = 0, hiddenCount = 0; const archivedList = [];
+                for (let i = 0; i < profileDb.length; i++) { const q = profileDb[i]; if (q.hidden) { hiddenCount++; continue; } if (totalByCat[q.categoryId] !== undefined) totalByCat[q.categoryId]++; const matchesDiff = selectedDiffs.includes(q.level); const matchesCat = selectedCats.includes(q.categoryId); if (q.disabled) disabledCount++; if (q.archived) { archivedList.push(q); if (archivedByCat[q.categoryId] !== undefined) archivedByCat[q.categoryId]++; } else if (!q.disabled) { if (activeByCat[q.categoryId] !== undefined) activeByCat[q.categoryId]++; if (matchesCat && matchesDiff) availableActive++; } if (matchesCat && matchesDiff) availableTotal++; }
+                return { activeByCat, totalByCat, archivedByCat, availableActive, availableTotal, disabledCount, archivedList, hiddenCount };
+            }, [profileDb, selectedCats, selectedDiffs, topicsVersion]);
+
+            const toggleCategory = (catId) => { if (stats.activeByCat[catId] === 0 && stats.totalByCat[catId] === 0) return; const willBeSelected = !selectedCats.includes(catId); SoundFX.toggle(willBeSelected); setSelectedCats(prev => willBeSelected ? [...prev, catId] : prev.filter(id => id !== catId)); };
+            const toggleDiff = (diffId) => { const willBeSelected = !selectedDiffs.includes(diffId); SoundFX.toggle(willBeSelected); setSelectedDiffs(prev => willBeSelected ? [...prev, diffId] : prev.filter(id => id !== diffId)); };
+            
+            const updateSavedGameProgress = (questionsArr, cIdx, mIdx, tHist, extraArchivedKey = null) => {
+                setProfile(prev => { if (!prev) return prev; const qIds = questionsArr.map(q => q.id || q.dbKey); const nextArchived = extraArchivedKey ? Array.from(new Set([...(prev.archivedIds || []), extraArchivedKey])) : (prev.archivedIds || []); return { ...prev, archivedIds: nextArchived, savedGame: { questionIds: qIds, currentIndex: cIdx, maxReachedIndex: mIdx, turnHistory: tHist }, updatedAt: Date.now() }; });
+            };
+
+            const pendingTurnRef = useRef(null);
+            const commitTurn = (idx, entry, q) => {
+                if (entry && entry.cur && gameLogRef.current) gameLogRef.current.turnStart = Date.now();
+                const stamped = (entry && liveRoomRef.current) ? { ...entry, dev: deviceIdRef.current } : entry;
+                setTurnHistory(prev => { const upd = { ...prev, [idx]: stamped }; updateSavedGameProgress(q, idx, Math.max(maxReachedIndex, idx), upd); return upd; });
+            };
+            const startSpin = (idx, candidates, answered, q, skippedBy = []) => {
+                rouletteTimeoutsRef.current.forEach(t => clearTimeout(t)); rouletteTimeoutsRef.current = [];
+                const winner = candidates[Math.floor(Math.random() * candidates.length)].id;
+                pendingTurnRef.current = { idx, entry: { cur: winner, answered, skippedBy }, q };
+                liveSpin(idx, candidates, winner);
+                setTurnPopup({ open: true, spinning: true, winner, spinId: Date.now(), candidates: candidates.map(p => ({ id: p.id, name: p.name, gender: p.gender })) });
+                const delays = [140, 155, 170, 190, 210, 235, 260, 290, 320, 350]; let acc = 0;
+                delays.forEach((d, i) => {
+                    acc += d;
+                    const tid = setTimeout(() => {
+                        if (i < delays.length - 1) { SoundFX.rouletteTick(); return; }
+                        SoundFX.rouletteWin();
+                        const p = pendingTurnRef.current; pendingTurnRef.current = null;
+                        if (p) commitTurn(p.idx, p.entry, p.q);
+                        setTurnPopup(st => ({ ...st, spinning: false }));
+                    }, acc);
+                    rouletteTimeoutsRef.current.push(tid);
+                });
+            };
+            const triggerRouletteForIndex = (targetIdx, currentHistory, questionsForSave = gameQuestions) => {
+                if (currentHistory[targetIdx] || !profile?.players?.length) return;
+                if (profile.players.length === 1) { commitTurn(targetIdx, { cur: profile.players[0].id, answered: [] }, questionsForSave); return; }
+                startSpin(targetIdx, profile.players, [], questionsForSave);
+            };
+            const applyTurnStep = (step) => {
+                if (step.type === 'done') { SoundFX.success(); commitTurn(currentIndex, step.entry, gameQuestions); }
+                else if (step.type === 'auto') { SoundFX.rouletteWin(); commitTurn(currentIndex, step.entry, gameQuestions); showToast(`Теперь отвечает ${step.player.name}`, 2800, 'turn'); }
+                else startSpin(currentIndex, step.candidates, step.answered, gameQuestions, step.skippedBy);
+            };
+            const advanceTurn = () => {
+                if (gameMode !== 'normal' || !profile?.players) return false;
+                const step = nextTurnStep(turnHistory[currentIndex], profile.players);
+                if (!step) return false;
+                logTurnEnd('answer'); applyTurnStep(step);
+                return true;
+            };
+            const performPlayerSkip = () => {
+                const e = normTurn(turnHistory[currentIndex]);
+                if (gameMode !== 'normal' || !profile?.players || !e || !e.cur) return;
+                const step = nextTurnStep({ ...e, skippedBy: [...e.skippedBy, e.cur] }, profile.players);
+                if (step) { logTurnEnd('skip'); SoundFX.click(); applyTurnStep(step); }
+            };
+            const skipForPlayer = () => {
+                setShowSkipPopup(false);
+                const e = normTurn(turnHistory[currentIndex]);
+                if (gameMode !== 'normal' || !profile?.players || !e || !e.cur) return;
+                const qNow = gameQuestions[currentIndex];
+                const pun = fx.punishOn ? pickPunishment(allPunishments, qNow && qNow.level) : null;
+                if (pun) { const who = profile.players.find(p => p.id === e.cur); logPunish(pun.text); SoundFX.warn(); const pn = { reason: 'skip', player: who ? who.name : '', text: pun.text, icon: pun.icon || '🎭' }; setPunDoneKey(timerKey); setPunish({ open: true, ...pn }); livePun({ ...pn, key: timerKey }); return; }
+                performPlayerSkip();
+            };
+            const skipForAll = () => {
+                setShowSkipPopup(false);
+                if (gameMode !== 'normal' || !profile?.players) return;
+                const ids = profile.players.map(p => p.id);
+                logTurnEnd('skip'); SoundFX.warn();
+                commitTurn(currentIndex, { cur: null, answered: ids, skippedBy: ids, skippedAll: true }, gameQuestions);
+            };
+            const GROUP_EMOJIS_SHUFFLED = useMemo(() => { const a = [...GROUP_EMOJIS]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }, [profile?.sessionId]);
+            useEffect(() => { document.title = tr(SCREEN_TITLES[screen] || 'ASK ME — игра для пар и компаний'); }, [screen, lang]);
+            // «Жар» комнаты: свет фона теплеет вместе со сложностью текущего вопроса (только на экране игры)
+            useEffect(() => {
+                const root = document.documentElement; const q = screen === 'game' ? gameQuestions[currentIndex] : null;
+                root.dataset.screen = screen; root.dataset.heat = q ? (q.level === 'Глубокие' ? 'deep' : q.level === 'Средние' ? 'mid' : 'easy') : 'idle';
+            }, [screen, currentIndex, gameQuestions]);
+            // Экономный режим фона: слабые устройства, «экономия трафика», скрытая вкладка
+            useEffect(() => {
+                const root = document.documentElement; const nav = navigator; const conn = nav.connection || {};
+                const weak = (nav.deviceMemory && nav.deviceMemory <= 2) || (nav.hardwareConcurrency && nav.hardwareConcurrency <= 2) || conn.saveData === true;
+                root.classList.toggle('fx-lite', !!weak);
+                const onVis = () => root.classList.toggle('fx-paused', document.hidden);
+                document.addEventListener('visibilitychange', onVis); onVis();
+                return () => document.removeEventListener('visibilitychange', onVis);
+            }, []);
+            const cardRef = useRef(null);
+            const peekNextRef = useRef(null);
+            const peekPrevRef = useRef(null);
+            const swipeRef = useRef({ id: null, x0: 0, y0: 0, locked: null, lx: 0, lt: 0, vx: 0 });
+            const swipeTimerRef = useRef(null);
+            const [swipeHint, setSwipeHint] = useState('');
+            useEffect(() => () => clearTimeout(swipeTimerRef.current), []);
+            const SWIPE_EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
+            const applyPeek = (dx, mode) => {
+                const p = Math.min(1, Math.abs(dx) / 110);
+                const tr = mode === 'out' ? 'opacity 300ms ease-out, transform 340ms cubic-bezier(0.22, 1, 0.36, 1)' : mode === 'spring' ? 'opacity 260ms ease-out, transform 420ms ease-out' : 'none';
+                [[peekNextRef.current, dx > 0], [peekPrevRef.current, dx < 0]].forEach(([el, on]) => {
+                    if (!el) return;
+                    const q = on ? (mode === 'out' ? 1 : p) : 0;
+                    el.style.transition = tr; el.style.opacity = String(q); el.style.transform = `scale(${0.94 + 0.06 * q})`;
+                });
+            };
+            const applySwipe = (dx, mode, scale = 1) => {
+                const el = cardRef.current; if (!el) return;
+                el.style.transition = mode === 'out' ? `transform 340ms ${SWIPE_EASE}, opacity 300ms ease-out` : mode === 'spring' ? 'transform 460ms cubic-bezier(0.34, 1.45, 0.64, 1), opacity 260ms ease-out' : mode === 'enter' ? `transform 420ms ${SWIPE_EASE}, opacity 320ms ease-out` : 'none';
+                el.style.transformOrigin = '50% 115%';
+                el.style.transform = `translate3d(${dx}px,0,0) rotate(${dx * 0.045}deg) scale(${scale})`;
+                el.style.opacity = String(mode === 'out' ? 0 : 1);
+                applyPeek(mode === 'enter' ? 0 : dx, mode === 'enter' ? 'none' : mode);
+            };
+            const swipeBusy = () => turnPopup.open || showSkipPopup || showEndGameConfirm || punish.open || (timerKey !== '' && tm.key === timerKey && timerDismissKey !== timerKey);
+            const swipeAllowed = (dir) => {
+                if (screen !== 'game' || !gameQuestions.length) return false;
+                const last = currentIndex === gameQuestions.length - 1;
+                if (dir === 'left') return currentIndex > 0;
+                if (gameMode === 'test') return !last;
+                const e = normTurn(turnHistory[currentIndex]);
+                if (!e) return false;
+                const done = !e.cur && (profile?.players || []).every(p => e.answered.includes(p.id));
+                return !(done && last);
+            };
+            const performSwipe = (dir) => { if (dir === 'left') handlePrevQuestion(); else handleNextQuestion(); };
+            const swipeLabel = (dir) => !swipeAllowed(dir) ? (dir === 'left' && currentIndex === 0 ? 'Это первый вопрос' : 'Здесь нельзя') : (dir === 'left' ? '← Назад' : 'Далее →');
+            const onSwipeStart = (e) => {
+                if (swipeBusy() || (e.target.closest && e.target.closest('button,a,input,textarea,select'))) return;
+                if (e.pointerType === 'mouse' && e.button !== 0) return;
+                swipeRef.current = { id: e.pointerId, x0: e.clientX, y0: e.clientY, locked: null, lx: e.clientX, lt: performance.now(), vx: 0 };
+            };
+            const onSwipeMove = (e) => {
+                const s = swipeRef.current; if (s.id !== e.pointerId) return;
+                const raw = e.clientX - s.x0, dy = e.clientY - s.y0;
+                if (s.locked === null) {
+                    if (Math.abs(raw) < 8 && Math.abs(dy) < 8) return;
+                    s.locked = Math.abs(raw) > Math.abs(dy) ? 'x' : 'y';
+                    if (s.locked === 'x') { try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) {} }
+                }
+                if (s.locked !== 'x') return;
+                const now = performance.now(), dt = now - s.lt;
+                if (dt >= 8) { s.vx = 0.7 * s.vx + 0.3 * ((e.clientX - s.lx) / dt); s.lx = e.clientX; s.lt = now; }
+                const a = Math.abs(raw);
+                const damped = (a < 110 ? a : 110 + (a - 110) * 0.4) * Math.sign(raw);
+                applySwipe(Math.max(-230, Math.min(230, damped)), 'none');
+                setSwipeHint(a > 28 ? swipeLabel(raw > 0 ? 'right' : 'left') : '');
+            };
+            const onSwipeEnd = (e) => {
+                const s = swipeRef.current; if (s.id !== e.pointerId) return;
+                swipeRef.current = { id: null, x0: 0, y0: 0, locked: null, lx: 0, lt: 0, vx: 0 };
+                setSwipeHint('');
+                if (s.locked !== 'x') return;
+                const dx = e.clientX - s.x0, w = e.currentTarget.getBoundingClientRect().width;
+                const dir = dx > 0 ? 'right' : 'left';
+                const far = Math.abs(dx) >= Math.min(110, w * 0.25) || (Math.abs(s.vx) > 0.5 && Math.abs(dx) > 36);
+                if (!far || !swipeAllowed(dir)) { if (far) SoundFX.warn(); applySwipe(0, 'spring'); return; }
+                SoundFX.flip(dir); SoundFX.skipNextFlip = true;
+                applySwipe(dir === 'right' ? 560 : -560, 'out', 0.96);
+                clearTimeout(swipeTimerRef.current);
+                swipeTimerRef.current = setTimeout(() => {
+                    performSwipe(dir); SoundFX.skipNextFlip = false;
+                    applySwipe(dir === 'right' ? -56 : 56, 'none', 0.95); applyPeek(0, 'none');
+                    if (cardRef.current) cardRef.current.style.opacity = '0';
+                    requestAnimationFrame(() => requestAnimationFrame(() => applySwipe(0, 'enter', 1)));
+                }, 260);
+            };
+            const onSwipeCancel = (e) => { if (swipeRef.current.id === e.pointerId) { swipeRef.current = { id: null, x0: 0, y0: 0, locked: null, lx: 0, lt: 0, vx: 0 }; setSwipeHint(''); applySwipe(0, 'spring'); } };
+            useEffect(() => {
+                if (screen !== 'game') return;
+                const onKey = (e) => {
+                    if (e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
+                    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+                    const wantNext = e.key === 'ArrowRight';
+                                        if (swipeBusy()) return;
+                    const dir = wantNext ? 'right' : 'left';
+                    if (swipeAllowed(dir)) performSwipe(dir);
+                };
+                window.addEventListener('keydown', onKey);
+                return () => window.removeEventListener('keydown', onKey);
+            });
+            useEffect(() => { try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) {} }, [settings]);
+            const turnE = normTurn(turnHistory[currentIndex]);
+            const [punDoneKey, setPunDoneKey] = useState('');
+            const rawTimerKey = (fx.timerOn && screen === 'game' && gameMode === 'normal' && turnE && turnE.cur) ? `${currentIndex}:${turnE.cur}:${turnE.answered.length}` : '';
+            const timerKey = rawTimerKey !== punDoneKey ? rawTimerKey : '';
+            const timerPaused = turnPopup.open || showSkipPopup || showEndGameConfirm || punish.open;
+            useEffect(() => { if (timerKey) setTm({ key: timerKey, left: fx.timerSec }); }, [timerKey, fx.timerSec]);
+            useEffect(() => {
+                if (!timerKey || timerPaused) return;
+                const id = setInterval(() => setTm(t => (t.key === timerKey ? { ...t, left: t.left - 1 } : t)), 1000);
+                return () => clearInterval(id);
+            }, [timerKey, timerPaused]);
+            useEffect(() => {
+                if (!timerKey || timerPaused || tm.key !== timerKey) return;
+                if (tm.left > 0 && tm.left <= 3) SoundFX.rouletteTick();
+                const rawTurn = turnHistory[currentIndex], owner = !liveRoomRef.current || !rawTurn || !rawTurn.dev || rawTurn.dev === deviceIdRef.current;
+                // если хозяин хода пропал, наказание выдаёт один из остальных: по очереди, чтобы не выдали сразу несколько устройств
+                const queue = liveIdsRef.current.filter(id => id !== (rawTurn && rawTurn.dev)).sort(), at = queue.indexOf(deviceIdRef.current), rank = at >= 0 ? at : queue.length;
+                if (tm.left <= (owner ? 0 : -(LIVE_TAKEOVER_S + rank * LIVE_TAKEOVER_STEP_S))) {
+                    const who = profile?.players?.find(p => p.id === turnE.cur);
+                    const qNow = gameQuestions[currentIndex];
+                    const pun = fx.punishOn ? pickPunishment(allPunishments, qNow && qNow.level) : null;
+                    logPunish(pun ? pun.text : ''); SoundFX.warn();
+                    const pn = { reason: 'timer', player: who ? who.name : '', text: pun ? pun.text : '', icon: pun ? (pun.icon || '🎭') : '⏰' };
+                    setPunDoneKey(timerKey); setPunish({ open: true, ...pn }); livePun({ ...pn, key: timerKey });
+                }
+            }, [tm.left, tm.key, timerKey, timerPaused]);
+            const closePunish = () => { const remote = !!punish.remote; setPunish(p => ({ ...p, open: false })); if (!remote) performPlayerSkip(); };
+            const startFromPregame = () => { if (!(settings.timerOn || settings.punishOn)) { SoundFX.warn(); return; } setHardMode(true); startWithMode('normal', { hard: true }); };
+            const patchSettings = (patch) => setSettings(st => ({ ...st, ...patch }));
+            const addPunishment = () => {
+                const t = sanitizeInput(newPunish, 80);
+                if (t.length < 3) { SoundFX.warn(); setPunishErr('Опишите наказание хотя бы парой слов'); return; }
+                if (allPunishments.length >= 60) { SoundFX.warn(); setPunishErr('Максимум 60 наказаний'); return; }
+                SoundFX.click();
+                setSettings(st => ({ ...st, punishments: [...st.punishments, { id: 'c' + Date.now(), text: t, level: newPunishLevel, icon: '🎭', custom: true }] }));
+                setNewPunish(''); setPunishErr(''); setShowAddPunish(false);
+            };
+            const chip = "px-3 py-1.5 rounded-full border border-white/12 bg-white/[0.04] text-zinc-200";
+            const pregameContent = (
+                <div className="flex flex-col gap-5 text-left">
+                        <div className="text-center">
+                            <h3 className="text-lg font-bold text-white">Усложнённый режим</h3>
+                            <p className="text-sm text-zinc-400 mt-1 leading-snug">Добавьте азарта: включите хотя бы одно усложнение — таймер на ответ или наказания.</p>
+                        </div>
+                        <div className="flex flex-wrap justify-center gap-2 text-xs font-bold ">
+                            <span className={chip}>⏱ {settings.timerOn ? `${settings.timerSec} с на ответ` : 'без таймера'}</span>
+                            <span className={chip}>🎭 {settings.punishOn ? 'наказания включены' : 'без наказаний'}</span>
+                        </div>
+                        {(
+                            <div className="flex flex-col gap-5 fade-in">
+                                <FxTimerCard on={settings.timerOn} sec={settings.timerSec} onToggle={() => { SoundFX.click(); patchSettings({ timerOn: !settings.timerOn }); }} onSec={(n) => patchSettings({ timerSec: n })} />
+                                <section className={`fx-card ${settings.punishOn ? 'is-on' : ''}`}>
+                                    <div className="flex items-center gap-3">
+                                        <span aria-hidden="true" className="fx-ico">🎭</span>
+                                        <div className="flex-1 min-w-0"><div className="text-sm font-bold text-white">Наказания</div><div className="text-xs text-zinc-400 leading-snug">Случайное задание, если время вышло. Можно привязать к сложности вопроса.</div></div>
+                                        <SettingSwitch on={settings.punishOn} onChange={() => { SoundFX.click(); patchSettings({ punishOn: !settings.punishOn }); }} label="Наказания" />
+                                    </div>
+                                    {settings.punishOn && (
+                                        <div className="fx-body flex flex-col gap-2 fade-in">
+                                            <div className="flex flex-col gap-5">
+                                                {LEVEL_OPTIONS.map(([lv, label]) => {
+                                                    const items = allPunishments.filter(p => p.level === lv);
+                                                    if (!items.length) return null;
+                                                    return (
+                                                        <div key={lv} className="flex flex-col gap-2">
+                                                            <h3 className="text-xs font-bold text-zinc-500">{label}</h3>
+                                                            {items.map(p => (
+                                                                <div key={p.id} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-3.5 py-3">
+                                                                    <span aria-hidden="true" className="w-10 h-10 rounded-full bg-white/[0.07] flex items-center justify-center text-lg flex-shrink-0">{p.icon || '🎭'}</span>
+                                                                    <span className="flex-1 min-w-0 text-sm text-zinc-100 leading-snug">{p.text}</span>
+                                                                    <button type="button" aria-label={p.custom ? 'Удалить наказание' : 'Скрыть наказание'} title={p.custom ? 'Удалить' : 'Скрыть у меня'} onClick={() => { SoundFX.click(); setSettings(st => p.custom ? ({ ...st, punishments: st.punishments.filter(x => x.id !== p.id) }) : ({ ...st, hiddenTemplates: [...(st.hiddenTemplates || []), p.id] })); }} className="btn-icon plain flex-shrink-0">✕</button>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    );
+                                                })}
+                                                {(settings.hiddenTemplates || []).length > 0 && ( <button type="button" onClick={() => { SoundFX.click(); setSettings(st => ({ ...st, hiddenTemplates: [] })); }} className="btn-text muted underline underline-offset-4 self-start">Вернуть скрытые ({(settings.hiddenTemplates || []).length})</button> )}
+                                            </div>
+                                            {!showAddPunish ? (
+                                                <button type="button" onClick={() => { SoundFX.click(); setShowAddPunish(true); }} className="btn-secondary w-full">+ Добавить наказание</button>
+                                            ) : (
+                                                <div className="flex flex-col gap-3 rounded-[20px] border border-white/10 bg-white/[0.04] p-4 fade-in">
+                                                    <h3 className="text-sm font-bold text-white">Новое наказание</h3>
+                                                    <input type="text" maxLength={80} value={newPunish} onChange={e => { setNewPunish(e.target.value); setPunishErr(''); }} placeholder="Например: спой припев любимой песни" aria-label="Текст наказания" className="px-4 text-sm" />
+                                                    {punishErr && <span className="ui-error">{punishErr}</span>}
+                                                    <select value={newPunishLevel} onChange={e => setNewPunishLevel(e.target.value)} aria-label="Для какой сложности вопроса" className="px-4 text-sm text-white">
+                                                        {LEVEL_OPTIONS.map(o => <option key={o[0]} value={o[0]} className="bg-[#0a0710]">{o[1]}</option>)}
+                                                    </select>
+                                                    <div className="grid grid-cols-2 gap-3">
+                                                        <button type="button" onClick={() => { SoundFX.click(); setShowAddPunish(false); setNewPunish(''); setPunishErr(''); }} className="btn-secondary">Отмена</button>
+                                                        <button type="button" onClick={addPunishment} className="btn-primary">Добавить</button>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </section>
+                            </div>
+                        )}
+                        <div className="flex flex-col gap-2">
+                            <button type="button" disabled={!(settings.timerOn || settings.punishOn)} onClick={startFromPregame} className="btn-primary w-full">Начать игру</button>
+                            {!(settings.timerOn || settings.punishOn) && <p role="alert" className="inline-error"><span aria-hidden="true" className="inline-error-i">!</span><span>Включите хотя бы одно усложнение: таймер или наказания.</span></p>}
+                        </div>
+                    </div>
+            );
+            const syncNewTopics = () => {
+                try {
+                    const seen = JSON.parse(localStorage.getItem('askme_seen_topics_v1') || '[]');
+                    const fresh = CATEGORIES.filter(c => c.custom && !seen.includes(c.id)).map(c => c.id);
+                    if (fresh.length) { setSelectedCats(prev => [...prev, ...fresh.filter(id => !prev.includes(id))]); localStorage.setItem('askme_seen_topics_v1', JSON.stringify([...seen, ...fresh])); }
+                } catch (e) {}
+            };
+            useEffect(() => {
+                let off = false;
+                (async () => {
+                    try {
+                        const res = await fetchWithTimeout(`${FIREBASE_BASE_URL}/topics.json?t=${Date.now()}`);
+                        if (!res.ok) return;
+                        const data = await res.json();
+                        if (off || !data) return;
+                        topicsDataRef.current = { custom: (data.custom && typeof data.custom === 'object') ? data.custom : {}, order: Array.isArray(data.order) ? data.order : Object.values(data.order || {}) };
+                        applyTopics(topicsDataRef.current);
+                        try { localStorage.setItem(TOPICS_CACHE_KEY, JSON.stringify(topicsDataRef.current)); } catch (e) {}
+                        syncNewTopics(); setTopicsVersion(v => v + 1);
+                    } catch (e) {}
+                })();
+                return () => { off = true; };
+            }, []);
+            const writeTopics = async (data) => {
+                const res = await fetchWithTimeout(`${FIREBASE_BASE_URL}/topics.json`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ custom: data.custom, order: data.order }) });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                topicsDataRef.current = data; applyTopics(data);
+                try { localStorage.setItem(TOPICS_CACHE_KEY, JSON.stringify(data)); } catch (e) {}
+                syncNewTopics(); setTopicsVersion(v => v + 1);
+            };
+            const addTopic = async () => {
+                const name = sanitizeInput(newTopicName, 30).trim();
+                const icon = (newTopicIcon || '').trim().slice(0, 16) || '✨';
+                if (!/\p{Extended_Pictographic}/u.test(icon)) { SoundFX.warn(); setTopicErr('Введите эмодзи, например 🌍'); return; }
+                if (name.length < 2) { SoundFX.warn(); setTopicErr('Назовите тему хотя бы двумя буквами'); return; }
+                if (CATEGORIES.some(c => c.name.toLowerCase() === name.toLowerCase())) { SoundFX.warn(); setTopicErr('Тема с таким названием уже есть'); return; }
+                if (CATEGORIES.length >= 30) { SoundFX.warn(); setTopicErr('Максимум — 30 тем'); return; }
+                setTopicBusy(true);
+                try {
+                    const id = 'c' + Date.now().toString(36);
+                    const order = CATEGORIES.map(c => c.id).concat(id);
+                    await writeTopics({ custom: { ...topicsDataRef.current.custom, [id]: { id, name, icon } }, order });
+                    setTopicDraft(order); setNewTopicName(''); setNewTopicIcon(''); setTopicErr('');
+                    SoundFX.success(); showToast('Тема добавлена');
+                } catch (e) { showErrorPopup('Тема не сохранилась', 'Проверьте интернет и вход владельца, затем попробуйте ещё раз.'); }
+                setTopicBusy(false);
+            };
+            const saveTopicOrder = async () => {
+                setTopicBusy(true);
+                try { await writeTopics({ custom: topicsDataRef.current.custom, order: topicDraft }); SoundFX.success(); showToast('Порядок тем сохранён'); }
+                catch (e) { showErrorPopup('Порядок не сохранился', 'Проверьте интернет и вход владельца, затем попробуйте ещё раз.'); }
+                setTopicBusy(false);
+            };
+            useEffect(() => {
+                let off = false;
+                (async () => {
+                    try {
+                        const res = await fetchWithTimeout(`${FIREBASE_BASE_URL}/punishments.json?t=${Date.now()}`);
+                        if (!res.ok) return;
+                        const list = templatesFromDb(await res.json());
+                        if (off || !list.length) return;
+                        setPunishTemplates(list);
+                        try { localStorage.setItem(PUNISH_CACHE_KEY, JSON.stringify(list)); } catch (e) {}
+                    } catch (e) {}
+                })();
+                return () => { off = true; };
+            }, []);
+            const writePunishTemplates = async (list) => {
+                const obj = {}; list.forEach((t, i) => { obj[t.id] = { id: t.id, text: t.text, level: t.level, icon: t.icon || '🎭', n: i }; });
+                const res = await fetchWithTimeout(`${FIREBASE_BASE_URL}/punishments.json`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(obj) });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                setPunishTemplates(list);
+                try { localStorage.setItem(PUNISH_CACHE_KEY, JSON.stringify(list)); } catch (e) {}
+            };
+            const startPtEdit = (t) => { SoundFX.click(); setPtEdit(t ? t.id : 'new'); setPtText(t ? t.text : ''); setPtIcon(t ? t.icon : ''); setPtLevel(t ? t.level : 'any'); setPtErr(''); setPtConfirmId(''); };
+            const savePt = async () => {
+                const text = sanitizeInput(ptText, 80).trim(); const icon = (ptIcon || '').trim().slice(0, 16) || '🎭';
+                if (text.length < 3) { SoundFX.warn(); setPtErr('Опишите наказание хотя бы парой слов'); return; }
+                if (!/\p{Extended_Pictographic}/u.test(icon)) { SoundFX.warn(); setPtErr('Введите эмодзи, например 🎤'); return; }
+                if (ptEdit === 'new' && punishTemplates.length >= 100) { SoundFX.warn(); setPtErr('Максимум — 100 шаблонов'); return; }
+                setPtBusy(true);
+                try {
+                    const next = ptEdit === 'new' ? [...punishTemplates, { id: 't' + Date.now().toString(36), text, level: ptLevel, icon }] : punishTemplates.map(t => t.id === ptEdit ? { ...t, text, level: ptLevel, icon } : t);
+                    await writePunishTemplates(next); SoundFX.success(); showToast('Шаблон сохранён'); setPtEdit(null); setPtErr('');
+                } catch (e) { showErrorPopup('Шаблон не сохранился', 'Проверьте интернет и вход владельца, затем попробуйте ещё раз.'); }
+                setPtBusy(false);
+            };
+            const deletePt = async (id) => {
+                if (ptConfirmId !== id) { SoundFX.warn(); setPtConfirmId(id); setPtErr(''); return; }
+                if (punishTemplates.length <= 1) { SoundFX.warn(); setPtErr('Нужен хотя бы один шаблон'); setPtConfirmId(''); return; }
+                setPtBusy(true);
+                try { await writePunishTemplates(punishTemplates.filter(t => t.id !== id)); SoundFX.success(); showToast('Шаблон удалён'); }
+                catch (e) { showErrorPopup('Шаблон не удалился', 'Проверьте интернет и вход владельца, затем попробуйте ещё раз.'); }
+                setPtConfirmId(''); setPtBusy(false);
+            };
+            const logTurnEnd = (kind) => { const g = gameLogRef.current; if (!g || !g.turnStart) return; if (kind === 'answer' && g.durations.length < 500) g.durations.push(Math.round((Date.now() - g.turnStart) / 1000)); g.turnStart = 0; };
+            const logPunish = (text) => { const g = gameLogRef.current; if (!g || !text || g.punishments.length >= 50) return; g.punishments.push({ t: String(text).slice(0, 80), tpl: punishTemplates.some(t => t.text === text) }); };
+            // partial — игра ещё идёт (промежуточная запись, журнал не закрываем); иначе это итог игры. complete — пройдена вся колода.
+            const reportGame = (total, opts = {}) => {
+                try {
+                    const g = gameLogRef.current; if (!opts.partial) gameLogRef.current = null;
+                    if (!g || !analyticsOn || isAdmin || !profile || liveRoleRef.current === 'guest') return;
+                    if (opts.partial && total < AN_FLOOR) return;
+                    const { anonGame, fullGame } = buildGameReports({ log: g, players: profile.players, questions: gameQuestions, history: turnHistory, total, customs: settings.punishments.map(p => p.text), now: Date.now(), complete: !!opts.complete, partial: !!opts.partial });
+                    const key = 'askme_aid_' + profile.sessionId; let aid = localStorage.getItem(key); let fresh = false;
+                    if (!aid) { aid = 'a' + Array.from(crypto.getRandomValues(new Uint8Array(8))).map(b => b.toString(16).padStart(2, '0')).join(''); localStorage.setItem(key, aid); fresh = true; }
+                    const gid = 'g' + g.startedAt.toString(36), now = Date.now(); const base = { updatedAt: now }; if (fresh) base.createdAt = now;
+                    const send = (kind, body) => fetchWithTimeout(`${FIREBASE_BASE_URL}/analytics/${kind}/${aid}.json`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).catch(() => {});
+                    send('anon', { ...base, ['games/' + gid]: anonGame });
+                    // правило базы analytics/full требует поле sid (строка ≤16), поэтому вместо ID шлём пустую строку: она же затирает ID, записанный прежними версиями (копия правила: tests/fixtures/analytics-rules.json)
+                    send('full', { ...base, sid: '', names: profile.players.map(p => String(p.name).slice(0, 25)), ['games/' + gid]: fullGame });
+                } catch (e) {}
+            };
+            const loadAnalytics = async () => {
+                setAnLoading(true); setAnErr('');
+                try {
+                    const [a, f] = await Promise.all([fetchWithTimeout(`${FIREBASE_BASE_URL}/analytics/anon.json?t=${Date.now()}`), fetchWithTimeout(`${FIREBASE_BASE_URL}/analytics/full.json?t=${Date.now()}`)]);
+                    if (!a.ok || !f.ok) throw new Error('HTTP');
+                    setAnData({ anon: (await a.json()) || {}, full: (await f.json()) || {} });
+                } catch (e) { setAnErr('Не удалось загрузить данные. Проверьте интернет и вход владельца.'); }
+                setAnLoading(false);
+            };
+            useEffect(() => { if (isAdmin && (screen === 'analytics' || screen === 'analytics_sessions') && !anData && !anLoading && !anErr) loadAnalytics(); }, [screen, isAdmin, anData, anErr]);
+            // Игра, которую бросили на середине, тоже попадает в аналитику: промежуточная запись после 10 пройденных вопросов, затем каждые 5 и при сворачивании приложения
+            const lastProgressRef = useRef('');
+            useEffect(() => {
+                if (screen !== 'game' || gameMode !== 'normal') return;
+                const passed = maxReachedIndex, log = gameLogRef.current, tag = log ? log.startedAt + ':' + passed : '';
+                if (log && passed >= AN_FLOOR && passed % 5 === 0 && lastProgressRef.current !== tag) { lastProgressRef.current = tag; reportGame(passed, { partial: true }); }
+                const onHide = () => { if (document.visibilityState === 'hidden' && passed >= AN_FLOOR) reportGame(passed, { partial: true }); };
+                document.addEventListener('visibilitychange', onHide);
+                return () => document.removeEventListener('visibilitychange', onHide);
+            }, [screen, gameMode, maxReachedIndex, turnHistory]);
+            const setAnMin = (n) => { SoundFX.click(); setAnMinState(n); try { localStorage.setItem(AN_MIN_KEY, String(n)); } catch (e) {} };
+            const anFiltered = anData ? { anon: filterAnalytics(anData.anon, anMin), full: filterAnalytics(anData.full, anMin) } : null;
+            const anHiddenGames = anData && anFiltered ? Math.max(0, countAnalyticsGames(anData.anon) - countAnalyticsGames(anFiltered.anon)) : 0;
+            const anMinControl = (
+                <section className="rounded-[20px] border border-white/10 bg-white/[0.04] p-4 flex flex-col gap-3">
+                    <div><div className="text-sm font-bold text-white">В аналитику идут игры от</div><div className="text-xs text-zinc-500 leading-snug mt-0.5">Число отвеченных вопросов в игре. Полностью пройденные колоды учитываются всегда.</div></div>
+                    <div className="flex flex-wrap gap-2" role="group" aria-label="Минимум отвеченных вопросов">
+                        {AN_MIN_CHOICES.map(n => ( <button key={n} type="button" aria-pressed={anMin === n} onClick={() => setAnMin(n)} className={`chip ${anMin === n ? 'is-on' : ''}`}>{n === 0 ? 'Любых' : n}</button> ))}
+                    </div>
+                    {anData && anHiddenGames > 0 && <p className="text-xs text-zinc-500">Не вошло в сводку коротких игр: {anHiddenGames}. Уменьшите число, чтобы увидеть их.</p>}
+                </section>
+            );
+            const deleteAnSession = async (aid) => {
+                if (anConfirm !== aid) { SoundFX.warn(); setAnConfirm(aid); return; }
+                setAnBusy(true);
+                try {
+                    const rs = await Promise.all(['anon', 'full'].map(k => fetchWithTimeout(`${FIREBASE_BASE_URL}/analytics/${k}/${aid}.json`, { method: "DELETE" })));
+                    if (rs.some(r => !r.ok)) throw new Error('HTTP');
+                    setAnData(d => { const n = { anon: { ...d.anon }, full: { ...d.full } }; delete n.anon[aid]; delete n.full[aid]; return n; });
+                    setAnSel(null); SoundFX.success(); showToast('Сессия удалена');
+                } catch (e) { showErrorPopup('Сессия не удалена', 'Проверьте интернет и вход владельца, затем попробуйте ещё раз.'); }
+                setAnConfirm(''); setAnBusy(false);
+            };
+            useEffect(() => {
+                if (screen === 'game') {
+                    if (!gameLogRef.current && gameMode === 'normal') gameLogRef.current = { startedAt: Date.now(), mode: hardMode ? 'hard' : 'normal', timerSec: fx.timerOn ? fx.timerSec : 0, punishOn: !!fx.punishOn, durations: [], punishments: [], turnStart: 0 };
+                } else if (screen !== 'ai_response' && screen !== 'summary') { gameLogRef.current = null; }
+            }, [screen]);
+            const setQuestionHidden = async (q, hide) => {
+                if (!isAdmin || hqBusy) return;
+                setHqBusy(q.dbKey);
+                try {
+                    const res = await fetchWithTimeout(`${FIREBASE_BASE_URL}${dbSubPath}/${q.dbKey}.json`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(hide ? { hidden: true, hiddenAt: Date.now() } : { hidden: null, hiddenAt: null }) });
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    setDb(prev => { const next = prev.map(x => x.dbKey === q.dbKey ? { ...x, hidden: !!hide } : x); try { localStorage.setItem(OFFLINE_DB_CACHE_KEY, JSON.stringify(next)); } catch (e) {} return next; });
+                    SoundFX.success(); showToast(hide ? 'Вопрос скрыт для всех' : 'Вопрос снова доступен');
+                } catch (e) { showErrorPopup('Не удалось изменить вопрос', 'Проверьте интернет и вход владельца, затем попробуйте ещё раз.'); }
+                setHqBusy('');
+            };
+            const restoreAllHidden = async () => {
+                if (!isAdmin || hqBusy) return;
+                if (!hqConfirmAll) { SoundFX.warn(); setHqConfirmAll(true); return; }
+                const keys = db.filter(q => q.hidden).map(q => q.dbKey); if (!keys.length) { setHqConfirmAll(false); return; }
+                setHqBusy('all');
+                try {
+                    const body = {}; keys.forEach(k => { body[k + '/hidden'] = null; body[k + '/hiddenAt'] = null; });
+                    const res = await fetchWithTimeout(`${FIREBASE_BASE_URL}${dbSubPath}.json`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    setDb(prev => { const next = prev.map(x => x.hidden ? { ...x, hidden: false } : x); try { localStorage.setItem(OFFLINE_DB_CACHE_KEY, JSON.stringify(next)); } catch (e) {} return next; });
+                    SoundFX.success(); showToast('Все вопросы возвращены');
+                } catch (e) { showErrorPopup('Не удалось вернуть вопросы', 'Проверьте интернет и вход владельца, затем попробуйте ещё раз.'); }
+                setHqConfirmAll(false); setHqBusy('');
+            };
+            const [live, setLive] = useState({ room: '', role: '', sync: false }); const [liveJoining, setLiveJoining] = useState(false); const [liveInvite, setLiveInvite] = useState(null); const [liveEnded, setLiveEnded] = useState(false); const [liveCount, setLiveCount] = useState(0); const [liveRoomId, setLiveRoomId] = useState('');
+            const deviceIdRef = useRef(null); if (!deviceIdRef.current) deviceIdRef.current = makeDeviceId();
+            const liveIdsRef = useRef([]); const liveSyncRef = useRef(false); const liveDeckRef = useRef(''); const liveEnteringRef = useRef(''); const liveJoiningRef = useRef(false); const liveRoomRef = useRef(''); const liveRoleRef = useRef(''); const liveRoomIdRef = useRef(''); liveRoomIdRef.current = liveRoomId;
+            const liveRef = useRef({ ver: 0, t: 0, gid: '', hash: '', spinId: 0, punId: 0, endedSent: false, appliedAt: 0, reassertAt: 0 }); const liveChainRef = useRef(Promise.resolve()); const livePendingRef = useRef(0);
+            const liveStateRef = useRef({ idx: 0, max: 0, hist: {} }); liveStateRef.current = { idx: currentIndex, max: maxReachedIndex, hist: turnHistory };
+            const livePunRef = useRef({ key: '', punish: null }); livePunRef.current = { key: punDoneKey, punish };
+            const roomUrl = (room, sub = '') => `${FIREBASE_BASE_URL}/live/${room}${sub}.json`;
+            // общая «комната» сессии: её имя — хеш секретного ключа сессии, поэтому зайти могут только участники
+            useEffect(() => { let on = true; if (profile && isValidAESKey(profile.sessionKey)) liveRoomKey(profile.sessionKey).then(r => { if (on) setLiveRoomId(r); }); else setLiveRoomId(''); return () => { on = false; }; }, [profile && profile.sessionKey]);
+            const liveSend = (method, body, sub = '', suffix = '') => {
+                const room = liveRoomRef.current; if (!room) return Promise.resolve(false);
+                livePendingRef.current++;
+                const p = liveChainRef.current.then(() => fetchWithTimeout(roomUrl(room + suffix, sub), { method, headers: { "Content-Type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body) }).then(r => r.ok).catch(() => false)).then(ok => { livePendingRef.current--; return ok; });
+                liveChainRef.current = p; return p;
+            };
+            // пока в игре одно устройство, состояние в базу не отправляется (force — только для итога игры)
+            const livePublish = (extra, force = false) => { if (!liveRoomRef.current || (!liveSyncRef.current && !force)) return; const lr = liveRef.current; const ver = liveVerNext(lr.ver, deviceIdRef.current), t = Date.now(); lr.ver = ver; lr.t = t; liveSend('PATCH', { ver, by: deviceIdRef.current, t, ...extra }); };
+            const livePlayersStr = () => JSON.stringify(((profile && profile.players) || []).slice(0, MAX_PLAYERS).map(p => ({ id: p.id, name: p.name, gender: p.gender })));
+            // запуск игры: этот телефон становится «хозяином» новой партии. Пока он один, в базе только «маячок» (кто, сколько вопросов, режим):
+            // сами вопросы и ход игры отправляются, когда к сессии подключится ещё одно устройство (см. liveGoSync)
+            const liveStart = (deck, st) => {
+                const room = liveRoomIdRef.current; if (!room || !profile) return false;
+                const me = deviceIdRef.current, t = Date.now(), ver = liveVerStart(me, t), gid = 'g' + t.toString(36) + Math.random().toString(36).slice(2, 5), hs = liveHistStr(st.hist);
+                const idsStr = deck.map(q => String(q.id || q.dbKey)).join(',');
+                liveRoomRef.current = room; liveRoleRef.current = 'host'; liveSyncRef.current = false; liveDeckRef.current = idsStr; liveJoiningRef.current = false;
+                liveRef.current = { ver, t, gid, hash: liveHash(st.idx, st.max, hs), spinId: 0, punId: 0, endedSent: false, appliedAt: 0, reassertAt: 0 };
+                setLive({ room, role: 'host', sync: false }); setLiveFx(null); setLiveEnded(false); setLiveInvite(null); setLiveCount(1);
+                liveSend('PATCH', { ver, by: me, t, gid, status: 'active', solo: 1, n: deck.length, dk: liveDeckKey(idsStr), ids: null, idx: null, max: null, hist: null, hard: st.hard ? 1 : 0, fx: st.fx, pl: null, spin: null, pun: null });
+                return true;
+            };
+            // к хозяину подключилось ещё одно устройство: отправляем колоду (отдельным узлом — она может быть длиннее лимита одной записи) и текущий ход, дальше игра синхронна
+            const liveGoSync = () => {
+                if (liveSyncRef.current || !liveRoomRef.current || liveRoleRef.current !== 'host') return;
+                liveSyncRef.current = true;
+                const lr = liveRef.current, me = deviceIdRef.current, t = Date.now();
+                setLive(l => ({ ...l, sync: true }));
+                liveSend('PUT', { ver: 1, by: me, t, g: lr.gid, d: liveDeckRef.current }, '', '_d').then(ok => {
+                    if (!ok) { liveSyncRef.current = false; setLive(l => ({ ...l, sync: false })); if (Date.now() - (lr.deckFailAt || 0) > 20000) { lr.deckFailAt = Date.now(); showToast('Не удалось передать вопросы второму устройству — пробуем ещё раз', 4000, 'warn'); } return; }
+                    const st = liveStateRef.current, hs = liveHistStr(st.hist), ver = liveVerNext(lr.ver, me); lr.ver = ver; lr.t = Date.now(); lr.hash = liveHash(st.idx, st.max, hs);
+                    // если у хозяина уже выпало наказание за этот ход, гости должны знать об этом: иначе по своему таймеру выдадут второе
+                    const pr = livePunRef.current, pn = pr.punish || {}; let pun = null;
+                    if (pr.key) { pun = { id: Date.now(), reason: pn.reason || '', player: pn.player || '', text: pn.text || '', icon: pn.icon || '', key: pr.key }; lr.punId = pun.id; }
+                    liveSend('PATCH', { ver, by: me, t: lr.t, solo: null, pl: livePlayersStr(), idx: st.idx, max: st.max, hist: hs, ...(pun ? { pun } : {}) });
+                });
+            };
+            const liveSpin = (idx, cands, winner) => { if (!liveRoomRef.current) return; const id = Date.now(); liveRef.current.spinId = id; livePublish({ spin: { id, idx, winner, cands: cands.map(p => ({ id: p.id, name: p.name, gender: p.gender })) } }); };
+            const livePun = (pn) => { if (!liveRoomRef.current) return; const id = Date.now(); liveRef.current.punId = id; livePublish({ pun: { id, reason: pn.reason, player: pn.player || '', text: pn.text || '', icon: pn.icon || '', key: pn.key || '' } }); };
+            // итог партии: статус «закончена»; имена игроков и список вопросов из общей комнаты убираем — они больше не нужны
+            const liveSendEnd = () => { if (!liveRoomRef.current || liveRef.current.endedSent) return; liveRef.current.endedSent = true; livePublish({ status: 'ended', pl: null }, true); liveSend('DELETE', undefined, '', '_d'); };
+            const liveShowSpin = (spin) => {
+                rouletteTimeoutsRef.current.forEach(t => clearTimeout(t)); rouletteTimeoutsRef.current = []; pendingTurnRef.current = null;
+                setTurnPopup({ open: true, spinning: true, winner: spin.winner, spinId: spin.id, candidates: spin.cands || [] });
+                const delays = [140, 155, 170, 190, 210, 235, 260, 290, 320, 350]; let acc = 0;
+                delays.forEach((d, i) => { acc += d; rouletteTimeoutsRef.current.push(setTimeout(() => { if (i < delays.length - 1) { SoundFX.rouletteTick(); return; } SoundFX.rouletteWin(); setTurnPopup(st => ({ ...st, spinning: false })); }, acc)); });
+                // у остальных устройств окно рулетки закрывается само: имя отвечающего уже видно на карточке
+                rouletteTimeoutsRef.current.push(setTimeout(() => setTurnPopup(st => (st.spinId === spin.id && !st.spinning ? { ...st, open: false } : st)), acc + 2800));
+            };
+            const liveShowPun = (pn) => { SoundFX.warn(); if (pn.key) setPunDoneKey(pn.key); setPunish({ open: true, remote: true, reason: pn.reason, player: pn.player || '', text: pn.text || '', icon: pn.icon || '🎭' }); };
+            // колода партии лежит отдельным узлом рядом с комнатой (её длина не ограничена лимитом одной записи)
+            const liveFetchDeck = async (room, snap) => {
+                for (let i = 0; i < 3; i++) {
+                    try {
+                        const r = await fetchWithTimeout(roomUrl(room + '_d') + '?t=' + Date.now(), {}, 10000); const d = r.ok ? await r.json() : null;
+                        if (d && d.g === snap.gid && typeof d.d === 'string' && d.d) { const ids = d.d.split(',').filter(Boolean); if (!snap.n || ids.length === snap.n) return ids; }
+                    } catch (e) {}
+                    await new Promise(res => setTimeout(res, 400));
+                }
+                return null;
+            };
+            // вход в уже идущую игру (приглашение, переход на новую партию, возврат в начатую)
+            const enterLive = async (snap, role) => {
+                const room = liveRoomIdRef.current; if (!room || !profile) return false;
+                const ids = await liveFetchDeck(room, snap); const map = new Map(profileDb.map(q => [String(q.id || q.dbKey), q])); const deck = ids ? ids.map(id => map.get(id)).filter(Boolean) : [];
+                if (!ids || !ids.length) { showToast('Не удалось получить вопросы игры. Проверьте интернет и попробуйте ещё раз', 5000, 'warn'); return false; }
+                if (deck.length !== ids.length) { showToast('Не удалось присоединиться: не все вопросы загружены. Обновите страницу и попробуйте снова', 5000, 'warn'); return false; }
+                let hist = {}; try { hist = JSON.parse(snap.hist || '{}') || {}; } catch (e) {}
+                let pl = null; try { pl = JSON.parse(snap.pl || 'null'); } catch (e) {}
+                if (Array.isArray(pl) && pl.length) { const key = (a) => a.map(p => p.id + '|' + p.name + '|' + p.gender).join(','); if (key(pl) !== key(profile.players || [])) setProfile(prev => prev ? { ...prev, players: pl.slice(0, MAX_PLAYERS).map(p => ({ id: String(p.id), name: String(p.name || '').slice(0, 25), gender: p.gender === 'girl' ? 'girl' : 'guy' })), updatedAt: Date.now() } : prev); }
+                const idx = clampIdx(snap.idx, deck.length), max = Math.max(idx, clampIdx(snap.max, deck.length));
+                liveRoomRef.current = room; liveRoleRef.current = role; liveSyncRef.current = true; rouletteTimeoutsRef.current.forEach(t => clearTimeout(t)); rouletteTimeoutsRef.current = []; pendingTurnRef.current = null;
+                liveRef.current = { ver: snap.ver, t: snap.t || 0, gid: snap.gid || '', hash: liveHash(idx, max, liveHistStr(hist)), spinId: snap.spin ? snap.spin.id : 0, punId: snap.pun ? snap.pun.id : 0, endedSent: false, appliedAt: Date.now(), reassertAt: 0 };
+                setLive({ room, role, sync: true }); setLiveEnded(false); setLiveInvite(null); setLiveCount(c => Math.max(c, 1));
+                const f = snap.fx || {}; setLiveFx({ ...settings, timerOn: !!f.timerOn, timerSec: Math.max(TIMER_STORED_MIN, Math.min(TIMER_MAX, Math.round(Number(f.timerSec)) || settings.timerSec)), punishOn: !!f.punishOn }); // время от хозяина — только число в допустимых пределах
+                setHardMode(!!snap.hard); setPunDoneKey(snap.pun && snap.pun.key ? String(snap.pun.key) : ''); setGameMode('normal'); setGameQuestions(deck); setCurrentIndex(idx); setMaxReachedIndex(max); setTurnHistory(hist);
+                setTurnPopup({ open: false, spinning: false, highlight: 'guy', winner: null, candidates: [] }); setPunish({ open: false, text: '', player: '', icon: '⏰' }); setShowSkipPopup(false); setTimerDismissKey('');
+                setAnsweredCount(0); setCompletedAllFlag(false); setShowEndGameConfirm(false); SoundFX.success(); navigate('game');
+                return true;
+            };
+            // моя запись в общей комнате оказалась «старше» моей же — её перебила чужая с более ранней версией: повторяем актуальное состояние
+            const liveReassert = (seen) => {
+                const lr = liveRef.current, now = Date.now(); if (livePendingRef.current > 0 || now - (lr.reassertAt || 0) < 5000) return;
+                lr.reassertAt = now; lr.ver = Math.max(lr.ver, seen); const st = liveStateRef.current, hs = liveHistStr(st.hist);
+                lr.hash = liveHash(st.idx, st.max, hs); livePublish({ idx: st.idx, max: st.max, hist: hs });
+            };
+            const applyLiveSnapshot = (snap) => {
+                if (!snap || typeof snap.ver !== 'number') return;
+                const lr = liveRef.current, me = deviceIdRef.current;
+                if (snap.gid && lr.gid && snap.gid !== lr.gid) {
+                    // новая партия другого устройства: пока там «маячок» без вопросов (solo), ждём — хозяин отправит их, увидев наше присутствие
+                    if (snap.by !== me && snap.status === 'active' && !snap.solo && liveEnteringRef.current !== snap.gid) { liveEnteringRef.current = snap.gid; showToast('Запущена новая игра', 2800, 'info'); enterLive(snap, 'guest').finally(() => { liveEnteringRef.current = ''; }); }
+                    return;
+                }
+                if (snap.ver < lr.ver) { liveReassert(snap.ver); return; }
+                if (snap.ver === lr.ver) return;
+                lr.ver = snap.ver; lr.t = snap.t || 0;
+                if (snap.by === me) return;
+                let hist = {}; try { hist = JSON.parse(snap.hist || '{}') || {}; } catch (e) {}
+                const idx = clampIdx(snap.idx, gameQuestions.length), max = Math.max(idx, clampIdx(snap.max, gameQuestions.length));
+                lr.hash = liveHash(idx, max, liveHistStr(hist)); lr.appliedAt = Date.now();
+                setCurrentIndex(idx); setMaxReachedIndex(max); setTurnHistory(hist);
+                setPunish(p => (p.remote ? { ...p, open: false } : p));
+                if (snap.spin && snap.spin.id && snap.spin.id !== lr.spinId) { lr.spinId = snap.spin.id; liveShowSpin(snap.spin); }
+                if (snap.pun && snap.pun.id && snap.pun.id !== lr.punId) { lr.punId = snap.pun.id; liveShowPun(snap.pun); }
+                if (snap.status === 'ended' && !lr.endedSent) { lr.endedSent = true; setLiveEnded(true); }
+            };
+            const applyLiveRef = useRef(null); applyLiveRef.current = applyLiveSnapshot;
+            useEffect(() => {
+                if (!live.room || !live.sync || !['game', 'ai_response'].includes(screen)) return;
+                let stop = false, busy = false;
+                const tick = async () => {
+                    if (busy || document.hidden) return; busy = true;
+                    try {
+                        const vr = await fetchWithTimeout(roomUrl(live.room, '/ver') + '?t=' + Date.now(), {}, 6000); const v = vr.ok ? await vr.json() : null;
+                        if (!stop && typeof v === 'number' && v !== liveRef.current.ver) { const r = await fetchWithTimeout(roomUrl(live.room) + '?t=' + Date.now(), {}, 8000); if (r.ok) { const snap = await r.json(); if (snap && !stop) applyLiveRef.current(snap); } }
+                    } catch (e) {}
+                    busy = false;
+                };
+                const id = setInterval(tick, LIVE_POLL_MS); const vis = () => { if (!document.hidden) tick(); }; document.addEventListener('visibilitychange', vis);
+                return () => { stop = true; clearInterval(id); document.removeEventListener('visibilitychange', vis); };
+            }, [live.room, live.sync, screen]);
+            // пока хозяин один, ему нечего синхронизировать: раз в пару секунд смотрим только, не появилось ли второе устройство
+            useEffect(() => {
+                if (!live.room || live.sync || live.role !== 'host' || !['game', 'ai_response'].includes(screen)) return;
+                let stop = false, busy = false;
+                const tick = async () => {
+                    if (busy || stop || document.hidden) return; busy = true;
+                    try { const r = await fetchWithTimeout(roomUrl(live.room, '/p') + '?t=' + Date.now(), {}, 5000); const p = r.ok ? await r.json() : null; if (!stop && liveAlive(p, Date.now(), deviceIdRef.current).others.length > 0) liveGoSync(); } catch (e) {}
+                    busy = false;
+                };
+                const id = setInterval(tick, LIVE_SOLO_MS); const vis = () => { if (!document.hidden) tick(); }; document.addEventListener('visibilitychange', vis);
+                return () => { stop = true; clearInterval(id); document.removeEventListener('visibilitychange', vis); };
+            }, [live.room, live.sync, live.role, screen]);
+            // «я здесь»: раз в 8 с отмечаемся в комнате и узнаём, сколько устройств сейчас в игре
+            useEffect(() => {
+                if (!live.room || !['game', 'ai_response'].includes(screen)) return;
+                let stop = false;
+                const beat = async () => {
+                    if (stop || document.hidden) return; const me = deviceIdRef.current;
+                    try {
+                        await liveSend('PATCH', { [me]: Date.now() }, '/p');
+                        const r = await fetchWithTimeout(roomUrl(live.room, '/p') + '?t=' + Date.now(), {}, 6000); const p = r.ok ? await r.json() : null;
+                        const { alive, stale } = liveAlive(p, Date.now(), me);
+                        if (!stop) { liveIdsRef.current = alive; setLiveCount(Math.max(1, alive.length)); }
+                        if (!stop && stale.length) liveSend('PATCH', Object.fromEntries(stale.map(id => [id, null])), '/p');
+                    } catch (e) {}
+                };
+                beat(); const id = setInterval(beat, LIVE_BEAT_MS); const vis = () => { if (!document.hidden) beat(); }; document.addEventListener('visibilitychange', vis);
+                return () => { stop = true; clearInterval(id); document.removeEventListener('visibilitychange', vis); };
+            }, [live.room, screen]);
+            useEffect(() => {
+                if (!live.room || !live.sync || screen !== 'game') return;
+                const hs = liveHistStr(turnHistory), h = liveHash(currentIndex, maxReachedIndex, hs);
+                if (h === liveRef.current.hash) return;
+                liveRef.current.hash = h; livePublish({ idx: currentIndex, max: maxReachedIndex, hist: hs });
+            }, [live.room, live.sync, screen, currentIndex, maxReachedIndex, turnHistory]);
+            // приглашение: на главной и экранах выбора режима смотрим, идёт ли в сессии игра, в которой уже есть другие устройства
+            useEffect(() => {
+                if (!['menu', 'mode_select', 'game_setup'].includes(screen) || !liveRoomId || live.room) { setLiveInvite(null); return; }
+                let stop = false;
+                const check = async () => {
+                    if (document.hidden) return;
+                    try {
+                        const sr = await fetchWithTimeout(roomUrl(liveRoomId, '/status') + '?t=' + Date.now(), {}, 6000); const status = sr.ok ? await sr.json() : null;
+                        if (stop) return; if (status !== 'active') { setLiveInvite(null); return; }
+                        const pr = await fetchWithTimeout(roomUrl(liveRoomId, '/p') + '?t=' + Date.now(), {}, 6000); const p = pr.ok ? await pr.json() : null;
+                        const n = liveAlive(p, Date.now(), deviceIdRef.current).others.length;
+                        if (!stop) setLiveInvite(n > 0 ? (cur => (cur && cur.count === n ? cur : { count: n })) : null);
+                    } catch (e) {}
+                };
+                check(); const id = setInterval(check, LIVE_INVITE_MS); return () => { stop = true; clearInterval(id); };
+            }, [screen, liveRoomId, live.room]);
+            // выход из игры одного устройства не завершает её для остальных: просто убираем свою отметку
+            const liveLeave = () => {
+                const room = liveRoomRef.current, me = deviceIdRef.current;
+                if (room) fetchWithTimeout(roomUrl(room, '/p/' + me), { method: 'DELETE', keepalive: true }, 6000).catch(() => {});
+                liveRoomRef.current = ''; liveRoleRef.current = ''; liveSyncRef.current = false; setLive({ room: '', role: '', sync: false }); setLiveFx(null); setLiveCount(0);
+            };
+            useEffect(() => { if (live.room && !['game', 'ai_response', 'summary'].includes(screen)) liveLeave(); }, [screen]);
+            useEffect(() => { const h = () => { if (liveRoomRef.current) liveLeave(); }; window.addEventListener('pagehide', h); return () => window.removeEventListener('pagehide', h); }, []);
+            useEffect(() => { if (liveEnded) { setLiveEnded(false); showToast('Игра завершена на другом устройстве', 2800, 'info'); handleFinishGame(false); } }, [liveEnded]);
+            // присоединение к идущей игре. Если хозяин пока один, он пришлёт вопросы, только увидев нас, — поэтому сначала отмечаемся в комнате и ждём
+            const liveJoinFlow = async (snap0, quiet = false) => {
+                const room = liveRoomIdRef.current, me = deviceIdRef.current; if (!room || !profile || liveJoiningRef.current) return false;
+                liveJoiningRef.current = true; setLiveJoining(true);
+                let ok = false, announced = false;
+                try {
+                    let snap = snap0;
+                    if (snap.solo) {
+                        announced = true;
+                        await fetchWithTimeout(roomUrl(room, '/p'), { method: 'PATCH', headers: { "Content-Type": "application/json" }, body: JSON.stringify({ [me]: Date.now() }) }, 6000).catch(() => {});
+                        if (!quiet) showToast('Подключаемся к игре…', 4000, 'info');
+                        const t0 = Date.now(); snap = null;
+                        while (Date.now() - t0 < LIVE_JOIN_WAIT_MS) {
+                            await new Promise(res => setTimeout(res, 700));
+                            try { const r = await fetchWithTimeout(roomUrl(room) + '?t=' + Date.now(), {}, 6000); const s2 = r.ok ? await r.json() : null; if (s2 && s2.status !== 'active') break; if (s2 && !s2.solo && s2.n > 0) { snap = s2; break; } } catch (e) {}
+                        }
+                        if (!snap) { if (!quiet) showToast('Не удалось подключиться: игра не открыта на устройстве хозяина. Откройте её там и попробуйте снова', 6000, 'warn'); }
+                    }
+                    ok = snap ? await enterLive(snap, 'guest') : false;
+                } finally {
+                    if (!ok && announced) fetchWithTimeout(roomUrl(room, '/p/' + me), { method: 'DELETE' }, 6000).catch(() => {});
+                    liveJoiningRef.current = false; setLiveJoining(false);
+                }
+                return ok;
+            };
+            const joinLive = async () => {
+                if (!profile || !liveRoomIdRef.current || liveJoiningRef.current) return;
+                let snap = null; try { const r = await fetchWithTimeout(roomUrl(liveRoomIdRef.current) + '?t=' + Date.now(), {}, 8000); snap = r.ok ? await r.json() : null; } catch (e) {}
+                if (!snap || snap.status !== 'active' || !(snap.n > 0)) { setLiveInvite(null); showToast('Игра уже закончилась. Начните новую партию — приглашение появится здесь', 5000, 'info'); return; }
+                const cap = deviceCap(profile, snap); if (liveAlive(snap.p, Date.now(), deviceIdRef.current).others.length >= cap) { showToast('В игре уже ' + cap + ' ' + declOfNum(cap, ['устройство', 'устройства', 'устройств']) + ' — по числу игроков в сессии. Дождитесь, пока кто-нибудь выйдет, или добавьте игроков в «Игроки и сессия»', 6000, 'warn'); return; }
+                await liveJoinFlow(snap);
+            };
+            // после быстрого подключения по приглашению: если в сессии уже идёт игра, входим в неё сами (когда появится приглашение; ждём не дольше 20 секунд)
+            useEffect(() => {
+                if (!liveInvite || !joinAutoRef.current || screen !== 'menu') return;
+                const age = Date.now() - joinAutoRef.current; joinAutoRef.current = 0; if (age > 20000) return; joinLive();
+            }, [liveInvite, screen]);
+            const handleCloseRoulettePopup = () => {
+                rouletteTimeoutsRef.current.forEach(t => clearTimeout(t)); rouletteTimeoutsRef.current = [];
+                const p = pendingTurnRef.current; pendingTurnRef.current = null;
+                if (p) commitTurn(p.idx, p.entry, p.q);
+                setTurnPopup(prev => ({ ...prev, open: false, spinning: false }));
+            };
+
+            const handleResumeSavedGame = async (silent = false) => { // true — партия открыта (на этом устройстве или присоединением к идущей)
+                if (!profile?.savedGame || !profile.savedGame.questionIds?.length) return false; if (!silent) SoundFX.click();
+                const qMap = new Map(); profileDb.forEach(q => { qMap.set(q.id, q); qMap.set(q.dbKey, q); });
+                let restoredDeck = profile.savedGame.questionIds.map(id => qMap.get(id)).filter(Boolean);
+                if (restoredDeck.length === 0) { setProfile(prev => ({ ...prev, savedGame: null, updatedAt: Date.now() })); return false; }
+                const canLive = !!liveRoomIdRef.current; let busyElsewhere = false;
+                const cIdx = Math.min(profile.savedGame.currentIndex || 0, restoredDeck.length - 1); const mIdx = Math.min(profile.savedGame.maxReachedIndex || cIdx, restoredDeck.length - 1); const tHist = profile.savedGame.turnHistory || {};
+                // если эта же партия ещё идёт на других устройствах — возвращаемся в неё, а не затираем её своим старым состоянием
+                if (canLive) {
+                    try {
+                        const r = await fetchWithTimeout(roomUrl(liveRoomIdRef.current) + '?t=' + Date.now(), {}, 6000); const snap = r.ok ? await r.json() : null;
+                        const n = snap ? liveAlive(snap.p, Date.now(), deviceIdRef.current).others.length : 0;
+                        const sameDeck = !!snap && snap.status === 'active' && snap.dk === liveDeckKey(restoredDeck.map(q => String(q.id || q.dbKey)).join(','));
+                        if (sameDeck && n < deviceCap(profile, snap)) {
+                            // другие устройства сейчас в игре — присоединяемся к ним; никого нет — берём состояние из комнаты, если оно не отстаёт от моего сохранения (там самый свежий ход)
+                            if (n > 0) { if (await liveJoinFlow(snap, true)) return true; }
+                            else if (!snap.solo && (Number(snap.max) || 0) >= mIdx && await enterLive(snap, 'guest')) return true;
+                        }
+                        busyElsewhere = !!snap && snap.status === 'active' && n > 0; // к идущей игре подключиться не вышло (другая колода, нет места, хозяин не ответил)
+                    } catch (e) {}
+                }
+                // чужую идущую игру нельзя затирать своим старым сохранением: liveStart заставил бы всех её участников перейти в мою колоду
+                if (busyElsewhere) { if (!silent) showToast('В сессии уже идёт игра на другом устройстве, и подключиться к ней не удалось. Попробуйте ещё раз или завершите её там', 6000, 'warn'); return false; }
+                setPunDoneKey(''); setGameMode('normal'); setGameQuestions(restoredDeck); setCurrentIndex(cIdx); setMaxReachedIndex(mIdx); setTurnHistory(tHist); setAnsweredCount(0); setCompletedAllFlag(false); setShowEndGameConfirm(false); setTurnPopup({ open: false, spinning: false, highlight: 'guy', winner: null }); navigate('game');
+                if (canLive) liveStart(restoredDeck, { idx: cIdx, max: mIdx, hist: tHist, hard: hardMode, fx: { timerOn: hardMode && !!settings.timerOn, timerSec: settings.timerSec, punishOn: hardMode && !!settings.punishOn } });
+                if (!tHist[cIdx]) triggerRouletteForIndex(cIdx, tHist, restoredDeck);
+                return true;
+            };
+            // страница перезагрузилась на экране игры (вышла новая версия, телефон выгрузил вкладку): колоды в памяти нет — возвращаем игрока в начатую партию из сохранения.
+            // В меню уходим, только если сохранённой партии нет или она не открылась
+            const resumeGuardRef = useRef(false);
+            useEffect(() => {
+                if (isLoading || screen !== 'game' || gameQuestions[currentIndex]) { resumeGuardRef.current = false; return; }
+                if (resumeGuardRef.current) return;
+                if (profile && isValidAESKey(profile.sessionKey) && !liveRoomId) return; // имя общей комнаты ещё считается: без него вернулись бы в партию в одиночку
+                resumeGuardRef.current = true;
+                (async () => {
+                    let ok = false; try { ok = await handleResumeSavedGame(true); } catch (e) {}
+                    if (!ok) { try { window.history.replaceState(null, '', window.location.pathname + window.location.search + '#/'); } catch (e) {} setScreenState('menu'); window.scrollTo(0, 0); } // заменяем запись #/play, чтобы «Назад» не возвращал на неё
+                })();
+            }, [isLoading, screen, gameQuestions, currentIndex, liveRoomId]);
+
+            const handlePressStartButton = () => { SoundFX.click(); if(!profile) return; navigate('mode_select'); };
+            const startWithMode = (mode, opts = {}) => {
+                SoundFX.click(); let pool = [];
+                if (mode === 'normal') { pool = profileDb.filter(q => !q.hidden && !q.archived && !q.disabled && selectedCats.includes(q.categoryId) && selectedDiffs.includes(q.level) && audienceAllows(q)); if (pool.length === 0) { showToast(tr("Нет подходящих вопросов — измените темы или сложность"), 2800, 'warn'); return; } } else { const catsToUse = selectedCats.length > 0 ? selectedCats : CATEGORIES.map(c => c.id); const diffsToUse = selectedDiffs.length > 0 ? selectedDiffs : DIFFICULTIES.map(d => d.id); pool = profileDb.filter(q => catsToUse.includes(q.categoryId) && diffsToUse.includes(q.level) && audienceAllows(q)); if (pool.length === 0) { showToast(tr("В базе нет подходящих вопросов"), 2800, 'warn'); return; } }
+                let shuffled = [...pool]; if (mode === 'normal') { shuffled = buildDeck(pool); } else { for (let i = shuffled.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]; } }
+                const isHard = opts.hard !== undefined ? !!opts.hard : hardMode, canLive = mode === 'normal' && !!liveRoomIdRef.current;
+                setPunDoneKey(''); setGameMode(mode); setGameQuestions(shuffled); setCurrentIndex(0); setMaxReachedIndex(0); setTurnHistory({}); setAnsweredCount(0); setCompletedAllFlag(false); setShowEndGameConfirm(false); navigate('game');
+                if (mode === 'normal') {
+                    updateSavedGameProgress(shuffled, 0, 0, {});
+                    if (canLive) liveStart(shuffled, { idx: 0, max: 0, hist: {}, hard: isHard, fx: { timerOn: isHard && !!settings.timerOn, timerSec: settings.timerSec, punishOn: isHard && !!settings.punishOn } });
+                    triggerRouletteForIndex(0, {}, shuffled);
+                }
+            };
+
+            const handleNextQuestion = () => { if (liveRoomRef.current && Date.now() - liveRef.current.appliedAt < LIVE_TAP_GUARD_MS) return; if (advanceTurn()) return; if (currentIndex < gameQuestions.length - 1) { const currentQ = gameQuestions[currentIndex]; const currentQKey = currentQ ? (currentQ.id || currentQ.dbKey) : null; const nextIdx = currentIndex + 1; const nextMax = Math.max(maxReachedIndex, nextIdx); SoundFX.flip('right'); setCurrentIndex(nextIdx); setMaxReachedIndex(nextMax); if (gameMode === 'normal') { updateSavedGameProgress(gameQuestions, nextIdx, nextMax, turnHistory, currentQKey); if (!turnHistory[nextIdx]) triggerRouletteForIndex(nextIdx, turnHistory, gameQuestions); } } else { SoundFX.click(); handleFinishGame(true); } };
+            const handlePrevQuestion = () => { if (currentIndex <= 0) return; if (liveRoomRef.current && Date.now() - liveRef.current.appliedAt < LIVE_TAP_GUARD_MS) return; SoundFX.flip('left'); const prevIdx = currentIndex - 1; setCurrentIndex(prevIdx); if (gameMode === 'normal') { updateSavedGameProgress(gameQuestions, prevIdx, maxReachedIndex, turnHistory); } };
+            const archiveAnsweredQuestions = (questionsToArchive) => { if (!questionsToArchive || questionsToArchive.length === 0 || !profile) return; const newArchKeys = questionsToArchive.map(q => q.id || q.dbKey); setProfile(prev => { const merged = Array.from(new Set([...(prev.archivedIds || []), ...newArchKeys])); return { ...prev, archivedIds: merged, savedGame: null, updatedAt: Date.now() }; }); };
+            const handleRestoreSingleFromArchive = (qObj) => { SoundFX.success(); setProfile(prev => ({ ...prev, archivedIds: (prev.archivedIds || []).filter(k => k !== qObj.id && k !== qObj.dbKey), updatedAt: Date.now() })); };
+            const handleRestoreBatchFromArchive = (listToRestore) => { if (!listToRestore || listToRestore.length === 0) return; SoundFX.success(); const keysToRemove = new Set(); listToRestore.forEach(q => { keysToRemove.add(q.id); keysToRemove.add(q.dbKey); }); setProfile(prev => ({ ...prev, archivedIds: (prev.archivedIds || []).filter(k => !keysToRemove.has(k)), updatedAt: Date.now() })); };
+            const handleFinishGame = (reachedVeryEnd = false) => { SoundFX.click(); liveSendEnd(); setShowEndGameConfirm(false); if (gameMode === 'test') { navigate('menu'); return; } const totalAnswered = maxReachedIndex + 1; const answeredSlice = gameQuestions.slice(0, totalAnswered); const isAllCleared = reachedVeryEnd || (totalAnswered >= gameQuestions.length && gameQuestions.length > 0); setAnsweredCount(totalAnswered); setCompletedAllFlag(isAllCleared); if (isAllCleared) SoundFX.romanticFinale(); else SoundFX.success(); archiveAnsweredQuestions(answeredSlice); reportGame(totalAnswered, { complete: isAllCleared }); navigate('summary'); };
+
+            const triggerAI = async (type) => { if (!ActionGuard.canProceed(600)) return; SoundFX.magic(); setAiType(type); setAiContent(type === 'situation' ? "Моделирую ситуацию..." : "Готовлю разбор психолога..."); setIsAiTyping(true); navigate('ai_response'); const q = gameQuestions[currentIndex]; const pNames = profile?.players?.map(p=>p.name).join(' и ') || "Пара"; const response = await fetchFromAI(type, q.cleanText || q.text, q.categoryId, pNames); if (typingIntervalRef.current) clearInterval(typingIntervalRef.current); setAiContent(""); let i = 0; typingIntervalRef.current = setInterval(() => { setAiContent(response.substring(0, i + 1)); i += 8; if (i >= response.length) { setAiContent(response); clearInterval(typingIntervalRef.current); setIsAiTyping(false); } }, 40); };
+            const handleGenerateQuestionAI = async () => { if (!isAdmin || isGeneratingQuestion || !ActionGuard.canProceed(800)) return; SoundFX.magic(); setIsGeneratingQuestion(true); try { const randomCat = CATEGORIES[Math.floor(Math.random() * CATEGORIES.length)]; const randomDiff = DIFFICULTIES[Math.floor(Math.random() * DIFFICULTIES.length)]; const pNames = profile?.players?.map(p=>p.name).join(' и ') || "Пара"; const generatedText = await generateUniqueQuestionAI(randomCat, randomDiff, db, pNames); if (generatedText) { SoundFX.success(); setAddForm({ text: generatedText, cat: randomCat.id, diff: randomDiff.id, targetId: '', aud: 'both' }); } } catch (err) {} finally { setIsGeneratingQuestion(false); } };
+            const openEditScreen = (questionObj, fromScreen) => { if (!isAdmin) return; SoundFX.click(); setEditingQuestion(questionObj); setEditForm({ text: (lang === 'uk' && questionObj.cleanTextUk) ? questionObj.cleanTextUk : (questionObj.cleanText || questionObj.text.replace(/^№\s*\d+\.\s*/, '')), cat: questionObj.categoryId, diff: questionObj.level, targetId: questionObj.targetId || '', aud: questionObj.audience || 'both' }); setReturnScreen(fromScreen); setConfirmModal(null); setResultModal(null); navigate('edit_q'); };
+
+            // Фоновий автопереклад: не блокує збереження. Рахує пару ru/uk і дописує text_uk у Firebase + локально.
+            const bgTranslateQuestion = (dbKey, typed) => {
+                (async () => {
+                    try {
+                        const bi = await buildBilingual(typed);
+                        if (!bi || (!bi.ru && !bi.uk)) return;
+                        await fetchWithTimeout(`${FIREBASE_BASE_URL}${dbSubPath}/${dbKey}.json`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: bi.ru, text_uk: bi.uk }) }).catch(() => {});
+                        const apply = (q) => q.dbKey === dbKey ? { ...q, cleanText: bi.ru, cleanTextUk: bi.uk, text: `№ ${q.num}. ${bi.ru}` } : q;
+                        setDb(prev => { const next = prev.map(apply); try { localStorage.setItem(OFFLINE_DB_CACHE_KEY, JSON.stringify(next)); } catch (e) {} return next; });
+                        setGameQuestions(prev => prev.map(apply));
+                    } catch (e) {}
+                })();
+            };
+            const handleAddQuestion = async (e) => {
+                e.preventDefault(); if (!isAdmin || isSaving) return; if (addForm.text.trim().length < 3) { SoundFX.warn(); setQFormError('Введите текст вопроса — минимум 3 символа'); return; } setQFormError(''); if (!ActionGuard.canProceed(1000)) return; SoundFX.click(); setIsSaving(true);
+                try {
+                    const cleanInput = sanitizeInput(addForm.text.replace(/^№\s*\d+\.\s*/, ''), 500); if (!cleanInput) throw new Error("Пустой текст"); const nextNum = db.length + 1; const numericKeys = db.map(item => Number(item.dbKey)).filter(n => !isNaN(n)); const nextDbKey = numericKeys.length > 0 ? String(Math.max(...numericKeys) + 1) : String(db.length); const newId = `v_db_${nextNum}_${Math.random().toString(36).substring(2, 6)}`;
+                    // Зберігаємо одразу (не чекаємо на переклад), українську версію допише фоновий автопереклад.
+                    const typedUk = looksUkrainian(cleanInput);
+                    const aud = (addForm.aud === 'couple' || addForm.aud === 'group') ? addForm.aud : 'both';
+                    const payload = { id: newId, num: nextNum, categoryId: addForm.cat, level: addForm.diff, text: cleanInput, text_uk: typedUk ? cleanInput : '', audience: aud, targetId: sanitizeInput(addForm.targetId, 8) };
+                    const res = await fetchWithTimeout(`${FIREBASE_BASE_URL}${dbSubPath}/${nextDbKey}.json`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+                    if (!res.ok) throw new Error(`Код: ${res.status}`);
+                    const createdQuestion = { ...payload, dbKey: nextDbKey, cleanText: cleanInput, cleanTextUk: typedUk ? cleanInput : '', audience: aud, text: `№ ${nextNum}. ${cleanInput}` };
+                    SoundFX.success(); setDb(prev => { const nextDb = reindexSequential([...prev, createdQuestion]); try { localStorage.setItem(OFFLINE_DB_CACHE_KEY, JSON.stringify(nextDb)); } catch (e) {} return nextDb; });
+                    setAddStatus({ ok: true, msg: `Вопрос сохранен!`, id: newId });
+                    bgTranslateQuestion(nextDbKey, cleanInput);
+                } catch (err) { SoundFX.warn(); setAddStatus({ ok: false, msg: `Ошибка: ${err.message}` }); } finally { setIsSaving(false); }
+            };
+            const executeSaveEdit = async () => {
+                if (!isAdmin || !editingQuestion || isSaving) return; SoundFX.click(); setIsSaving(true); setConfirmModal(null);
+                const cleanUpdatedText = sanitizeInput(editForm.text.replace(/^№\s*\d+\.\s*/, ''), 500);
+                // Зберігаємо текст як ввели; протилежну мовну версію перерахує фоновий автопереклад.
+                const typedUkE = looksUkrainian(cleanUpdatedText);
+                const audE = (editForm.aud === 'couple' || editForm.aud === 'group') ? editForm.aud : 'both';
+                const updatedPayload = { id: editingQuestion.id, num: editingQuestion.num, categoryId: editForm.cat, level: editForm.diff, text: cleanUpdatedText, text_uk: typedUkE ? cleanUpdatedText : '', audience: audE, targetId: sanitizeInput(editForm.targetId, 8) };
+                try {
+                    const res = await fetchWithTimeout(`${FIREBASE_BASE_URL}${dbSubPath}/${editingQuestion.dbKey}.json`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(updatedPayload) });
+                    if (!res.ok) throw new Error(`Код ${res.status}`);
+                    const updatedObj = { ...editingQuestion, categoryId: editForm.cat, level: editForm.diff, cleanText: cleanUpdatedText, cleanTextUk: typedUkE ? cleanUpdatedText : '', audience: audE, text: `№ ${editingQuestion.num}. ${cleanUpdatedText}`, targetId: updatedPayload.targetId };
+                    bgTranslateQuestion(editingQuestion.dbKey, cleanUpdatedText);
+                    SoundFX.success(); setDb(prev => { const nextDb = prev.map(q => q.dbKey === editingQuestion.dbKey ? updatedObj : q); try { localStorage.setItem(OFFLINE_DB_CACHE_KEY, JSON.stringify(nextDb)); } catch (e) {} return nextDb; }); setGameQuestions(prev => prev.map(q => q.dbKey === editingQuestion.dbKey ? updatedObj : q)); setEditingQuestion(updatedObj); setResultModal({ ok: true, msg: `Успешно обновлен!`, afterCloseScreen: returnScreen });
+                } catch (err) { SoundFX.warn(); setResultModal({ ok: false, msg: `Не удалось: ${err.message}` }); } finally { setIsSaving(false); }
+            };
+            const executeDeleteQuestion = async () => {
+                if (!isAdmin || !editingQuestion || isSaving) return; SoundFX.click(); setIsSaving(true); setConfirmModal(null);
+                try {
+                    const res = await fetchWithTimeout(`${FIREBASE_BASE_URL}${dbSubPath}/${editingQuestion.dbKey}.json`, { method: "DELETE" });
+                    if (!res.ok) throw new Error(`Код ${res.status}`);
+                    SoundFX.success(); setDb(prev => { const filtered = prev.filter(q => q.dbKey !== editingQuestion.dbKey); const nextDb = reindexSequential(filtered); try { localStorage.setItem(OFFLINE_DB_CACHE_KEY, JSON.stringify(nextDb)); } catch (e) {} return nextDb; }); setGameQuestions(prev => { const nextList = prev.filter(q => q.dbKey !== editingQuestion.dbKey); if (currentIndex >= nextList.length && nextList.length > 0) setCurrentIndex(nextList.length - 1); return nextList; }); setResultModal({ ok: true, msg: `Удален!`, afterCloseScreen: returnScreen });
+                } catch (err) { SoundFX.warn(); setResultModal({ ok: false, msg: `Ошибка: ${err.message}` }); } finally { setIsSaving(false); }
+            };
+
+            const PwaInstallModal = () => ( <PopupModal isOpen={showPwaModal} onClose={() => setShowPwaModal(false)}> <div className="flex flex-col gap-4 pt-1"> <div className="pr-8"><AskMeLogo size="xs" /></div> <div className="space-y-1 text-left"> <h3 className="text-xl font-bold text-white">Скачать на устройство</h3> <p className="text-xs text-zinc-400 leading-relaxed"> Установите <b className="text-white">ASK ME</b> на домашний экран. </p> </div> {isInAppWebView && ( <div className="p-3.5 rounded-[20px] bg-rose-500/15 border border-rose-500/40 text-xs text-rose-200 leading-relaxed text-left"> ⚠️ Вы открыли сайт во встроенном браузере. Нажмите на иконку <b>Safari/Браузера</b>, чтобы появилась установка. </div> )} <div className="seg"> <button type="button" onClick={() => { SoundFX.click(); setPwaPlatformTab('ios'); }} className={`seg-btn ${ pwaPlatformTab === 'ios' ? 'is-active' : '' }`} >  iPhone </button> <button type="button" onClick={() => { SoundFX.click(); setPwaPlatformTab('android'); }} className={`seg-btn ${ pwaPlatformTab === 'android' ? 'is-active' : '' }`} > 🤖 Android </button> </div> {pwaPlatformTab === 'ios' ? ( <div className="flex flex-col gap-3 text-left text-xs text-zinc-200 bg-white/[0.04] p-4 rounded-[20px] border border-white/10"> <div className="flex items-start gap-3"> <span className="w-6 h-6 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold flex items-center justify-center flex-shrink-0">1</span> <p className="leading-relaxed"> Нажмите кнопку <b className="text-white">«Поделиться»</b> в браузере Safari. </p> </div> <div className="hairline-divider"></div> <div className="flex items-start gap-3"> <span className="w-6 h-6 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold flex items-center justify-center flex-shrink-0">2</span> <p className="leading-relaxed"> Нажмите <b className="text-white">«На экран "Домой"»</b>. </p> </div> <button type="button" onClick={triggerIosNativeShareMenu} className="btn-accent w-full mt-1 flex items-center justify-center gap-2" > <Icons.IosShare /> Открыть меню iOS </button> </div> ) : ( <div className="flex flex-col gap-3 text-left text-xs text-zinc-200 bg-white/[0.04] p-4 rounded-[20px] border border-white/10"> <div className="flex items-start gap-3"> <span className="w-6 h-6 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold flex items-center justify-center flex-shrink-0">1</span> <p className="leading-relaxed"> Нажмите на меню браузера <b className="text-white">«⋮»</b>. </p> </div> <div className="hairline-divider"></div> <div className="flex items-start gap-3"> <span className="w-6 h-6 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold flex items-center justify-center flex-shrink-0">2</span> <p className="leading-relaxed"> Выберите <b className="text-white">«Установить приложение»</b>. </p> </div> </div> )} <button type="button" onClick={() => { SoundFX.click(); setShowPwaModal(false); }} className="btn-primary w-full" > Понятно </button> </div> </PopupModal> );
+
+            // страницы без сессии: «Об игре», документы, быстрое подключение. Показываем сразу, не дожидаясь загрузки вопросов
+            const pageBack = () => navigate(profile ? 'app_menu' : 'onboarding');
+            if (PUBLIC_SCREENS.includes(screen)) {
+                const shell = (children, links = true) => (<div className="safe-screen w-full flex flex-col items-center slide-up relative z-10">{children}<AppFooter noLinks={!links} /></div>);
+                if (screen === 'about') return shell(<AboutPage profileDb={profileDb} topicCount={CATEGORIES.length} hasProfile={!!profile} onBack={pageBack} onStart={() => navigate(profile ? 'menu' : 'onboarding')} onShare={sharePage} />);
+                if (screen === 'join') {
+                    const sameSession = !!(joinInvite && profile && profile.sessionKey === joinInvite.key);
+                    return shell(<JoinPage invite={joinInvite} profile={profile} busy={joinBusy} error={joinError} onJoin={handleJoinInvite} onStay={sameSession ? joinContinue : joinDecline} onManual={joinManual} onAbout={() => navigate('about')} />, false);
+                }
+                return shell(<LegalPage docId={screen} onBack={pageBack} />, false);
+            }
+            if (screen === 'invite' && profile) {
+                return (
+                    <div className="safe-screen w-full flex flex-col items-center slide-up relative z-10">
+                        <InvitePage profile={profile} onBack={() => navigate(inviteFrom)} showToast={showToast} />
+                        <AppFooter />
+                    </div>
+                );
+            }
+
+            if (isLoading) return <div className="safe-screen w-full flex flex-col items-center justify-center fade-in relative z-10"><AskMeLogo size="lg" /><p className="text-zinc-500 font-semibold text-xs mt-5">Синхронизация...</p></div>;
+
+            if (screen === 'admin_login') {
+                return (
+                    <div className="safe-screen w-full flex flex-col items-center justify-between slide-up relative z-10">
+                        <header className="w-full max-w-md flex items-center justify-between pt-2">
+                            <button aria-label="Назад" onClick={() => { SoundFX.click(); navigate(profile ? 'menu' : 'onboarding'); }} className="btn-icon flex-shrink-0"><Icons.Back /></button>
+                            <AskMeLogo size="xs" />
+                            <div className="w-12"></div>
+                        </header>
+                        <main className="w-full max-w-sm flex flex-col items-center text-center gap-6 my-auto py-8">
+                            <div className="w-14 h-14 rounded-xl bg-rose-500/15 border border-rose-500/35 flex items-center justify-center text-rose-400"><Icons.Lock /></div>
+                            <div className="space-y-1.5"><h1 className="text-2xl font-bold text-white">Доступ владельца</h1></div>
+                            {isAdmin ? (
+                                <div className="w-full flex flex-col gap-4 pt-2">
+                                    <div className="py-3 px-4 rounded-[20px] border border-rose-500/35 bg-rose-500/10 text-xs font-bold text-rose-300">👑 Права владельца активны</div>
+                                    <button onClick={() => { SoundFX.click(); navigate('menu'); }} className="btn-primary w-full">Перейти в меню</button>
+                                    <button onClick={handleLockAdmin} className="btn-secondary w-full">Отключить режим владельца</button>
+                                </div>
+                            ) : (
+                                <form onSubmit={handleUnlockAdmin} className="w-full flex flex-col gap-4 pt-2">
+                                    <input type="email" required value={adminForm.email} onChange={e => setAdminForm({...adminForm, email: e.target.value})} placeholder="Email (Firebase Auth)" className="w-full h-[54px] px-5 rounded-2xl bg-white/[0.04] border border-white/[0.16] text-center text-base text-white outline-none focus:border-rose-500" />
+                                    <input type="password" required value={adminForm.pass} onChange={e => setAdminForm({...adminForm, pass: e.target.value})} placeholder="Пароль" className="w-full h-[54px] px-5 rounded-2xl bg-white/[0.04] border border-white/[0.16] text-center text-base text-white outline-none focus:border-rose-500" />
+                                    {adminPinError && <span className="ui-error font-medium">{adminPinError}</span>}
+                                    <button type="submit" className="btn-primary w-full">Войти</button>
+                                </form>
+                            )}
+                        </main>
+                        <AppFooter />
+                    </div>
+                );
+            }
+
+            if (screen === 'session_created' && profile) {
+                return (
+                    <div className="safe-screen w-full flex flex-col items-center justify-between slide-up relative z-10">
+                        <PwaInstallModal />
+                        <div className="flex-1 flex items-center justify-center w-full py-6">
+                            <div className="w-full max-w-sm flex flex-col items-center text-center gap-6">
+                                <AskMeLogo size="md" />
+                                <div className="space-y-2"><h1 className="font-display text-2xl font-bold text-white">Сессия готова!</h1><p className="text-xs text-zinc-400 leading-relaxed">Сохраните ID сессии: по нему можно вернуться в игру с любого устройства.</p></div>
+                                <SessionIdBadge sessionKey={profile?.sessionKey} sessionId={profile.sessionId} onCopy={showToast} size="lg" />
+                                <button onClick={() => { SoundFX.click(); navigate('menu'); }} className="btn-primary w-full flex items-center justify-center gap-2 mt-2">Перейти к игре <Icons.Next /></button>
+                            </div>
+                        </div>
+                        <AppFooter />
+                    </div>
+                );
+            }
+
+            if (screen === 'onboarding' || (!profile && isPreviewMode === false)) {
+                return (
+                    <div className="safe-screen w-full flex flex-col items-center justify-between slide-up relative z-10">
+                        <PwaInstallModal />
+                        <button onClick={()=>{ SoundFX.click(); setIsPreviewMode(true); navigate('menu'); }} className="btn-icon absolute top-4 right-4"><Icons.Close /></button>
+                        <div className="flex-1 flex items-center justify-center w-full py-6">
+                            <div className="w-full max-w-sm flex flex-col items-center text-center gap-7">
+                                <AskMeLogo size="lg" onClick={handleLogoSecretTap} />
+                                <div className="space-y-1.5"><h1 className="font-display text-2xl md:text-3xl font-bold text-white tracking-tight">Добро пожаловать</h1><p className="text-xs text-zinc-400 leading-relaxed">Создайте новую сессию или введите 8-значный ID, чтобы продолжить сохранённую игру.</p></div>
+                                <div className="seg w-full"> <button type="button" onClick={() => { SoundFX.click(); setAuthTab('create'); setRestoreError(''); }} className={`seg-btn ${ authTab === 'create' ? 'is-active' : '' }`} > Новая игра </button> <button type="button" onClick={() => { SoundFX.click(); setAuthTab('restore'); setRestoreError(''); }} className={`seg-btn ${ authTab === 'restore' ? 'is-active' : '' }`} > Войти по ID </button> </div>
+                                {authTab === 'create' ? (
+                                    <form noValidate onSubmit={handleSaveProfileNames} className="w-full flex flex-col gap-3 text-left fade-in">
+                                        {playersForm.map((p, idx) => (
+                                            <div key={p.id} className="flex gap-2 relative">
+                                                <input type="text" placeholder={`Игрок ${idx+1}`} required value={p.name} onChange={e => { const v = sanitizeName(e.target.value); setPlayersForm(playersForm.map((pl, i) => i === idx ? {...pl, name: v} : pl)); setPlayersError(''); }} className="flex-1 h-[54px] px-5 rounded-2xl bg-white/[0.04] border border-white/[0.16] text-white outline-none focus:border-rose-500" />
+                                                <button type="button" onClick={() => { setPlayersForm(playersForm.map((pl, i) => i === idx ? {...pl, gender: pl.gender === 'guy' ? 'girl' : 'guy'} : pl)); SoundFX.click(); }} className="btn-icon lg"> {p.gender === 'guy' ? '👨' : '👩'} </button>
+                                                {idx > 1 && <button type="button" onClick={() => setPlayersForm(playersForm.filter((_, i) => i !== idx))} className="btn-badge absolute -left-2 -top-2"><Icons.Close /></button>}
+                                            </div>
+                                        ))}
+                                        {playersForm.length >= MAX_PLAYERS && ( <span className="text-xs text-zinc-500 text-center">Максимум — {MAX_PLAYERS} игроков</span> )}
+                                {playersForm.length < MAX_PLAYERS && (
+                                            <button type="button" onClick={addPlayerField} className="btn-dashed w-full"> <Icons.Plus /> Добавить игрока </button>
+                                        )}
+                                        {playersError && <p className="ui-error text-center">{playersError}</p>}
+                                <button type="submit" className="btn-primary w-full flex items-center justify-center gap-2 mt-2"> Создать сессию <Icons.Next /> </button>
+                                    </form>
+                                ) : (
+                                    <form onSubmit={handleRestoreBySessionId} className="w-full flex flex-col gap-4 text-left fade-in">
+                                        <input type="text" required maxLength={400} value={restoreIdInput} onChange={e => setRestoreIdInput(e.target.value.slice(0, 400))} placeholder="Ссылка из игры или ID" className="w-full h-[54px] px-5 rounded-2xl bg-white/[0.04] border border-white/[0.16] text-center text-sm text-white placeholder-zinc-600 outline-none focus:border-rose-500" />
+                                        {restoreError && <p className="ui-error text-center font-medium">{restoreError}</p>}
+                                        <button type="submit" disabled={isRestoringSession || !restoreIdInput.trim()} className="btn-primary w-full flex items-center justify-center gap-2 mt-2"> {isRestoringSession ? "Поиск..." : "Восстановить прогресс"} <Icons.Next /> </button>
+                                    </form>
+                                )}
+                                {!isStandalonePWA && ( <button type="button" onClick={handleInstallPwaClick} className="btn-accent btn-sm"> <Icons.DownloadApp /> Скачать на устройство </button> )}
+                                {profile && ( <button type="button" onClick={() => { SoundFX.click(); navigate('menu'); }} className="btn-text muted underline underline-offset-4"> Вернуться в текущую сессию </button> )}
+                            </div>
+                        </div>
+                        <AppFooter />
+                    </div>
+                );
+            }
+
+if (screen === 'app_menu') {
+                const menuSections = [
+                    { title: 'Разделы', items: [
+                        { id: 'players', icon: '👥', title: 'Игроки и сессия', desc: 'Имена, состав и восстановление', onClick: () => { if (profile) { setPlayersForm(profile.players); navigate('profile_page'); } } },
+                        { id: 'questions', icon: '📚', title: 'Все вопросы', desc: 'Темы и список вопросов', onClick: () => navigate('cat_list') },
+                        { id: 'archive', icon: '🗂️', title: 'Архив', desc: `Пройдено вопросов: ${stats.archivedList.length}`, onClick: () => navigate('archive_page') },
+                        { id: 'about', icon: '✨', title: 'Об игре', desc: 'Что умеет ASK ME и как играть', onClick: () => navigate('about') },
+                    ] },
+                    { title: 'Настройки', items: [
+                        { id: 'sound', icon: isMuted ? '🔇' : '🔊', title: 'Звук и вибрация', desc: isMuted ? 'Выключены' : 'Включены', right: <SettingSwitch on={!isMuted} onChange={toggleMute} label="Звук и вибрация" /> },
+                        { id: 'stats', icon: '📈', title: 'Статистика игры', desc: analyticsOn ? 'Включена: помогает улучшать игру' : 'Отключена', right: <SettingSwitch on={analyticsOn} onChange={() => { SoundFX.click(); setAnalyticsOn(v => !v); }} label="Статистика игры" /> },
+                        ...(!isStandalonePWA ? [{ id: 'install', icon: '📲', title: 'Скачать на устройство', desc: 'Добавить на главный экран', onClick: handleInstallPwaClick }] : [])
+                    ] }
+                ];
+                // Пункты владельца: отдельная зона, которую видит только он. Обычный игрок не видит ни самой зоны, ни намёка на неё.
+                const ownerItems = isAdmin ? [
+                    { id: 'topics', icon: '⚙️', title: 'Управление темами', desc: 'Добавление тем и порядок', onClick: () => { setTopicDraft(CATEGORIES.map(c => c.id)); setTopicErr(''); navigate('topics_admin'); } },
+                    { id: 'punish', icon: '🎭', title: 'Шаблоны наказаний', desc: 'Список для всех игроков', onClick: () => { setPtEdit(null); setPtErr(''); setPtConfirmId(''); navigate('punish_admin'); } },
+                    { id: 'analytics', icon: '📊', title: 'Аналитика', desc: 'Сессии, вопросы, наказания', onClick: () => { setAnSel(null); setAnConfirm(''); navigate('analytics'); } },
+                    { id: 'hidden', icon: '🙈', title: 'Скрытые вопросы', desc: `Сейчас скрыто: ${stats.hiddenCount}`, onClick: () => { setHqConfirmAll(false); navigate('hidden_q'); } },
+                    { id: 'owner', icon: '🔓', title: 'Режим владельца', desc: 'Выйти из режима владельца', onClick: handleLockAdmin }
+                ] : [];
+                const renderMenuItems = (items) => items.map(it => {
+                    const body = (<>
+                        <span aria-hidden="true" className="w-10 h-10 rounded-full bg-white/[0.07] flex items-center justify-center text-lg flex-shrink-0">{it.icon}</span>
+                        <span className="flex-1 min-w-0 flex flex-col"><span className="text-sm font-semibold text-white truncate">{it.title}</span><span className="text-xs text-zinc-500 truncate">{it.desc}</span></span>
+                    </>);
+                    return it.right ? (
+                        <div key={it.id} className="min-h-[64px] px-4 flex items-center gap-3.5">{body}{it.right}</div>
+                    ) : (
+                        <button key={it.id} type="button" onClick={() => { SoundFX.click(); it.onClick(); }} className="row">{body}<span aria-hidden="true" className="text-zinc-500 text-xl leading-none">›</span></button>
+                    );
+                });
+                return (
+                    <div className="safe-screen w-full flex flex-col items-center slide-up relative z-10">
+                        <PwaInstallModal /> {exitConfirmPopup}
+                        <header className="w-full max-w-md flex items-center gap-3 pt-2">
+                            <button type="button" onClick={() => { SoundFX.click(); navigate('menu'); }} aria-label="Назад" className="btn-icon flex-shrink-0"><Icons.Back /></button>
+                            <h1 className="flex-1 text-center pr-11 text-lg font-bold text-white">Меню</h1>
+                        </header>
+                        <main className="w-full max-w-md flex flex-col gap-6 pt-6 pb-6">
+                            {profile && (
+                                <section className="flex flex-col gap-2.5">
+                                    <SessionIdBadge sessionKey={profile.sessionKey} sessionId={profile.sessionId} onCopy={showToast} size="lg" />
+                                    <button type="button" onClick={() => openInvite('app_menu')} className="btn-secondary w-full flex items-center justify-center gap-2"><Icons.Share /> Пригласить игроков</button>
+                                </section>
+                            )}
+                            {menuSections.map(sec => (
+                                <section key={sec.title} className="flex flex-col gap-2.5">
+                                    <h2 className="px-1 text-xs font-bold text-zinc-500">{sec.title}</h2>
+                                    <div className="rounded-[20px] border border-white/10 bg-white/[0.04] divide-y divide-white/[0.06] overflow-hidden">{renderMenuItems(sec.items)}</div>
+                                </section>
+                            ))}
+                            {isAdmin && (
+                                <section aria-label="Только для владельца" className="owner-zone flex flex-col gap-2.5">
+                                    <h2 className="px-1 text-xs font-bold text-amber-300/90 flex items-center gap-1.5"><Icons.Lock /> Только для владельца <span className="owner-zone-note">видите только вы</span></h2>
+                                    <div className="owner-zone-box divide-y divide-amber-200/10 overflow-hidden">{renderMenuItems(ownerItems)}</div>
+                                </section>
+                            )}
+                            <section className="rounded-[20px] border border-rose-500/25 bg-gradient-to-br from-rose-500/[0.12] to-transparent p-5 flex flex-col gap-3">
+                                <div><h2 className="text-sm font-bold text-white">Поделиться игрой</h2><p className="text-xs text-zinc-400 leading-snug mt-1">Отправьте ссылку на игру — присоединиться можно с любого устройства.</p></div>
+                                <button type="button" onClick={handleShareGame} className="btn-primary w-full flex items-center justify-center gap-2"><Icons.Share /> Поделиться</button>
+                            </section>
+                            {profile && ( <button type="button" onClick={() => { SoundFX.warn(); setShowExitConfirm(true); }} className="btn-danger w-full flex items-center justify-center gap-2"><Icons.Logout /> Выйти из сессии</button> )}
+                            <nav aria-label="Документы" className="legal-links-row">
+                                {LEGAL.order.map(id => <a key={id} href={SCREEN_TO_HASH[id]}>{LEGAL.docs[id].menu}</a>)}
+                            </nav>
+                        </main>
+                        <AppFooter noLinks divider={false} />
+                    </div>
+                );
+            }
+
+            if (screen === 'game_setup') {
+                return (
+                    <div className="safe-screen w-full flex flex-col items-center slide-up relative z-10">
+                        <header className="w-full max-w-md flex items-center justify-between pt-2">
+                            <button type="button" onClick={() => { SoundFX.click(); navigate('mode_select'); }} aria-label="Назад" className="btn-icon flex-shrink-0"><Icons.Back /></button>
+                            <h1 className="flex-1 text-center text-lg font-bold text-white">Усложнённый режим</h1>
+                            <button type="button" onClick={() => openInvite('game_setup')} aria-label="Пригласить игроков" title="Пригласить игроков" className="btn-icon flex-shrink-0"><Icons.Share /></button>
+                        </header>
+                        <main className="w-full max-w-md flex flex-col gap-6 py-6">{pregameContent}</main>
+                        <AppFooter divider={false} />
+                    </div>
+                );
+            }
+            if (screen === 'topics_admin') {
+                const draft = topicDraft.length ? topicDraft : CATEGORIES.map(c => c.id);
+                const orderChanged = JSON.stringify(draft) !== JSON.stringify(CATEGORIES.map(c => c.id));
+                return (
+                    <div className="safe-screen w-full flex flex-col items-center slide-up relative z-10">
+                        <header className="w-full max-w-md flex items-center justify-between pt-2">
+                            <button type="button" onClick={() => { SoundFX.click(); navigate('cat_list'); }} aria-label="Назад" className="btn-icon flex-shrink-0"><Icons.Back /></button>
+                            <h1 className="flex-1 text-center text-lg font-bold text-white">Управление темами</h1>
+                            <div className="w-11 flex-shrink-0" aria-hidden="true"></div>
+                        </header>
+                        <main className="w-full max-w-md flex flex-col gap-7 py-6">
+                            {!isAdmin ? ( <p className="text-sm text-zinc-400 text-center">Раздел доступен только владельцу.</p> ) : (
+                                <>
+                                    <section className="flex flex-col gap-3">
+                                        <div><h2 className="text-sm font-bold text-white">Новая тема</h2><p className="text-xs text-zinc-500 leading-snug mt-0.5">Выберите эмодзи из набора или введите любую с клавиатуры устройства, затем назовите тему. Она сразу появится на главной и в списках.</p></div>
+                                        <div className="flex gap-2">
+                                            <input type="text" value={newTopicIcon} maxLength={16} onChange={e => { setNewTopicIcon(e.target.value); setTopicErr(''); }} placeholder="✨" aria-label="Эмодзи темы" className="w-20 text-center text-2xl" />
+                                            <input type="text" value={newTopicName} maxLength={30} onChange={e => { setNewTopicName(e.target.value); setTopicErr(''); }} placeholder="Название темы" aria-label="Название темы" className="flex-1 min-w-0 px-4 text-sm" />
+                                        </div>
+                                        <div className="flex gap-1.5 overflow-x-auto pb-1" role="tablist">
+                                            {EMOJI_SETS.map((set, i) => ( <button key={set[0]} type="button" role="tab" aria-selected={emojiTab === i} onClick={() => { SoundFX.click(); setEmojiTab(i); }} className={`chip flex-shrink-0 ${emojiTab === i ? 'is-on' : ''}`}>{set[0]}</button> ))}
+                                        </div>
+                                        <div className="grid grid-cols-7 gap-1.5 max-h-44 overflow-y-auto rounded-[20px] border border-white/10 bg-white/[0.04] p-2">
+                                            {EMOJI_SETS[emojiTab][1].split(' ').map(em => ( <button key={em} type="button" aria-label={`Эмодзи ${em}`} onClick={() => { SoundFX.click(); setNewTopicIcon(em); setTopicErr(''); }} className={`btn-icon plain fluid ${newTopicIcon === em ? 'is-on' : ''}`}>{em}</button> ))}
+                                        </div>
+                                        {topicErr && <span className="ui-error">{topicErr}</span>}
+                                        <button type="button" disabled={topicBusy} onClick={addTopic} className="btn-primary w-full">{topicBusy ? 'Сохраняем…' : 'Добавить тему'}</button>
+                                    </section>
+                                    <div className="hairline-divider"></div>
+                                    <section className="flex flex-col gap-3">
+                                        <div><h2 className="text-sm font-bold text-white">Порядок тем</h2><p className="text-xs text-zinc-500 leading-snug mt-0.5">Потяните за ⠿ или нажимайте стрелки. Порядок изменится на главной и во всех списках.</p></div>
+                                        <TopicReorderList items={draft.map(id => CATEGORIES.find(c => c.id === id)).filter(Boolean)} onChange={items => setTopicDraft(items.map(c => c.id))} />
+                                        <button type="button" disabled={topicBusy || !orderChanged} onClick={saveTopicOrder} className="btn-secondary w-full">Сохранить порядок</button>
+                                    </section>
+                                </>
+                            )}
+                        </main>
+                        <AppFooter />
+                    </div>
+                );
+            }
+            if (screen === 'punish_admin') {
+                return (
+                    <div className="safe-screen w-full flex flex-col items-center slide-up relative z-10">
+                        <header className="w-full max-w-md flex items-center gap-3 pt-2">
+                            <button type="button" onClick={() => { SoundFX.click(); navigate('app_menu'); }} aria-label="Назад" className="btn-icon flex-shrink-0"><Icons.Back /></button>
+                            <h1 className="flex-1 text-center pr-11 text-lg font-bold text-white">Шаблоны наказаний</h1>
+                        </header>
+                        <main className="w-full max-w-md flex flex-col gap-6 pt-6 pb-6">
+                            {!isAdmin ? ( <p className="text-sm text-zinc-400 text-center">Раздел доступен только владельцу.</p> ) : (
+                                <>
+                                    <p className="ui-hint">Эти наказания видят все игроки в усложнённом режиме. Каждый игрок может скрыть любой шаблон у себя или добавить свои.</p>
+                                    {ptEdit === null ? (
+                                        <button type="button" onClick={() => startPtEdit(null)} className="btn-primary w-full">+ Новый шаблон</button>
+                                    ) : (
+                                        <section className="flex flex-col gap-3 rounded-[20px] border border-white/10 bg-white/[0.04] p-4 fade-in">
+                                            <h2 className="text-sm font-bold text-white">{ptEdit === 'new' ? 'Новый шаблон' : 'Редактирование шаблона'}</h2>
+                                            <div className="flex gap-2">
+                                                <input type="text" value={ptIcon} maxLength={16} onChange={e => { setPtIcon(e.target.value); setPtErr(''); }} placeholder="🎭" aria-label="Эмодзи шаблона" className="w-20 text-center text-2xl" />
+                                                <input type="text" value={ptText} maxLength={80} onChange={e => { setPtText(e.target.value); setPtErr(''); }} placeholder="Например: спой припев" aria-label="Текст наказания" className="flex-1 min-w-0 text-sm" />
+                                            </div>
+                                            <div className="flex flex-wrap gap-1.5">
+                                                {PUNISH_EMOJIS.map(em => ( <button key={em} type="button" aria-label={`Иконка ${em}`} onClick={() => { SoundFX.click(); setPtIcon(em); setPtErr(''); }} className={`btn-icon ${ptIcon === em ? 'is-on' : ''}`}>{em}</button> ))}
+                                            </div>
+                                            <select value={ptLevel} onChange={e => setPtLevel(e.target.value)} aria-label="Для какой сложности вопроса" className="text-sm text-white">
+                                                {LEVEL_OPTIONS.map(o => <option key={o[0]} value={o[0]} className="bg-[#0a0710]">{o[1]}</option>)}
+                                            </select>
+                                            {ptErr && <span className="ui-error">{ptErr}</span>}
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <button type="button" onClick={() => { SoundFX.click(); setPtEdit(null); setPtErr(''); }} className="btn-secondary">Отмена</button>
+                                                <button type="button" disabled={ptBusy} onClick={savePt} className="btn-primary">{ptBusy ? 'Сохраняем…' : 'Сохранить'}</button>
+                                            </div>
+                                        </section>
+                                    )}
+                                    {ptEdit === null && ptErr && <span className="ui-error">{ptErr}</span>}
+                                    {LEVEL_OPTIONS.map(([lv, label]) => {
+                                        const items = punishTemplates.filter(t => t.level === lv);
+                                        if (!items.length) return null;
+                                        return (
+                                            <section key={lv} className="flex flex-col gap-2">
+                                                <h2 className="ui-title-section">{label}</h2>
+                                                {items.map(t => (
+                                                    <div key={t.id} className="flex items-center gap-2 rounded-[20px] border border-white/10 bg-white/[0.04] px-3.5 py-3">
+                                                        <span aria-hidden="true" className="w-10 h-10 rounded-full bg-white/[0.07] flex items-center justify-center text-lg flex-shrink-0">{t.icon}</span>
+                                                        <span className="flex-1 min-w-0 text-sm text-zinc-100 leading-snug">{t.text}</span>
+                                                        <button type="button" aria-label={`Изменить: ${t.text}`} onClick={() => startPtEdit(t)} className="btn-icon plain flex-shrink-0">✎</button>
+                                                        <button type="button" disabled={ptBusy} aria-label={ptConfirmId === t.id ? 'Подтвердить удаление' : `Удалить: ${t.text}`} onClick={() => deletePt(t.id)} className={`flex-shrink-0 ${ptConfirmId === t.id ? 'btn-danger btn-sm' : 'btn-icon plain'}`}>{ptConfirmId === t.id ? 'Точно?' : '🗑'}</button>
+                                                    </div>
+                                                ))}
+                                            </section>
+                                        );
+                                    })}
+                                </>
+                            )}
+                        </main>
+                        <AppFooter />
+                    </div>
+                );
+            }
+            if (screen === 'analytics') {
+                const ag = anFiltered ? aggregateAnalytics(anFiltered.anon) : null;
+                const qTextOf = (id) => { const q = db.find(x => String(x.id) === id || String(x.dbKey) === id); return q ? (q.cleanText || q.text) : `Вопрос удалён (${id})`; };
+                const tile = (v, label) => ( <div key={label} className="rounded-[20px] border border-white/10 bg-white/[0.04] p-4"><div className="font-display text-2xl font-bold text-white">{v}</div><div className="text-xs text-zinc-500 mt-1 leading-snug">{label}</div></div> );
+                return (
+                    <div className="safe-screen w-full flex flex-col items-center slide-up relative z-10">
+                        <header className="w-full max-w-md flex items-center gap-3 pt-2">
+                            <button type="button" onClick={() => { SoundFX.click(); navigate('app_menu'); }} aria-label="Назад" className="btn-icon flex-shrink-0"><Icons.Back /></button>
+                            <h1 className="flex-1 text-center pr-11 text-lg font-bold text-white">Аналитика</h1>
+                        </header>
+                        <main className="w-full max-w-md flex flex-col gap-6 pt-6 pb-6">
+                            {!isAdmin ? ( <p className="text-sm text-zinc-400 text-center">Раздел доступен только владельцу.</p> ) : (<>
+                                <div className="seg" role="tablist">
+                                <button type="button" role="tab" aria-selected={screen === 'analytics'} onClick={() => { SoundFX.click(); navigate('analytics'); }} className={`seg-btn ${screen === 'analytics' ? 'is-active' : ''}`}>Обзор</button>
+                                <button type="button" role="tab" aria-selected={screen === 'analytics_sessions'} onClick={() => { SoundFX.click(); setAnSel(null); navigate('analytics_sessions'); }} className={`seg-btn ${screen === 'analytics_sessions' ? 'is-active' : ''}`}>Сессии</button>
+                            </div>
+                                {anMinControl}
+                                {anLoading && <p className="text-sm text-zinc-400 text-center">Загружаем данные…</p>}
+                                {anErr && <div className="flex flex-col gap-3"><span className="ui-error">{anErr}</span><button type="button" onClick={() => { setAnErr(''); setAnData(null); }} className="btn-secondary">Повторить</button></div>}
+                                {ag && ag.games === 0 && <p className="text-sm text-zinc-400 text-center leading-relaxed">{anHiddenGames > 0 ? 'Пока нет игр с таким числом отвеченных вопросов. Уменьшите порог выше.' : 'Данных пока нет. Они появятся после первых игр.'}</p>}
+                                {ag && ag.games > 0 && (<>
+                                    <p className="ui-hint">Сводка по обезличенным данным: имена игроков здесь не используются.</p>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {tile(ag.sessions, 'Сессий')}{tile(ag.games, 'Игр в сводке')}
+                                        {tile(ag.avgPlayers.toFixed(1), 'Игроков в игре (в среднем)')}{tile(ag.avgAnswered.toFixed(1), 'Отвеченных вопросов за игру')}
+                                        {tile(fmtDur(ag.avgDuration), 'Длительность игры')}{tile(ag.avgAnswerSec ? fmtDur(ag.avgAnswerSec) : '—', 'Среднее время ответа')}
+                                        {tile(Math.round(ag.skipRate * 100) + '%', 'Доля пропущенных вопросов')}{tile(Math.round(ag.hardShare * 100) + '%', 'Игр в усложнённом режиме')}
+                                    </div>
+                                    <section className="rounded-[20px] border border-white/10 bg-white/[0.04] p-5 flex flex-col gap-4"><h2 className="ui-title-section">Популярные темы</h2>
+                                        <SummaryBars total={Math.max(1, ...ag.topCats.map(c => c[1]))} rows={ag.topCats.map(([id, n]) => { const c = CATEGORIES.find(x => x.id === id); return { label: (c ? c.icon + ' ' + c.name : id), count: n, cls: 'text-zinc-300', bar: 'bg-rose-500' }; })} />
+                                    </section>
+                                    <section className="rounded-[20px] border border-white/10 bg-white/[0.04] p-5 flex flex-col gap-4"><h2 className="ui-title-section">Сложность отвеченных вопросов</h2>
+                                        <SummaryBars total={Math.max(1, ...Object.values(ag.levels))} rows={[['Простые', 'Лёгкие', 'diff-text-1', 'bg-emerald-400'], ['Средние', 'Средние', 'diff-text-2', 'bg-amber-400'], ['Глубокие', 'Глубокие', 'diff-text-3', 'bg-rose-500']].map(([k, label, cls, bar]) => ({ label, count: ag.levels[k] || 0, cls, bar }))} />
+                                    </section>
+                                    <section className="rounded-[20px] border border-white/10 bg-white/[0.04] p-5 flex flex-col gap-3"><h2 className="ui-title-section">Чаще всего пропускают</h2>
+                                        {ag.topSkipped.length === 0 ? <p className="text-sm text-zinc-500">Пропусков пока нет.</p> : ag.topSkipped.map(([id, n]) => ( <div key={id} className="flex items-start gap-3"><span className="font-bold text-rose-300 w-8 flex-shrink-0">×{n}</span><span className="text-sm text-zinc-200 leading-snug">{qTextOf(id)}</span></div> ))}
+                                    </section>
+                                    <section className="rounded-[20px] border border-white/10 bg-white/[0.04] p-5 flex flex-col gap-3"><h2 className="ui-title-section">Таймер и наказания</h2>
+                                        <p className="text-sm text-zinc-300">Таймер включали в {Math.round(ag.timerShare * 100)}% игр{ag.avgTimer ? `, в среднем на ${Math.round(ag.avgTimer)} с` : ''}. Наказаний выпало: {ag.punishShown}.</p>
+                                        {ag.topPunish.map(([t, n]) => ( <div key={t} className="flex items-start gap-3"><span className="font-bold text-amber-300 w-8 flex-shrink-0">×{n}</span><span className="text-sm text-zinc-200 leading-snug">{t}</span></div> ))}
+                                    </section>
+                                </>)}
+                                <button type="button" onClick={() => { SoundFX.click(); setAnData(null); setAnErr(''); }} className="btn-ghost w-full">Обновить данные</button>
+                            </>)}
+                        </main>
+                        <AppFooter />
+                    </div>
+                );
+            }
+            if (screen === 'analytics_sessions') {
+                const src = anFiltered ? (anView === 'full' ? anFiltered.full : anFiltered.anon) : {};
+                const list = Object.entries(src || {}).filter(([k, r]) => r && typeof r === 'object').sort((a, b) => (b[1].updatedAt || 0) - (a[1].updatedAt || 0));
+                const sel = anSel && src && src[anSel] ? src[anSel] : null;
+                const qTextOf = (id) => { const q = db.find(x => String(x.id) === id || String(x.dbKey) === id); return q ? (q.cleanText || q.text) : `Вопрос удалён (${id})`; };
+                return (
+                    <div className="safe-screen w-full flex flex-col items-center slide-up relative z-10">
+                        <header className="w-full max-w-md flex items-center gap-3 pt-2">
+                            <button type="button" onClick={() => { SoundFX.click(); if (anSel) {{ setAnSel(null); setAnConfirm(''); }} else navigate('analytics'); }} aria-label="Назад" className="btn-icon flex-shrink-0"><Icons.Back /></button>
+                            <h1 className="flex-1 text-center pr-11 text-lg font-bold text-white">Сессии</h1>
+                        </header>
+                        <main className="w-full max-w-md flex flex-col gap-5 pt-6 pb-6">
+                            {!isAdmin ? ( <p className="text-sm text-zinc-400 text-center">Раздел доступен только владельцу.</p> ) : (<>
+                                {!sel && (<><div className="seg" role="tablist">
+                                <button type="button" role="tab" aria-selected={screen === 'analytics'} onClick={() => { SoundFX.click(); navigate('analytics'); }} className={`seg-btn ${screen === 'analytics' ? 'is-active' : ''}`}>Обзор</button>
+                                <button type="button" role="tab" aria-selected={screen === 'analytics_sessions'} onClick={() => { SoundFX.click(); setAnSel(null); navigate('analytics_sessions'); }} className={`seg-btn ${screen === 'analytics_sessions' ? 'is-active' : ''}`}>Сессии</button>
+                            </div>
+                                    <div className="grid grid-cols-2 gap-2" role="tablist">
+                                        <button type="button" role="tab" aria-selected={anView === 'full'} onClick={() => { SoundFX.click(); setAnView('full'); }} className={`chip ${anView === 'full' ? 'is-on' : ''}`}>Полные данные</button>
+                                        <button type="button" role="tab" aria-selected={anView === 'anon'} onClick={() => { SoundFX.click(); setAnView('anon'); }} className={`chip ${anView === 'anon' ? 'is-on' : ''}`}>Обезличенные</button>
+                                    </div>
+                                    {anMinControl}
+                                    {anLoading && <p className="text-sm text-zinc-400 text-center">Загружаем данные…</p>}
+                                    {anErr && <div className="flex flex-col gap-3"><span className="ui-error">{anErr}</span><button type="button" onClick={() => { setAnErr(''); setAnData(null); }} className="btn-secondary">Повторить</button></div>}
+                                    {anData && list.length === 0 && <p className="text-sm text-zinc-400 text-center">Сессий пока нет.</p>}
+                                    {list.map(([aid, r], i) => { const gs = gamesOf(r); return (
+                                        <button key={aid} type="button" onClick={() => { SoundFX.click(); setAnSel(aid); setAnConfirm(''); }} className="card-btn">
+                                            <span className="flex items-center justify-between gap-2"><span className="text-sm font-bold text-white truncate">{anView === 'full' ? ((r.names || []).join(' · ') || 'Без имён') : `Сессия №${list.length - i}`}</span><span className="text-zinc-500 text-xl leading-none" aria-hidden="true">›</span></span>
+                                            <span className="text-xs text-zinc-500">игр: {gs.length} · последняя {fmtDate(r.updatedAt)}</span>
+                                        </button> ); })}
+                                </>)}
+                                {sel && (() => { const gs = gamesOf(sel); const totalAns = gs.reduce((a, g) => a + (g.answered || 0), 0); return (<>
+                                    <section className="rounded-[20px] border border-white/10 bg-gradient-to-b from-white/[0.06] to-white/[0.02] p-5 flex flex-col gap-2">
+                                        <h2 className="text-lg font-bold text-white">{anView === 'full' ? ((sel.names || []).join(' · ') || 'Без имён') : 'Обезличенная сессия'}</h2>
+                                        <p className="text-xs text-zinc-400 leading-relaxed">Ключ записи: {anSel}<br />Создана: {fmtDate(sel.createdAt || (gs.length ? gs[gs.length - 1].startedAt : 0))} · обновлена: {fmtDate(sel.updatedAt)}<br />Игр: {gs.length} · отвечено вопросов: {totalAns}</p>
+                                    </section>
+                                    {gs.map(g => ( <section key={g.startedAt} className="rounded-[20px] border border-white/10 bg-white/[0.04] p-5 flex flex-col gap-3">
+                                        <div className="flex items-center justify-between gap-2"><h3 className="text-sm font-bold text-white">{fmtDate(g.startedAt)}</h3><span className="text-xs font-bold text-zinc-400">{g.mode === 'hard' ? '🔥 Усложнённый' : '💬 Обычный'}</span></div>
+                                        <p className="text-xs text-zinc-400 leading-relaxed">Игроков: {g.players} · длилась {fmtDur(g.durationSec)} · отвечено {g.answered}, пропущено {g.skipped}{g.avgAnswerSec ? ` · среднее время ответа ${fmtDur(g.avgAnswerSec)}` : ''}<br />{g.timerSec ? `⏱ Таймер: ${g.timerSec} с` : 'Без таймера'} · {g.punishOn ? `наказания включены (выпало: ${g.punishCount || 0})` : 'без наказаний'}</p>
+                                        {(g.perPlayer || []).length > 0 && <p className="text-xs text-zinc-300 leading-relaxed">{g.perPlayer.map(p => `${p.name}: ${p.answered} отв. / ${p.skipped} проп.`).join(' · ')}</p>}
+                                        {(g.answeredIds || []).length > 0 && ( <details className="text-xs text-zinc-300"><summary className="cursor-pointer text-zinc-400 py-1">Отвеченные вопросы ({g.answeredIds.length})</summary><ul className="flex flex-col gap-1.5 pt-2">{g.answeredIds.map(id => <li key={id} className="leading-snug">• {qTextOf(id)}</li>)}</ul></details> )}
+                                        {(g.skippedIds || []).length > 0 && ( <details className="text-xs text-zinc-300"><summary className="cursor-pointer text-zinc-400 py-1">Пропущенные вопросы ({g.skippedIds.length})</summary><ul className="flex flex-col gap-1.5 pt-2">{g.skippedIds.map(id => <li key={id} className="leading-snug">• {qTextOf(id)}</li>)}</ul></details> )}
+                                        {(g.punishAll || g.punishTpl || []).length > 0 && ( <details className="text-xs text-zinc-300"><summary className="cursor-pointer text-zinc-400 py-1">Выпавшие наказания ({(g.punishAll || g.punishTpl).length})</summary><ul className="flex flex-col gap-1.5 pt-2">{(g.punishAll || g.punishTpl).map((t, i) => <li key={i} className="leading-snug">• {t}</li>)}</ul></details> )}
+                                        {(g.customPunishments || []).length > 0 && ( <details className="text-xs text-zinc-300"><summary className="cursor-pointer text-zinc-400 py-1">Свои наказания игроков ({g.customPunishments.length})</summary><ul className="flex flex-col gap-1.5 pt-2">{g.customPunishments.map((t, i) => <li key={i} className="leading-snug">• {t}</li>)}</ul></details> )}
+                                    </section> ))}
+                                    <button type="button" disabled={anBusy} onClick={() => deleteAnSession(anSel)} className={`w-full ${anConfirm === anSel ? 'btn-danger' : 'btn-secondary'}`}>{anConfirm === anSel ? 'Точно удалить? Нажмите ещё раз' : '🗑 Удалить сессию и все её данные'}</button>
+                                    <p className="ui-hint text-center">Удаляются и полные, и обезличенные данные этой сессии.</p>
+                                </>); })()}
+                            </>)}
+                        </main>
+                        <AppFooter />
+                    </div>
+                );
+            }
+            if (screen === 'hidden_q') {
+                const hid = profileDb.filter(q => q.hidden);
+                return (
+                    <div className="safe-screen w-full flex flex-col items-center slide-up relative z-10">
+                        <header className="w-full max-w-md flex items-center gap-3 pt-2">
+                            <button type="button" onClick={() => { SoundFX.click(); navigate('app_menu'); }} aria-label="Назад" className="btn-icon flex-shrink-0"><Icons.Back /></button>
+                            <h1 className="flex-1 text-center pr-11 text-lg font-bold text-white">Скрытые вопросы</h1>
+                        </header>
+                        <main className="w-full max-w-md flex flex-col gap-6 pt-6 pb-6">
+                            {!isAdmin ? ( <p className="text-sm text-zinc-400 text-center">Раздел доступен только владельцу.</p> ) : (<>
+                                <p className="ui-hint">Эти вопросы временно скрыты: игроки их не видят, и они не попадают в игру. Вернуть вопрос можно в любой момент.</p>
+                                {hid.length === 0 ? ( <p className="text-sm text-zinc-400 text-center py-6">Скрытых вопросов нет. Скрыть вопрос можно в списке вопросов кнопкой 🙈.</p> ) : (<>
+                                    {CATEGORIES.map(c => { const items = hid.filter(q => q.categoryId === c.id); if (!items.length) return null; return (
+                                        <section key={c.id} className="flex flex-col gap-2">
+                                            <h2 className="ui-title-section">{c.icon} {c.name} · {items.length}</h2>
+                                            {items.map(q => (
+                                                <div key={q.dbKey} className="flex items-start gap-3 rounded-[20px] border border-white/10 bg-white/[0.04] px-3.5 py-3">
+                                                    <span className="flex-1 min-w-0 text-sm text-zinc-100 leading-snug">{qDisplay(q)}</span>
+                                                    <button type="button" disabled={!!hqBusy} onClick={() => setQuestionHidden(q, false)} className="btn-secondary btn-sm flex-shrink-0">Вернуть</button>
+                                                </div>
+                                            ))}
+                                        </section> ); })}
+                                    <button type="button" disabled={!!hqBusy} onClick={restoreAllHidden} className={`w-full ${hqConfirmAll ? 'btn-accent' : 'btn-secondary'}`}>{hqConfirmAll ? `Точно вернуть все (${hid.length})? Нажмите ещё раз` : `Вернуть все (${hid.length})`}</button>
+                                </>)}
+                            </>)}
+                        </main>
+                        <AppFooter />
+                    </div>
+                );
+            }
+            if (screen === 'profile_page') {
+                return (
+                    <div className="safe-screen w-full flex flex-col items-center justify-between slide-up relative z-10">
+                        <PwaInstallModal /> {exitConfirmPopup}
+                        <header className="w-full max-w-md flex items-center justify-between pt-2">
+                            <button aria-label="Назад" onClick={() => { SoundFX.click(); navigate('menu'); }} className="btn-icon flex-shrink-0"><Icons.Back /></button>
+                            <h1 className="flex-1 text-center text-lg font-bold text-white">Игроки и сессия</h1>
+                            <div className="w-11 flex-shrink-0" aria-hidden="true"></div>
+                        </header>
+                        <main className="w-full max-w-sm flex flex-col gap-6 my-auto py-6">
+                            <SessionIdBadge sessionKey={profile?.sessionKey} sessionId={profile?.sessionId} onCopy={showToast} size="lg" />
+                            <form noValidate onSubmit={handleSaveProfileNames} className="flex flex-col gap-3">
+                                {playersForm.map((p, idx) => (
+                                    <div key={p.id} className="flex gap-2 relative">
+                                        <input type="text" placeholder={`Игрок ${idx+1}`} required value={p.name} onChange={e => { const v = sanitizeName(e.target.value); setPlayersForm(playersForm.map((pl, i) => i === idx ? {...pl, name: v} : pl)); setPlayersError(''); }} className="flex-1 h-[54px] px-5 rounded-2xl bg-white/[0.04] border border-white/[0.16] text-white outline-none focus:border-rose-500" />
+                                        <button type="button" onClick={() => { setPlayersForm(playersForm.map((pl, i) => i === idx ? {...pl, gender: pl.gender === 'guy' ? 'girl' : 'guy'} : pl)); SoundFX.click(); }} className="btn-icon lg"> {p.gender === 'guy' ? '👨' : '👩'} </button>
+                                        {idx > 1 && <button type="button" onClick={() => setPlayersForm(playersForm.filter((_, i) => i !== idx))} className="btn-badge absolute -left-2 -top-2"><Icons.Close /></button>}
+                                    </div>
+                                ))}
+                                {playersForm.length >= MAX_PLAYERS && ( <span className="text-xs text-zinc-500 text-center">Максимум — {MAX_PLAYERS} игроков</span> )}
+                                {playersForm.length < MAX_PLAYERS && ( <button type="button" onClick={addPlayerField} className="btn-dashed w-full"> <Icons.Plus /> Добавить игрока </button> )}
+                                {playersError && <p className="ui-error text-center">{playersError}</p>}
+                                <button type="submit" className="btn-primary w-full mt-1"> Сохранить имена </button>
+                            </form>
+                            <div className="hairline-divider"></div>
+                            <form onSubmit={handleRestoreBySessionId} className="flex flex-col gap-3">
+                                <label className="block text-xs font-bold text-zinc-400 ml-1"> Восстановить другую сессию </label>
+                                <div className="flex gap-2">
+                                    <input type="text" maxLength={400} value={restoreIdInput} onChange={e => setRestoreIdInput(e.target.value.slice(0, 400))} placeholder="Ссылка или ID" className="flex-1 h-[54px] px-4 rounded-xl bg-white/[0.04] border border-white/[0.16] text-sm text-white outline-none focus:border-rose-500" />
+                                    <button type="submit" disabled={isRestoringSession || !restoreIdInput.trim()} className="btn-secondary"> {isRestoringSession ? "..." : "Войти"} </button>
+                                </div>
+                                {restoreError && <span className="ui-error">{restoreError}</span>}
+                            </form>
+                            <div className="hairline-divider"></div>
+                            <button type="button" onClick={() => { SoundFX.warn(); setShowExitConfirm(true); }} className="btn-danger w-full"><Icons.Logout /> Выйти из сессии</button>
+                            <div className="flex flex-col items-center gap-1 text-center">
+                                <button type="button" onClick={() => { SoundFX.warn(); setDelDataOpen(true); }} className="btn-text text-zinc-400">Удалить мои данные</button>
+                                <span className="text-[13px] text-zinc-500 leading-snug">Сотрёт сессию из облака и всё, что игра хранит на этом устройстве</span>
+                            </div>
+                            {isAdmin && ( <><div className="hairline-divider"></div> <button onClick={() => { SoundFX.click(); navigate('admin_login'); }} className="btn-accent w-full"> 👑 Управление доступом владельца </button></> )}
+                        </main>
+                        <PopupModal isOpen={delDataOpen} onClose={() => { if (!delDataBusy) setDelDataOpen(false); }}>
+                            <div className="flex flex-col gap-4 pt-1">
+                                <h3 className="text-lg font-bold text-white pr-8">Удалить все мои данные?</h3>
+                                <p className="text-sm text-zinc-300 leading-snug">Будет стёрто без возможности восстановления:</p>
+                                <ul className="text-sm text-zinc-400 leading-snug list-disc pl-5 flex flex-col gap-1">
+                                    <li>облачная копия сессии и общая комната игры;</li>
+                                    <li>записи статистики этого устройства;</li>
+                                    <li>имена, архив, настройки и незавершённая партия на этом устройстве.</li>
+                                </ul>
+                                <p className="text-sm text-zinc-400 leading-snug">Другие устройства, где открыта эта сессия, потеряют её. Если сессия может понадобиться — сначала скопируйте ссылку на неё.</p>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <button type="button" disabled={delDataBusy} onClick={() => { SoundFX.click(); setDelDataOpen(false); }} className="btn-secondary">Отмена</button>
+                                    <button type="button" disabled={delDataBusy} onClick={handleDeleteMyData} className="btn-danger">{delDataBusy ? 'Удаляем…' : 'Удалить'}</button>
+                                </div>
+                            </div>
+                        </PopupModal>
+                        <AppFooter />
+                    </div>
+                );
+            }
+
+const liveInviteBanner = liveInvite ? (
+                <div role="status" className="w-full flex items-center justify-between gap-3 rounded-[20px] border border-emerald-400/40 bg-emerald-400/10 px-4 py-3 fade-in">
+                    <span className="text-sm text-emerald-100 leading-snug">👥 В вашей сессии уже идёт игра — в ней {liveInvite.count} {declOfNum(liveInvite.count, ['устройство', 'устройства', 'устройств'])}</span>
+                    <button type="button" onClick={joinLive} disabled={liveJoining} className="btn-primary btn-sm flex-shrink-0">{liveJoining ? 'Подключаемся…' : 'Присоединиться'}</button>
+                </div>
+            ) : null;
+if (screen === 'mode_select') {
+                return (
+                    <div className="safe-screen w-full flex flex-col items-center slide-up relative z-10">
+                        <header className="w-full max-w-md flex items-center gap-3 pt-2">
+                            <button aria-label="Назад" onClick={() => { SoundFX.click(); navigate('menu'); }} className="btn-icon flex-shrink-0"><Icons.Back /></button>
+                            <h1 className="flex-1 text-center text-lg font-bold text-white">Выберите режим</h1>
+                            <button type="button" onClick={() => openInvite('mode_select')} aria-label="Пригласить игроков" title="Пригласить игроков" className="btn-icon flex-shrink-0"><Icons.Share /></button>
+                        </header>
+                        <main className="w-full max-w-md flex flex-col gap-4 pt-6 pb-8">
+                            {liveInviteBanner}
+                            <button disabled={stats.availableActive === 0} onClick={() => { SoundFX.click(); setHardMode(false); startWithMode('normal', { hard: false }); }} className="opt-card opt-brand">
+                                <span aria-hidden="true" className="w-12 h-12 rounded-xl bg-rose-500/20 flex items-center justify-center text-2xl flex-shrink-0">💬</span>
+                                <span className="flex-1 min-w-0 flex flex-col gap-1.5">
+                                    <span className="flex items-center justify-between gap-2"><span className="font-bold text-sm text-white">Обычный режим</span> <span className="text-xs font-bold px-2.5 py-0.5 rounded-lg bg-rose-500/25 text-rose-200">{stats.availableActive} вопр.</span></span>
+                                    <span className="text-xs text-zinc-300 leading-relaxed">Без лишних настроек: жребий определяет, кто отвечает первым. Пройденные вопросы уходят в Архив.</span>
+                                </span>
+                            </button>
+                            <button disabled={stats.availableActive === 0} onClick={() => { SoundFX.click(); navigate('game_setup'); }} className="opt-card opt-ember">
+                                <span aria-hidden="true" className="w-12 h-12 rounded-xl bg-amber-400/15 flex items-center justify-center text-2xl flex-shrink-0">🔥</span>
+                                <span className="flex-1 min-w-0 flex flex-col gap-2">
+                                    <span className="font-bold text-sm text-white">Усложнённый режим</span>
+                                    <span className="text-xs text-zinc-300 leading-relaxed">Больше азарта: добавьте таймер на ответ и наказания за пропуск. Нужно выбрать хотя бы одно усложнение.</span>
+                                    <span className="flex flex-wrap gap-1.5 text-xs font-bold text-amber-100/90"><span className="px-2.5 py-1 rounded-full bg-white/[0.07]">⏱ Таймер</span><span className="px-2.5 py-1 rounded-full bg-white/[0.07]">🎭 Наказания</span></span>
+                                </span>
+                            </button>
+                            <p className="px-2 text-xs text-zinc-400 leading-relaxed text-center">👥 Если к сессии подключатся другие устройства, игра сама синхронизируется — до {profile ? deviceCap(profile) : MAX_PLAYERS} одновременно (по числу игроков): вопросы, очередь, рулетка{'\u00A0'}и таймер{'\u00A0'}у всех одинаковые. Пока вы играете одни, ничего не отправляется. Пригласить игроков можно кнопкой в шапке.</p>
+                            {isAdmin && (
+                                <button onClick={() => { SoundFX.click(); setHardMode(false); startWithMode('test'); }} className="opt-card">
+                                    <span aria-hidden="true" className="w-12 h-12 rounded-xl bg-white/[0.07] flex items-center justify-center text-2xl flex-shrink-0">🧪</span>
+                                    <span className="flex-1 min-w-0 flex flex-col gap-1.5">
+                                        <span className="flex items-center justify-between gap-2"><span className="font-bold text-sm text-zinc-200">Тестовый режим</span> <span className="text-xs font-bold px-2.5 py-0.5 rounded-lg bg-white/[0.10] text-zinc-300">{stats.availableTotal > 0 ? stats.availableTotal : db.length} вопр.</span></span>
+                                        <span className="text-xs text-zinc-400 leading-relaxed">Для владельца: все вопросы (включая Архив) и редактирование карточек.</span>
+                                    </span>
+                                </button>
+                            )}
+                        </main>
+                        <AppFooter divider={false} />
+                    </div>
+                );
+            }
+
+            if (screen === 'menu') {
+                const activeSelectedCatsCount = selectedCats.filter(cid => stats.activeByCat[cid] > 0).length;
+                const hasSavedGame = Boolean(profile?.savedGame && profile.savedGame.questionIds?.length > 0);
+                // почему нельзя начать игру — показываем сразу под кнопкой, а не молча блокируем её
+                const startBlock = !profile ? '' : (selectedCats.length === 0 && selectedDiffs.length === 0) ? 'Выберите хотя бы одну тему и один уровень сложности.' : selectedCats.length === 0 ? 'Выберите хотя бы одну тему.' : selectedDiffs.length === 0 ? 'Выберите хотя бы один уровень сложности.' : stats.availableActive === 0 ? 'Под выбранные темы и сложность не осталось новых вопросов. Измените выбор или верните вопросы из архива.' : '';
+                const handleStartClick = () => {
+                    if (!profile) return;
+                    if (startBlock && !isAdmin) { SoundFX.warn(); setStartErrTick(t => t + 1); return; }
+                    if (hasSavedGame) { SoundFX.click(); setNewGameConfirm(true); return; }
+                    handlePressStartButton();
+                };
+                const newGameConfirmPopup = (
+                    <PopupModal isOpen={newGameConfirm && hasSavedGame} onClose={() => setNewGameConfirm(false)}>
+                        <div className="text-center flex flex-col items-center gap-4 pt-1">
+                            <h3 className="text-lg font-bold text-white pr-6">Вы точно хотите начать новую игру?</h3>
+                            <p className="text-sm text-zinc-400 leading-snug">Текущий прогресс{hasSavedGame ? ` (вопрос ${(profile.savedGame.currentIndex || 0) + 1} из ${profile.savedGame.questionIds.length})` : ''} сбросится — продолжить эту партию будет уже нельзя.</p>
+                            <div className="w-full grid grid-cols-2 gap-3 pt-1">
+                                <button type="button" onClick={() => setNewGameConfirm(false)} className="btn-secondary">Отмена</button>
+                                <button type="button" onClick={() => { setNewGameConfirm(false); handlePressStartButton(); }} className="btn-danger">Начать новую</button>
+                            </div>
+                        </div>
+                    </PopupModal>
+                );
+                const pCount = profile?.players?.length || 0;
+                const pNamesStr = profile?.players?.map(p=>p.name).join(', ') || "Гость";
+                const isGroup = pCount > 2;
+
+                return (
+                    <div className="safe-screen w-full flex flex-col items-center justify-between slide-up relative z-10">
+                        {exitConfirmPopup} {newGameConfirmPopup} <PwaInstallModal />
+                        <div className="w-full max-w-md lg:max-w-4xl mx-auto flex flex-col gap-7 pt-1">
+                            {liveInviteBanner}
+                            <header className="w-full flex items-center justify-between gap-3">
+                                <button onClick={() => { if(profile) { SoundFX.click(); setPlayersForm(profile.players); navigate('profile_page'); } else navigate('onboarding'); }} className="btn-secondary btn-sm min-w-0">
+                                    <Icons.User /> <span className="truncate max-w-[120px] sm:max-w-[200px]">{pNamesStr}</span> {isAdmin && <span className="text-rose-400 text-xs">●</span>}
+                                </button>
+                                <div className="flex items-center gap-2 flex-shrink-0">
+                                    <div className="flex items-center rounded-full border border-white/[0.16] bg-white/[0.04] p-0.5 text-[11px] font-bold select-none" role="group" aria-label="Мова / Язык">
+                                        <button type="button" onClick={() => { if (lang !== 'uk') { SoundFX.toggle(true); changeLang('uk'); } }} aria-pressed={lang === 'uk'} className={`px-2.5 py-1.5 rounded-full transition-colors ${lang === 'uk' ? 'bg-rose-500 text-white' : 'text-zinc-400'}`}>UA</button>
+                                        <button type="button" onClick={() => { if (lang !== 'ru') { SoundFX.toggle(true); changeLang('ru'); } }} aria-pressed={lang === 'ru'} className={`px-2.5 py-1.5 rounded-full transition-colors ${lang === 'ru' ? 'bg-rose-500 text-white' : 'text-zinc-400'}`}>RU</button>
+                                    </div>
+                                    <button type="button" onClick={() => { SoundFX.click(); navigate('app_menu'); }} aria-label={tr('Открыть меню')} className="btn-secondary btn-sm flex-shrink-0">
+                                        <span>{tr('Меню')}</span><span aria-hidden="true" className="text-lg leading-none">☰</span>
+                                    </button>
+                                </div>
+                            </header>
+
+                            <div className="flex flex-col items-center text-center gap-3 py-1">
+                                <AskMeLogo size="lg" onClick={handleLogoSecretTap} />
+                                <p className="text-rose-400 text-xs sm:text-xs font-extrabold mt-0.5 drop-shadow-[0_0_14px_rgba(244,63,94,0.45)]">
+                                    {!profile ? tr("Откровенные разговоры для пар и компаний") : isGroup ? tr("Откровенные разговоры для компании") : tr("Откровенные разговоры для двоих")}
+                                </p>
+                                {profile ? (
+                                    <div className="flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1 text-base font-semibold text-white max-w-sm">
+                                        {profile.players.map((p, i) => (
+                                            <React.Fragment key={p.id}>
+                                                <span className="truncate max-w-[9rem]">{p.name}</span>
+                                                {i < pCount - 1 && <span aria-hidden="true" className={isGroup ? 'text-base' : 'text-rose-500 text-sm'}>{isGroup ? GROUP_EMOJIS_SHUFFLED[i % GROUP_EMOJIS_SHUFFLED.length] : '♥'}</span>}
+                                            </React.Fragment>
+                                        ))}
+                                    </div>
+                                ) : ( <p className="text-white text-sm font-semibold">{tr("Режим предпросмотра")}</p> )}
+                            </div>
+                            <div className="hairline-divider"></div>
+
+                            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                                <div className="lg:col-span-7 flex flex-col gap-8">
+                                    <div className="space-y-4">
+                                        <div className="flex items-center justify-between"><h2 className="text-xs font-bold text-zinc-400">{tr("Темы вопросов")}</h2><button onClick={() => { SoundFX.click(); const allActiveIds = CATEGORIES.filter(c => stats.activeByCat[c.id] > 0).map(c => c.id); setSelectedCats(selectedCats.length === allActiveIds.length ? [] : allActiveIds); }} className="btn-text">{selectedCats.length === CATEGORIES.filter(c => stats.activeByCat[c.id] > 0).length ? tr("Снять все") : tr("Выбрать все")}</button></div>
+                                        <div className="grid grid-cols-2 gap-2.5">
+                                            {CATEGORIES.map(cat => {
+                                                const catActiveCount = stats.activeByCat[cat.id] || 0; const isEmpty = catActiveCount === 0; const isSelected = selectedCats.includes(cat.id) && !isEmpty;
+                                                return ( <button key={cat.id} disabled={isEmpty} onClick={() => toggleCategory(cat.id)} className={`tile ${ isEmpty ? 'opacity-30 border border-white/10 text-zinc-500' : isSelected ? 'topic-pill-active' : 'topic-pill-inactive' }`} > <div className="flex items-center gap-2 min-w-0"><span className="text-base flex-shrink-0 max-[340px]:hidden">{cat.icon}</span><span className="text-[13px] truncate">{catLabel(cat.id, cat.name)}</span></div> <span className={`text-xs font-bold flex-shrink-0 ${isSelected ? 'text-rose-400' : 'text-zinc-500'}`}>{catActiveCount}</span> </button> );
+                                            })}
+                                        </div>
+                                    </div>
+                                    <div className="space-y-4">
+                                        <h2 className="text-xs font-bold text-zinc-400">{tr("Сложность")}</h2>
+                                        <div className="grid grid-cols-3 gap-2.5">
+                                            {DIFFICULTIES.map(diff => ( <button key={diff.id} onClick={() => toggleDiff(diff.id)} className={`btn-tile ${ selectedDiffs.includes(diff.id) ? diff.classBg : '' }`} >{diffLabel(diff.id, diff.name)}</button> ))}
+                                        </div>
+                                    </div>
+                                    <div className="space-y-4">
+                                        <h2 className="text-xs font-bold text-zinc-400">{tr("Для кого")}</h2>
+                                        <div className="grid grid-cols-2 gap-2.5">
+                                            <button type="button" onClick={() => { SoundFX.toggle(true); setAudienceMode('couple'); }} className={`btn-tile ${ audienceMode === 'couple' ? 'topic-pill-active' : '' }`}>❤️ {tr("Пара")}</button>
+                                            <button type="button" onClick={() => { SoundFX.toggle(true); setAudienceMode('group'); }} className={`btn-tile ${ audienceMode === 'group' ? 'topic-pill-active' : '' }`}>🎉 {tr("Компания")}</button>
+                                        </div>
+                                        <p className="text-xs text-zinc-500 leading-snug">{audienceMode === 'couple' ? tr("Все вопросы, в том числе самые откровенные.") : tr("Только вопросы, которые подходят для компании.")}</p>
+                                    </div>
+                                </div>
+
+                                <div className="lg:col-span-5 flex flex-col gap-7 lg:pl-6 lg:border-l lg:border-white/10">
+                                    <div className="lg:hidden hairline-divider"></div>
+                                    <div className="space-y-3.5">
+                                        <div className="flex items-center justify-between"><h2 className="text-xs font-bold text-zinc-400">Список вопросов</h2><span className="text-xs text-zinc-500">В архиве: <b className="text-zinc-300">{stats.archivedList.length}</b></span></div>
+                                        <button onClick={() => { SoundFX.click(); navigate('cat_list'); }} className="btn-secondary w-full flex items-center justify-center gap-2.5"><Icons.List /> Все вопросы</button>
+                                    </div>
+                                    <div className="flex flex-col gap-5">
+                                        <div className="flex items-center gap-3 w-full"><div className="h-[1px] flex-1 bg-white/[0.10]"></div><span className="text-xs font-bold text-zinc-400">Доступно для новой игры</span><div className="h-[1px] flex-1 bg-white/[0.10]"></div></div>
+                                        <div className="grid grid-cols-[1fr_auto_1fr] items-center py-1">
+                                            <div className="flex flex-col items-center gap-1"><span className="font-display text-4xl font-bold text-white leading-none">{activeSelectedCatsCount}</span><span className="text-xs font-bold text-zinc-500">{declOfNum(activeSelectedCatsCount, ['Тема', 'Темы', 'Тем'])}</span></div>
+                                            <div className="h-9 w-[1px] bg-white/[0.10]"></div>
+                                            <div className="flex flex-col items-center gap-1"><span className="font-display text-4xl font-bold text-rose-500 leading-none">{stats.availableActive}</span><span className="text-xs font-bold text-zinc-500">{declOfNum(stats.availableActive, ['Вопрос', 'Вопроса', 'Вопросов'])}</span></div>
+                                        </div>
+
+                                        {hasSavedGame && profile && ( <button type="button" onClick={() => handleResumeSavedGame()} className="btn-ghost w-full flex items-center justify-center gap-2"><Icons.Play /> Продолжить игру <span className="text-xs font-semibold text-zinc-500">· вопрос {(profile.savedGame.currentIndex || 0) + 1}</span></button> )}
+                                        <div className="flex flex-col">
+                                            <button type="button" onClick={handleStartClick} disabled={!profile} aria-disabled={!!startBlock && !isAdmin ? 'true' : undefined} aria-describedby={startBlock ? 'start-hint' : undefined} className={`w-full ${profile ? 'btn-primary' : 'btn-secondary opacity-60 cursor-not-allowed'}`} > <Icons.Play /> {!profile ? "Введите имена для игры" : hasSavedGame ? "Начать новую игру" : "Начать игру"} </button>
+                                            <div id="start-hint" aria-live="polite">{startBlock && ( <p key={startErrTick} role={startErrTick ? 'alert' : undefined} className={`inline-error ${startErrTick ? 'shake' : ''}`}><span aria-hidden="true" className="inline-error-i">!</span><span>{startBlock}{isAdmin ? ' Тестовый режим доступен и без выбора.' : ''}</span></p> )}</div>
+                                            {profile && ( <p className="mt-3.5 text-center text-xs text-zinc-500">ID сессии: <span className="font-semibold text-zinc-300 select-all">{profile.sessionId}</span></p> )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <AppFooter wide />
+                    </div>
+                );
+            }
+
+            if (screen === 'game') {
+                const currentQ = gameQuestions[currentIndex];
+                if (!currentQ) return <div className="safe-screen w-full flex flex-col items-center justify-center fade-in relative z-10"><AskMeLogo size="lg" /><p className="text-zinc-500 font-semibold text-xs mt-5">Возвращаемся в игру...</p></div>;
+                const categoryInfo = CATEGORIES.find(c => c.id === currentQ.categoryId) || CATEGORIES[0]; const diffInfo = DIFFICULTIES.find(d => d.id === currentQ.level) || DIFFICULTIES[0];
+                const cleanText = qDisplay(currentQ);
+                const turnEntry = normTurn(turnHistory[currentIndex]);
+                const turnPlayer = (turnEntry && turnEntry.cur && profile?.players) ? profile.players.find(p => p.id === turnEntry.cur) : null;
+                const assignedPlayerName = turnPlayer ? turnPlayer.name : '';
+                const turnPending = (turnEntry && turnEntry.cur) ? (profile.players || []).filter(p => !turnEntry.answered.includes(p.id) && p.id !== turnEntry.cur).length : 0;
+                const turnDone = gameMode !== 'normal' || (!!turnEntry && !turnEntry.cur && (profile?.players || []).every(p => turnEntry.answered.includes(p.id)));
+                const turnSkipped = turnDone && gameMode === 'normal' && isTurnSkipped(turnEntry, profile?.players || []);
+                const skippedNames = (turnEntry ? turnEntry.skippedBy : []).map(id => (profile?.players || []).find(p => p.id === id)).filter(Boolean).map(p => p.name).join(', ');
+                const tmFrac = fx.timerSec > 0 ? Math.max(0, Math.min(1, tm.left / fx.timerSec)) : 0;
+                const tmUrgent = tm.left <= 5;
+                const tmColor = tm.left <= 5 ? '#f43f5e' : tm.left <= 10 ? '#fbbf24' : '#34d399';
+                const curHidden = !!(db.find(x => x.dbKey === currentQ.dbKey) || {}).hidden; // «скрыт для всех» — берём свежее значение из базы, а не из копии в колоде
+                const progressPercent = Math.min(100, Math.round(((currentIndex + 1) / gameQuestions.length) * 100));
+                const nextQ = gameQuestions[currentIndex + 1], prevQ = currentIndex > 0 ? gameQuestions[currentIndex - 1] : null;
+                const showNextPeek = !!nextQ && (gameMode === 'test' || turnDone);
+                const showPrevPeek = !!prevQ;
+                const peekBody = (q) => {
+                    const c = CATEGORIES.find(x => x.id === q.categoryId) || CATEGORIES[0];
+                    const t = q.cleanText || q.text.replace(/^№\s*\d+\.\s*/, '');
+                    return ( <><div className="flex items-center gap-2 text-xs font-bold text-zinc-200 mb-6"><span>{c.icon}</span><span>{c.name}</span></div><div className="text-[24px] sm:text-[29px] font-medium leading-[1.18] text-white px-2">{t}</div></> );
+                };
+
+                return (
+                    <div className="safe-screen w-full flex flex-col justify-between fade-in relative z-10">
+                        <div className="fixed top-0 left-0 right-0 h-1 bg-white/[0.04] z-30"><div className="h-full bg-rose-600 transition-all duration-300" style={{ width: `${progressPercent}%` }}></div></div>
+
+                        <header className="w-full max-w-xl mx-auto flex justify-between items-center py-2 flex-shrink-0 gap-2">
+                            <div className="flex items-center gap-2">
+                                <div className="px-3.5 py-1.5 rounded-full border border-white/[0.16] text-white font-display font-bold text-xs "> {currentIndex + 1} <span className="text-zinc-500">/</span> {gameQuestions.length} </div>
+                                {live.room && liveCount > 1 && ( <div className="tag" role="status" aria-label={`Устройств в игре: ${liveCount}`}><span aria-hidden="true">👥</span> {liveCount}</div> )}
+                                {isAdmin && gameMode === 'test' && ( <>
+                                    <button type="button" onClick={() => openEditScreen(currentQ, 'game')} className="btn-icon" aria-label="Редактировать вопрос" title="Редактировать"><Icons.Edit /></button>
+                                    <button type="button" disabled={!!hqBusy} onClick={() => setQuestionHidden(currentQ, !curHidden)} className="btn-icon" aria-label={curHidden ? 'Вернуть вопрос всем' : 'Скрыть вопрос для всех'} title={curHidden ? 'Вернуть вопрос всем' : 'Скрыть для всех'}>{curHidden ? <Icons.Eye /> : <Icons.EyeOff />}</button>
+                                    {curHidden && <span className="tag tag-warn" role="status">Скрыт</span>}
+                                </> )}
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                                <button onClick={toggleMute} className="btn-icon">{isMuted ? <Icons.SoundOff /> : <Icons.SoundOn />}</button>
+                                <button onClick={() => { SoundFX.warn(); setShowEndGameConfirm(true); }} className="btn-secondary btn-sm"><Icons.Menu /> <span className="hidden sm:inline">Меню</span></button>
+                            </div>
+                        </header>
+
+                        <main className="flex-1 flex flex-col items-center justify-center py-6 pb-28 select-none" style={{ touchAction: 'pan-y' }} onPointerDown={onSwipeStart} onPointerMove={onSwipeMove} onPointerUp={onSwipeEnd} onPointerCancel={onSwipeCancel}>
+                            <div className="relative w-full max-w-lg">
+                            <div aria-hidden="true" className="absolute inset-x-9 top-9 bottom-[-26px] rounded-[28px] border border-white/10 bg-[#0f0d15] pointer-events-none"></div>
+                            <div aria-hidden="true" className="absolute inset-x-5 top-5 bottom-[-14px] rounded-[28px] border border-white/10 bg-[#141119] pointer-events-none"></div>
+                            {showNextPeek && ( <div ref={peekNextRef} aria-hidden="true" data-peek="next" className="absolute inset-0 z-[5] rounded-[28px] border border-white/10 bg-gradient-to-b from-[#1b1824] to-[#100e16] px-6 pt-9 pb-6 flex flex-col items-center justify-center text-center pointer-events-none select-none overflow-hidden" style={{ opacity: 0, filter: 'blur(11px) brightness(0.9)', willChange: 'transform, opacity' }}>{peekBody(nextQ)}</div> )}
+                            {showPrevPeek && ( <div ref={peekPrevRef} aria-hidden="true" data-peek="prev" className="absolute inset-0 z-[5] rounded-[28px] border border-white/10 bg-gradient-to-b from-[#1b1824] to-[#100e16] px-6 pt-9 pb-6 flex flex-col items-center justify-center text-center pointer-events-none select-none overflow-hidden" style={{ opacity: 0, filter: 'grayscale(0.75) brightness(0.82)', willChange: 'transform, opacity' }}>{peekBody(prevQ)}</div> )}
+                            <div ref={cardRef} className="relative z-10 w-full" style={{ willChange: 'transform, opacity', touchAction: 'pan-y' }}>
+                            {swipeHint && ( <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10 px-3 py-1 rounded-full text-xs font-bold bg-white/[0.10] border border-white/[0.16] text-zinc-100 pointer-events-none fade-in">{swipeHint}</div> )}
+                            <div className="relative w-full flex flex-col items-center justify-center slide-up rounded-[28px] border border-white/10 bg-gradient-to-b from-[#1b1824] to-[#100e16] px-6 pt-7 pb-6 sm:px-8 shadow-[0_32px_64px_-24px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.07)]" style={{ minHeight: 'min(60dvh, 540px)' }} key={currentQ.dbKey + '_' + currentIndex}>
+                                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 h-7 rounded-full bg-[#1b1824] border border-white/[0.16] flex items-center gap-2 text-xs font-bold text-zinc-300 whitespace-nowrap">Вопрос № {currentQ.num} {gameMode === 'test' && currentQ.archived && ( <span className="text-xs px-1.5 rounded bg-white/[0.10] text-zinc-300">В архиве</span> )}</div>
+                                <div className="flex flex-col items-center gap-1.5 mb-6 pt-2">
+                                    
+                                    <div className="flex items-center gap-2 text-xs font-bold text-zinc-200"> <span>{categoryInfo.icon}</span> <span>{categoryInfo.name}</span> <span className="text-zinc-500">•</span> <span className={diffInfo.classText}>{diffInfo.name}</span> </div>
+                                </div>
+
+                                <h2 className="text-[24px] sm:text-[29px] font-medium text-center leading-[1.2] [text-wrap:balance] mb-6 text-white px-2"> {cleanText} </h2>
+                                {gameMode === 'normal' && (turnDone ? (
+                                    <div className="mb-7 flex flex-col items-center gap-2 fade-in">
+                                        {turnSkipped ? (
+                                            <div className="tag lg tag-warn"><span aria-hidden="true">↷</span> Вопрос пропущен</div>
+                                        ) : (
+                                            <div className="tag lg tag-ok"><span aria-hidden="true">✓</span> Вопрос пройден</div>
+                                        )}
+                                        {!turnSkipped && skippedNames && <span className="text-xs text-amber-200/80 text-center px-4">Пропустили: {skippedNames}</span>}
+                                    </div>
+                                ) : assignedPlayerName ? (
+                                    <div className="mb-7 flex flex-col items-center gap-2 fade-in">
+                                        <div key={`${currentIndex}:${turnEntry && turnEntry.cur}`} className="tag lg tag-rose turn-tag"><span aria-hidden="true" className="turn-dot"></span>Отвечает: <span className="turn-name">{assignedPlayerName}</span></div>
+                                        {skippedNames && <span className="text-xs text-amber-200/80 text-center px-4">Пропустили: {skippedNames}</span>}
+                                        {timerKey && tm.key === timerKey && timerDismissKey === timerKey && (
+                                            <div className="w-56 mt-2 flex flex-col items-center gap-1" role="timer">
+                                                <div className="w-full h-1.5 rounded-full bg-white/[0.10] overflow-hidden"><div className={`h-full rounded-full transition-all duration-1000 ease-linear ${tm.left <= 5 ? 'bg-rose-600' : tm.left <= 10 ? 'bg-amber-400' : 'bg-emerald-400'}`} style={{ width: `${Math.max(0, Math.min(100, (tm.left / fx.timerSec) * 100))}%` }}></div></div>
+                                                <span className={`font-display text-sm font-bold tabular-nums ${tm.left <= 5 ? 'text-rose-300 animate-pulse' : 'text-zinc-300'}`}>⏱ {Math.max(0, tm.left)} с</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : null)}
+                                <div className="grid grid-cols-2 gap-3 w-full max-w-sm">
+                                    <button onClick={() => triggerAI('situation')} className="btn-secondary flex items-center justify-center gap-2"> <span className="text-rose-400"><Icons.Sparkles /></span> Ситуация </button>
+                                    <button onClick={() => triggerAI('psych')} className="btn-accent flex items-center justify-center gap-2"> <Icons.Bulb /> Совет </button>
+                                </div>
+                                {gameMode === 'normal' && turnEntry && turnEntry.cur && !turnDone && (
+                                    <button type="button" onClick={() => { SoundFX.click(); setShowSkipPopup(true); }} className="btn-ghost mt-3 w-full max-w-sm"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></svg> Пропустить вопрос</button>
+                                )}
+                                {currentIndex === 0 && ( <p className="mt-6 text-xs text-zinc-500 text-center">Листайте карточки свайпами или кнопками</p> )}
+                            </div></div></div>
+                        </main>
+
+                        <div className="fixed bottom-0 left-0 right-0 p-4 sm:p-6 z-20 bg-gradient-to-t from-[#0a0710] via-[#0a0710]/90 to-transparent" style={{ paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom))' }}>
+                            <div className="max-w-lg mx-auto grid grid-cols-2 gap-3.5">
+                                <button onClick={handlePrevQuestion} disabled={currentIndex === 0} className="btn-secondary w-full flex items-center justify-center gap-2"><Icons.Back /> Назад</button>
+                                <button onClick={handleNextQuestion} className="btn-primary w-full flex items-center justify-center gap-2">{(currentIndex === gameQuestions.length - 1 && turnDone) ? (gameMode === 'test' ? "В меню" : "Итоги") : "Далее"} <Icons.Next /></button>
+                            </div>
+                        </div>
+
+                        <PopupModal isOpen={gameMode === 'normal' && turnPopup.open} onClose={handleCloseRoulettePopup}>
+                            <div className="text-center flex flex-col items-center justify-between gap-5 pt-1 min-h-[300px]">
+                                <div className="w-full flex flex-col items-center gap-4">
+                                    <span className="text-xs font-bold text-zinc-500">Вопрос № {currentQ.num} • Очередь</span>
+                                    <h3 className="text-lg font-bold text-white">{turnPopup.spinning ? "Определяем, кто отвечает…" : "Отвечает:"}</h3>
+                                    {turnPopup.candidates && turnPopup.candidates.length > 0 && ( <TurnReel key={turnPopup.spinId} players={turnPopup.candidates} winnerId={turnPopup.winner} spinning={turnPopup.spinning} /> )}
+                                </div>
+                                <button type="button" disabled={turnPopup.spinning} onClick={handleCloseRoulettePopup} className="btn-primary w-full">К вопросу</button>
+                            </div>
+                        </PopupModal>
+
+                        <PopupModal isOpen={timerKey !== '' && tm.key === timerKey && timerDismissKey !== timerKey && !turnPopup.open && !showSkipPopup && !showEndGameConfirm && !punish.open && gameMode === 'normal'} onClose={() => setTimerDismissKey(timerKey)}>
+                            <div className="flex flex-col items-center gap-5 pt-1 text-center">
+                                <div className="flex items-center gap-2 text-xs font-bold text-zinc-400"><span aria-hidden="true">{turnPlayer && turnPlayer.gender === 'guy' ? '👨' : '👩'}</span><span>Очередь: {assignedPlayerName}</span></div>
+                                <div className="relative w-[132px] h-[132px]" role="timer" aria-label={`Осталось ${Math.max(0, tm.left)} секунд`}>
+                                    <svg viewBox="0 0 120 120" className="w-full h-full" aria-hidden="true">
+                                        <circle cx="60" cy="60" r="54" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="8"></circle>
+                                        <circle cx="60" cy="60" r="54" fill="none" stroke={tmColor} strokeWidth="8" strokeLinecap="round" transform="rotate(-90 60 60)" style={{ strokeDasharray: 339.29, strokeDashoffset: 339.29 * (1 - tmFrac), transition: 'stroke-dashoffset 1s linear, stroke 0.4s' }}></circle>
+                                    </svg>
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                        <span className={`font-display text-4xl font-bold tabular-nums ${tmUrgent ? 'text-rose-300 animate-pulse' : 'text-white'}`}>{Math.max(0, tm.left)}</span>
+                                        <span className="text-xs font-bold text-zinc-500">сек</span>
+                                    </div>
+                                </div>
+                                <p className="text-sm text-zinc-300 leading-snug max-h-24 overflow-y-auto px-1">{cleanText}</p>
+                                {fx.punishOn && <span className="text-xs text-zinc-500">Не успеете — выпадет наказание</span>}
+                                <div className="w-full grid grid-cols-2 gap-3 pt-1">
+                                    <button type="button" onClick={() => { SoundFX.click(); setShowSkipPopup(true); }} className="btn-secondary">Пропустить</button>
+                                    <button type="button" onClick={handleNextQuestion} className="btn-primary">Ответил(а)</button>
+                                </div>
+                            </div>
+                        </PopupModal>
+
+                        <PopupModal isOpen={punish.open && gameMode === 'normal'} onClose={closePunish}>
+                            <div className="text-center flex flex-col items-center gap-4 pt-1">
+                                <div className="text-6xl animate-pulse" aria-hidden="true">{punish.icon}</div>
+                                <span className="text-xs font-bold text-rose-400">{punish.reason === 'skip' ? 'Пропуск вопроса' : 'Время вышло'}</span>
+                                <h3 className="text-xl font-bold text-white">{punish.reason === 'skip' ? (punish.player ? `${punish.player} пропускает вопрос` : 'Вопрос пропущен') : (punish.player ? `${punish.player}, время вышло!` : 'Время вышло!')}</h3>
+                                {punish.text ? (
+                                    <div className="w-full rounded-[20px] border border-rose-500/35 bg-rose-500/10 p-4">
+                                        <div className="text-xs font-bold text-rose-300 mb-1">Наказание</div>
+                                        <p className="text-base font-semibold text-white leading-snug">{punish.text}</p>
+                                    </div>
+                                ) : ( <p className="text-sm text-zinc-400">Ход переходит дальше.</p> )}
+                                <button type="button" onClick={closePunish} className="btn-primary w-full">{punish.text ? 'Выполнено' : 'Продолжить'}</button>
+                            </div>
+                        </PopupModal>
+
+                        <PopupModal isOpen={showSkipPopup && gameMode === 'normal'} onClose={() => setShowSkipPopup(false)}>
+                            <div className="text-center flex flex-col items-center gap-4 pt-1">
+                                <h3 className="text-lg font-bold text-white">Пропустить вопрос?</h3>
+                                <p className="text-sm text-zinc-400 leading-snug">Выберите, кто пропускает. Пропуски попадут в итоги игры.</p>
+                                <div className="w-full flex flex-col gap-3 text-left">
+                                    {assignedPlayerName && (
+                                        <button type="button" onClick={skipForPlayer} className="card-btn">
+                                            <span className="block text-sm font-bold text-white">Только {assignedPlayerName}</span>
+                                            <span className="block text-xs text-zinc-400 mt-1 leading-snug">{turnPending > 0 ? 'Пропускает свою очередь, а рулетка выберет следующего.' : 'Это последний в очереди — вопрос будет закрыт.'}</span>
+                                        </button>
+                                    )}
+                                    <button type="button" onClick={skipForAll} className="card-btn accent">
+                                        <span className="block text-sm font-bold text-rose-200">Для всех</span>
+                                        <span className="block text-xs text-rose-200/70 mt-1 leading-snug">Никто не хочет отвечать — переходим к следующему вопросу.</span>
+                                    </button>
+                                </div>
+                                <button type="button" onClick={() => setShowSkipPopup(false)} className="btn-text muted pt-1">Отмена</button>
+                            </div>
+                        </PopupModal>
+
+                        <PopupModal isOpen={showEndGameConfirm} onClose={() => setShowEndGameConfirm(false)}>
+                            <div className="text-center flex flex-col items-center gap-5 pt-2">
+                                <h3 className="text-lg font-bold text-white pr-4 pl-4">Завершить текущую партию?</h3>
+                                {gameMode === 'normal' && <p className="text-xs text-zinc-400 leading-relaxed">Пройденные вопросы ({maxReachedIndex + 1} шт.) перейдут в Архив сессии <b className="text-rose-300">{profile.sessionId}</b>.</p>}
+                                {live.room && liveCount > 1 && <p className="text-xs text-amber-200/90 leading-relaxed">Партия закончится у всех: в игре {liveCount} {declOfNum(liveCount, ['устройство', 'устройства', 'устройств'])}. Чтобы выйти только самому, выберите «Выйти, остальные продолжат».</p>}
+                                <div className="grid grid-cols-2 gap-3 w-full"> <button onClick={() => { SoundFX.click(); setShowEndGameConfirm(false); }} className="btn-secondary w-full">Отмена</button> <button onClick={() => handleFinishGame(false)} className="btn-primary w-full">{live.room && liveCount > 1 ? 'Для всех' : 'Да'}</button> </div>
+                                {live.room && liveCount > 1 && <button type="button" onClick={() => { SoundFX.click(); setShowEndGameConfirm(false); navigate('menu'); }} className="btn-secondary w-full">Выйти, остальные продолжат</button>}
+                            </div>
+                        </PopupModal>
+                    </div>
+                );
+            }
+
+            if (screen === 'ai_response') {
+                const currentQ = gameQuestions[currentIndex]; const isSituation = aiType === 'situation';
+                return (
+                    <div className="safe-screen w-full flex flex-col justify-between fade-in relative z-10">
+                        <header className="w-full max-w-2xl mx-auto flex items-center justify-between py-2 flex-shrink-0"> <button aria-label="Назад" onClick={() => { SoundFX.click(); navigate('game'); }} className="btn-icon flex-shrink-0"><Icons.Back /></button> <AskMeLogo size="xs" /> <span className="text-xs font-bold text-zinc-500">№ {currentQ?.num}</span> </header>
+                        <main className="flex-1 flex flex-col items-center py-6 pb-28 overflow-y-auto no-scrollbar">
+                            <div className="w-full max-w-xl flex flex-col items-center slide-up gap-6">
+                                <div className="text-center space-y-2"> <span className="text-xs font-bold text-rose-400">{isSituation ? "Моделирование ситуации" : "Разбор психолога"}</span> <p className="text-base font-medium text-zinc-200 px-2">«{currentQ?.cleanText || currentQ?.text}»</p> </div>
+                                <div className="hairline-divider"></div>
+                                <div className={`w-full text-left text-zinc-200 text-[15px] md:text-base leading-relaxed whitespace-pre-wrap ${isAiTyping ? 'ai-cursor' : ''}`}>{aiContent}</div>
+                            </div>
+                        </main>
+                        <div className="fixed bottom-0 left-0 right-0 p-4 sm:p-6 z-20 bg-gradient-to-t from-[#0a0710] via-[#0a0710]/90 to-transparent"> <div className="max-w-xl mx-auto"> <button onClick={() => { SoundFX.click(); navigate('game'); }} className="btn-primary w-full flex items-center justify-center">К вопросу</button> </div> </div>
+                    </div>
+                );
+            }
+
+if (screen === 'summary') {
+                const skipIdx = new Set(); gameQuestions.slice(0, answeredCount).forEach((q, i) => { const e = normTurn(turnHistory[i]); if (e && isTurnSkipped(e, profile?.players || [])) skipIdx.add(i); }); const skippedCount = skipIdx.size; const answered = gameQuestions.slice(0, answeredCount).filter((q, i) => !skipIdx.has(i)); const cEasy = answered.filter(q => q.level === 'Простые').length; const cMed = answered.filter(q => q.level === 'Средние').length; const cHard = answered.filter(q => q.level === 'Глубокие').length;
+                const isAllAnswered = completedAllFlag || stats.availableActive === 0;
+                const total = answered.length;
+                const frac = (total + skippedCount) > 0 ? total / (total + skippedCount) : 0;
+                const titleBadge = isAllAnswered ? '🏆 Прошли всю колоду' : (skippedCount === 0 && total >= 5) ? '💪 Без пропусков' : (cHard >= Math.max(3, total * 0.5)) ? '🌊 Любители глубины' : (skippedCount > total) ? '🛡️ Осторожные' : total >= 15 ? '🔥 Разговорчивые' : '✨ Хорошее начало';
+                const namesLine = (profile?.players || []).map(p => p.name).join(' · ');
+                const canReplay = stats.availableActive > 0;
+                return (
+                    <div className="safe-screen w-full flex flex-col items-center justify-between relative z-10 overflow-hidden">
+                        <SummaryConfetti />
+                        <div className="relative z-10 flex-1 flex flex-col items-center justify-center w-full max-w-sm py-6 gap-6">
+                            <div className="reveal" style={{ animationDelay: '0ms' }}><AskMeLogo size="md" /></div>
+                            <div className="reveal text-center space-y-1.5" style={{ animationDelay: '80ms' }}>
+                                <div className="text-xs font-bold text-rose-400">{isAllAnswered ? 'Все вопросы пройдены' : 'Игра завершена'}</div>
+                                {namesLine && <p className="text-sm text-zinc-400 truncate max-w-[18rem] mx-auto">{namesLine}</p>}
+                            </div>
+                            <div className="reveal flex flex-col items-center gap-3" style={{ animationDelay: '160ms' }}>
+                                <SummaryRing frac={frac}>
+                                    <div className="font-display text-5xl font-extrabold text-white leading-none"><AnimatedCounter target={total} /></div>
+                                    <span className="text-xs font-bold text-zinc-500 mt-2">отвечено</span>
+                                </SummaryRing>
+                                <p className="text-zinc-500 text-xs">Пройденные вопросы переехали в архив</p>
+                            </div>
+                            <div className="reveal flex flex-col items-center gap-2.5" style={{ animationDelay: '260ms' }}>
+                                <span className="inline-flex px-4 py-2 rounded-full border border-rose-500/35 bg-rose-500/10 text-sm font-semibold text-rose-100">{titleBadge}</span>
+                                {isAllAnswered && ( <button type="button" onClick={() => SoundFX.romanticFinale()} className="btn-ghost btn-sm">🎵 Мелодия финала</button> )}
+                            </div>
+                            <div className="reveal w-full rounded-[20px] border border-white/10 bg-white/[0.04] p-5 flex flex-col gap-5" style={{ animationDelay: '360ms' }}>
+                                <SummaryBars total={total} rows={[
+                                    { label: 'Лёгкие', count: cEasy, cls: 'diff-text-1', bar: 'bg-emerald-400' },
+                                    { label: 'Средние', count: cMed, cls: 'diff-text-2', bar: 'bg-amber-400' },
+                                    { label: 'Глубокие', count: cHard, cls: 'diff-text-3', bar: 'bg-rose-500' }
+                                ]} />
+                                <div className="hairline-divider"></div>
+                                <div className="flex items-center justify-between">
+                                    <span className="flex items-center gap-2.5 font-bold text-xs text-zinc-300"><span aria-hidden="true" className="skip-ico"><Icons.Skip /></span> Пропущено</span>
+                                    <span className="font-display text-xl font-bold text-white"><AnimatedCounter target={skippedCount} /></span>
+                                </div>
+                            </div>
+                            <div className={`reveal w-full grid gap-3 ${canReplay ? 'grid-cols-2' : 'grid-cols-1'}`} style={{ animationDelay: '460ms' }}>
+                                {canReplay && ( <button type="button" onClick={() => { SoundFX.click(); navigate('mode_select'); }} className="btn-secondary">Играть ещё</button> )}
+                                <button type="button" onClick={() => { SoundFX.click(); navigate('menu'); }} className="btn-primary flex items-center justify-center gap-2"><Icons.Check /> В меню</button>
+                            </div>
+                        </div>
+                        <AppFooter />
+                    </div>
+                );
+            }
+
+            if (screen === 'cat_list') {
+                return (
+                    <div className="safe-screen w-full flex flex-col fade-in max-w-md lg:max-w-3xl mx-auto relative z-10">
+                        <header className="flex items-center justify-between gap-4 mb-6 pt-2">
+                            <div className="flex items-center gap-3.5"><button aria-label="Назад" onClick={() => { SoundFX.click(); navigate('menu'); }} className="btn-icon flex-shrink-0"><Icons.Back /></button><div><h2 className="text-2xl font-bold text-white">Все вопросы</h2><p className="text-xs text-zinc-500 mt-0.5">Активно: {db.length - stats.archivedList.length - stats.disabledCount} из {db.length}</p></div></div>
+                        </header>
+                        <div className="flex-1 flex flex-col gap-8 pb-24">
+                            {isAdmin && ( <button type="button" onClick={() => { SoundFX.click(); setTopicDraft(CATEGORIES.map(c => c.id)); setTopicErr(''); navigate('topics_admin'); }} className="btn-secondary w-full flex items-center justify-center gap-2.5">⚙ Управление темами</button> )}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 divide-y md:divide-y-0 border-y border-white/10 divide-white/[0.08]">
+                                {CATEGORIES.map(cat => (
+                                    <button key={cat.id} onClick={() => { SoundFX.click(); setViewCategory(cat.id); setVisibleLimit(60); navigate('q_list'); }} className="row justify-between md:border-b md:border-white/10">
+                                        <div className="flex items-center gap-3.5"><span className="text-2xl">{cat.icon}</span><div><div className="font-semibold text-base text-white">{cat.name}</div><div className="text-xs text-zinc-500">Активных: <span className="text-zinc-300 font-semibold">{stats.activeByCat[cat.id] || 0}</span> из {stats.totalByCat[cat.id] || 0}</div></div></div><span className="text-zinc-500"><Icons.Next /></span>
+                                    </button>
+                                ))}
+                            </div>
+                            <div className="pt-2 flex flex-col gap-4">
+                                <button onClick={() => { SoundFX.click(); navigate('archive_page'); }} className="flex items-center gap-3 text-left group min-h-[48px]"> <span className="w-10 h-10 rounded-xl bg-white/[0.04] border border-white/10 flex items-center justify-center text-rose-400 group-hover:border-rose-500/40 transition-all"><Icons.Archive /></span> <div><div className="font-bold text-base text-white flex items-center gap-2">Архив вопросов <span className="text-xs text-zinc-500 font-normal">→</span></div><div className="text-xs text-zinc-500">В архиве: {stats.archivedList.length} вопр.</div></div> </button>
+                            </div>
+                        </div>
+                        {isAdmin && <div className="fixed bottom-5 left-5 right-5 max-w-md mx-auto pointer-events-none"> <button onClick={() => { SoundFX.click(); setAddStatus(null); setAddForm({ text: '', cat: 'family', diff: 'Простые', targetId: '', aud: 'both' }); navigate('add_q'); }} className="btn-primary w-full flex items-center justify-center gap-2 pointer-events-auto"><Icons.Plus /> {tr("Новый вопрос")}</button> </div>}
+                    </div>
+                );
+            }
+
+            if (screen === 'archive_page') {
+                return (
+                    <div className="safe-screen w-full flex flex-col fade-in max-w-2xl mx-auto relative z-10">
+                        <header className="flex items-center justify-between gap-3 mb-6 pt-2 flex-wrap"> <div className="flex items-center gap-3.5"><button aria-label="Назад" onClick={() => { SoundFX.click(); navigate('cat_list'); }} className="btn-icon flex-shrink-0"><Icons.Back /></button><div><h2 className="text-2xl font-bold text-white">Архив вопросов</h2></div></div> </header>
+                        {stats.archivedList.length === 0 ? ( <div className="flex-1 flex flex-col items-center justify-center text-center py-16 gap-4"><div className="w-12 h-12 rounded-xl bg-white/[0.04] border border-white/10 flex items-center justify-center text-zinc-500"><Icons.Archive /></div><p className="text-sm text-zinc-400 max-w-xs leading-relaxed">Архив пуст.</p><button onClick={() => navigate('cat_list')} className="btn-secondary mt-2">К темам</button></div> ) : ( <div className="flex-1 flex flex-col gap-6 pb-24"><div className="flex flex-col divide-y divide-white/[0.08] border-y border-white/10"> {stats.archivedList.slice(0, 50).map(q => ( <div key={q.dbKey} className="py-4 flex items-start justify-between gap-4"><div className="text-sm text-zinc-200"><div className="flex items-center gap-2 text-xs mb-1"><span className="text-rose-400 font-bold">№ {q.num}</span></div>{qDisplay(q)}</div><button onClick={() => handleRestoreSingleFromArchive(q)} className="btn-secondary btn-sm"><Icons.Restore /> {tr("Вернуть")}</button></div> ))} </div> <button onClick={() => handleRestoreBatchFromArchive(stats.archivedList)} className="btn-primary w-full flex items-center justify-center gap-2 mt-2"><Icons.Restore /> Вернуть все</button></div> )}
+                    </div>
+                );
+            }
+
+            if (screen === 'q_list') {
+                const qs = profileDb.filter(q => q.categoryId === viewCategory);
+                const lvlCount = {}; DIFFICULTIES.forEach(d => { lvlCount[d.id] = qs.filter(q => q.level === d.id).length; });
+                const lvlShown = DIFFICULTIES.filter(d => (qLevel === 'all' || qLevel === d.id) && lvlCount[d.id] > 0);
+                const lvlDot = (d) => ({ background: `rgb(var(--lvl-${DIFFICULTIES.indexOf(d) + 1}-rgb))` });
+                const pickLevel = (id) => { if (id === qLevel) return; SoundFX.click(); setQLevel(id); setVisibleLimit(60); };
+                return (
+                    <div className="safe-screen w-full flex flex-col fade-in max-w-2xl mx-auto relative z-10">
+                        <header className="flex items-center justify-between gap-4 mb-5 pt-2 flex-shrink-0">
+                            <div className="flex items-center gap-3.5"><button aria-label="Назад" onClick={() => { SoundFX.click(); navigate('cat_list'); }} className="btn-icon flex-shrink-0"><Icons.Back /></button><h2 className="text-2xl font-bold text-white">{CATEGORIES.find(c => c.id === viewCategory)?.name}</h2></div>
+                        </header>
+                        <div role="tablist" aria-label="Сортировка по глубине" className="seg level-seg mb-6">
+                            <button type="button" role="tab" aria-selected={qLevel === 'all'} onClick={() => pickLevel('all')} className={`seg-btn level-seg-btn ${qLevel === 'all' ? 'is-active' : ''}`}><span>Все</span>{' '}<span className="level-seg-n">{qs.length}</span></button>
+                            {DIFFICULTIES.map(d => (
+                                <button key={d.id} type="button" role="tab" aria-selected={qLevel === d.id} onClick={() => pickLevel(d.id)} className={`seg-btn level-seg-btn ${qLevel === d.id ? 'is-active' : ''}`}><span className="flex items-center gap-1.5"><span aria-hidden="true" className="level-dot" style={lvlDot(d)}></span>{d.name}</span>{' '}<span className="level-seg-n">{lvlCount[d.id]}</span></button>
+                            ))}
+                        </div>
+                        <div className="flex-1 flex flex-col gap-10 pb-24">
+                            {lvlShown.length === 0 && ( <p className="text-sm text-zinc-400 text-center py-10 leading-relaxed">{qs.length === 0 ? 'В этой теме пока нет вопросов.' : `В этой теме нет вопросов уровня «${(DIFFICULTIES.find(d => d.id === qLevel) || {}).name || ''}».`}</p> )}
+                            {lvlShown.map(diff => {
+                                const diffQs = qs.filter(q => q.level === diff.id); const shown = diffQs.slice(0, visibleLimit); const rest = diffQs.length - shown.length;
+                                return ( <div key={diff.id} className="space-y-3"><h3 className={`text-sm font-bold ${diff.classText}`}>{diff.name} <span className="text-zinc-500 font-semibold">· {diffQs.length}</span></h3><div className="flex flex-col divide-y divide-white/[0.08] border-y border-white/10"> {shown.map(q => ( <div key={q.dbKey} className="py-4 flex items-start justify-between gap-4"> <div className="text-[15px] text-zinc-100 flex-1"><span className="text-rose-400 font-bold mr-2">№ {q.num}.</span>{qDisplay(q)}{q.hidden && <span className="ml-2 text-xs px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-200 align-middle">{tr("Скрыт")}</span>}</div> <div className="flex items-center gap-2 flex-shrink-0"> {isAdmin && <button disabled={!!hqBusy} onClick={() => setQuestionHidden(q, !q.hidden)} aria-label={q.hidden ? 'Вернуть вопрос' : 'Скрыть вопрос для всех'} title={q.hidden ? 'Вернуть вопрос' : 'Скрыть для всех'} className="btn-icon">{q.hidden ? '👁' : '🙈'}</button>} {isAdmin && <button onClick={() => openEditScreen(q, 'q_list')} className="btn-icon"><Icons.Edit /></button>} </div> </div> ))} </div>{rest > 0 && ( <button type="button" onClick={() => { SoundFX.click(); setVisibleLimit(v => v + 60); }} className="btn-secondary btn-sm w-full">Показать ещё {Math.min(60, rest)} из {rest}</button> )}</div> );
+                            })}
+                        </div>
+                        {isAdmin && <div className="fixed bottom-5 left-5 right-5 max-w-md mx-auto pointer-events-none"> <button onClick={() => { SoundFX.click(); setAddStatus(null); setAddForm({ text: '', cat: viewCategory || 'family', diff: qLevel !== 'all' ? qLevel : 'Простые', targetId: '', aud: 'both' }); navigate('add_q'); }} className="btn-primary w-full flex items-center justify-center gap-2 pointer-events-auto"><Icons.Plus /> {tr("Новый вопрос")}</button> </div>}
+                    </div>
+                );
+            }
+
+            if (screen === 'edit_q' && editingQuestion && isAdmin) {
+                return (
+                    <div className="safe-screen w-full flex flex-col fade-in max-w-lg mx-auto relative z-10">
+                        <header className="flex items-center gap-3.5 mb-6 pt-2"><button aria-label="Назад" onClick={() => { SoundFX.click(); navigate(returnScreen); }} className="btn-icon flex-shrink-0"><Icons.Back /></button><div><h2 className="text-xl font-bold text-white">Редактирование</h2><p className="text-xs text-zinc-500">№ {editingQuestion.num}</p></div></header>
+                        <div className="flex-1 flex flex-col gap-5 slide-up">
+                            <textarea value={editForm.text} onChange={e => { setEditForm({...editForm, text: e.target.value}); setQFormError(''); }} className="w-full p-4 rounded-2xl bg-white/[0.04] border border-white/[0.16] text-base text-white h-36 focus:border-rose-500"></textarea>
+                            {qFormError && <span className="ui-error">{qFormError}</span>}
+                            <input type="text" placeholder="ID сессии (оставьте пустым для всех)" value={editForm.targetId} onChange={e => setEditForm({...editForm, targetId: e.target.value})} className="w-full h-[54px] px-5 rounded-2xl bg-white/[0.04] border border-white/[0.16] text-white" />
+                            <div className="grid grid-cols-2 gap-4"><CustomSelect value={editForm.cat} onChange={val => setEditForm({...editForm, cat: val})} options={CATEGORIES.map(c=>({value:c.id, label:catLabel(c.id, c.name)}))} /><CustomSelect value={editForm.diff} onChange={val => setEditForm({...editForm, diff: val})} options={DIFFICULTIES.map(d=>({value:d.id, label:diffLabel(d.id, d.name)}))} /></div>
+                            <CustomSelect value={editForm.aud} onChange={val => setEditForm({...editForm, aud: val})} options={[{value:'both', label:audienceLabel('both')},{value:'couple', label:audienceLabel('couple')},{value:'group', label:audienceLabel('group')}]} />
+                            {(() => { const hid = !!(db.find(x => x.dbKey === editingQuestion.dbKey) || {}).hidden; return ( <div className="flex flex-col gap-2"> <button type="button" disabled={!!hqBusy} onClick={() => setQuestionHidden(editingQuestion, !hid)} className="btn-secondary w-full flex items-center justify-center gap-2">{hid ? <Icons.Eye /> : <Icons.EyeOff />} {hid ? 'Вернуть вопрос всем' : 'Скрыть для всех'}</button> <p className="text-xs text-zinc-500 leading-snug text-center">{hid ? 'Сейчас вопрос скрыт: игроки его не видят.' : 'Игроки перестанут видеть вопрос. Вернуть можно здесь или в разделе «Скрытые вопросы».'}</p> </div> ); })()}
+                            <button onClick={() => setConfirmModal({ action: 'delete', title: 'Удалить вопрос?' })} className="btn-danger w-full flex items-center justify-center gap-2"><Icons.Trash /> Удалить</button>
+                            <div className="mt-auto pt-4 grid grid-cols-2 gap-3.5"><button onClick={() => navigate(returnScreen)} className="btn-secondary w-full">Отмена</button><button onClick={() => { if (editForm.text.trim().length < 3) { SoundFX.warn(); setQFormError('Введите текст вопроса — минимум 3 символа'); return; } setQFormError(''); setConfirmModal({ action: 'save', title: 'Сохранить?' }); }} disabled={isSaving} className="btn-primary w-full"><Icons.Check /> Сохранить</button></div>
+                        </div>
+                        <PopupModal isOpen={Boolean(confirmModal)} onClose={() => setConfirmModal(null)}>
+                            {confirmModal && <div className="text-center gap-5 pt-2"><h3 className="font-bold text-white mb-4">{confirmModal.title}</h3><div className="grid grid-cols-2 gap-3 w-full"><button onClick={() => setConfirmModal(null)} className="btn-secondary">Отмена</button><button onClick={() => confirmModal.action === 'delete' ? executeDeleteQuestion() : executeSaveEdit()} className="btn-primary">Да</button></div></div>}
+                        </PopupModal>
+                        <PopupModal isOpen={Boolean(resultModal)} onClose={() => { const target = resultModal?.afterCloseScreen; setResultModal(null); if (target) navigate(target); }}>
+                            {resultModal && <div className="text-center gap-4 pt-2"><h3 className="text-lg font-bold text-white mb-2">{resultModal.msg}</h3><button onClick={() => { const target = resultModal.afterCloseScreen; setResultModal(null); if (target) navigate(target); }} className="btn-primary w-full mt-1">Понятно</button></div>}
+                        </PopupModal>
+                    </div>
+                );
+            }
+
+            if (screen === 'add_q' && isAdmin) {
+                return (
+                    <div className="safe-screen w-full flex flex-col fade-in max-w-lg mx-auto relative z-10">
+                        <header className="flex items-center gap-3.5 mb-6 pt-2"><button aria-label="Назад" onClick={() => { SoundFX.click(); navigate(viewCategory ? 'q_list' : 'cat_list'); }} className="btn-icon flex-shrink-0"><Icons.Back /></button><h2 className="text-xl font-bold text-white">Новый вопрос</h2></header>
+                        {addStatus ? (
+                            <div className="flex-1 flex flex-col items-center justify-center slide-up"><h3 className="text-2xl font-bold text-white">{addStatus.ok ? 'Вопрос добавлен' : 'Ошибка'}</h3><p className="text-xs text-zinc-400 mb-4 mt-2">{addStatus.msg}</p><div className="grid grid-cols-2 gap-3 w-full max-w-xs"><button onClick={() => navigate(viewCategory ? 'q_list' : 'cat_list')} className="btn-secondary">К списку</button><button onClick={() => setAddStatus(null)} className="btn-primary">Еще один</button></div></div>
+                        ) : (
+                            <form noValidate onSubmit={handleAddQuestion} className="flex-1 flex flex-col gap-5 slide-up">
+                                <textarea value={addForm.text} onChange={e => { setAddForm({...addForm, text: e.target.value}); setQFormError(''); }} className="w-full p-4 rounded-2xl bg-white/[0.04] border border-white/[0.16] text-base text-white h-36 focus:border-rose-500" placeholder="Введите вопрос..."></textarea>
+                            {qFormError && <span className="ui-error">{qFormError}</span>}
+                                <input type="text" placeholder="ID сессии (оставьте пустым для всех)" value={addForm.targetId} onChange={e => setAddForm({...addForm, targetId: e.target.value})} className="w-full h-[54px] px-5 rounded-2xl bg-white/[0.04] border border-white/[0.16] text-white" />
+                                <div className="grid grid-cols-2 gap-4"><CustomSelect value={addForm.cat} onChange={val => setAddForm({...addForm, cat: val})} options={CATEGORIES.map(c=>({value:c.id, label:catLabel(c.id, c.name)}))} /><CustomSelect value={addForm.diff} onChange={val => setAddForm({...addForm, diff: val})} options={DIFFICULTIES.map(d=>({value:d.id, label:diffLabel(d.id, d.name)}))} /></div>
+                                <CustomSelect value={addForm.aud} onChange={val => setAddForm({...addForm, aud: val})} options={[{value:'both', label:audienceLabel('both')},{value:'couple', label:audienceLabel('couple')},{value:'group', label:audienceLabel('group')}]} />
+                                <button type="button" disabled={isGeneratingQuestion} onClick={handleGenerateQuestionAI} className="btn-accent w-full flex items-center justify-center gap-2"><Icons.Sparkles /> {isGeneratingQuestion ? "Генерация..." : "Идея от ИИ"}</button>
+                                <div className="mt-auto pt-4 grid grid-cols-2 gap-3.5"><button type="button" onClick={() => navigate(viewCategory ? 'q_list' : 'cat_list')} className="btn-secondary w-full">Отмена</button><button type="submit" disabled={isSaving || !addForm.text.trim()} className="btn-primary w-full flex items-center justify-center gap-2"><Icons.Plus /> Сохранить</button></div>
+                            </form>
+                        )}
+                    </div>
+                );
+            }
+
+            return null;
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+        const toastRoot = document.createElement('div'); toastRoot.id = 'toast-root'; document.body.appendChild(toastRoot);
+        ReactDOM.createRoot(toastRoot).render(<ToastHost />);
+    

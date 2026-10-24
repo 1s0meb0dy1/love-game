@@ -1,0 +1,33 @@
+const src=require('../src-loader.js')(); const g=(re)=>src.match(re)[0];
+const code=g(/const normTurn = [\s\S]*?\n        \};\n/)+g(/const isTurnSkipped = [^\n]*\n/)+g(/const gamesOf = [^\n]*\n/)+g(/const buildGameReports = [\s\S]*?\n        \};\n/)+g(/const aggregateAnalytics = [\s\S]*?\n        \};\n/)+g(/const gameCounts = [^\n]*\n/)+g(/const filterAnalytics = [^\n]*\n/)+g(/const countAnalyticsGames = [^\n]*\n/)+'return {buildGameReports,aggregateAnalytics,gamesOf,gameCounts,filterAnalytics,countAnalyticsGames};';
+const f=new Function(code)(); const out=[]; const t=(n,c)=>out.push((c?'PASS ':'FAIL ')+n);
+const P=[{id:'p1',name:'Макс'},{id:'p2',name:'Аня'},{id:'p3',name:'Саша'}];
+const Q=[{id:'q1',categoryId:'family',level:'Простые'},{id:'q2',categoryId:'intimacy',level:'Глубокие'},{id:'q3',categoryId:'family',level:'Средние'},{id:'q4',categoryId:'family',level:'Простые'}];
+const H={0:{cur:null,answered:['p1','p2','p3'],skippedBy:[],skippedAll:false},1:{cur:null,answered:['p1','p2','p3'],skippedBy:['p1','p2','p3'],skippedAll:true},2:{cur:null,answered:['p2','p1','p3'],skippedBy:['p3'],skippedAll:false}};
+const log={startedAt:1000000,mode:'hard',timerSec:30,punishOn:true,durations:[10,20,30],punishments:[{t:'Станцуй',tpl:true},{t:'Своё: спой для Макса',tpl:false}]};
+const {anonGame,fullGame}=f.buildGameReports({log,players:P,questions:Q,history:H,total:3,customs:['Своё: спой для Макса'],now:1000000+600000});
+t('отвечено 2, пропущено 1 (вопрос, пропущенный всеми); частичный пропуск считается отвеченным',anonGame.answered===2&&anonGame.skipped===1&&JSON.stringify(anonGame.answeredIds)==='["q1","q3"]'&&JSON.stringify(anonGame.skippedIds)==='["q2"]');
+t('категории и сложности считаются только по отвеченным',anonGame.byCat.family===2&&!anonGame.byCat.intimacy&&anonGame.byLevel['Простые']===1&&anonGame.byLevel['Средние']===1&&!anonGame.byLevel['Глубокие']);
+t('длительность 600 с, среднее время ответа 20 с, режим/таймер/наказания',anonGame.durationSec===600&&anonGame.avgAnswerSec===20&&anonGame.mode==='hard'&&anonGame.timerSec===30&&anonGame.punishOn===true&&anonGame.players===3);
+t('ОБЕЗЛИЧЕННЫЕ данные не содержат имён и текстов своих наказаний; шаблонные наказания есть',!/Макс|Аня|Саша|спой для/.test(JSON.stringify(anonGame))&&JSON.stringify(anonGame.punishTpl)==='["Станцуй"]'&&anonGame.punishCount===2);
+t('ПОЛНЫЕ данные: имена и результаты по игрокам, все выпавшие и свои наказания',fullGame.perPlayer.length===3&&fullGame.perPlayer[0].name==='Макс'&&fullGame.perPlayer[0].answered===2&&fullGame.perPlayer[0].skipped===1&&fullGame.perPlayer[2].skipped===2&&fullGame.punishAll.length===2&&fullGame.customPunishments[0].includes('спой'));
+const bad=/[.$#\[\]\/]/; t('ключи объектов безопасны для Firebase (имена только в массивах, не в ключах)',Object.keys(fullGame).every(k=>!bad.test(k))&&Object.keys(fullGame.byCat).every(k=>!bad.test(k)));
+const agg=f.aggregateAnalytics({a:{games:{g1:anonGame,g2:{startedAt:5,endedAt:9,durationSec:200,mode:'normal',timerSec:0,players:2,answered:4,skipped:0,avgAnswerSec:0,byCat:{intimacy:4},byLevel:{'Глубокие':4},answeredIds:['q9'],skippedIds:['q2'],punishCount:0,punishTpl:[]}}},b:null,c:5});
+t('сводка: 1 сессия, 2 игры, средние значения и доли',agg.sessions===1&&agg.games===2&&agg.avgPlayers===2.5&&agg.avgAnswered===3&&agg.avgDuration===400&&Math.round(agg.skipRate*100)===14&&agg.hardShare===0.5&&agg.timerShare===0.5&&agg.avgTimer===30);
+t('сводка: среднее время ответа считается только по играм, где оно измерено',agg.avgAnswerSec===20);
+t('сводка: топ тем, пропущенные вопросы (q2 дважды), наказания',agg.topCats[0][0]==='intimacy'&&agg.topCats[0][1]===4&&agg.topSkipped[0][0]==='q2'&&agg.topSkipped[0][1]===2&&agg.topPunish[0][0]==='Станцуй');
+t('пустые/битые данные не ломают сводку',f.aggregateAnalytics(null).games===0&&f.aggregateAnalytics({x:{games:'bad'}}).games===0);
+// порог аналитики: игры от N отвеченных вопросов + полностью пройденные колоды; остальное скрыто, исходные данные не меняются
+const gm=(answered,extra={})=>({startedAt:1,endedAt:2,players:2,answered,skipped:0,...extra});
+const raw={a1:{updatedAt:5,games:{g1:gm(10),g2:gm(50),g3:gm(49),g4:gm(3,{complete:1}),g5:gm(60,{partial:1})}},a2:{updatedAt:6,games:{g1:gm(5)}},a3:'мусор'};
+const f50=f.filterAnalytics(raw,50), f0=f.filterAnalytics(raw,0);
+t('порог 50: остаются игры с 50+ ответами и полностью пройденная колода',Object.keys(f50.a1.games).sort().join()==='g2,g4,g5'&&!f50.a2);
+t('порог 0: остаются все игры',f.countAnalyticsGames(f0)===6&&Object.keys(f0).sort().join()==='a1,a2');
+t('сессия без подходящих игр пропадает целиком, мусорные записи игнорируются',!('a2' in f50)&&!('a3' in f50)&&f.countAnalyticsGames(raw)===6);
+t('фильтр не меняет исходные данные',Object.keys(raw.a1.games).length===5&&f50.a1.updatedAt===5);
+t('граница: 49 не проходит, 50 проходит; complete=true тоже считается',!f.gameCounts(gm(49),50)&&f.gameCounts(gm(50),50)&&f.gameCounts(gm(1,{complete:true}),50)&&!f.gameCounts(null,0)&&!f.gameCounts('x',0));
+t('сводка по отфильтрованным данным: 3 игры, среднее число ответов (50+3+60)/3',f.aggregateAnalytics(f50).games===3&&Math.abs(f.aggregateAnalytics(f50).avgAnswered-(113/3))<1e-9);
+const rp=f.buildGameReports({log,players:P,questions:Q,history:H,total:3,customs:[],now:1000000+600000,complete:true,partial:false}), rq=f.buildGameReports({log,players:P,questions:Q,history:H,total:3,customs:[],now:1000000+600000,complete:false,partial:true});
+t('отчёт игры: complete=1 для пройденной колоды, partial=1 для идущей, без лишних полей иначе',rp.anonGame.complete===1&&rp.anonGame.partial===undefined&&rq.anonGame.partial===1&&rq.anonGame.complete===undefined&&f.buildGameReports({log,players:P,questions:Q,history:H,total:3,customs:[],now:1}).anonGame.complete===undefined);
+
+console.log(out.join('\n'));
