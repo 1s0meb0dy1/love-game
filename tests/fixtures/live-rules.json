@@ -1,0 +1,19 @@
+{
+ "_comment": "Копия узла live из database.rules.json (правила Firebase). Тесты проверяют записи теми же ограничениями. Если меняете правила для live — обновите и этот файл.",
+ "live": {
+  "$room": {
+   ".read": "auth != null",
+   ".write": "auth != null",
+   ".validate": "newData.hasChildren(['ver','by','t']) && newData.child('ver').isNumber()",
+   "ids": {
+    ".validate": "newData.isString() && newData.val().length <= 12000"
+   },
+   "hist": {
+    ".validate": "newData.isString() && newData.val().length <= 30000"
+   },
+   "status": {
+    ".validate": "newData.val() === 'active' || newData.val() === 'ended'"
+   }
+  }
+ }
+}

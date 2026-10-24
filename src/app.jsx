@@ -410,8 +410,26 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
         const SCREEN_TITLES = { hidden_q: 'Скрытые вопросы — ASK ME', analytics: 'Аналитика — ASK ME', analytics_sessions: 'Сессии — Аналитика — ASK ME', app_menu: 'Меню — ASK ME', game_setup: 'Усложнённый режим — ASK ME', topics_admin: 'Управление темами — ASK ME', punish_admin: 'Шаблоны наказаний — ASK ME', onboarding: 'ASK ME — начните игру', session_created: 'Сессия создана — ASK ME', menu: 'ASK ME — откровенные разговоры для двоих и компании', profile_page: 'Игроки и сессия — ASK ME', admin_login: 'Вход для владельца — ASK ME', mode_select: 'Режим игры — ASK ME', game: 'Игра — ASK ME', ai_response: 'Совет и ситуация — ASK ME', summary: 'Итоги игры — ASK ME', cat_list: 'Все темы — ASK ME', q_list: 'Вопросы — ASK ME', archive_page: 'Архив вопросов — ASK ME', add_q: 'Новый вопрос — ASK ME', edit_q: 'Редактирование вопроса — ASK ME' };
         const GROUP_EMOJIS = ['😈', '🤫', '😋', '🤔', '🤪', '😏', '😱', '🫣'];
         const MAX_PLAYERS = 10;
-        const LIVE_POLL_MS = 1000, LIVE_INVITE_MS = 3000;
+        const LIVE_POLL_MS = 1000, LIVE_INVITE_MS = 3000, LIVE_BEAT_MS = 8000, LIVE_ALIVE_MS = 30000, LIVE_STALE_MS = 120000, LIVE_TAKEOVER_S = 6, LIVE_TAKEOVER_STEP_S = 4, LIVE_TAP_GUARD_MS = 500, LIVE_MAX_DECK = 400, LIVE_MAX_DEVICES = MAX_PLAYERS;
         const liveHash = (idx, max, hist) => idx + '|' + max + '|' + hist;
+        // у каждого устройства своя дробная часть версии: две одновременные записи никогда не получают одинаковый номер
+        const liveFrac = (id) => { let h = 0; String(id).split('').forEach(ch => { h = (h * 31 + ch.charCodeAt(0)) % 999983; }); return (h + 1) / 1000000; };
+        const liveVerNext = (prev, id) => Math.floor(Number(prev) || 0) + 1 + liveFrac(id);
+        // кто сейчас в игре: отметки присутствия {устройство: время}; «живое» — отметка моложе 30 с, мусор старше 2 мин убирается
+        const liveAlive = (p, now, selfId) => {
+            const alive = [], stale = [];
+            Object.entries(p && typeof p === 'object' ? p : {}).forEach(([id, ts]) => { const t = Number(ts); if (!isFinite(t)) { stale.push(id); return; } const age = now - t; if (age <= LIVE_ALIVE_MS) alive.push(id); else if (age > LIVE_STALE_MS) stale.push(id); });
+            return { alive, others: alive.filter(id => id !== selfId), stale };
+        };
+        // история ходов в базе ограничена по размеру: если не влезает, отбрасываем самые старые записи
+        const liveHistStr = (hist) => {
+            const h = { ...(hist || {}) }; let str = JSON.stringify(h);
+            if (str.length <= 28000) return str;
+            Object.keys(h).map(Number).sort((a, b) => a - b).some(k => { delete h[k]; str = JSON.stringify(h); return str.length <= 28000; });
+            return str;
+        };
+        const liveRoomKey = async (key) => { const h = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode('askme-live-v1:' + key))); return 'l_' + Array.from(h).map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 40); };
+        const makeDeviceId = () => { const rnd = () => Math.random().toString(36).slice(2, 10); try { let v = sessionStorage.getItem('askme_dev_v1'); if (!v) { v = rnd(); sessionStorage.setItem('askme_dev_v1', v); } return v; } catch (e) { return rnd(); } };
         const normTurn = (e) => {
             if (!e) return null;
             if (typeof e === 'string') return { cur: e, answered: [], skippedBy: [], skippedAll: false };
@@ -549,7 +567,7 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
 
             const handleInstallPwaClick = async () => { SoundFX.click(); if (deferredPwaPrompt) { deferredPwaPrompt.prompt(); const { outcome } = await deferredPwaPrompt.userChoice; if (outcome === 'accepted') setDeferredPwaPrompt(null); return; } setShowPwaModal(true); };
             const triggerIosNativeShareMenu = async () => { SoundFX.click(); const cleanAppUrl = `${window.location.origin}${window.location.pathname}`; if (navigator.share) { try { await navigator.share({ title: "Ask Me", url: cleanAppUrl }); return; } catch (e) {} } showToast("Нажмите на кнопку «Поделиться» [↑] на панели самого браузера Safari"); };
-            const showToast = (msg) => { if (toastTimerRef.current) clearTimeout(toastTimerRef.current); setToastMsg(msg); toastTimerRef.current = setTimeout(() => setToastMsg(null), 2800); };
+            const showToast = (msg, ms = 2800) => { if (toastTimerRef.current) clearTimeout(toastTimerRef.current); setToastMsg(msg); toastTimerRef.current = setTimeout(() => setToastMsg(null), ms); };
             const showErrorPopup = (title, msg) => { SoundFX.warn(); setResultModal({ ok: false, title, msg }); };
 
             const [profile, setProfile] = useState(() => {
@@ -742,7 +760,8 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
             const pendingTurnRef = useRef(null);
             const commitTurn = (idx, entry, q) => {
                 if (entry && entry.cur && gameLogRef.current) gameLogRef.current.turnStart = Date.now();
-                setTurnHistory(prev => { const upd = { ...prev, [idx]: entry }; updateSavedGameProgress(q, idx, Math.max(maxReachedIndex, idx), upd); return upd; });
+                const stamped = (entry && liveRoomRef.current) ? { ...entry, dev: deviceIdRef.current } : entry;
+                setTurnHistory(prev => { const upd = { ...prev, [idx]: stamped }; updateSavedGameProgress(q, idx, Math.max(maxReachedIndex, idx), upd); return upd; });
             };
             const startSpin = (idx, candidates, answered, q, skippedBy = []) => {
                 rouletteTimeoutsRef.current.forEach(t => clearTimeout(t)); rouletteTimeoutsRef.current = [];
@@ -792,7 +811,7 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
                 if (gameMode !== 'normal' || !profile?.players || !e || !e.cur) return;
                 const qNow = gameQuestions[currentIndex];
                 const pun = fx.punishOn ? pickPunishment(allPunishments, qNow && qNow.level) : null;
-                if (pun) { const who = profile.players.find(p => p.id === e.cur); logPunish(pun.text); SoundFX.warn(); setPunish({ open: true, reason: 'skip', player: who ? who.name : '', text: pun.text, icon: pun.icon || '🎭' }); return; }
+                if (pun) { const who = profile.players.find(p => p.id === e.cur); logPunish(pun.text); SoundFX.warn(); const pn = { reason: 'skip', player: who ? who.name : '', text: pun.text, icon: pun.icon || '🎭' }; setPunDoneKey(timerKey); setPunish({ open: true, ...pn }); livePun({ ...pn, key: timerKey }); return; }
                 performPlayerSkip();
             };
             const skipForAll = () => {
@@ -912,9 +931,11 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
             });
             useEffect(() => { try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) {} }, [settings]);
             const turnE = normTurn(turnHistory[currentIndex]);
-            const timerKey = (fx.timerOn && screen === 'game' && gameMode === 'normal' && turnE && turnE.cur) ? `${currentIndex}:${turnE.cur}:${turnE.answered.length}` : '';
+            const [punDoneKey, setPunDoneKey] = useState('');
+            const rawTimerKey = (fx.timerOn && screen === 'game' && gameMode === 'normal' && turnE && turnE.cur) ? `${currentIndex}:${turnE.cur}:${turnE.answered.length}` : '';
+            const timerKey = rawTimerKey !== punDoneKey ? rawTimerKey : '';
             const timerPaused = turnPopup.open || showSkipPopup || showEndGameConfirm || punish.open;
-            useEffect(() => { if (timerKey) setTm({ key: timerKey, left: settings.timerSec }); }, [timerKey, settings.timerSec]);
+            useEffect(() => { if (timerKey) setTm({ key: timerKey, left: fx.timerSec }); }, [timerKey, fx.timerSec]);
             useEffect(() => {
                 if (!timerKey || timerPaused) return;
                 const id = setInterval(() => setTm(t => (t.key === timerKey ? { ...t, left: t.left - 1 } : t)), 1000);
@@ -923,17 +944,21 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
             useEffect(() => {
                 if (!timerKey || timerPaused || tm.key !== timerKey) return;
                 if (tm.left > 0 && tm.left <= 3) SoundFX.rouletteTick();
-                if (tm.left <= 0) {
+                const rawTurn = turnHistory[currentIndex], owner = !liveRoomRef.current || !rawTurn || !rawTurn.dev || rawTurn.dev === deviceIdRef.current;
+                // если хозяин хода пропал, наказание выдаёт один из остальных: по очереди, чтобы не выдали сразу несколько устройств
+                const queue = liveIdsRef.current.filter(id => id !== (rawTurn && rawTurn.dev)).sort(), at = queue.indexOf(deviceIdRef.current), rank = at >= 0 ? at : queue.length;
+                if (tm.left <= (owner ? 0 : -(LIVE_TAKEOVER_S + rank * LIVE_TAKEOVER_STEP_S))) {
                     const who = profile?.players?.find(p => p.id === turnE.cur);
                     const qNow = gameQuestions[currentIndex];
                     const pun = fx.punishOn ? pickPunishment(allPunishments, qNow && qNow.level) : null;
                     logPunish(pun ? pun.text : ''); SoundFX.warn();
-                    setPunish({ open: true, reason: 'timer', player: who ? who.name : '', text: pun ? pun.text : '', icon: pun ? (pun.icon || '🎭') : '⏰' });
+                    const pn = { reason: 'timer', player: who ? who.name : '', text: pun ? pun.text : '', icon: pun ? (pun.icon || '🎭') : '⏰' };
+                    setPunDoneKey(timerKey); setPunish({ open: true, ...pn }); livePun({ ...pn, key: timerKey });
                 }
             }, [tm.left, tm.key, timerKey, timerPaused]);
-            const closePunish = () => { setPunish(p => ({ ...p, open: false })); performPlayerSkip(); };
+            const closePunish = () => { const remote = !!punish.remote; setPunish(p => ({ ...p, open: false })); if (!remote) performPlayerSkip(); };
             const openPregame = () => { SoundFX.click(); setShowSettings(true); navigate('game_setup'); };
-            const startFromPregame = () => { if (!(settings.timerOn || settings.punishOn)) { SoundFX.warn(); return; } setPregameOpen(false); setHardMode(true); startWithMode('normal'); };
+            const startFromPregame = () => { if (!(settings.timerOn || settings.punishOn)) { SoundFX.warn(); return; } setPregameOpen(false); setHardMode(true); startWithMode('normal', { hard: true }); };
             const patchSettings = (patch) => setSettings(st => ({ ...st, ...patch }));
             const addPunishment = () => {
                 const t = sanitizeInput(newPunish, 80);
@@ -1168,7 +1193,7 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
             };
             useEffect(() => {
                 if (screen === 'game') {
-                    if (!gameLogRef.current && gameMode === 'normal') gameLogRef.current = { startedAt: Date.now(), mode: hardMode ? 'hard' : 'normal', timerSec: fx.timerOn ? settings.timerSec : 0, punishOn: !!fx.punishOn, durations: [], punishments: [], turnStart: 0 };
+                    if (!gameLogRef.current && gameMode === 'normal') gameLogRef.current = { startedAt: Date.now(), mode: hardMode ? 'hard' : 'normal', timerSec: fx.timerOn ? fx.timerSec : 0, punishOn: !!fx.punishOn, durations: [], punishments: [], turnStart: 0 };
                 } else if (screen !== 'ai_response' && screen !== 'summary') { gameLogRef.current = null; }
             }, [screen]);
             const setQuestionHidden = async (q, hide) => {
@@ -1196,37 +1221,83 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
                 } catch (e) { showErrorPopup('Не удалось вернуть вопросы', 'Проверьте интернет и вход владельца, затем попробуйте ещё раз.'); }
                 setHqConfirmAll(false); setHqBusy('');
             };
-            const [live, setLive] = useState({ room: '', role: '' }); const [liveInvite, setLiveInvite] = useState(null); const [liveEnded, setLiveEnded] = useState(false);
-            const deviceIdRef = useRef(Math.random().toString(36).slice(2, 10)); const liveRoomRef = useRef(''); const liveRoleRef = useRef(''); const liveHostPendingRef = useRef('');
-            const liveRef = useRef({ ver: 0, t: 0, hash: '', spinId: 0, endedSent: false }); const liveChainRef = useRef(Promise.resolve());
+            const [live, setLive] = useState({ room: '', role: '' }); const [liveInvite, setLiveInvite] = useState(null); const [liveEnded, setLiveEnded] = useState(false); const [liveCount, setLiveCount] = useState(0); const [liveRoomId, setLiveRoomId] = useState('');
+            const deviceIdRef = useRef(null); if (!deviceIdRef.current) deviceIdRef.current = makeDeviceId();
+            const liveIdsRef = useRef([]); const liveRoomRef = useRef(''); const liveRoleRef = useRef(''); const liveRoomIdRef = useRef(''); liveRoomIdRef.current = liveRoomId;
+            const liveRef = useRef({ ver: 0, t: 0, gid: '', hash: '', spinId: 0, punId: 0, endedSent: false, appliedAt: 0, reassertAt: 0 }); const liveChainRef = useRef(Promise.resolve()); const livePendingRef = useRef(0);
+            const liveStateRef = useRef({ idx: 0, max: 0, hist: {} }); liveStateRef.current = { idx: currentIndex, max: maxReachedIndex, hist: turnHistory };
             const roomUrl = (room, sub = '') => `${FIREBASE_BASE_URL}/live/${room}${sub}.json`;
-            const liveRoomKey = async (key) => { const h = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode('askme-live-v1:' + key))); return 'l_' + Array.from(h).map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 40); };
-            const liveSend = (method, body) => { const room = liveRoomRef.current; if (!room) return; liveChainRef.current = liveChainRef.current.then(() => fetchWithTimeout(roomUrl(room), { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).catch(() => {})); };
-            const livePublish = (extra) => { if (!liveRoomRef.current) return; const ver = liveRef.current.ver + 1, t = Date.now(); liveRef.current.ver = ver; liveRef.current.t = t; liveSend('PATCH', { ver, by: deviceIdRef.current, t, ...extra }); };
-            const livePublishStart = (deck) => {
-                const room = liveHostPendingRef.current; liveHostPendingRef.current = ''; if (!room) return;
-                const t = Date.now(); liveRef.current = { ver: 1, t, hash: liveHash(0, 0, '{}'), spinId: 0, endedSent: false };
-                liveSend('PUT', { ver: 1, by: deviceIdRef.current, t, status: 'active', ids: deck.slice(0, 400).map(q => String(q.id || q.dbKey)).join(','), idx: 0, max: 0, hist: '{}', hard: 0, fx: { timerOn: false, timerSec: settings.timerSec, punishOn: false } });
+            // общая «комната» сессии: её имя — хеш секретного ключа сессии, поэтому зайти могут только участники
+            useEffect(() => { let on = true; if (profile && isValidAESKey(profile.sessionKey)) liveRoomKey(profile.sessionKey).then(r => { if (on) setLiveRoomId(r); }); else setLiveRoomId(''); return () => { on = false; }; }, [profile && profile.sessionKey]);
+            const liveSend = (method, body, sub = '') => {
+                const room = liveRoomRef.current; if (!room) return Promise.resolve(false);
+                livePendingRef.current++;
+                const p = liveChainRef.current.then(() => fetchWithTimeout(roomUrl(room, sub), { method, headers: { "Content-Type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body) }).then(r => r.ok).catch(() => false)).then(ok => { livePendingRef.current--; return ok; });
+                liveChainRef.current = p; return p;
+            };
+            const livePublish = (extra) => { if (!liveRoomRef.current) return; const lr = liveRef.current; const ver = liveVerNext(lr.ver, deviceIdRef.current), t = Date.now(); lr.ver = ver; lr.t = t; liveSend('PATCH', { ver, by: deviceIdRef.current, t, ...extra }); };
+            const livePlayersStr = () => JSON.stringify(((profile && profile.players) || []).slice(0, MAX_PLAYERS).map(p => ({ id: p.id, name: p.name, gender: p.gender })));
+            // запуск игры: этот телефон становится «хозяином» новой партии, остальные устройства сессии увидят приглашение
+            const liveStart = (deck, st) => {
+                const room = liveRoomIdRef.current; if (!room || !profile) return false;
+                const me = deviceIdRef.current, t = Date.now(), ver = liveVerNext(0, me), gid = 'g' + t.toString(36) + Math.random().toString(36).slice(2, 5), hs = liveHistStr(st.hist);
+                liveRoomRef.current = room; liveRoleRef.current = 'host';
+                liveRef.current = { ver, t, gid, hash: liveHash(st.idx, st.max, hs), spinId: 0, punId: 0, endedSent: false, appliedAt: 0, reassertAt: 0 };
+                setLive({ room, role: 'host' }); setLiveFx(null); setLiveEnded(false); setLiveInvite(null); setLiveCount(1);
+                liveSend('PATCH', { ver, by: me, t, gid, status: 'active', ids: deck.slice(0, LIVE_MAX_DECK).map(q => String(q.id || q.dbKey)).join(','), idx: st.idx, max: st.max, hist: hs, hard: st.hard ? 1 : 0, fx: st.fx, pl: livePlayersStr(), spin: null, pun: null });
+                return true;
             };
             const liveSpin = (idx, cands, winner) => { if (!liveRoomRef.current) return; const id = Date.now(); liveRef.current.spinId = id; livePublish({ spin: { id, idx, winner, cands: cands.map(p => ({ id: p.id, name: p.name, gender: p.gender })) } }); };
+            const livePun = (pn) => { if (!liveRoomRef.current) return; const id = Date.now(); liveRef.current.punId = id; livePublish({ pun: { id, reason: pn.reason, player: pn.player || '', text: pn.text || '', icon: pn.icon || '', key: pn.key || '' } }); };
             const liveSendEnd = () => { if (!liveRoomRef.current || liveRef.current.endedSent) return; liveRef.current.endedSent = true; livePublish({ status: 'ended' }); };
             const liveShowSpin = (spin) => {
-                rouletteTimeoutsRef.current.forEach(t => clearTimeout(t)); rouletteTimeoutsRef.current = [];
+                rouletteTimeoutsRef.current.forEach(t => clearTimeout(t)); rouletteTimeoutsRef.current = []; pendingTurnRef.current = null;
                 setTurnPopup({ open: true, spinning: true, winner: spin.winner, spinId: spin.id, candidates: spin.cands || [] });
                 const delays = [140, 155, 170, 190, 210, 235, 260, 290, 320, 350]; let acc = 0;
                 delays.forEach((d, i) => { acc += d; rouletteTimeoutsRef.current.push(setTimeout(() => { if (i < delays.length - 1) { SoundFX.rouletteTick(); return; } SoundFX.rouletteWin(); setTurnPopup(st => ({ ...st, spinning: false })); }, acc)); });
+                // у остальных устройств окно рулетки закрывается само: имя отвечающего уже видно на карточке
+                rouletteTimeoutsRef.current.push(setTimeout(() => setTurnPopup(st => (st.spinId === spin.id && !st.spinning ? { ...st, open: false } : st)), acc + 2800));
+            };
+            const liveShowPun = (pn) => { SoundFX.warn(); if (pn.key) setPunDoneKey(pn.key); setPunish({ open: true, remote: true, reason: pn.reason, player: pn.player || '', text: pn.text || '', icon: pn.icon || '🎭' }); };
+            // вход в уже идущую игру (приглашение, переход на новую партию, возврат в начатую)
+            const enterLive = (snap, role) => {
+                const ids = String(snap.ids || '').split(',').filter(Boolean); const map = new Map(profileDb.map(q => [String(q.id || q.dbKey), q])); const deck = ids.map(id => map.get(id)).filter(Boolean);
+                if (!ids.length || deck.length !== ids.length) { showToast('Не удалось присоединиться: не все вопросы загружены. Обновите страницу и попробуйте снова', 5000); return false; }
+                const room = liveRoomIdRef.current; if (!room || !profile) return false;
+                let hist = {}; try { hist = JSON.parse(snap.hist || '{}') || {}; } catch (e) {}
+                let pl = null; try { pl = JSON.parse(snap.pl || 'null'); } catch (e) {}
+                if (Array.isArray(pl) && pl.length) { const key = (a) => a.map(p => p.id + '|' + p.name + '|' + p.gender).join(','); if (key(pl) !== key(profile.players || [])) setProfile(prev => prev ? { ...prev, players: pl.slice(0, MAX_PLAYERS).map(p => ({ id: String(p.id), name: String(p.name || '').slice(0, 25), gender: p.gender === 'girl' ? 'girl' : 'guy' })), updatedAt: Date.now() } : prev); }
+                const idx = Number(snap.idx) || 0, max = Number(snap.max) || 0;
+                liveRoomRef.current = room; liveRoleRef.current = role; rouletteTimeoutsRef.current.forEach(t => clearTimeout(t)); rouletteTimeoutsRef.current = []; pendingTurnRef.current = null;
+                liveRef.current = { ver: snap.ver, t: snap.t || 0, gid: snap.gid || '', hash: liveHash(idx, max, liveHistStr(hist)), spinId: snap.spin ? snap.spin.id : 0, punId: snap.pun ? snap.pun.id : 0, endedSent: false, appliedAt: Date.now(), reassertAt: 0 };
+                setLive({ room, role }); setLiveEnded(false); setLiveInvite(null); setLiveCount(c => Math.max(c, 1));
+                const f = snap.fx || {}; setLiveFx({ ...settings, timerOn: !!f.timerOn, timerSec: f.timerSec || settings.timerSec, punishOn: !!f.punishOn });
+                setHardMode(!!snap.hard); setPunDoneKey(snap.pun && snap.pun.key ? String(snap.pun.key) : ''); setGameMode('normal'); setGameQuestions(deck); setCurrentIndex(idx); setMaxReachedIndex(max); setTurnHistory(hist);
+                setTurnPopup({ open: false, spinning: false, highlight: 'guy', winner: null, candidates: [] }); setPunish({ open: false, text: '', player: '', icon: '⏰' }); setShowSkipPopup(false); setTimerDismissKey('');
+                setAnsweredCount(0); setCompletedAllFlag(false); setShowEndGameConfirm(false); SoundFX.success(); navigate('game');
+                return true;
+            };
+            // моя запись в общей комнате оказалась «старше» моей же — её перебила чужая с более ранней версией: повторяем актуальное состояние
+            const liveReassert = (seen) => {
+                const lr = liveRef.current, now = Date.now(); if (livePendingRef.current > 0 || now - (lr.reassertAt || 0) < 5000) return;
+                lr.reassertAt = now; lr.ver = Math.max(lr.ver, seen); const st = liveStateRef.current, hs = liveHistStr(st.hist);
+                lr.hash = liveHash(st.idx, st.max, hs); livePublish({ idx: st.idx, max: st.max, hist: hs });
             };
             const applyLiveSnapshot = (snap) => {
                 if (!snap || typeof snap.ver !== 'number') return;
-                const lr = liveRef.current, mine = snap.by === deviceIdRef.current;
-                if (snap.ver < lr.ver || (snap.ver === lr.ver && (mine || (snap.t || 0) <= (lr.t || 0)))) return;
+                const lr = liveRef.current, me = deviceIdRef.current;
+                if (snap.gid && lr.gid && snap.gid !== lr.gid) { if (snap.by !== me && snap.status === 'active') { showToast('Запущена новая игра'); enterLive(snap, 'guest'); } return; }
+                if (snap.ver < lr.ver) { liveReassert(snap.ver); return; }
+                if (snap.ver === lr.ver) return;
                 lr.ver = snap.ver; lr.t = snap.t || 0;
-                if (mine) return;
+                if (snap.by === me) return;
                 let hist = {}; try { hist = JSON.parse(snap.hist || '{}') || {}; } catch (e) {}
                 const idx = Number(snap.idx) || 0, max = Number(snap.max) || 0;
-                lr.hash = liveHash(idx, max, snap.hist || '{}');
+                lr.hash = liveHash(idx, max, liveHistStr(hist)); lr.appliedAt = Date.now();
                 setCurrentIndex(idx); setMaxReachedIndex(max); setTurnHistory(hist);
+                setPunish(p => (p.remote ? { ...p, open: false } : p));
                 if (snap.spin && snap.spin.id && snap.spin.id !== lr.spinId) { lr.spinId = snap.spin.id; liveShowSpin(snap.spin); }
+                if (snap.pun && snap.pun.id && snap.pun.id !== lr.punId) { lr.punId = snap.pun.id; liveShowPun(snap.pun); }
                 if (snap.status === 'ended' && !lr.endedSent) { lr.endedSent = true; setLiveEnded(true); }
             };
             const applyLiveRef = useRef(null); applyLiveRef.current = applyLiveSnapshot;
@@ -1241,45 +1312,63 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
                     } catch (e) {}
                     busy = false;
                 };
-                const id = setInterval(tick, LIVE_POLL_MS); return () => { stop = true; clearInterval(id); };
+                const id = setInterval(tick, LIVE_POLL_MS); const vis = () => { if (!document.hidden) tick(); }; document.addEventListener('visibilitychange', vis);
+                return () => { stop = true; clearInterval(id); document.removeEventListener('visibilitychange', vis); };
+            }, [live.room, screen]);
+            // «я здесь»: раз в 8 с отмечаемся в комнате и узнаём, сколько устройств сейчас в игре
+            useEffect(() => {
+                if (!live.room || !['game', 'ai_response'].includes(screen)) return;
+                let stop = false;
+                const beat = async () => {
+                    if (stop || document.hidden) return; const me = deviceIdRef.current;
+                    try {
+                        await liveSend('PATCH', { [me]: Date.now() }, '/p');
+                        const r = await fetchWithTimeout(roomUrl(live.room, '/p') + '?t=' + Date.now(), {}, 6000); const p = r.ok ? await r.json() : null;
+                        const { alive, stale } = liveAlive(p, Date.now(), me);
+                        if (!stop) { liveIdsRef.current = alive; setLiveCount(Math.max(1, alive.length)); }
+                        if (!stop && stale.length) liveSend('PATCH', Object.fromEntries(stale.map(id => [id, null])), '/p');
+                    } catch (e) {}
+                };
+                beat(); const id = setInterval(beat, LIVE_BEAT_MS); const vis = () => { if (!document.hidden) beat(); }; document.addEventListener('visibilitychange', vis);
+                return () => { stop = true; clearInterval(id); document.removeEventListener('visibilitychange', vis); };
             }, [live.room, screen]);
             useEffect(() => {
                 if (!live.room || screen !== 'game') return;
-                const hist = JSON.stringify(turnHistory), h = liveHash(currentIndex, maxReachedIndex, hist);
+                const hs = liveHistStr(turnHistory), h = liveHash(currentIndex, maxReachedIndex, hs);
                 if (h === liveRef.current.hash) return;
-                liveRef.current.hash = h; livePublish({ idx: currentIndex, max: maxReachedIndex, hist });
+                liveRef.current.hash = h; livePublish({ idx: currentIndex, max: maxReachedIndex, hist: hs });
             }, [live.room, screen, currentIndex, maxReachedIndex, turnHistory]);
+            // приглашение: на главной и экранах выбора режима смотрим, идёт ли в сессии игра, в которой уже есть другие устройства
             useEffect(() => {
-                if (screen !== 'menu' || !profile || !isValidAESKey(profile.sessionKey) || live.room) { setLiveInvite(null); return; }
+                if (!['menu', 'mode_select', 'game_setup'].includes(screen) || !liveRoomId || live.room) { setLiveInvite(null); return; }
                 let stop = false;
                 const check = async () => {
                     if (document.hidden) return;
                     try {
-                        const room = await liveRoomKey(profile.sessionKey); const r = await fetchWithTimeout(roomUrl(room) + '?t=' + Date.now(), {}, 6000); const snap = r.ok ? await r.json() : null;
-                        if (!stop) setLiveInvite(snap && snap.status === 'active' && snap.by !== deviceIdRef.current && Date.now() - (snap.t || 0) < 6 * 3600 * 1000 ? snap : null);
+                        const sr = await fetchWithTimeout(roomUrl(liveRoomId, '/status') + '?t=' + Date.now(), {}, 6000); const status = sr.ok ? await sr.json() : null;
+                        if (stop) return; if (status !== 'active') { setLiveInvite(null); return; }
+                        const pr = await fetchWithTimeout(roomUrl(liveRoomId, '/p') + '?t=' + Date.now(), {}, 6000); const p = pr.ok ? await pr.json() : null;
+                        const n = liveAlive(p, Date.now(), deviceIdRef.current).others.length;
+                        if (!stop) setLiveInvite(n > 0 ? (cur => (cur && cur.count === n ? cur : { count: n })) : null);
                     } catch (e) {}
                 };
                 check(); const id = setInterval(check, LIVE_INVITE_MS); return () => { stop = true; clearInterval(id); };
-            }, [screen, profile && profile.sessionKey, live.room]);
-            useEffect(() => { if (live.room && !['game', 'ai_response', 'summary'].includes(screen)) { liveSendEnd(); liveRoomRef.current = ''; liveRoleRef.current = ''; setLive({ room: '', role: '' }); setLiveFx(null); } }, [screen]);
-            useEffect(() => { if (liveEnded) { setLiveEnded(false); showToast('Партнёр завершил игру'); handleFinishGame(false); } }, [liveEnded]);
-            const startLive = async () => {
-                if (!profile || !isValidAESKey(profile.sessionKey)) { showErrorPopup('Нужна общая сессия', 'Игра с двух телефонов работает внутри одной сессии. Откройте её на втором телефоне (ссылка или ID из «Меню»).'); return; }
-                const room = await liveRoomKey(profile.sessionKey);
-                liveHostPendingRef.current = room; liveRoomRef.current = room; liveRoleRef.current = 'host'; liveRef.current = { ver: 0, t: 0, hash: '', spinId: 0, endedSent: false };
-                setLive({ room, role: 'host' }); setLiveFx(null); setHardMode(false); startWithMode('normal');
+            }, [screen, liveRoomId, live.room]);
+            // выход из игры одного устройства не завершает её для остальных: просто убираем свою отметку
+            const liveLeave = () => {
+                const room = liveRoomRef.current, me = deviceIdRef.current;
+                if (room) fetchWithTimeout(roomUrl(room, '/p/' + me), { method: 'DELETE', keepalive: true }, 6000).catch(() => {});
+                liveRoomRef.current = ''; liveRoleRef.current = ''; setLive({ room: '', role: '' }); setLiveFx(null); setLiveCount(0);
             };
+            useEffect(() => { if (live.room && !['game', 'ai_response', 'summary'].includes(screen)) liveLeave(); }, [screen]);
+            useEffect(() => { const h = () => { if (liveRoomRef.current) liveLeave(); }; window.addEventListener('pagehide', h); return () => window.removeEventListener('pagehide', h); }, []);
+            useEffect(() => { if (liveEnded) { setLiveEnded(false); showToast('Игра завершена на другом устройстве'); handleFinishGame(false); } }, [liveEnded]);
             const joinLive = async () => {
-                const snap = liveInvite; if (!snap || !profile) return;
-                const ids = String(snap.ids || '').split(',').filter(Boolean); const map = new Map(profileDb.map(q => [String(q.id || q.dbKey), q])); const deck = ids.map(id => map.get(id)).filter(Boolean);
-                if (!ids.length || deck.length !== ids.length) { showErrorPopup('Не удалось присоединиться', 'Не все вопросы загружены. Обновите страницу и попробуйте снова.'); return; }
-                const room = await liveRoomKey(profile.sessionKey); let hist = {}; try { hist = JSON.parse(snap.hist || '{}') || {}; } catch (e) {}
-                liveRoomRef.current = room; liveRoleRef.current = 'guest';
-                liveRef.current = { ver: snap.ver, t: snap.t || 0, hash: liveHash(Number(snap.idx) || 0, Number(snap.max) || 0, snap.hist || '{}'), spinId: snap.spin ? snap.spin.id : 0, endedSent: false };
-                setLive({ room, role: 'guest' }); setLiveEnded(false); setLiveInvite(null);
-                setLiveFx({ ...settings, timerOn: !!(snap.fx && snap.fx.timerOn), timerSec: (snap.fx && snap.fx.timerSec) || settings.timerSec, punishOn: !!(snap.fx && snap.fx.punishOn) });
-                setHardMode(!!snap.hard); setGameMode('normal'); setGameQuestions(deck); setCurrentIndex(Number(snap.idx) || 0); setMaxReachedIndex(Number(snap.max) || 0); setTurnHistory(hist);
-                setAnsweredCount(0); setCompletedAllFlag(false); setShowEndGameConfirm(false); SoundFX.success(); navigate('game');
+                if (!profile || !liveRoomIdRef.current) return;
+                let snap = null; try { const r = await fetchWithTimeout(roomUrl(liveRoomIdRef.current) + '?t=' + Date.now(), {}, 8000); snap = r.ok ? await r.json() : null; } catch (e) {}
+                if (!snap || snap.status !== 'active' || !snap.ids) { setLiveInvite(null); showToast('Игра уже закончилась. Начните новую партию — приглашение появится здесь', 5000); return; }
+                if (liveAlive(snap.p, Date.now(), deviceIdRef.current).others.length >= LIVE_MAX_DEVICES) { showToast('В игре уже ' + LIVE_MAX_DEVICES + ' устройств — это максимум для одной сессии. Дождитесь, пока кто-нибудь выйдет', 5000); return; }
+                enterLive(snap, 'guest');
             };
             const handleCloseRoulettePopup = () => {
                 rouletteTimeoutsRef.current.forEach(t => clearTimeout(t)); rouletteTimeoutsRef.current = [];
@@ -1288,27 +1377,44 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
                 setTurnPopup(prev => ({ ...prev, open: false, spinning: false }));
             };
 
-            const handleResumeSavedGame = () => {
+            const handleResumeSavedGame = async () => {
                 if (!profile?.savedGame || !profile.savedGame.questionIds?.length) return; SoundFX.click();
                 const qMap = new Map(); profileDb.forEach(q => { qMap.set(q.id, q); qMap.set(q.dbKey, q); });
-                const restoredDeck = profile.savedGame.questionIds.map(id => qMap.get(id)).filter(Boolean);
+                let restoredDeck = profile.savedGame.questionIds.map(id => qMap.get(id)).filter(Boolean);
                 if (restoredDeck.length === 0) { setProfile(prev => ({ ...prev, savedGame: null, updatedAt: Date.now() })); return; }
+                const canLive = !!liveRoomIdRef.current; if (canLive && restoredDeck.length > LIVE_MAX_DECK) restoredDeck = restoredDeck.slice(0, LIVE_MAX_DECK);
                 const cIdx = Math.min(profile.savedGame.currentIndex || 0, restoredDeck.length - 1); const mIdx = Math.min(profile.savedGame.maxReachedIndex || cIdx, restoredDeck.length - 1); const tHist = profile.savedGame.turnHistory || {};
-                setGameMode('normal'); setGameQuestions(restoredDeck); setCurrentIndex(cIdx); setMaxReachedIndex(mIdx); setTurnHistory(tHist); setAnsweredCount(0); setCompletedAllFlag(false); setShowEndGameConfirm(false); setTurnPopup({ open: false, spinning: false, highlight: 'guy', winner: null }); navigate('game');
+                // если эта же партия ещё идёт на других устройствах — возвращаемся в неё, а не затираем её своим старым состоянием
+                if (canLive) {
+                    try {
+                        const r = await fetchWithTimeout(roomUrl(liveRoomIdRef.current) + '?t=' + Date.now(), {}, 6000); const snap = r.ok ? await r.json() : null;
+                        const n = snap ? liveAlive(snap.p, Date.now(), deviceIdRef.current).others.length : 0;
+                        // других устройств сейчас нет — берём состояние из комнаты, если оно не отстаёт от моего сохранения (там самый свежий ход)
+                        if (snap && snap.status === 'active' && snap.ids === restoredDeck.map(q => String(q.id || q.dbKey)).join(',') && n < LIVE_MAX_DEVICES && (n > 0 || (Number(snap.max) || 0) >= mIdx) && enterLive(snap, 'guest')) return;
+                    } catch (e) {}
+                }
+                setPunDoneKey(''); setGameMode('normal'); setGameQuestions(restoredDeck); setCurrentIndex(cIdx); setMaxReachedIndex(mIdx); setTurnHistory(tHist); setAnsweredCount(0); setCompletedAllFlag(false); setShowEndGameConfirm(false); setTurnPopup({ open: false, spinning: false, highlight: 'guy', winner: null }); navigate('game');
+                if (canLive) liveStart(restoredDeck, { idx: cIdx, max: mIdx, hist: tHist, hard: hardMode, fx: { timerOn: hardMode && !!settings.timerOn, timerSec: settings.timerSec, punishOn: hardMode && !!settings.punishOn } });
                 if (!tHist[cIdx]) triggerRouletteForIndex(cIdx, tHist, restoredDeck);
             };
 
             const handlePressStartButton = () => { SoundFX.click(); if(!profile) return; navigate('mode_select'); };
-            const startWithMode = (mode) => {
+            const startWithMode = (mode, opts = {}) => {
                 SoundFX.click(); let pool = [];
                 if (mode === 'normal') { pool = profileDb.filter(q => !q.hidden && !q.archived && !q.disabled && selectedCats.includes(q.categoryId) && selectedDiffs.includes(q.level)); if (pool.length === 0) { alert("Нет активных вопросов!"); return; } } else { const catsToUse = selectedCats.length > 0 ? selectedCats : CATEGORIES.map(c => c.id); const diffsToUse = selectedDiffs.length > 0 ? selectedDiffs : DIFFICULTIES.map(d => d.id); pool = profileDb.filter(q => catsToUse.includes(q.categoryId) && diffsToUse.includes(q.level)); if (pool.length === 0) { alert("В базе нет вопросов!"); return; } }
                 let shuffled = [...pool]; if (mode === 'normal') { shuffled = buildDeck(pool); } else { for (let i = shuffled.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]; } }
-                setGameMode(mode); setGameQuestions(shuffled); setCurrentIndex(0); setMaxReachedIndex(0); setTurnHistory({}); setAnsweredCount(0); setCompletedAllFlag(false); setShowEndGameConfirm(false); navigate('game');
-                if (mode === 'normal') { updateSavedGameProgress(shuffled, 0, 0, {}); livePublishStart(shuffled); triggerRouletteForIndex(0, {}, shuffled); }
+                const isHard = opts.hard !== undefined ? !!opts.hard : hardMode, canLive = mode === 'normal' && !!liveRoomIdRef.current;
+                if (canLive && shuffled.length > LIVE_MAX_DECK) shuffled = shuffled.slice(0, LIVE_MAX_DECK);
+                setPunDoneKey(''); setGameMode(mode); setGameQuestions(shuffled); setCurrentIndex(0); setMaxReachedIndex(0); setTurnHistory({}); setAnsweredCount(0); setCompletedAllFlag(false); setShowEndGameConfirm(false); navigate('game');
+                if (mode === 'normal') {
+                    updateSavedGameProgress(shuffled, 0, 0, {});
+                    if (canLive) liveStart(shuffled, { idx: 0, max: 0, hist: {}, hard: isHard, fx: { timerOn: isHard && !!settings.timerOn, timerSec: settings.timerSec, punishOn: isHard && !!settings.punishOn } });
+                    triggerRouletteForIndex(0, {}, shuffled);
+                }
             };
 
-            const handleNextQuestion = () => { if (advanceTurn()) return; if (currentIndex < gameQuestions.length - 1) { const currentQ = gameQuestions[currentIndex]; const currentQKey = currentQ ? (currentQ.id || currentQ.dbKey) : null; const nextIdx = currentIndex + 1; const nextMax = Math.max(maxReachedIndex, nextIdx); SoundFX.flip('right'); setCurrentIndex(nextIdx); setMaxReachedIndex(nextMax); if (gameMode === 'normal') { updateSavedGameProgress(gameQuestions, nextIdx, nextMax, turnHistory, currentQKey); if (!turnHistory[nextIdx]) triggerRouletteForIndex(nextIdx, turnHistory, gameQuestions); } } else { SoundFX.click(); handleFinishGame(true); } };
-            const handlePrevQuestion = () => { if (currentIndex <= 0) return; SoundFX.flip('left'); const prevIdx = currentIndex - 1; setCurrentIndex(prevIdx); if (gameMode === 'normal') { updateSavedGameProgress(gameQuestions, prevIdx, maxReachedIndex, turnHistory); } };
+            const handleNextQuestion = () => { if (liveRoomRef.current && Date.now() - liveRef.current.appliedAt < LIVE_TAP_GUARD_MS) return; if (advanceTurn()) return; if (currentIndex < gameQuestions.length - 1) { const currentQ = gameQuestions[currentIndex]; const currentQKey = currentQ ? (currentQ.id || currentQ.dbKey) : null; const nextIdx = currentIndex + 1; const nextMax = Math.max(maxReachedIndex, nextIdx); SoundFX.flip('right'); setCurrentIndex(nextIdx); setMaxReachedIndex(nextMax); if (gameMode === 'normal') { updateSavedGameProgress(gameQuestions, nextIdx, nextMax, turnHistory, currentQKey); if (!turnHistory[nextIdx]) triggerRouletteForIndex(nextIdx, turnHistory, gameQuestions); } } else { SoundFX.click(); handleFinishGame(true); } };
+            const handlePrevQuestion = () => { if (currentIndex <= 0) return; if (liveRoomRef.current && Date.now() - liveRef.current.appliedAt < LIVE_TAP_GUARD_MS) return; SoundFX.flip('left'); const prevIdx = currentIndex - 1; setCurrentIndex(prevIdx); if (gameMode === 'normal') { updateSavedGameProgress(gameQuestions, prevIdx, maxReachedIndex, turnHistory); } };
             const archiveAnsweredQuestions = (questionsToArchive) => { if (!questionsToArchive || questionsToArchive.length === 0 || !profile) return; const newArchKeys = questionsToArchive.map(q => q.id || q.dbKey); setProfile(prev => { const merged = Array.from(new Set([...(prev.archivedIds || []), ...newArchKeys])); return { ...prev, archivedIds: merged, savedGame: null, updatedAt: Date.now() }; }); };
             const handleRestoreSingleFromArchive = (qObj) => { SoundFX.success(); setProfile(prev => ({ ...prev, archivedIds: (prev.archivedIds || []).filter(k => k !== qObj.id && k !== qObj.dbKey), updatedAt: Date.now() })); };
             const handleRestoreBatchFromArchive = (listToRestore) => { if (!listToRestore || listToRestore.length === 0) return; SoundFX.success(); const keysToRemove = new Set(); listToRestore.forEach(q => { keysToRemove.add(q.id); keysToRemove.add(q.dbKey); }); setProfile(prev => ({ ...prev, archivedIds: (prev.archivedIds || []).filter(k => !keysToRemove.has(k)), updatedAt: Date.now() })); };
@@ -1794,6 +1900,12 @@ if (screen === 'app_menu') {
                 );
             }
 
+const liveInviteBanner = liveInvite ? (
+                <div role="status" className="w-full flex items-center justify-between gap-3 rounded-[20px] border border-emerald-400/40 bg-emerald-400/10 px-4 py-3 fade-in">
+                    <span className="text-sm text-emerald-100 leading-snug">👥 В вашей сессии уже идёт игра — в ней {liveInvite.count} {declOfNum(liveInvite.count, ['устройство', 'устройства', 'устройств'])}</span>
+                    <button type="button" onClick={joinLive} className="btn-primary btn-sm flex-shrink-0">Присоединиться</button>
+                </div>
+            ) : null;
 if (screen === 'mode_select') {
                 return (
                     <div className="safe-screen w-full flex flex-col items-center slide-up relative z-10">
@@ -1803,7 +1915,8 @@ if (screen === 'mode_select') {
                             <h1 className="flex-1 text-center pr-11 text-lg font-bold text-white">Выберите режим</h1>
                         </header>
                         <main className="w-full max-w-md flex flex-col gap-4 pt-6 pb-8">
-                            <button disabled={stats.availableActive === 0} onClick={() => { SoundFX.click(); setHardMode(false); startWithMode('normal'); }} className="opt-card opt-brand">
+                            {liveInviteBanner}
+                            <button disabled={stats.availableActive === 0} onClick={() => { SoundFX.click(); setHardMode(false); startWithMode('normal', { hard: false }); }} className="opt-card opt-brand">
                                 <span aria-hidden="true" className="w-12 h-12 rounded-xl bg-rose-500/20 flex items-center justify-center text-2xl flex-shrink-0">💬</span>
                                 <span className="flex-1 min-w-0 flex flex-col gap-1.5">
                                     <span className="flex items-center justify-between gap-2"><span className="font-bold text-sm text-white">Обычный режим</span> <span className="text-xs font-bold px-2.5 py-0.5 rounded-lg bg-rose-500/25 text-rose-200">{stats.availableActive} вопр.</span></span>
@@ -1818,13 +1931,7 @@ if (screen === 'mode_select') {
                                     <span className="flex flex-wrap gap-1.5 text-xs font-bold text-amber-100/90"><span className="px-2.5 py-1 rounded-full bg-white/[0.07]">⏱ Таймер</span><span className="px-2.5 py-1 rounded-full bg-white/[0.07]">🎭 Наказания</span></span>
                                 </span>
                             </button>
-                            <button disabled={!profile || !isValidAESKey(profile.sessionKey)} onClick={() => { SoundFX.click(); startLive(); }} className="opt-card opt-orchid">
-                                <span aria-hidden="true" className="w-12 h-12 rounded-xl bg-emerald-400/15 flex items-center justify-center text-2xl flex-shrink-0">📱</span>
-                                <span className="flex-1 min-w-0 flex flex-col gap-1.5">
-                                    <span className="font-bold text-sm text-white">С двух телефонов</span>
-                                    <span className="text-xs text-zinc-300 leading-relaxed">Оба телефона видят одну игру: вопросы, очередь и рулетка синхронизируются. Откройте эту же сессию на втором телефоне и нажмите «Присоединиться» на главной.</span>
-                                </span>
-                            </button>
+                            <p className="px-2 text-xs text-zinc-400 leading-relaxed text-center">👥 Игра сама синхронизируется на всех устройствах вашей сессии — до {MAX_PLAYERS} одновременно: вопросы, очередь, рулетка{'\u00A0'}и таймер{'\u00A0'}у всех одинаковые. Откройте сессию на других телефонах — приглашение появится на главной.</p>
                             {isAdmin && (
                                 <button onClick={() => { SoundFX.click(); setHardMode(false); startWithMode('test'); }} className="opt-card">
                                     <span aria-hidden="true" className="w-12 h-12 rounded-xl bg-white/[0.07] flex items-center justify-center text-2xl flex-shrink-0">🧪</span>
@@ -1851,12 +1958,7 @@ if (screen === 'mode_select') {
                     <div className="safe-screen w-full flex flex-col items-center justify-between slide-up relative z-10">
                         <ToastBanner /> {exitConfirmPopup} <PwaInstallModal />
                         <div className="w-full max-w-md lg:max-w-4xl mx-auto flex flex-col gap-7 pt-1">
-                            {liveInvite && (
-                                <div className="w-full flex items-center justify-between gap-3 rounded-[20px] border border-emerald-400/40 bg-emerald-400/10 px-4 py-3 fade-in">
-                                    <span className="text-sm text-emerald-100 leading-snug">👥 Партнёр запустил игру</span>
-                                    <button type="button" onClick={joinLive} className="btn-primary btn-sm flex-shrink-0">Присоединиться</button>
-                                </div>
-                            )}
+                            {liveInviteBanner}
                             <header className="w-full flex items-center justify-between gap-3">
                                 <button onClick={() => { if(profile) { SoundFX.click(); setPlayersForm(profile.players); navigate('profile_page'); } else navigate('onboarding'); }} className="btn-secondary btn-sm min-w-0">
                                     <Icons.User /> <span className="truncate max-w-[120px] sm:max-w-[200px]">{pNamesStr}</span> {isAdmin && <span className="text-rose-400 text-xs">●</span>}
@@ -1940,7 +2042,7 @@ if (screen === 'mode_select') {
                 const turnDone = gameMode !== 'normal' || (!!turnEntry && !turnEntry.cur && (profile?.players || []).every(p => turnEntry.answered.includes(p.id)));
                 const turnSkipped = turnDone && gameMode === 'normal' && isTurnSkipped(turnEntry, profile?.players || []);
                 const skippedNames = (turnEntry ? turnEntry.skippedBy : []).map(id => (profile?.players || []).find(p => p.id === id)).filter(Boolean).map(p => p.name).join(', ');
-                const tmFrac = settings.timerSec > 0 ? Math.max(0, Math.min(1, tm.left / settings.timerSec)) : 0;
+                const tmFrac = fx.timerSec > 0 ? Math.max(0, Math.min(1, tm.left / fx.timerSec)) : 0;
                 const tmUrgent = tm.left <= 5;
                 const tmColor = tm.left <= 5 ? '#f43f5e' : tm.left <= 10 ? '#fbbf24' : '#34d399';
                 const isPreviousQuestion = currentIndex < maxReachedIndex;
@@ -1962,6 +2064,7 @@ if (screen === 'mode_select') {
                         <header className="w-full max-w-xl mx-auto flex justify-between items-center py-2 flex-shrink-0 gap-2">
                             <div className="flex items-center gap-2">
                                 <div className="px-3.5 py-1.5 rounded-full border border-white/[0.16] text-white font-display font-bold text-xs "> {currentIndex + 1} <span className="text-zinc-500">/</span> {gameQuestions.length} </div>
+                                {live.room && liveCount > 1 && ( <div className="tag" role="status" aria-label={`Устройств в игре: ${liveCount}`}><span aria-hidden="true">👥</span> {liveCount}</div> )}
                                 {isAdmin && gameMode === 'test' && ( <button onClick={() => openEditScreen(currentQ, 'game')} className="btn-icon"><Icons.Edit /></button> )}
                             </div>
                             <div className="flex items-center gap-1.5">
@@ -2001,7 +2104,7 @@ if (screen === 'mode_select') {
                                         {skippedNames && <span className="text-xs text-amber-200/80 text-center px-4">Пропустили: {skippedNames}</span>}
                                         {timerKey && tm.key === timerKey && timerDismissKey === timerKey && (
                                             <div className="w-56 mt-2 flex flex-col items-center gap-1" role="timer">
-                                                <div className="w-full h-1.5 rounded-full bg-white/[0.10] overflow-hidden"><div className={`h-full rounded-full transition-all duration-1000 ease-linear ${tm.left <= 5 ? 'bg-rose-600' : tm.left <= 10 ? 'bg-amber-400' : 'bg-emerald-400'}`} style={{ width: `${Math.max(0, Math.min(100, (tm.left / settings.timerSec) * 100))}%` }}></div></div>
+                                                <div className="w-full h-1.5 rounded-full bg-white/[0.10] overflow-hidden"><div className={`h-full rounded-full transition-all duration-1000 ease-linear ${tm.left <= 5 ? 'bg-rose-600' : tm.left <= 10 ? 'bg-amber-400' : 'bg-emerald-400'}`} style={{ width: `${Math.max(0, Math.min(100, (tm.left / fx.timerSec) * 100))}%` }}></div></div>
                                                 <span className={`font-display text-sm font-bold tabular-nums ${tm.left <= 5 ? 'text-rose-300 animate-pulse' : 'text-zinc-300'}`}>⏱ {Math.max(0, tm.left)} с</span>
                                             </div>
                                         )}
@@ -2097,7 +2200,9 @@ if (screen === 'mode_select') {
                             <div className="text-center flex flex-col items-center gap-5 pt-2">
                                 <h3 className="text-lg font-bold text-white pr-4 pl-4">Завершить текущую партию?</h3>
                                 {gameMode === 'normal' && <p className="text-xs text-zinc-400 leading-relaxed">Пройденные вопросы ({maxReachedIndex + 1} шт.) перейдут в Архив сессии <b className="text-rose-300">{profile.sessionId}</b>.</p>}
-                                <div className="grid grid-cols-2 gap-3 w-full"> <button onClick={() => { SoundFX.click(); setShowEndGameConfirm(false); }} className="btn-secondary w-full">Отмена</button> <button onClick={() => handleFinishGame(false)} className="btn-primary w-full">Да</button> </div>
+                                {live.room && liveCount > 1 && <p className="text-xs text-amber-200/90 leading-relaxed">Партия закончится у всех: в игре {liveCount} {declOfNum(liveCount, ['устройство', 'устройства', 'устройств'])}. Чтобы выйти только самому, выберите «Выйти, остальные продолжат».</p>}
+                                <div className="grid grid-cols-2 gap-3 w-full"> <button onClick={() => { SoundFX.click(); setShowEndGameConfirm(false); }} className="btn-secondary w-full">Отмена</button> <button onClick={() => handleFinishGame(false)} className="btn-primary w-full">{live.room && liveCount > 1 ? 'Для всех' : 'Да'}</button> </div>
+                                {live.room && liveCount > 1 && <button type="button" onClick={() => { SoundFX.click(); setShowEndGameConfirm(false); navigate('menu'); }} className="btn-secondary w-full">Выйти, остальные продолжат</button>}
                             </div>
                         </PopupModal>
                     </div>

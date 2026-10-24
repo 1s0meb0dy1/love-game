@@ -1,52 +1,68 @@
-// Две «телефона» (два независимых окна) играют одну игру через общую «базу» в памяти.
-const makeEnv = require('../harness.js');
-const A = makeEnv(), B = makeEnv(); const res = []; const T = (n, c) => res.push((c ? 'PASS ' : 'FAIL ') + n);
-const sleep = (ms) => new Promise(r => setTimeout(r, ms));
-const rooms = {}; let reqCount = 0;
-const route = (E) => { const base = E.w.fetch; E.w.fetch = async (url, opt) => { url = String(url); const m = url.match(/\/live\/(l_[0-9a-f]+)(\/ver)?\.json/); if (!m) return base(url, opt); reqCount++;
-  const method = (opt && opt.method) || 'GET', room = m[1], j = (o) => ({ ok: true, status: 200, json: async () => o });
-  if (method === 'PUT') { rooms[room] = JSON.parse(opt.body); return j(null); } if (method === 'PATCH') { rooms[room] = { ...(rooms[room] || {}), ...JSON.parse(opt.body) }; return j(null); }
-  const doc = rooms[room] || null; return j(m[2] ? (doc ? doc.ver : null) : doc); }; };
-route(A); route(B);
-const txt = (E) => E.D.body.textContent.replace(/\s+/g, ' ');
-const qn = (E) => { const m = txt(E).match(/Вопрос № (\d+)/); return m ? +m[1] : null; };
-const who = (E) => { const m = txt(E).match(/Отвечает:\s*(Макс|Аня)/); return m ? m[1] : null; };
-(async () => { try {
-  A.w.eval(A.code); await sleep(1800);
-  const inputs = [...A.D.querySelectorAll('input[type="text"]')]; A.setVal(inputs[0], 'Макс'); A.setVal(inputs[1], 'Аня'); await sleep(200);
-  await A.click('Создать сессию', 1200); await A.click('Перейти к игре', 900);
-  // второй телефон: та же сессия (профиль скопирован), открыт на главной
-  for (let i = 0; i < A.w.localStorage.length; i++) { const k = A.w.localStorage.key(i); B.w.localStorage.setItem(k, A.w.localStorage.getItem(k)); }
-  B.w.eval(B.code); await sleep(2200);
-  T('второй телефон открыт на главной той же сессии', B.has('Начать игру') && !B.has('Присоединиться'));
-  await A.click('Начать игру', 600);
-  T('на странице выбора режима есть «С двух телефонов»', A.has('С двух телефонов'));
-  await A.click('С двух телефонов', 3800);
-  T('телефон 1 (хозяин): игра запущена, идёт рулетка', A.has('Определяем') || A.has('К вопросу'));
+// Живая игра по умолчанию: три «телефона» (три независимых окна) одной сессии играют одну партию через общую «базу» в памяти.
+// База проверяет записи теми же правилами, что database.rules.json, поэтому отклонённая запись видна в db.stats.denied.
+const { boot, sleep, txt, qn, pos, who, inGame, devId, tap, chip, closeRoulette, openGameMenu } = require('../live-helpers.js');
+(async () => { const S = await boot(3); const { devs, db, T } = S; const [A, B, C] = devs;
+ try {
+  const onMenu = (E) => E.D.title.startsWith('ASK ME —');
+  T('все три телефона открыты на главной одной сессии', devs.every(E => onMenu(E) && E.has('Начать игру')));
+  T('никакого отдельного режима «С двух телефонов» нет — приглашений до начала игры тоже нет', devs.every(E => !E.has('Присоединиться')));
+  await A.click('Начать игру', 700);
+  T('на странице выбора режима нет карточки «С двух телефонов», зато есть пояснение про автосинхронизацию', !A.has('С двух телефонов') && A.has('синхронизируется на всех устройствах') && A.has('до 10 одновременно'));
+  await A.click('Обычный режим', 3800);
+  T('A: игра запущена, идёт рулетка выбора отвечающего', inGame(A) && (A.has('Определяем') || A.has('К вопросу')));
+  const r0 = db.room();
+  T('в общей комнате появилась партия: статус active, список вопросов, обычный режим без усложнений', !!r0 && r0.status === 'active' && String(r0.ids).split(',').length >= 10 && r0.hard === 0 && r0.fx && r0.fx.timerOn === false && r0.fx.punishOn === false);
+  T('в комнате нет самих текстов вопросов — только их номера', !/\?/.test(String(r0.ids)) && /^[\w,\-]+$/.test(String(r0.ids)));
+  await closeRoulette(A, 600);
   await sleep(3500);
-  T('телефон 2: на главной появилось приглашение «Присоединиться»', B.has('Партнёр запустил игру') && B.has('Присоединиться'));
-  await A.click('К вопросу', 600);
-  await B.click('Присоединиться', 1500);
-  T('телефон 2 присоединился: открыт экран игры', B.D.title === 'Игра — ASK ME');
-  await sleep(1500);
-  if (B.has('К вопросу')) await B.click('К вопросу', 500);
-  const qa = qn(A), qb = qn(B), wa = who(A), wb = who(B);
-  T('оба телефона видят один и тот же вопрос (№' + qa + ') и одного отвечающего (' + wa + ')', qa && qa === qb && wa && wa === wb);
-  await A.click('Далее', 2500);
-  T('«Далее» на телефоне 1 → телефон 2 переходит к следующему игроку (' + who(A) + ' = ' + who(B) + ')', who(A) && who(B) === who(A) && who(A) !== wa);
+  T('B и C видят приглашение «Присоединиться» (в игре 1 устройство)', [B, C].every(E => E.has('В вашей сессии уже идёт игра') && E.has('1 устройство') && E.has('Присоединиться')));
+  T('у A приглашения нет — он уже в игре', !A.has('Присоединиться'));
+
+  await B.click('Присоединиться', 1800); await C.click('Присоединиться', 1800);
+  T('B и C присоединились: оба на экране игры', inGame(B) && inGame(C));
+  await closeRoulette(B, 300); await closeRoulette(C, 300); await sleep(500);
+  const q0 = qn(A), w0 = who(A), p0 = pos(A);
+  T('все три устройства видят один и тот же вопрос (№' + q0 + ') и одного отвечающего (' + w0 + ')', q0 && qn(B) === q0 && qn(C) === q0 && w0 && who(B) === w0 && who(C) === w0);
+  T('у присоединившихся тот же набор игроков, что у хозяина (игроки взяты из партии)', [B, C].every(E => /Макс|Аня/.test(who(E) || '')));
+
+  await sleep(9500);
+  T('на всех трёх устройствах значок «👥 3» (число устройств в игре)', chip(A) === '3' && chip(B) === '3' && chip(C) === '3');
+  const pres = db.room().p || {};
+  T('в комнате отмечены ровно три разных устройства', Object.keys(pres).length === 3 && [A, B, C].every(E => pres[devId(E)]));
+
+  // «Далее» с не-хозяина доходит до остальных
   await B.click('Далее', 2500);
-  T('«Далее» на телефоне 2 → телефон 1 видит «Вопрос пройден»', A.has('Вопрос пройден') && B.has('Вопрос пройден'));
-  await B.click('Далее', 3800); await sleep(300);
-  T('рулетку нового вопроса запустил телефон 2, и телефон 1 видит её тоже', A.has('Определяем') || A.has('К вопросу'));
-  await sleep(3000); if (A.has('К вопросу')) await A.click('К вопросу', 400); if (B.has('К вопросу')) await B.click('К вопросу', 400);
-  const qa2 = qn(A), qb2 = qn(B); T('новый вопрос одинаков на обоих телефонах (№' + qa2 + ')', qa2 && qa2 === qb2 && qa2 !== qa);
-  T('отвечающий на новом вопросе одинаков (' + who(A) + ')', who(A) && who(A) === who(B));
-  const doc = Object.values(rooms)[0]; T('в общей «базе» одна комната: версия растёт, история игры хранится строкой, без имён игроков в ней', Object.keys(rooms).length === 1 && doc.ver > 5 && typeof doc.hist === 'string' && !/Макс|Аня/.test(JSON.stringify({ ids: doc.ids, hist: doc.hist })));
-  const menuBtn = [...A.D.querySelectorAll('button')].find(b => /Меню/.test(b.textContent) && /btn-sm/.test(b.className)); menuBtn.dispatchEvent(new A.w.MouseEvent('click', { bubbles: true })); await sleep(400);
-  [...A.D.querySelectorAll('.viewport-popup-box .grid button')].find(b => b.textContent.trim() !== 'Отмена').dispatchEvent(new A.w.MouseEvent('click', { bubbles: true })); await sleep(1500);
-  T('телефон 1 завершил игру → итоги', A.D.title === 'Итоги игры — ASK ME');
-  await sleep(3000);
-  T('телефон 2 автоматически получил завершение: итоги игры и сообщение', B.D.title === 'Итоги игры — ASK ME');
-  T('комната помечена завершённой, чтобы новые приглашения не появлялись', Object.values(rooms)[0].status === 'ended');
-  console.log(res.join('\n')); console.log('--- captured runtime errors:', A.errors.length + B.errors.length); [...A.errors, ...B.errors].slice(0, 6).forEach(e => console.log(' ', e)); process.exit(0);
-} catch (err) { console.log(res.join('\n')); console.log('TEST CRASH:', err.message.split('\n')[0], '| A:', A.D.title, txt(A).slice(0, 140), '| B:', B.D.title, txt(B).slice(0, 140)); process.exit(1); } })();
+  const w1 = who(B);
+  T('«Далее» на B → у A и C тот же следующий отвечающий (' + w1 + ')', w1 && w1 !== w0 && who(A) === w1 && who(C) === w1);
+  await C.click('Далее', 2500);
+  T('«Далее» на C → у всех «Вопрос пройден»', [A, B, C].every(E => E.has('Вопрос пройден')));
+
+  // одновременное «Далее» на двух устройствах не ломает партию и не перескакивает через вопрос
+  tap(A, 'Далее'); tap(B, 'Далее');
+  await sleep(6500);
+  for (const E of devs) await closeRoulette(E, 200);
+  await sleep(3500);
+  const q1 = qn(A), w2 = who(A);
+  T('после одновременного «Далее» на двух устройствах все приходят к одному и тому же вопросу (№' + q1 + ' = №' + qn(B) + ' = №' + qn(C) + ')', q1 && qn(B) === q1 && qn(C) === q1);
+  T('вопрос ровно следующий в колоде, а не через один (было ' + p0 + '-е место, стало ' + pos(A) + '-е у всех: ' + pos(B) + ', ' + pos(C) + ')', p0 && pos(A) === p0 + 1 && pos(B) === p0 + 1 && pos(C) === p0 + 1);
+  T('и отвечающий у всех один и тот же (' + w2 + ')', w2 && who(B) === w2 && who(C) === w2);
+
+  // выход одного устройства не завершает игру для остальных
+  await openGameMenu(C);
+  T('в окне «Завершить партию?» при нескольких устройствах есть «Для всех» и «Выйти, остальные продолжат»', C.has('Для всех') && C.has('Выйти, остальные продолжат') && C.has('Партия закончится у всех'));
+  await C.click('Выйти, остальные продолжат', 1500);
+  T('C вышел на главную', !inGame(C) && onMenu(C));
+  T('игра у A и B продолжается, партия в комнате не завершена', inGame(A) && inGame(B) && db.room().status === 'active');
+  T('отметка C из комнаты удалена, A и B остались', !(db.room().p || {})[devId(C)] && (db.room().p || {})[devId(A)] && (db.room().p || {})[devId(B)]);
+  await sleep(3800);
+  T('C снова видит приглашение (в игре 2 устройства)', C.has('В вашей сессии уже идёт игра') && C.has('2 устройства') && C.has('Присоединиться'));
+  await C.click('Присоединиться', 1800); await closeRoulette(C, 300); await sleep(600);
+  T('C вернулся в ту же партию: тот же вопрос и тот же отвечающий', inGame(C) && qn(C) === qn(A) && who(C) === who(A));
+  await B.click('Далее', 2200);
+  T('после возвращения синхронизация работает: «Далее» на B доходит до C', who(C) === who(B) && who(A) === who(B));
+
+  T('ни одна запись не отклонена правилами базы', db.stats.denied === 0);
+  T('в комнате нет лишних полей (только известные)', Object.keys(db.room()).every(k => ['ver', 'by', 't', 'gid', 'status', 'ids', 'idx', 'max', 'hist', 'hard', 'fx', 'pl', 'spin', 'pun', 'p'].includes(k)));
+  console.log('запросов к базе: чтений', db.stats.reads, '/ записей', db.stats.writes, '| по узлам', JSON.stringify(db.stats.gets));
+  S.finish(0);
+ } catch (err) { S.crash(err); } })();

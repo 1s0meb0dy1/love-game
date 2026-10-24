@@ -2,9 +2,9 @@
 const fs = require('fs'); const path = require('path'); const { JSDOM } = require('jsdom'); const babel = require('@babel/core');
 module.exports = () => {
   const root = path.join(__dirname, '..');
-  const appSrc = fs.readFileSync(path.join(root, 'src/app.jsx'), 'utf8');
+  const appSrc = fs.readFileSync(process.env.APP_JSX || path.join(root, 'src/app.jsx'), 'utf8'); // APP_JSX — запасной путь к другой версии кода (чтобы сравнить «до» и «после» правки)
   const jsx = appSrc.replace(/^import .*$/gm, '').replace(/^const ReactDOM = \{ \.\.\.ReactDOMAll, createRoot \};$/m, '');
-  const code = babel.transformSync(jsx, { presets: [['@babel/preset-react', { runtime: 'classic' }]] }).code;
+  const code = (module.exports.__cache = module.exports.__cache && module.exports.__cache.jsx === jsx ? module.exports.__cache : { jsx, code: babel.transformSync(jsx, { presets: [['@babel/preset-react', { runtime: 'classic' }]] }).code }).code;
   const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8') + '\n<style>' + fs.readFileSync(path.join(root, 'src/styles.css'), 'utf8') + '</style>';
   const exp = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures/questions.json'), 'utf8'));
   const qs = { ...exp, _meta: { schema: 1 } }; const qCount = Object.keys(exp).length;
