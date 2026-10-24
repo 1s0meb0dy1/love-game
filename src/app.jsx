@@ -399,7 +399,7 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
         const fmtDate = (ts) => { try { return new Date(ts).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }); } catch (e) { return ''; } };
         const gamesOf = (rec) => Object.values((rec && rec.games) || {}).filter(g => g && typeof g === 'object').sort((a, b) => (b.startedAt || 0) - (a.startedAt || 0));
         // Порог аналитики: в сводку идут игры, где отвечено не меньше AN_MIN вопросов, и все полностью пройденные колоды. Задаёт владелец.
-        const SESSION_PAYLOAD_MAX = 19000; // правило базы для sessions/$sid/payload: короче 20000 знаков (копия правила: tests/fixtures/sessions-rules.json)
+        const SESSION_PAYLOAD_MAX = 59000; // правило базы для sessions/$sid/payload: короче 60000 знаков (копия правила: tests/fixtures/sessions-rules.json). Поднимаете правило — поднимите и это число (на 1000 меньше)
         const AN_MIN_KEY = 'askme_an_min_v1', AN_MIN_DEFAULT = 50, AN_FLOOR = 10, AN_MIN_CHOICES = [0, 10, 20, 30, 50, 100];
         const readAnMin = () => { try { const raw = localStorage.getItem(AN_MIN_KEY); const n = raw === null ? NaN : Number(raw); return Number.isFinite(n) && n >= 0 ? Math.min(1000, Math.round(n)) : AN_MIN_DEFAULT; } catch (e) { return AN_MIN_DEFAULT; } };
         const gameCounts = (g, min) => !!g && typeof g === 'object' && (g.complete === 1 || g.complete === true || (Number(g.answered) || 0) >= min);
@@ -923,7 +923,7 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
                     const updatedAt = profData.updatedAt || Date.now();
                     const pack = (withGame) => encryptSessionAES({ players: profData.players, archivedIds: profData.archivedIds || [], disabledIds: profData.disabledIds || [], savedGame: withGame ? (profData.savedGame || null) : null, updatedAt }, profData.sessionKey);
                     let encrypted = await pack(true); if (!encrypted) throw new Error("encrypt");
-                    // правило базы: payload короче 20000 знаков. Незавершённая партия со всей колодой может его превысить, и тогда база молча отклоняла бы и имена, и архив:
+                    // правило базы: payload короче 60000 знаков (предел задаётся в консоли Firebase). Незавершённая партия со всей колодой может его превысить, и тогда база молча отклоняла бы и имена, и архив:
                     // в таком случае в облако уходит сессия без сохранённой партии (на самом устройстве партия остаётся)
                     if (encrypted.length >= SESSION_PAYLOAD_MAX) { const lite = await pack(false); if (lite) encrypted = lite; }
                     if (encrypted.length >= SESSION_PAYLOAD_MAX) throw new Error("too-big");
