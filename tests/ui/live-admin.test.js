@@ -1,5 +1,5 @@
 // Тестовый режим владельца не синхронизируется и ничего не пишет в общую комнату, а обычная игра владельца — синхронизируется как у всех.
-const { boot, waitFor, sleep, pos, who, inGame, closeRoulette, openGameMenu, chip, devId } = require('../live-helpers.js');
+const { joinGame, boot, waitFor, sleep, pos, who, inGame, closeRoulette, openGameMenu, chip, devId } = require('../live-helpers.js');
 (async () => { const S = await boot(2, {}, { setupA: (A) => A.w.localStorage.setItem('askme_auth_v2', JSON.stringify({ owner: { idToken: 't', refreshToken: 'r', expiresAt: Date.now() + 3.6e6 } })) });
  const { devs, db, T } = S; const [A, B] = devs;
  try {
@@ -23,7 +23,7 @@ const { boot, waitFor, sleep, pos, who, inGame, closeRoulette, openGameMenu, chi
   await A.click('Начать игру', 700); await A.click('Обычный режим', 4000); await closeRoulette(A, 500);
   const ok = await waitFor(() => B.has('Присоединиться'), 9000);
   T('обычная игра владельца синхронизируется: второе устройство получило приглашение', ok && !!db.room() && db.room().status === 'active');
-  await B.click('Присоединиться', 1800); await closeRoulette(B, 300); await sleep(500);
+  await joinGame(B); await closeRoulette(B, 300); await sleep(500);
   T('и присоединилось к той же партии (одинаковый вопрос и отвечающий)', inGame(B) && pos(B) === pos(A) && who(B) === who(A));
   T('ни одна запись не отклонена правилами базы', db.stats.denied === 0);
   S.finish(0);

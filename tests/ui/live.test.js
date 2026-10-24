@@ -1,24 +1,28 @@
 // Живая игра по умолчанию: три «телефона» (три независимых окна) одной сессии играют одну партию через общую «базу» в памяти.
-// База проверяет записи теми же правилами, что database.rules.json, поэтому отклонённая запись видна в db.stats.denied.
-const { boot, sleep, txt, qn, pos, who, inGame, devId, tap, chip, closeRoulette, openGameMenu } = require('../live-helpers.js');
+// База проверяет записи теми же правилами, что в консоли Firebase (копия: fixtures/live-rules.json), поэтому отклонённая запись видна в db.stats.denied.
+const { joinGame, boot, sleep, txt, qn, pos, who, inGame, devId, tap, chip, closeRoulette, openGameMenu } = require('../live-helpers.js');
 (async () => { const S = await boot(3); const { devs, db, T } = S; const [A, B, C] = devs;
  try {
   const onMenu = (E) => E.D.title.startsWith('ASK ME —');
   T('все три телефона открыты на главной одной сессии', devs.every(E => onMenu(E) && E.has('Начать игру')));
   T('никакого отдельного режима «С двух телефонов» нет — приглашений до начала игры тоже нет', devs.every(E => !E.has('Присоединиться')));
   await A.click('Начать игру', 700);
-  T('на странице выбора режима нет карточки «С двух телефонов», зато есть пояснение про автосинхронизацию', !A.has('С двух телефонов') && A.has('синхронизируется на всех устройствах') && A.has('до 10 одновременно'));
+  T('на странице выбора режима нет карточки «С двух телефонов», зато есть пояснение про автосинхронизацию и про то, что в одиночку ничего не отправляется', !A.has('С двух телефонов') && A.has('сама синхронизируется') && A.has('до 10 одновременно') && A.has('Пока вы играете одни'));
   await A.click('Обычный режим', 3800);
   T('A: игра запущена, идёт рулетка выбора отвечающего', inGame(A) && (A.has('Определяем') || A.has('К вопросу')));
   const r0 = db.room();
-  T('в общей комнате появилась партия: статус active, список вопросов, обычный режим без усложнений', !!r0 && r0.status === 'active' && String(r0.ids).split(',').length >= 10 && r0.hard === 0 && r0.fx && r0.fx.timerOn === false && r0.fx.punishOn === false);
-  T('в комнате нет самих текстов вопросов — только их номера', !/\?/.test(String(r0.ids)) && /^[\w,\-]+$/.test(String(r0.ids)));
+  T('в комнате «маячок» новой партии: active, solo, число вопросов, отпечаток колоды, обычный режим без усложнений', !!r0 && r0.status === 'active' && r0.solo === 1 && r0.n >= 10 && /^[\w-]{6,}$/.test(String(r0.dk)) && r0.hard === 0 && r0.fx && r0.fx.timerOn === false && r0.fx.punishOn === false);
+  T('пока игрок один, вопросов и хода игры в базе нет: нет ни списка вопросов, ни номера вопроса, ни отдельного узла с колодой', r0.ids === undefined && r0.idx === undefined && r0.hist === undefined && db.deck() === null);
   await closeRoulette(A, 600);
   await sleep(3500);
+  T('игрок один: A не опрашивает версию игры и не пишет состояние (только отметка «я здесь»)', !db.stats.gets.ver && db.room().idx === undefined && db.deck() === null);
   T('B и C видят приглашение «Присоединиться» (в игре 1 устройство)', [B, C].every(E => E.has('В вашей сессии уже идёт игра') && E.has('1 устройство') && E.has('Присоединиться')));
   T('у A приглашения нет — он уже в игре', !A.has('Присоединиться'));
 
-  await B.click('Присоединиться', 1800); await C.click('Присоединиться', 1800);
+  await joinGame(B);
+  const rS = db.room(), dS = db.deck();
+  T('как только подключился второй игрок, колода легла в отдельный узел (вся, ' + (rS && rS.n) + ' вопросов), а «маячок» стал рабочим состоянием', !!dS && !!rS && rS.solo === undefined && dS.d.split(',').length === rS.n && dS.g === rS.gid && rS.idx !== undefined && typeof rS.hist === 'string');
+  await joinGame(C);
   T('B и C присоединились: оба на экране игры', inGame(B) && inGame(C));
   await closeRoulette(B, 300); await closeRoulette(C, 300); await sleep(500);
   const q0 = qn(A), w0 = who(A), p0 = pos(A);
@@ -56,13 +60,13 @@ const { boot, sleep, txt, qn, pos, who, inGame, devId, tap, chip, closeRoulette,
   T('отметка C из комнаты удалена, A и B остались', !(db.room().p || {})[devId(C)] && (db.room().p || {})[devId(A)] && (db.room().p || {})[devId(B)]);
   await sleep(3800);
   T('C снова видит приглашение (в игре 2 устройства)', C.has('В вашей сессии уже идёт игра') && C.has('2 устройства') && C.has('Присоединиться'));
-  await C.click('Присоединиться', 1800); await closeRoulette(C, 300); await sleep(600);
+  await joinGame(C); await closeRoulette(C, 300); await sleep(600);
   T('C вернулся в ту же партию: тот же вопрос и тот же отвечающий', inGame(C) && qn(C) === qn(A) && who(C) === who(A));
   await B.click('Далее', 2200);
   T('после возвращения синхронизация работает: «Далее» на B доходит до C', who(C) === who(B) && who(A) === who(B));
 
   T('ни одна запись не отклонена правилами базы', db.stats.denied === 0);
-  T('в комнате нет лишних полей (только известные)', Object.keys(db.room()).every(k => ['ver', 'by', 't', 'gid', 'status', 'ids', 'idx', 'max', 'hist', 'hard', 'fx', 'pl', 'spin', 'pun', 'p'].includes(k)));
+  T('в комнате нет лишних полей (только известные)', Object.keys(db.room()).every(k => ['ver', 'by', 't', 'gid', 'status', 'n', 'dk', 'solo', 'idx', 'max', 'hist', 'hard', 'fx', 'pl', 'spin', 'pun', 'p'].includes(k)));
   console.log('запросов к базе: чтений', db.stats.reads, '/ записей', db.stats.writes, '| по узлам', JSON.stringify(db.stats.gets));
   S.finish(0);
  } catch (err) { S.crash(err); } })();

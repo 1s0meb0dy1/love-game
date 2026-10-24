@@ -13,7 +13,7 @@ const mainEl=()=>D.querySelector('main.select-none');
   T('рулетка: фиксированная высота окна',!!D.querySelector('[class*="min-h-[300px]"]'));
   await sleep(3400); const kb=[...D.querySelectorAll('button')].find(x=>x.textContent.trim()==='К вопросу'); T('после выбора кнопка «К вопросу» активна',kb&&!kb.disabled);
   await clickEl2(kb,600);
-  const h2=D.querySelector('h2[class*="text-[24px]"]'), chip=[...D.querySelectorAll('div')].find(d=>/^Отвечает:/.test(d.textContent.trim())&&d.children.length===0);
+  const h2=D.querySelector('h2[class*="text-[24px]"]'), chip=[...D.querySelectorAll('.tag')].find(d=>/^Отвечает:/.test(d.textContent.trim()));
   T('«Отвечает: ИМЯ» стоит под текстом вопроса',h2&&chip&&!!(h2.compareDocumentPosition(chip)&4));
   T('подсказки «выберем следующего игрока» больше нет',!has('выберем следующего'));
   const badge=[...D.querySelectorAll('div')].find(d=>/^Вопрос №\s*\d+/.test(d.textContent.trim())&&/-top-3\.5/.test(d.className)); T('номер вопроса закреплён на верхней кромке карточки',!!badge);

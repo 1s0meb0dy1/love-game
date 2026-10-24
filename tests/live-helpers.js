@@ -21,9 +21,18 @@ const closeRoulette = async (E, wait = 400) => { if (!E.has('К вопросу')
 // через меню в игре: «Для всех» (завершить у всех) или «Выйти, остальные продолжат»
 const openGameMenu = async (E) => { const b = E.btns().find(x => /Меню/.test(x.textContent) && /btn-sm/.test(x.className)); b.dispatchEvent(new E.w.MouseEvent('click', { bubbles: true })); await sleep(400); };
 
+// «Присоединиться»: подключение занимает несколько секунд (хозяин, пока он один, присылает вопросы, только увидев нас) — ждём, пока откроется игра
+const joinGame = async (E, ms = 15000) => { await E.click('Присоединиться', 300); await waitFor(() => inGame(E), ms); await sleep(1200); };  // пауза: сразу после входа нажатия кратко игнорируются (LIVE_TAP_GUARD_MS)
+
+// «Начать игру»; если на устройстве уже есть сохранённая партия, кнопка называется «Начать новую игру» и просит подтверждения
+const startGame = async (E, wait = 700) => {
+  if (E.btns().some(x => /Начать новую игру/.test(x.textContent))) { await E.click('Начать новую игру', 400); const b = E.btns().find(x => x.textContent.trim() === 'Начать новую'); if (b) { b.dispatchEvent(new E.w.MouseEvent('click', { bubbles: true })); await sleep(wait); } }
+  else await E.click('Начать игру', wait);
+};
+
 // n телефонов: первый создаёт сессию, остальные открывают ту же сессию (копия профиля), все на главной
 async function boot(n, dbOpts, extra = {}) {
-  const db = makeDb(dbOpts); const devs = Array.from({ length: n }, () => makeEnv()); devs.forEach(E => db.attach(E));
+  const db = makeDb(dbOpts); const devs = Array.from({ length: n }, () => makeEnv(extra.env || {})); devs.forEach(E => db.attach(E));
   const [A] = devs; const res = []; const T = (name, ok) => res.push((ok ? 'PASS ' : 'FAIL ') + name);
   if (extra.setupA) await extra.setupA(A);
   A.w.eval(A.code); await sleep(1800);
@@ -39,4 +48,4 @@ async function boot(n, dbOpts, extra = {}) {
   const crash = (err) => { console.log(res.join('\n')); console.log('TEST CRASH:', err.message.split('\n')[0], '|', devs.map((E, i) => `[${i}] ${E.D.title} ${txt(E).slice(0, 110)}`).join(' | ')); process.exit(1); };
   return { devs, db, T, res, finish, crash };
 }
-module.exports = { boot, waitFor, sleep, txt, qn, pos, who, inGame, onSummary, devId, tap, chip, closeRoulette, openGameMenu };
+module.exports = { joinGame, startGame, boot, waitFor, sleep, txt, qn, pos, who, inGame, onSummary, devId, tap, chip, closeRoulette, openGameMenu };

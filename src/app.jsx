@@ -1,6 +1,9 @@
 import React from 'react';
 import * as ReactDOMAll from 'react-dom';
 import { createRoot } from 'react-dom/client';
+import qrcode from 'qrcode-generator';
+import { ABOUT } from './content/about.js';
+import { LEGAL } from './content/legal.js';
 const ReactDOM = { ...ReactDOMAll, createRoot };
 
         const { useState, useEffect, useRef, useMemo } = React;
@@ -128,8 +131,12 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
             { id: "Глубокие", name: "Глубокие", classText: "diff-text-3", classBg: "diff-pill-3" }
         ];
 
-        const SCREEN_TO_HASH = { onboarding: '#/welcome', session_created: '#/session-ready', menu: '#/', app_menu: '#/more', game_setup: '#/setup', topics_admin: '#/topics/manage', punish_admin: '#/punishments/manage', analytics: '#/analytics', analytics_sessions: '#/analytics/sessions', hidden_q: '#/questions/hidden', profile_page: '#/profile', admin_login: '#/admin', mode_select: '#/mode', game: '#/play', ai_response: '#/ai', summary: '#/summary', cat_list: '#/topics', q_list: '#/questions', archive_page: '#/archive', add_q: '#/add', edit_q: '#/edit' };
-        const HASH_TO_SCREEN = { '#/welcome': 'onboarding', '#/session-ready': 'session_created', '#/': 'menu', '#/menu': 'menu', '#/profile': 'profile_page', '#/more': 'app_menu', '#/setup': 'game_setup', '#/topics/manage': 'topics_admin', '#/punishments/manage': 'punish_admin', '#/analytics': 'analytics', '#/analytics/sessions': 'analytics_sessions', '#/questions/hidden': 'hidden_q', '#/admin': 'admin_login', '#/mode': 'mode_select', '#/play': 'game', '#/ai': 'ai_response', '#/summary': 'summary', '#/topics': 'cat_list', '#/questions': 'q_list', '#/archive': 'archive_page', '#/add': 'add_q', '#/edit': 'edit_q' };
+        const SCREEN_TO_HASH = { onboarding: '#/welcome', session_created: '#/session-ready', menu: '#/', app_menu: '#/more', game_setup: '#/setup', topics_admin: '#/topics/manage', punish_admin: '#/punishments/manage', analytics: '#/analytics', analytics_sessions: '#/analytics/sessions', hidden_q: '#/questions/hidden', profile_page: '#/profile', admin_login: '#/admin', mode_select: '#/mode', game: '#/play', ai_response: '#/ai', summary: '#/summary', cat_list: '#/topics', q_list: '#/questions', archive_page: '#/archive', add_q: '#/add', edit_q: '#/edit', invite: '#/invite', join: '#/join', about: '#/about', privacy: '#/privacy', terms: '#/terms', cookies: '#/cookies', age: '#/age' };
+        const HASH_TO_SCREEN = { '#/welcome': 'onboarding', '#/session-ready': 'session_created', '#/': 'menu', '#/menu': 'menu', '#/profile': 'profile_page', '#/more': 'app_menu', '#/setup': 'game_setup', '#/topics/manage': 'topics_admin', '#/punishments/manage': 'punish_admin', '#/analytics': 'analytics', '#/analytics/sessions': 'analytics_sessions', '#/questions/hidden': 'hidden_q', '#/admin': 'admin_login', '#/mode': 'mode_select', '#/play': 'game', '#/ai': 'ai_response', '#/summary': 'summary', '#/topics': 'cat_list', '#/questions': 'q_list', '#/archive': 'archive_page', '#/add': 'add_q', '#/edit': 'edit_q', '#/invite': 'invite', '#/join': 'join', '#/about': 'about', '#/privacy': 'privacy', '#/terms': 'terms', '#/cookies': 'cookies', '#/age': 'age' };
+        // страницы, которые открываются без сессии (по общей ссылке): «Об игре», юридические, быстрое подключение
+        const PUBLIC_SCREENS = ['about', 'privacy', 'terms', 'cookies', 'age', 'join'];
+        const hashPath = (h) => String(h || '').split('?')[0];
+        const hasInviteParams = (h) => /sid=/.test(String(h || '')) && /key=/.test(String(h || ''));
 
         const SoundFX = {
             ctx: null, filter: null, muted: false, unlocked: false,
@@ -193,6 +200,7 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
 
         const Icons = {
             Play: () => <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5.14v14l11-7-11-7z" /></svg>, Menu: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>, Back: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>, Next: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>, Sparkles: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>, List: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>, Plus: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>, Check: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>, Bulb: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>, Edit: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>, Trash: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>, Restore: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>, Archive: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>, SoundOn: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>, SoundOff: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" /></svg>, User: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>, Lock: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>, Copy: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>, Share: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>, IosShare: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>, Eye: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>, EyeOff: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>, ChevronDown: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>, DownloadApp: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>, Close: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M6 18L18 6M6 6l12 12" /></svg>, Logout: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+            , Skip: () => <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M5 5.5l9.5 6.5L5 18.5v-13z" /><path d="M19 5v14" /></svg>
         };
 
         const PopupModal = ({ isOpen, onClose, children }) => {
@@ -245,6 +253,43 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
                 <span className="switch-knob"></span>
             </button>
         );
+        // Блок «Таймер на ответ» усложнённого режима: крупное значение, шаг ±5 с, ползунок и быстрые значения
+        const TIMER_PRESETS = [15, 30, 45, 60, 90];
+        const timerCaption = (s) => s <= 15 ? 'Блиц: отвечать нужно сразу' : s <= 30 ? 'Живой темп' : s <= 60 ? 'Есть время подумать' : s <= 120 ? 'Для глубоких вопросов' : 'Без спешки';
+        const fmtSec = (s) => s >= 60 ? `${Math.floor(s / 60)} мин${s % 60 ? ' ' + (s % 60) + ' с' : ''}` : `${s} с`;
+        const clampTimer = (n) => Math.max(5, Math.min(300, Math.round(Number(n) || 0)));
+        const FxTimerCard = ({ on, sec, onToggle, onSec }) => {
+            const [draft, setDraft] = useState(null); // пока человек печатает своё число, не навязываем границы
+            const commit = () => { if (draft !== null) { if (draft !== '' && isFinite(Number(draft))) onSec(clampTimer(draft)); setDraft(null); } };
+            const step = (d) => { SoundFX.click(); setDraft(null); onSec(clampTimer(sec + d)); };
+            const pct = ((Math.max(5, Math.min(300, sec)) - 5) / 295) * 100;
+            return (
+                <section className={`fx-card ${on ? 'is-on' : ''}`}>
+                    <div className="flex items-center gap-3">
+                        <span aria-hidden="true" className="fx-ico">⏱</span>
+                        <div className="flex-1 min-w-0"><div className="text-sm font-bold text-white">Таймер на ответ</div><div className="text-xs text-zinc-400 leading-snug">Не успел — наказание, и ход переходит дальше</div></div>
+                        <SettingSwitch on={on} onChange={onToggle} label="Таймер на ответ" />
+                    </div>
+                    {on && (
+                        <div className="fx-body fade-in">
+                            <div className="timer-stepper">
+                                <button type="button" className="btn-icon timer-step" aria-label="Меньше на 5 секунд" disabled={sec <= 5} onClick={() => step(-5)}>−</button>
+                                <div className="timer-readout">
+                                    <input type="number" inputMode="numeric" min="5" max="300" aria-label="Секунд на ответ" value={draft !== null ? draft : sec} onChange={e => setDraft(e.target.value)} onBlur={commit} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); commit(); e.target.blur(); } }} className="timer-num font-display" />
+                                    <span className="timer-unit">сек</span>
+                                </div>
+                                <button type="button" className="btn-icon timer-step" aria-label="Больше на 5 секунд" disabled={sec >= 300} onClick={() => step(5)}>+</button>
+                            </div>
+                            <div className="text-xs text-zinc-400 text-center -mt-1">{timerCaption(sec)}{sec >= 60 ? ` · ${fmtSec(sec)}` : ''}</div>
+                            <input type="range" min="5" max="300" step="5" value={sec} onChange={e => { setDraft(null); onSec(clampTimer(e.target.value)); }} aria-label="Время на ответ, секунд" className="timer-range" style={{ '--p': pct + '%' }} />
+                            <div className="flex flex-wrap justify-center gap-2" role="group" aria-label="Быстрый выбор времени">
+                                {TIMER_PRESETS.map(p => ( <button key={p} type="button" aria-pressed={sec === p} onClick={() => { SoundFX.click(); setDraft(null); onSec(p); }} className={`chip ${sec === p ? 'is-on' : ''}`}>{p} с</button> ))}
+                            </div>
+                        </div>
+                    )}
+                </section>
+            );
+        };
         const BASE_CATEGORIES = CATEGORIES.slice();
         const TOPICS_CACHE_KEY = "askme_topics_cache_v1";
         const readTopicsCache = () => {
@@ -353,7 +398,14 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
         const fmtDur = (sec) => { sec = Math.round(sec || 0); if (sec < 60) return sec + ' с'; const m = Math.floor(sec / 60); return m + ' мин' + (sec % 60 ? ' ' + (sec % 60) + ' с' : ''); };
         const fmtDate = (ts) => { try { return new Date(ts).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }); } catch (e) { return ''; } };
         const gamesOf = (rec) => Object.values((rec && rec.games) || {}).filter(g => g && typeof g === 'object').sort((a, b) => (b.startedAt || 0) - (a.startedAt || 0));
-        const buildGameReports = ({ log, players, questions, history, total, customs, now }) => {
+        // Порог аналитики: в сводку идут игры, где отвечено не меньше AN_MIN вопросов, и все полностью пройденные колоды. Задаёт владелец.
+        const SESSION_PAYLOAD_MAX = 19000; // правило базы для sessions/$sid/payload: короче 20000 знаков (копия правила: tests/fixtures/sessions-rules.json)
+        const AN_MIN_KEY = 'askme_an_min_v1', AN_MIN_DEFAULT = 50, AN_FLOOR = 10, AN_MIN_CHOICES = [0, 10, 20, 30, 50, 100];
+        const readAnMin = () => { try { const raw = localStorage.getItem(AN_MIN_KEY); const n = raw === null ? NaN : Number(raw); return Number.isFinite(n) && n >= 0 ? Math.min(1000, Math.round(n)) : AN_MIN_DEFAULT; } catch (e) { return AN_MIN_DEFAULT; } };
+        const gameCounts = (g, min) => !!g && typeof g === 'object' && (g.complete === 1 || g.complete === true || (Number(g.answered) || 0) >= min);
+        const filterAnalytics = (data, min) => { const out = {}; Object.entries(data || {}).forEach(([aid, rec]) => { if (!rec || typeof rec !== 'object') return; const games = {}; Object.entries(rec.games || {}).forEach(([gid, g]) => { if (gameCounts(g, min)) games[gid] = g; }); if (Object.keys(games).length) out[aid] = { ...rec, games }; }); return out; };
+        const countAnalyticsGames = (data) => Object.values(data || {}).reduce((a, r) => a + Object.values((r && r.games) || {}).filter(g => g && typeof g === 'object').length, 0);
+        const buildGameReports = ({ log, players, questions, history, total, customs, now, complete, partial }) => {
             const answeredIds = [], skippedIds = [], byCat = {}, byLevel = {};
             const per = (players || []).map(p => ({ id: p.id, name: String(p.name || '').slice(0, 25), answered: 0, skipped: 0 }));
             let answered = 0, skipped = 0;
@@ -364,7 +416,7 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
                 if (e) e.answered.forEach(id => { const r = per.find(x => x.id === id); if (!r) return; if (e.skippedBy.includes(id)) r.skipped++; else r.answered++; });
             });
             const d = log.durations || [];
-            const anonGame = { startedAt: log.startedAt, endedAt: now, durationSec: Math.max(0, Math.round((now - log.startedAt) / 1000)), mode: log.mode, timerSec: log.timerSec || 0, punishOn: !!log.punishOn, players: per.length, answered, skipped, avgAnswerSec: d.length ? Math.round(d.reduce((a, b) => a + b, 0) / d.length) : 0, byCat, byLevel, answeredIds, skippedIds, punishCount: (log.punishments || []).length, punishTpl: (log.punishments || []).filter(p => p.tpl).map(p => p.t).slice(0, 50) };
+            const anonGame = { startedAt: log.startedAt, endedAt: now, durationSec: Math.max(0, Math.round((now - log.startedAt) / 1000)), mode: log.mode, timerSec: log.timerSec || 0, punishOn: !!log.punishOn, players: per.length, answered, skipped, avgAnswerSec: d.length ? Math.round(d.reduce((a, b) => a + b, 0) / d.length) : 0, byCat, byLevel, answeredIds, skippedIds, punishCount: (log.punishments || []).length, punishTpl: (log.punishments || []).filter(p => p.tpl).map(p => p.t).slice(0, 50), ...(complete ? { complete: 1 } : {}), ...(partial ? { partial: 1 } : {}) };
             const fullGame = { ...anonGame, perPlayer: per.map(r => ({ name: r.name, answered: r.answered, skipped: r.skipped })), punishAll: (log.punishments || []).map(p => p.t).slice(0, 50), customPunishments: (customs || []).slice(0, 60) };
             return { anonGame, fullGame };
         };
@@ -407,14 +459,19 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
             }
             return deck;
         };
-        const SCREEN_TITLES = { hidden_q: 'Скрытые вопросы — ASK ME', analytics: 'Аналитика — ASK ME', analytics_sessions: 'Сессии — Аналитика — ASK ME', app_menu: 'Меню — ASK ME', game_setup: 'Усложнённый режим — ASK ME', topics_admin: 'Управление темами — ASK ME', punish_admin: 'Шаблоны наказаний — ASK ME', onboarding: 'ASK ME — начните игру', session_created: 'Сессия создана — ASK ME', menu: 'ASK ME — откровенные разговоры для двоих и компании', profile_page: 'Игроки и сессия — ASK ME', admin_login: 'Вход для владельца — ASK ME', mode_select: 'Режим игры — ASK ME', game: 'Игра — ASK ME', ai_response: 'Совет и ситуация — ASK ME', summary: 'Итоги игры — ASK ME', cat_list: 'Все темы — ASK ME', q_list: 'Вопросы — ASK ME', archive_page: 'Архив вопросов — ASK ME', add_q: 'Новый вопрос — ASK ME', edit_q: 'Редактирование вопроса — ASK ME' };
+        const SCREEN_TITLES = { hidden_q: 'Скрытые вопросы — ASK ME', analytics: 'Аналитика — ASK ME', analytics_sessions: 'Сессии — Аналитика — ASK ME', app_menu: 'Меню — ASK ME', game_setup: 'Усложнённый режим — ASK ME', topics_admin: 'Управление темами — ASK ME', punish_admin: 'Шаблоны наказаний — ASK ME', onboarding: 'ASK ME — начните игру', session_created: 'Сессия создана — ASK ME', menu: 'ASK ME — откровенные разговоры для двоих и компании', profile_page: 'Игроки и сессия — ASK ME', admin_login: 'Вход для владельца — ASK ME', mode_select: 'Режим игры — ASK ME', game: 'Игра — ASK ME', ai_response: 'Совет и ситуация — ASK ME', summary: 'Итоги игры — ASK ME', cat_list: 'Все темы — ASK ME', q_list: 'Вопросы — ASK ME', archive_page: 'Архив вопросов — ASK ME', add_q: 'Новый вопрос — ASK ME', edit_q: 'Редактирование вопроса — ASK ME', invite: 'Пригласить игроков — ASK ME', join: 'Присоединиться к игре — ASK ME', about: 'Об игре — ASK ME', privacy: 'Политика конфиденциальности — ASK ME', terms: 'Пользовательское соглашение — ASK ME', cookies: 'Cookies и локальное хранилище — ASK ME', age: 'Возраст и откровенный контент — ASK ME' };
         const GROUP_EMOJIS = ['😈', '🤫', '😋', '🤔', '🤪', '😏', '😱', '🫣'];
         const MAX_PLAYERS = 10;
-        const LIVE_POLL_MS = 1000, LIVE_INVITE_MS = 3000, LIVE_BEAT_MS = 8000, LIVE_ALIVE_MS = 30000, LIVE_STALE_MS = 120000, LIVE_TAKEOVER_S = 6, LIVE_TAKEOVER_STEP_S = 4, LIVE_TAP_GUARD_MS = 500, LIVE_MAX_DECK = 400, LIVE_MAX_DEVICES = MAX_PLAYERS;
+        const LIVE_POLL_MS = 1000, LIVE_INVITE_MS = 3000, LIVE_BEAT_MS = 8000, LIVE_ALIVE_MS = 30000, LIVE_STALE_MS = 120000, LIVE_TAKEOVER_S = 6, LIVE_TAKEOVER_STEP_S = 4, LIVE_TAP_GUARD_MS = 500, LIVE_SOLO_MS = 2000, LIVE_JOIN_WAIT_MS = 15000, LIVE_MAX_DEVICES = MAX_PLAYERS;
         const liveHash = (idx, max, hist) => idx + '|' + max + '|' + hist;
+        // короткий «отпечаток» колоды: по нему устройства узнают, что у них одна и та же партия, не скачивая всю колоду
+        const liveDeckKey = (idsStr) => { let h = 2166136261; for (let i = 0; i < idsStr.length; i++) { h ^= idsStr.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return idsStr.split(',').length + '-' + h.toString(36); };
         // у каждого устройства своя дробная часть версии: две одновременные записи никогда не получают одинаковый номер
         const liveFrac = (id) => { let h = 0; String(id).split('').forEach(ch => { h = (h * 31 + ch.charCodeAt(0)) % 999983; }); return (h + 1) / 1000000; };
         const liveVerNext = (prev, id) => Math.floor(Number(prev) || 0) + 1 + liveFrac(id);
+        // версия первой записи новой партии отсчитывается от времени (десятые доли секунды): так она заведомо не совпадёт с версиями прошлых партий в этой комнате,
+        // и устройства, ещё сидящие в старой партии, заметят, что в комнате что-то поменялось
+        const liveVerStart = (id, now = Date.now()) => liveVerNext(Math.floor(now / 100), id);
         // кто сейчас в игре: отметки присутствия {устройство: время}; «живое» — отметка моложе 30 с, мусор старше 2 мин убирается
         const liveAlive = (p, now, selfId) => {
             const alive = [], stale = [];
@@ -515,8 +572,11 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
             return ( <div onClick={onClick} className={`inline-flex flex-col items-center select-none ${onClick ? 'cursor-pointer' : ''}`}> <div className="flex items-center gap-3.5"> <div className="w-11 h-11 md:w-12 md:h-12 rounded-xl bg-gradient-to-br from-rose-500 to-rose-700 flex items-center justify-center shadow-[0_8px_28px_rgba(225,29,72,0.4)] pulse-soft"> <svg className="w-5 h-5 md:w-6 md:h-6 text-white" viewBox="0 0 24 24" fill="currentColor"> <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/> </svg> </div> <div className="font-display text-[32px] md:text-5xl font-extrabold tracking-[0.05em] text-white leading-none flex items-center"> <span>ASK</span> <span className="text-rose-500 ml-2">ME</span> </div> </div> </div> );
         };
 
-        const AppFooter = ({ extraBottomPadding = false }) => (
-            <footer className={`w-full py-6 mt-8 flex items-center justify-center gap-3 select-none z-10 opacity-60 hover:opacity-100 transition-opacity ${extraBottomPadding ? 'pb-24' : ''}`}> <AskMeLogo size="xs" /> <span className="text-white/20 text-xs">•</span> <span className="text-xs text-zinc-400 font-semibold"> by <span className="text-rose-400">yedvinn</span> </span> </footer>
+        const AppFooter = ({ extraBottomPadding = false, noLinks = false }) => (
+            <footer className={`w-full py-6 mt-8 flex flex-col items-center justify-center gap-3 select-none z-10 ${extraBottomPadding ? 'pb-24' : ''}`}>
+                <div className="flex items-center justify-center gap-3 opacity-60 hover:opacity-100 transition-opacity"> <AskMeLogo size="xs" /> <span className="text-white/20 text-xs">•</span> <span className="text-xs text-zinc-400 font-semibold"> by <span className="text-rose-400">yedvinn</span> </span> </div>
+                {!noLinks && <nav aria-label="Информация" className="footer-links"><a href="#/about">Об игре</a><a href="#/privacy">Конфиденциальность</a><a href="#/terms">Соглашение</a></nav>}
+            </footer>
         );
 
         const callNeuralNet = async (systemPrompt, userPrompt, maxTokens = 900) => {
@@ -555,6 +615,216 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
         const reindexSequential = (items) => { return items.map((item, idx) => { const seqNum = idx + 1; const clean = item.cleanText || String(item.text || '').replace(/^№\s*\d+\.\s*/, '').trim(); return { ...item, num: seqNum, cleanText: clean, text: `№ ${seqNum}. ${clean}` }; }); };
 
         const AnimatedCounter = ({ target }) => { const [count, setCount] = useState(0); useEffect(() => { if (!target || target === 0) { setCount(0); return; } let current = 0; const stepTime = Math.max(5, Math.floor(900 / target)); const timer = setInterval(() => { current += 1; setCount(current); if (current >= target) clearInterval(timer); }, stepTime); return () => clearInterval(timer); }, [target]); return <span>{count}</span>; };
+
+        // ============ Страницы: «Об игре», юридические документы, приглашение и быстрое подключение ============
+        // Текст «Об игре» и документов лежит в src/content/*.js. Подстановки: {questions}, {topics#форма1,форма2,форма3}, {players}, {devices}.
+        const aboutFill = (str, nums) => String(str).replace(/\{(\w+)(?:#([^}]+))?\}/g, (m, k, forms) => {
+            if (nums[k] === undefined) return m; const v = String(nums[k]);
+            if (!forms) return v; const f = forms.split(',').map(x => x.trim());
+            return /^\d+$/.test(v) ? v + ' ' + declOfNum(Number(v), f) : v + ' ' + (f[2] || f[0]);
+        });
+        const siteUrl = (hash) => `${window.location.origin}${window.location.pathname}${hash}`;
+        const inviteUrlFor = (prof) => (prof && isValidSessionIdFormat(prof.sessionId) && isValidAESKey(prof.sessionKey)) ? siteUrl(`#/join?sid=${prof.sessionId}&key=${prof.sessionKey}`) : '';
+        // системное окно «Поделиться», а если его нет (компьютер, старый браузер) — копирование ссылки
+        const shareOrCopy = async ({ title, text, url }, doneMsg, toast) => {
+            if (navigator.share) { try { await navigator.share({ title, text, url }); return true; } catch (e) { if (e && e.name === 'AbortError') return false; } }
+            await copyTextToClipboard(url); if (toast) toast(doneMsg); return true;
+        };
+
+        const PageHeader = ({ title, onBack, right = null }) => (
+            <header className="w-full max-w-md flex items-center gap-3 pt-2">
+                <button type="button" onClick={() => { SoundFX.click(); onBack(); }} aria-label="Назад" className="btn-icon flex-shrink-0"><Icons.Back /></button>
+                <h1 className="flex-1 text-center text-lg font-bold text-white">{title}</h1>
+                {right || <div className="w-11 flex-shrink-0" aria-hidden="true"></div>}
+            </header>
+        );
+
+        // QR-код рисуется прямо в разметке (векторно), чтобы не зависеть от внешних сервисов и не отправлять ссылку-ключ в интернет
+        const QrSvg = ({ text, label }) => {
+            const model = useMemo(() => { try { const qr = qrcode(0, 'M'); qr.addData(text); qr.make(); const n = qr.getModuleCount(); let d = ''; for (let r = 0; r < n; r++) { let c = 0; while (c < n) { if (!qr.isDark(r, c)) { c++; continue; } let e = c; while (e < n && qr.isDark(r, e)) e++; d += `M${c + 4} ${r + 4}h${e - c}v1h-${e - c}z`; c = e; } } return { n, d }; } catch (e) { return null; } }, [text]);
+            if (!model) return <p className="ui-error text-center">Не получилось построить QR-код — отправьте ссылку.</p>;
+            const size = model.n + 8;
+            return (<svg className="qr-svg" viewBox={`0 0 ${size} ${size}`} role="img" aria-label={label} shapeRendering="crispEdges" data-qr-modules={model.n}><rect width={size} height={size} rx="3" fill="#fff" /><path d={model.d} fill="#0a0710" /></svg>);
+        };
+
+        // ---- юридические страницы ----
+        const LegalRich = ({ text }) => String(text).split(/(\{contact\}|\{operator\})/).map((part, i) => part === '{contact}'
+            ? <a key={i} className="legal-link" href={LEGAL.contact.url} target="_blank" rel="noopener noreferrer">{LEGAL.contact.label}</a>
+            : part === '{operator}' ? LEGAL.operator : part);
+        const LegalPage = ({ docId, onBack }) => {
+            const doc = LEGAL.docs[docId]; if (!doc) return null;
+            return (<>
+                <PageHeader title={doc.title} onBack={onBack} />
+                <main className="w-full max-w-md flex flex-col gap-5 pt-5 pb-4 legal-doc">
+                    <p className="text-[15px] text-zinc-200 leading-relaxed">{doc.lead}</p>
+                    <p className="text-[13px] text-zinc-500">Обновлено: {LEGAL.updatedHuman}</p>
+                    {doc.sections.map((sec, i) => (
+                        <section key={i} className="legal-sec">
+                            <h2>{sec.h.replace(/\s*\*$/, '')}</h2>
+                            {(sec.p || []).map((t, j) => <p key={j}><LegalRich text={t} /></p>)}
+                            {sec.list && <ul>{sec.list.map((t, j) => <li key={j}><LegalRich text={t} /></li>)}</ul>}
+                            {sec.table && <div className="legal-table" role="table">{sec.table.map((r, j) => (<div key={j} role="row" className="legal-trow"><span role="cell" className="legal-key">{r[0]}</span><span role="cell">{r[1]}</span><span role="cell" className="legal-ttl">{r[2]}</span></div>))}</div>}
+                            {sec.after && <p><LegalRich text={sec.after} /></p>}
+                        </section>
+                    ))}
+                    <p className="text-[13px] text-zinc-500 leading-relaxed">{LEGAL.contactNote}</p>
+                    <nav aria-label="Другие документы" className="legal-others">
+                        {LEGAL.order.filter(id => id !== docId).map(id => <a key={id} href={SCREEN_TO_HASH[id]}>{LEGAL.docs[id].menu}</a>)}
+                    </nav>
+                </main>
+            </>);
+        };
+
+        // ---- «Об игре» ----
+        const AboutPage = ({ profileDb, topicCount, hasProfile, onBack, onStart, onShare }) => {
+            const [lvl, setLvl] = useState(DIFFICULTIES[0].id); const [seed, setSeed] = useState(() => Math.floor(Math.random() * 1000000));
+            const [group, setGroup] = useState('all'); const [openF, setOpenF] = useState(null); const [openQ, setOpenQ] = useState(null);
+            const visible = useMemo(() => (profileDb || []).filter(q => q && !q.hidden), [profileDb]);
+            const nums = { questions: visible.length ? String(visible.length) : ABOUT.fallbackNumbers.questions, topics: String(topicCount || CATEGORIES.length), players: String(MAX_PLAYERS), devices: String(MAX_PLAYERS) };
+            const F = (t) => aboutFill(t, nums);
+            // «Попробуйте»: настоящие вопросы игры, кроме откровенной темы; пока база не загрузилась — запасные
+            const pool = useMemo(() => { const g = {}; DIFFICULTIES.forEach(d => { const list = visible.filter(q => q.level === d.id && q.categoryId !== 'intimacy').map(q => q.cleanText || String(q.text || '').replace(/^№\s*\d+\.\s*/, '').trim()).filter(Boolean); g[d.id] = list.length ? list : ABOUT.demo.fallback[d.id]; }); return g; }, [visible]);
+            const list = pool[lvl] || []; const question = list.length ? list[seed % list.length] : '';
+            const feats = ABOUT.features.filter(f => group === 'all' || f.group === group);
+            const levelOf = (id) => DIFFICULTIES.findIndex(d => d.id === id) + 1;
+            return (<>
+                <PageHeader title="Об игре" onBack={onBack} right={<button type="button" onClick={() => { SoundFX.click(); onShare(); }} aria-label="Поделиться страницей" className="btn-icon flex-shrink-0"><Icons.Share /></button>} />
+                <main className="w-full max-w-md flex flex-col gap-8 pt-6 pb-4 about-page">
+                    <section className="about-hero">
+                        <AskMeLogo size="md" />
+                        <h2 className="about-title">{ABOUT.hero.title}</h2>
+                        <p className="about-lead">{ABOUT.hero.lead}</p>
+                        <button type="button" onClick={() => { SoundFX.click(); onStart(); }} className="btn-primary w-full">{hasProfile ? ABOUT.hero.ctaHave : ABOUT.hero.cta}</button>
+                    </section>
+
+                    <section aria-labelledby="about-demo" className="flex flex-col gap-3">
+                        <h2 id="about-demo" className="about-h2">{ABOUT.demo.title}</h2>
+                        <p className="text-sm text-zinc-400 leading-snug">{ABOUT.demo.hint}</p>
+                        <div className="seg w-full" role="tablist" aria-label="Глубина вопроса">
+                            {DIFFICULTIES.map(d => (<button key={d.id} type="button" role="tab" aria-selected={lvl === d.id} onClick={() => { SoundFX.click(); setLvl(d.id); setSeed(Math.floor(Math.random() * 1000000)); }} className={`seg-btn ${lvl === d.id ? 'is-active' : ''}`}>{d.name}</button>))}
+                        </div>
+                        <div key={lvl + ':' + seed} className={`about-q lvl-${levelOf(lvl)} fade-in`} aria-live="polite"><p>{question}</p></div>
+                        <button type="button" onClick={() => { SoundFX.click(); setSeed(s => s + 1 + Math.floor(Math.random() * 97)); }} className="btn-secondary w-full">{ABOUT.demo.next}</button>
+                    </section>
+
+                    <section aria-label="Игра в цифрах" className="about-numbers">
+                        {ABOUT.numbers.map((n, i) => (<div key={i} className="about-num"><span className="about-num-v">{F(n.value)}</span><span className="about-num-l">{F(n.label)}</span></div>))}
+                    </section>
+
+                    <section aria-labelledby="about-steps" className="flex flex-col gap-3">
+                        <h2 id="about-steps" className="about-h2">{ABOUT.stepsTitle}</h2>
+                        <ol className="about-steps">
+                            {ABOUT.steps.map((st, i) => (<li key={i}><span className="about-step-n" aria-hidden="true">{i + 1}</span><div><h3>{F(st.title)}</h3><p>{F(st.text)}</p></div></li>))}
+                        </ol>
+                    </section>
+
+                    <section aria-labelledby="about-feat" className="flex flex-col gap-3">
+                        <h2 id="about-feat" className="about-h2">{ABOUT.featuresTitle}</h2>
+                        <div className="about-chips" role="tablist" aria-label="Категории возможностей">
+                            {ABOUT.featureGroups.map(g => (<button key={g.id} type="button" role="tab" aria-selected={group === g.id} onClick={() => { SoundFX.click(); setGroup(g.id); setOpenF(null); }} className={`chip flex-shrink-0 ${group === g.id ? 'is-on' : ''}`}>{g.label}</button>))}
+                        </div>
+                        <div className="about-acc">
+                            {feats.map(f => (<div key={f.id} className="about-acc-item">
+                                <button type="button" className="row" aria-expanded={openF === f.id} onClick={() => { SoundFX.click(); setOpenF(openF === f.id ? null : f.id); }}>
+                                    <span aria-hidden="true" className="w-10 h-10 rounded-full bg-white/[0.07] flex items-center justify-center text-lg flex-shrink-0">{f.icon}</span>
+                                    <span className="flex-1 min-w-0 flex flex-col"><span className="text-sm font-semibold text-white">{F(f.title)}</span><span className="text-[13px] text-zinc-400">{F(f.short)}</span></span>
+                                    <span aria-hidden="true" className={`about-chev ${openF === f.id ? 'is-open' : ''}`}>›</span>
+                                </button>
+                                {openF === f.id && <p className="about-more fade-in">{F(f.more)}</p>}
+                            </div>))}
+                        </div>
+                    </section>
+
+                    <section aria-labelledby="about-uniq" className="flex flex-col gap-3">
+                        <h2 id="about-uniq" className="about-h2">{ABOUT.unique.title}</h2>
+                        <div className="flex flex-col gap-2.5">
+                            {ABOUT.unique.items.map((u, i) => (<div key={i} className="about-card"><h3>{F(u.title)}</h3><p>{F(u.text)}</p></div>))}
+                        </div>
+                    </section>
+
+                    <section aria-labelledby="about-faq" className="flex flex-col gap-3">
+                        <h2 id="about-faq" className="about-h2">{ABOUT.faqTitle}</h2>
+                        <div className="about-acc">
+                            {ABOUT.faq.map((it, i) => (<div key={i} className="about-acc-item">
+                                <button type="button" className="row" aria-expanded={openQ === i} onClick={() => { SoundFX.click(); setOpenQ(openQ === i ? null : i); }}>
+                                    <span className="flex-1 text-sm font-semibold text-white">{F(it.q)}</span>
+                                    <span aria-hidden="true" className={`about-chev ${openQ === i ? 'is-open' : ''}`}>›</span>
+                                </button>
+                                {openQ === i && <p className="about-more fade-in">{F(it.a)}</p>}
+                            </div>))}
+                        </div>
+                    </section>
+
+                    <section className="about-cta">
+                        <h2>{ABOUT.cta.title}</h2>
+                        <p>{ABOUT.cta.text}</p>
+                        <button type="button" onClick={() => { SoundFX.click(); onStart(); }} className="btn-primary w-full">{hasProfile ? ABOUT.hero.ctaHave : ABOUT.hero.cta}</button>
+                        <button type="button" onClick={() => { SoundFX.click(); onShare(); }} className="btn-ghost w-full flex items-center justify-center gap-2"><Icons.Share /> Поделиться страницей</button>
+                    </section>
+                    <p className="text-[13px] text-zinc-500 text-center">Версия страницы {ABOUT.version} · обновлена {ABOUT.updated}</p>
+                </main>
+            </>);
+        };
+
+        // ---- приглашение ----
+        const InvitePage = ({ profile, onBack, showToast }) => {
+            const url = inviteUrlFor(profile); const [copied, setCopied] = useState(false);
+            const doCopy = async () => { SoundFX.success(); await copyTextToClipboard(url); setCopied(true); showToast('Ссылка-приглашение скопирована'); setTimeout(() => setCopied(false), 2000); };
+            const doShare = async () => { SoundFX.click(); await shareOrCopy({ title: 'Играем в ASK ME', text: 'Присоединяйся к нашей игре в ASK ME', url }, 'Ссылка-приглашение скопирована', showToast); };
+            return (<>
+                <PageHeader title="Пригласить игроков" onBack={onBack} />
+                <main className="w-full max-w-md flex flex-col gap-6 pt-6 pb-4 invite-page">
+                    <p className="text-[15px] text-zinc-200 leading-relaxed">Отправьте ссылку или покажите код — второй телефон сразу окажется в вашей сессии, и вы сможете играть одну партию вместе.</p>
+                    {url ? (<>
+                        <section className="qr-card" aria-label="QR-код приглашения">
+                            <QrSvg text={url} label="QR-код приглашения в сессию" />
+                            <p>Наведите камеру телефона на код</p>
+                        </section>
+                        <section className="flex flex-col gap-3">
+                            <div className="invite-link" aria-label="Ссылка-приглашение"><span className="invite-link-t">Ссылка-приглашение</span><span className="invite-link-v">{siteUrl('#/join?sid=' + profile.sessionId + '&key=')}••••••••</span></div>
+                            <button type="button" onClick={doShare} className="btn-primary w-full flex items-center justify-center gap-2"><Icons.Share /> Поделиться ссылкой</button>
+                            <button type="button" onClick={doCopy} className="btn-secondary w-full">{copied ? 'Скопировано' : 'Скопировать ссылку'}</button>
+                        </section>
+                    </>) : (
+                        <p className="ui-error text-center">Ссылка для этой сессии ещё готовится. Закройте и откройте страницу снова через несколько секунд.</p>
+                    )}
+                    <section aria-labelledby="inv-how" className="flex flex-col gap-3">
+                        <h2 id="inv-how" className="about-h2">Как подключиться</h2>
+                        <ol className="about-steps">
+                            <li><span className="about-step-n" aria-hidden="true">1</span><div><p>Откройте ссылку или отсканируйте код на втором телефоне.</p></div></li>
+                            <li><span className="about-step-n" aria-hidden="true">2</span><div><p>Нажмите «Присоединиться» — регистрироваться не нужно.</p></div></li>
+                            <li><span className="about-step-n" aria-hidden="true">3</span><div><p>Играйте вместе: до {MAX_PLAYERS} устройств, вопросы, очередь и таймер у всех одинаковые.</p></div></li>
+                        </ol>
+                    </section>
+                    <div className="invite-warn" role="note"><b>Берегите ссылку.</b> Она открывает всю сессию: имена игроков и прогресс. Отправляйте её только тем, кому доверяете.</div>
+                    <p className="text-[13px] text-zinc-500 text-center">ID сессии: <span className="font-display tracking-[0.06em] text-zinc-300">{profile.sessionId}</span></p>
+                </main>
+            </>);
+        };
+
+        // ---- быстрое подключение по приглашению ----
+        const JoinPage = ({ invite, profile, busy, error, onJoin, onStay, onManual, onAbout }) => {
+            const valid = !!(invite && isValidAESKey(invite.key)); const same = !!(valid && profile && profile.sessionKey === invite.key);
+            const other = !!(valid && profile && !same); let body;
+            if (!valid) body = (<>
+                <h1 className="join-h">Ссылка не подошла</h1>
+                <p className="join-p">Похоже, ссылка обрезалась при пересылке. Попросите отправить её ещё раз или введите ID сессии вручную.</p>
+                <button type="button" onClick={onManual} className="btn-primary w-full">Ввести вручную</button>
+                <button type="button" onClick={onAbout} className="btn-ghost w-full">Что это за игра</button>
+            </>); else if (same) body = (<>
+                <h1 className="join-h">Вы уже в этой сессии</h1>
+                <p className="join-p">Эта ссылка открывает ту же сессию, что и на этом устройстве. Можно играть.</p>
+                <button type="button" onClick={onStay} className="btn-primary w-full">К игре</button>
+            </>); else body = (<>
+                <h1 className="join-h">{other ? 'Перейти в другую сессию?' : 'Вас пригласили в ASK ME'}</h1>
+                <p className="join-p">{other ? 'На этом устройстве сейчас открыта своя сессия. Если присоединиться, здесь откроется приглашённая. Прежняя останется в облаке: вернуться в неё можно по её ссылке (она есть в меню) — сохраните её заранее.' : 'Присоединитесь к сессии — и будете играть вместе с остальными: общие вопросы, очередь и таймер. Регистрироваться не нужно.'}</p>
+                {isValidSessionIdFormat(invite.sid) && <span className="join-chip">Сессия {invite.sid}</span>}
+                {error && <p className="inline-error" role="alert">{error}</p>}
+                <button type="button" disabled={busy} onClick={onJoin} className="btn-primary w-full">{busy ? 'Подключаемся…' : 'Присоединиться'}</button>
+                {other ? <button type="button" disabled={busy} onClick={onStay} className="btn-ghost w-full">Остаться в своей сессии</button> : <button type="button" disabled={busy} onClick={onAbout} className="btn-ghost w-full">Что это за игра</button>}
+            </>);
+            return (<main className="w-full max-w-sm flex flex-col items-center gap-4 text-center my-auto py-8 join-page"><AskMeLogo size="lg" />{body}</main>);
+        };
 
         function App() {
             const [db, setDb] = useState([]); const [dbSubPath, setDbSubPath] = useState("/questions"); const [isLoading, setIsLoading] = useState(true); const [toastMsg, setToastMsg] = useState(null); const toastTimerRef = useRef(null);
@@ -614,7 +884,7 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
             const [ptErr, setPtErr] = useState(''); const [ptBusy, setPtBusy] = useState(false); const [ptConfirmId, setPtConfirmId] = useState('');
             const [analyticsOn, setAnalyticsOn] = useState(() => { try { return localStorage.getItem('askme_analytics_v1') !== '0'; } catch (e) { return true; } });
             useEffect(() => { try { localStorage.setItem('askme_analytics_v1', analyticsOn ? '1' : '0'); } catch (e) {} }, [analyticsOn]);
-            const [anData, setAnData] = useState(null); const [anLoading, setAnLoading] = useState(false); const [anErr, setAnErr] = useState('');
+            const [anMin, setAnMinState] = useState(readAnMin); const [anData, setAnData] = useState(null); const [anLoading, setAnLoading] = useState(false); const [anErr, setAnErr] = useState('');
             const [anView, setAnView] = useState('full'); const [anSel, setAnSel] = useState(null); const [anConfirm, setAnConfirm] = useState(''); const [anBusy, setAnBusy] = useState(false); const [hqBusy, setHqBusy] = useState(''); const [hqConfirmAll, setHqConfirmAll] = useState(false);
             const gameLogRef = useRef(null);
             const [punish, setPunish] = useState({ open: false, text: '', player: '', icon: '⏰' });
@@ -629,15 +899,19 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
             const [adminPinError, setAdminPinError] = useState('');
             const [logoTapCount, setLogoTapCount] = useState(0);
 
-            const [screen, setScreenState] = useState(() => { const h = window.location.hash; if (h === '#/admin') return 'admin_login'; if (h === '#/welcome') return 'onboarding'; if (!profile && !isPreviewMode) return 'onboarding'; return HASH_TO_SCREEN[h] || 'menu'; });
+            // приглашение из ссылки (#/join?sid=…&key=…; старые ссылки #/welcome?sid=…&key=… тоже): читаем один раз и сразу убираем секрет из адресной строки
+            const readInviteFromHash = () => { try { const h = window.location.hash || ''; const hp = hashPath(h); if ((hp !== '#/join' && hp !== '#/welcome') || !hasInviteParams(h)) return null; const r = parseRestoreInput(h); return r.key ? r : null; } catch (e) { return null; } };
+            const [joinInvite, setJoinInvite] = useState(readInviteFromHash); const [joinBusy, setJoinBusy] = useState(false); const [joinError, setJoinError] = useState(''); const joinAutoRef = useRef(0);
+            const [screen, setScreenState] = useState(() => { const h = window.location.hash, hp = hashPath(h); if (hp === '#/admin') return 'admin_login'; if (hp === '#/join') return 'join'; if (hp === '#/welcome') return (profile && hasInviteParams(h)) ? 'join' : 'onboarding'; const pub = HASH_TO_SCREEN[hp]; if (PUBLIC_SCREENS.includes(pub)) return pub; if (!profile && !isPreviewMode) return 'onboarding'; return pub || 'menu'; });
             const navigate = (nextScreen) => { setScreenState(nextScreen); const targetHash = SCREEN_TO_HASH[nextScreen] || '#/'; if (window.location.hash !== targetHash) { window.history.pushState(null, '', targetHash); } window.scrollTo(0, 0); };
-            useEffect(() => { const onHashChange = () => { const h = window.location.hash || '#/'; if (h === '#/admin') { setScreenState('admin_login'); return; } if (h === '#/welcome') { setScreenState('onboarding'); return; } if (!profile && !isPreviewMode) { setScreenState('onboarding'); return; } const mapped = HASH_TO_SCREEN[h]; if (mapped) setScreenState(mapped); }; window.addEventListener('hashchange', onHashChange); window.addEventListener('popstate', onHashChange); return () => { window.removeEventListener('hashchange', onHashChange); window.removeEventListener('popstate', onHashChange); }; }, [profile, isPreviewMode]);
+            useEffect(() => { if (joinInvite && (screen === 'join')) { try { window.history.replaceState(null, '', window.location.pathname + window.location.search + '#/join'); } catch (e) {} } }, []);
+            useEffect(() => { const onHashChange = () => { const h = window.location.hash || '#/', hp = hashPath(h); if (hp === '#/admin') { setScreenState('admin_login'); return; } if (hp === '#/join' || (hp === '#/welcome' && profile && hasInviteParams(h))) { const inv = readInviteFromHash(); if (inv) { setJoinInvite(inv); setJoinError(''); try { window.history.replaceState(null, '', window.location.pathname + window.location.search + '#/join'); } catch (e) {} } setScreenState('join'); return; } if (hp === '#/welcome') { setScreenState('onboarding'); return; } const mapped = HASH_TO_SCREEN[hp]; if (PUBLIC_SCREENS.includes(mapped)) { setScreenState(mapped); return; } if (!profile && !isPreviewMode) { setScreenState('onboarding'); return; } if (mapped) setScreenState(mapped); }; window.addEventListener('hashchange', onHashChange); window.addEventListener('popstate', onHashChange); return () => { window.removeEventListener('hashchange', onHashChange); window.removeEventListener('popstate', onHashChange); }; }, [profile, isPreviewMode]);
 
             const [selectedCats, setSelectedCats] = useState(CATEGORIES.map(c => c.id)); const [selectedDiffs, setSelectedDiffs] = useState(DIFFICULTIES.map(d => d.id)); const [isMuted, setIsMuted] = useState(false);
             const [gameMode, setGameMode] = useState('normal'); const [gameQuestions, setGameQuestions] = useState([]); const [currentIndex, setCurrentIndex] = useState(0); const [maxReachedIndex, setMaxReachedIndex] = useState(0); const [turnHistory, setTurnHistory] = useState({}); const [answeredCount, setAnsweredCount] = useState(0); const [completedAllFlag, setCompletedAllFlag] = useState(false); const [showEndGameConfirm, setShowEndGameConfirm] = useState(false);
             const [turnPopup, setTurnPopup] = useState({ open: false, spinning: false, highlight: 'guy', winner: null, candidates: [] }); const rouletteTimeoutsRef = useRef([]);
             const [aiType, setAiType] = useState('situation'); const [aiContent, setAiContent] = useState(''); const [isAiTyping, setIsAiTyping] = useState(false); const typingIntervalRef = useRef(null);
-            const [viewCategory, setViewCategory] = useState(null); const [visibleLimit, setVisibleLimit] = useState(60); const [archiveFilterCat, setArchiveFilterCat] = useState('all'); const [archiveFilterDiff, setArchiveFilterDiff] = useState('all'); const [archiveSearch, setArchiveSearch] = useState(''); const [archiveVisibleLimit, setArchiveVisibleLimit] = useState(50);
+            const [viewCategory, setViewCategory] = useState(null); const [qLevel, setQLevel] = useState('all'); const [startErrTick, setStartErrTick] = useState(0); const [newGameConfirm, setNewGameConfirm] = useState(false); const [visibleLimit, setVisibleLimit] = useState(60); const [archiveFilterCat, setArchiveFilterCat] = useState('all'); const [archiveFilterDiff, setArchiveFilterDiff] = useState('all'); const [archiveSearch, setArchiveSearch] = useState(''); const [archiveVisibleLimit, setArchiveVisibleLimit] = useState(50);
             const [addForm, setAddForm] = useState({ text: '', cat: 'family', diff: 'Простые', targetId: '' }); const [addStatus, setAddStatus] = useState(null); const [isSaving, setIsSaving] = useState(false); const [isGeneratingQuestion, setIsGeneratingQuestion] = useState(false);
             const [editingQuestion, setEditingQuestion] = useState(null); const [editForm, setEditForm] = useState({ text: '', cat: 'family', diff: 'Простые', targetId: '' }); const [returnScreen, setReturnScreen] = useState('menu'); const [confirmModal, setConfirmModal] = useState(null); const [resultModal, setResultModal] = useState(null);
 
@@ -645,7 +919,17 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
                 if (!profData || !profData.sessionId) return;
                 try { localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profData)); localStorage.setItem(`askme_sess_${profData.sessionId}`, JSON.stringify(profData)); } catch (e) {}
                 if (!isValidAESKey(profData.sessionKey)) return;
-                try { const updatedAt = profData.updatedAt || Date.now(); const encrypted = await encryptSessionAES({ players: profData.players, archivedIds: profData.archivedIds || [], disabledIds: profData.disabledIds || [], savedGame: profData.savedGame || null, updatedAt }, profData.sessionKey); if (!encrypted) throw new Error("encrypt"); await fetchWithTimeout(`${FIREBASE_BASE_URL}/sessions/${await sessionDbKey(profData.sessionKey)}.json`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ payload: encrypted, updatedAt }) }); } catch (e) { if (Date.now() - lastSyncToastAt > 60000) { lastSyncToastAt = Date.now(); showErrorPopup("Нет связи с облаком", "Прогресс не удалось сохранить в облаке."); } }
+                try {
+                    const updatedAt = profData.updatedAt || Date.now();
+                    const pack = (withGame) => encryptSessionAES({ players: profData.players, archivedIds: profData.archivedIds || [], disabledIds: profData.disabledIds || [], savedGame: withGame ? (profData.savedGame || null) : null, updatedAt }, profData.sessionKey);
+                    let encrypted = await pack(true); if (!encrypted) throw new Error("encrypt");
+                    // правило базы: payload короче 20000 знаков. Незавершённая партия со всей колодой может его превысить, и тогда база молча отклоняла бы и имена, и архив:
+                    // в таком случае в облако уходит сессия без сохранённой партии (на самом устройстве партия остаётся)
+                    if (encrypted.length >= SESSION_PAYLOAD_MAX) { const lite = await pack(false); if (lite) encrypted = lite; }
+                    if (encrypted.length >= SESSION_PAYLOAD_MAX) throw new Error("too-big");
+                    const res = await fetchWithTimeout(`${FIREBASE_BASE_URL}/sessions/${await sessionDbKey(profData.sessionKey)}.json`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ payload: encrypted, updatedAt }) });
+                    if (!res.ok) throw new Error("HTTP " + res.status);
+                } catch (e) { if (Date.now() - lastSyncToastAt > 60000) { lastSyncToastAt = Date.now(); showToast(String(e && e.message) === "too-big" ? "Сессия стала слишком большой для облака — прогресс сохранён только на этом устройстве" : "Нет связи с облаком — прогресс сохранён на устройстве", 5000); } }
             };
 
             useEffect(() => { if (!profile || isLoading) return; try { localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profile)); } catch (e) {} const timer = setTimeout(() => { syncSessionToCloud(profile); }, 350); return () => clearTimeout(timer); }, [profile, isLoading]);
@@ -671,9 +955,10 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
                 } catch(e){}
             };
 
-            const handleRestoreBySessionId = async (e) => {
-                e.preventDefault(); const { sid, key } = parseRestoreInput(restoreIdInput); if (!key && !isValidSessionIdFormat(sid)) { SoundFX.warn(); setRestoreError("Вставьте ссылку на сессию или 8-значный ID"); return; }
-                setIsRestoringSession(true); setRestoreError("");
+            // открыть сессию по ID/ключу (форма «Восстановить», страница быстрого подключения); setErr — куда писать ошибку; возвращает true при успехе
+            const runRestore = async (sid, key, setErr) => {
+                let okRestore = false;
+                setIsRestoringSession(true); setErr("");
                 const toProfile = (dec, sessionId, sessionKey) => {
                     let pts = dec.players; if(!pts && dec.guyName && dec.girlName) pts = [{id:'p1', name:dec.guyName, gender:'guy'}, {id:'p2', name:dec.girlName, gender:'girl'}];
                     return { sessionId, sessionKey, players: pts, archivedIds: cleanIdList(dec.archivedIds), disabledIds: cleanIdList(dec.disabledIds), savedGame: (dec.savedGame && typeof dec.savedGame === 'object' ? dec.savedGame : null), updatedAt: Date.now() };
@@ -681,8 +966,41 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
                 try {
                     let restored = null, legacyPath = null;
                     try { if (key) { const res = await fetchWithTimeout(`${FIREBASE_BASE_URL}/sessions/${await sessionDbKey(key)}.json?t=${Date.now()}`); const data = res.ok ? await res.json() : null; const dec = data && data.payload ? await decryptSessionAES(data.payload, key) : null; if (dec && (dec.players || dec.guyName)) restored = toProfile(dec, isValidSessionIdFormat(sid) ? sid : generateSessionId(), key); } else { const lp = "sess_" + hashSessionIdForDb(sid); const res = await fetchWithTimeout(`${FIREBASE_BASE_URL}/sessions/${lp}.json?t=${Date.now()}`); const data = res.ok ? await res.json() : null; const dec = data && data.payload ? decryptSessionPayload(data.payload, sid) : null; if (dec && (dec.players || dec.guyName)) { restored = toProfile(dec, sid, await generateAESKey()); legacyPath = lp; } } } catch (err) {}
-                    if (restored) { SoundFX.success(); if (legacyPath) fetchWithTimeout(`${FIREBASE_BASE_URL}/sessions/${legacyPath}.json`, { method: "DELETE" }).catch(() => {}); try { window.history.replaceState(null, "", window.location.pathname + window.location.search + "#/welcome"); } catch (err) {} setProfile(restored); setPlayersForm(restored.players); setRestoreIdInput(""); setIsPreviewMode(false); showToast(`Сессия ${restored.sessionId} успешно восстановлена!`); navigate('menu'); } else { SoundFX.warn(); setRestoreError("Сессия не найдена."); }
-                } catch (err) { SoundFX.warn(); setRestoreError("Ошибка соединения."); } finally { setIsRestoringSession(false); }
+                    if (restored) { SoundFX.success(); if (legacyPath) fetchWithTimeout(`${FIREBASE_BASE_URL}/sessions/${legacyPath}.json`, { method: "DELETE" }).catch(() => {}); try { window.history.replaceState(null, "", window.location.pathname + window.location.search + "#/welcome"); } catch (err) {} setProfile(restored); setPlayersForm(restored.players); setRestoreIdInput(""); setIsPreviewMode(false); showToast(`Сессия ${restored.sessionId} успешно восстановлена!`); okRestore = true; navigate('menu'); } else { SoundFX.warn(); setErr("Сессия не найдена."); }
+                } catch (err) { SoundFX.warn(); setErr("Ошибка соединения."); } finally { setIsRestoringSession(false); }
+                return okRestore;
+            };
+            const handleRestoreBySessionId = async (e) => {
+                e.preventDefault(); const { sid, key } = parseRestoreInput(restoreIdInput); if (!key && !isValidSessionIdFormat(sid)) { SoundFX.warn(); setRestoreError("Вставьте ссылку на сессию или 8-значный ID"); return; }
+                await runRestore(sid, key, setRestoreError);
+            };
+
+            // ---- быстрое подключение по приглашению (#/join) ----
+            const handleJoinInvite = async () => {
+                if (!joinInvite || joinBusy) return; SoundFX.click(); setJoinBusy(true); setJoinError('');
+                const okJ = await runRestore(joinInvite.sid, joinInvite.key, setJoinError);
+                setJoinBusy(false); if (okJ) { joinAutoRef.current = Date.now(); setJoinInvite(null); }
+            };
+            const joinContinue = () => { SoundFX.click(); joinAutoRef.current = Date.now(); setJoinInvite(null); navigate(profile ? 'menu' : 'onboarding'); };
+            const joinDecline = () => { SoundFX.click(); joinAutoRef.current = 0; setJoinInvite(null); navigate(profile ? 'menu' : 'onboarding'); };
+            const joinManual = () => { SoundFX.click(); setJoinInvite(null); if (profile) { setPlayersForm(profile.players); navigate('profile_page'); } else { setAuthTab('restore'); setRestoreError(''); navigate('onboarding'); } };
+            const sharePage = async () => { await shareOrCopy({ title: ABOUT.share.title, text: ABOUT.share.text, url: siteUrl('#/about') }, ABOUT.share.done, showToast); };
+
+            // ---- удаление всех данных пользователя: облако (сессия, общая комната, записи статистики этого устройства) и локальное хранилище ----
+            const [delDataOpen, setDelDataOpen] = useState(false); const [delDataBusy, setDelDataBusy] = useState(false);
+            const handleDeleteMyData = async () => {
+                if (!profile || delDataBusy) return; setDelDataBusy(true);
+                const sid = profile.sessionId, key = profile.sessionKey; let aid = null; try { aid = localStorage.getItem('askme_aid_' + sid); } catch (e) {}
+                const del = (url) => fetchWithTimeout(url, { method: 'DELETE' }, 10000).then(r => r.ok).catch(() => false);
+                const jobs = [isValidAESKey(key) ? sessionDbKey(key).then(k => del(`${FIREBASE_BASE_URL}/sessions/${k}.json`)) : del(`${FIREBASE_BASE_URL}/sessions/sess_${hashSessionIdForDb(sid)}.json`)];
+                const room = liveRoomIdRef.current; if (room) { jobs.push(del(roomUrl(room))); jobs.push(del(roomUrl(room + '_d'))); }
+                if (aid) ['anon', 'full'].forEach(k => jobs.push(del(`${FIREBASE_BASE_URL}/analytics/${k}/${aid}.json`)));
+                const results = await Promise.all(jobs);
+                if (results.some(ok => !ok)) { setDelDataBusy(false); SoundFX.warn(); showToast('Не удалось удалить данные из облака. Проверьте интернет и повторите — ничего не потеряно', 6000); return; }
+                try { const rm = []; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && (k === PROFILE_STORAGE_KEY || k.startsWith('askme_sess_') || k.startsWith('askme_aid_') || [SETTINGS_KEY, 'askme_hard_mode_v1', 'askme_analytics_v1', 'askme_seen_topics_v1', AN_MIN_KEY].includes(k))) rm.push(k); } rm.forEach(k => localStorage.removeItem(k)); } catch (e) {}
+                setDelDataOpen(false); setDelDataBusy(false); setProfile(null); setIsPreviewMode(false);
+                setPlayersForm([{ id: 'p1', name: '', gender: 'guy' }, { id: 'p2', name: '', gender: 'girl' }]); setPlayersError(''); setRestoreIdInput(''); setRestoreError('');
+                SoundFX.success(); navigate('onboarding'); showToast('Все ваши данные удалены', 4000);
             };
 
             const handleShareGame = async () => { SoundFX.click(); const shareUrl = `${window.location.origin}${window.location.pathname}#/welcome`; if (navigator.share) { try { await navigator.share({ title: "ASK ME — Игра", text: "Откровенные разговоры ❤️", url: shareUrl }); return; } catch (e) { if (e.name === 'AbortError') return; } } await copyTextToClipboard(shareUrl); showToast("Ссылка на игру скопирована!"); };
@@ -981,32 +1299,15 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
                         </div>
                         {(
                             <div className="flex flex-col gap-5 fade-in">
-                                <section className="flex flex-col gap-3">
-                                    <div className="flex items-center justify-between gap-3">
-                                        <div><div className="text-sm font-bold text-white">Таймер на ответ</div><div className="text-xs text-zinc-500 leading-snug">Время на ответ каждому игроку. Если не успел — наказание и переход хода.</div></div>
-                                        <SettingSwitch on={settings.timerOn} onChange={() => { SoundFX.click(); patchSettings({ timerOn: !settings.timerOn }); }} label="Таймер на ответ" />
-                                    </div>
-                                    {settings.timerOn && (
-                                        <div className="flex flex-col gap-2 fade-in">
-                                            <div className="flex flex-wrap gap-2">
-                                                {[15, 30, 45, 60, 90].map(sec => (
-                                                    <button key={sec} type="button" onClick={() => { SoundFX.click(); patchSettings({ timerSec: sec }); }} className={`chip ${settings.timerSec === sec ? 'is-on' : ''}`}>{sec} с</button>
-                                                ))}
-                                            </div>
-                                            <label className="flex items-center gap-2 text-xs text-zinc-400">Своё время, секунд (5–300):
-                                                <input type="number" inputMode="numeric" min="5" max="300" value={settings.timerSec} onChange={e => patchSettings({ timerSec: Math.max(5, Math.min(300, Number(e.target.value) || 5)) })} className="w-20 h-[54px] px-3 rounded-xl bg-white/[0.04] border border-white/[0.16] text-white text-sm outline-none focus:border-rose-500" />
-                                            </label>
-                                        </div>
-                                    )}
-                                </section>
-                                <div className="hairline-divider"></div>
-                                <section className="flex flex-col gap-3">
-                                    <div className="flex items-center justify-between gap-3">
-                                        <div><div className="text-sm font-bold text-white">Наказания</div><div className="text-xs text-zinc-500 leading-snug">Случайное задание, если время вышло. Можно привязать к сложности вопроса.</div></div>
+                                <FxTimerCard on={settings.timerOn} sec={settings.timerSec} onToggle={() => { SoundFX.click(); patchSettings({ timerOn: !settings.timerOn }); }} onSec={(n) => patchSettings({ timerSec: n })} />
+                                <section className={`fx-card ${settings.punishOn ? 'is-on' : ''}`}>
+                                    <div className="flex items-center gap-3">
+                                        <span aria-hidden="true" className="fx-ico">🎭</span>
+                                        <div className="flex-1 min-w-0"><div className="text-sm font-bold text-white">Наказания</div><div className="text-xs text-zinc-400 leading-snug">Случайное задание, если время вышло. Можно привязать к сложности вопроса.</div></div>
                                         <SettingSwitch on={settings.punishOn} onChange={() => { SoundFX.click(); patchSettings({ punishOn: !settings.punishOn }); }} label="Наказания" />
                                     </div>
                                     {settings.punishOn && (
-                                        <div className="flex flex-col gap-2 fade-in">
+                                        <div className="fx-body flex flex-col gap-2 fade-in">
                                             <div className="flex flex-col gap-5">
                                                 {LEVEL_OPTIONS.map(([lv, label]) => {
                                                     const items = allPunishments.filter(p => p.level === lv);
@@ -1015,7 +1316,7 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
                                                         <div key={lv} className="flex flex-col gap-2">
                                                             <h3 className="text-xs font-bold text-zinc-500">{label}</h3>
                                                             {items.map(p => (
-                                                                <div key={p.id} className="flex items-center gap-3 rounded-[20px] border border-white/10 bg-white/[0.04] px-3.5 py-3">
+                                                                <div key={p.id} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-3.5 py-3">
                                                                     <span aria-hidden="true" className="w-10 h-10 rounded-full bg-white/[0.07] flex items-center justify-center text-lg flex-shrink-0">{p.icon || '🎭'}</span>
                                                                     <span className="flex-1 min-w-0 text-sm text-zinc-100 leading-snug">{p.text}</span>
                                                                     <button type="button" aria-label={p.custom ? 'Удалить наказание' : 'Скрыть наказание'} title={p.custom ? 'Удалить' : 'Скрыть у меня'} onClick={() => { SoundFX.click(); setSettings(st => p.custom ? ({ ...st, punishments: st.punishments.filter(x => x.id !== p.id) }) : ({ ...st, hiddenTemplates: [...(st.hiddenTemplates || []), p.id] })); }} className="btn-icon plain flex-shrink-0">✕</button>
@@ -1049,7 +1350,7 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
                         )}
                         <div className="flex flex-col gap-2">
                             <button type="button" disabled={!(settings.timerOn || settings.punishOn)} onClick={startFromPregame} className="btn-primary w-full">Начать игру</button>
-                            {!(settings.timerOn || settings.punishOn) && <p className="text-xs text-amber-300 text-center leading-snug">Включите хотя бы одно усложнение: таймер или наказания</p>}
+                            {!(settings.timerOn || settings.punishOn) && <p role="alert" className="inline-error"><span aria-hidden="true" className="inline-error-i">!</span><span>Включите хотя бы одно усложнение: таймер или наказания.</span></p>}
                         </div>
                     </div>
             );
@@ -1157,11 +1458,13 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
             };
             const logTurnEnd = (kind) => { const g = gameLogRef.current; if (!g || !g.turnStart) return; if (kind === 'answer' && g.durations.length < 500) g.durations.push(Math.round((Date.now() - g.turnStart) / 1000)); g.turnStart = 0; };
             const logPunish = (text) => { const g = gameLogRef.current; if (!g || !text || g.punishments.length >= 50) return; g.punishments.push({ t: String(text).slice(0, 80), tpl: punishTemplates.some(t => t.text === text) }); };
-            const reportGame = (total) => {
+            // partial — игра ещё идёт (промежуточная запись, журнал не закрываем); иначе это итог игры. complete — пройдена вся колода.
+            const reportGame = (total, opts = {}) => {
                 try {
-                    const g = gameLogRef.current; gameLogRef.current = null;
+                    const g = gameLogRef.current; if (!opts.partial) gameLogRef.current = null;
                     if (!g || !analyticsOn || isAdmin || !profile || liveRoleRef.current === 'guest') return;
-                    const { anonGame, fullGame } = buildGameReports({ log: g, players: profile.players, questions: gameQuestions, history: turnHistory, total, customs: settings.punishments.map(p => p.text), now: Date.now() });
+                    if (opts.partial && total < AN_FLOOR) return;
+                    const { anonGame, fullGame } = buildGameReports({ log: g, players: profile.players, questions: gameQuestions, history: turnHistory, total, customs: settings.punishments.map(p => p.text), now: Date.now(), complete: !!opts.complete, partial: !!opts.partial });
                     const key = 'askme_aid_' + profile.sessionId; let aid = localStorage.getItem(key); let fresh = false;
                     if (!aid) { aid = 'a' + Array.from(crypto.getRandomValues(new Uint8Array(8))).map(b => b.toString(16).padStart(2, '0')).join(''); localStorage.setItem(key, aid); fresh = true; }
                     const gid = 'g' + g.startedAt.toString(36), now = Date.now(); const base = { updatedAt: now }; if (fresh) base.createdAt = now;
@@ -1180,6 +1483,28 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
                 setAnLoading(false);
             };
             useEffect(() => { if (isAdmin && (screen === 'analytics' || screen === 'analytics_sessions') && !anData && !anLoading && !anErr) loadAnalytics(); }, [screen, isAdmin, anData, anErr]);
+            // Игра, которую бросили на середине, тоже попадает в аналитику: промежуточная запись после 10 пройденных вопросов, затем каждые 5 и при сворачивании приложения
+            const lastProgressRef = useRef('');
+            useEffect(() => {
+                if (screen !== 'game' || gameMode !== 'normal') return;
+                const passed = maxReachedIndex, log = gameLogRef.current, tag = log ? log.startedAt + ':' + passed : '';
+                if (log && passed >= AN_FLOOR && passed % 5 === 0 && lastProgressRef.current !== tag) { lastProgressRef.current = tag; reportGame(passed, { partial: true }); }
+                const onHide = () => { if (document.visibilityState === 'hidden' && passed >= AN_FLOOR) reportGame(passed, { partial: true }); };
+                document.addEventListener('visibilitychange', onHide);
+                return () => document.removeEventListener('visibilitychange', onHide);
+            }, [screen, gameMode, maxReachedIndex, turnHistory]);
+            const setAnMin = (n) => { SoundFX.click(); setAnMinState(n); try { localStorage.setItem(AN_MIN_KEY, String(n)); } catch (e) {} };
+            const anFiltered = anData ? { anon: filterAnalytics(anData.anon, anMin), full: filterAnalytics(anData.full, anMin) } : null;
+            const anHiddenGames = anData && anFiltered ? Math.max(0, countAnalyticsGames(anData.anon) - countAnalyticsGames(anFiltered.anon)) : 0;
+            const anMinControl = (
+                <section className="rounded-[20px] border border-white/10 bg-white/[0.04] p-4 flex flex-col gap-3">
+                    <div><div className="text-sm font-bold text-white">В аналитику идут игры от</div><div className="text-xs text-zinc-500 leading-snug mt-0.5">Число отвеченных вопросов в игре. Полностью пройденные колоды учитываются всегда.</div></div>
+                    <div className="flex flex-wrap gap-2" role="group" aria-label="Минимум отвеченных вопросов">
+                        {AN_MIN_CHOICES.map(n => ( <button key={n} type="button" aria-pressed={anMin === n} onClick={() => setAnMin(n)} className={`chip ${anMin === n ? 'is-on' : ''}`}>{n === 0 ? 'Любых' : n}</button> ))}
+                    </div>
+                    {anData && anHiddenGames > 0 && <p className="text-xs text-zinc-500">Не вошло в сводку коротких игр: {anHiddenGames}. Уменьшите число, чтобы увидеть их.</p>}
+                </section>
+            );
             const deleteAnSession = async (aid) => {
                 if (anConfirm !== aid) { SoundFX.warn(); setAnConfirm(aid); return; }
                 setAnBusy(true);
@@ -1221,35 +1546,55 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
                 } catch (e) { showErrorPopup('Не удалось вернуть вопросы', 'Проверьте интернет и вход владельца, затем попробуйте ещё раз.'); }
                 setHqConfirmAll(false); setHqBusy('');
             };
-            const [live, setLive] = useState({ room: '', role: '' }); const [liveInvite, setLiveInvite] = useState(null); const [liveEnded, setLiveEnded] = useState(false); const [liveCount, setLiveCount] = useState(0); const [liveRoomId, setLiveRoomId] = useState('');
+            const [live, setLive] = useState({ room: '', role: '', sync: false }); const [liveJoining, setLiveJoining] = useState(false); const [liveInvite, setLiveInvite] = useState(null); const [liveEnded, setLiveEnded] = useState(false); const [liveCount, setLiveCount] = useState(0); const [liveRoomId, setLiveRoomId] = useState('');
             const deviceIdRef = useRef(null); if (!deviceIdRef.current) deviceIdRef.current = makeDeviceId();
-            const liveIdsRef = useRef([]); const liveRoomRef = useRef(''); const liveRoleRef = useRef(''); const liveRoomIdRef = useRef(''); liveRoomIdRef.current = liveRoomId;
+            const liveIdsRef = useRef([]); const liveSyncRef = useRef(false); const liveDeckRef = useRef(''); const liveEnteringRef = useRef(''); const liveJoiningRef = useRef(false); const liveRoomRef = useRef(''); const liveRoleRef = useRef(''); const liveRoomIdRef = useRef(''); liveRoomIdRef.current = liveRoomId;
             const liveRef = useRef({ ver: 0, t: 0, gid: '', hash: '', spinId: 0, punId: 0, endedSent: false, appliedAt: 0, reassertAt: 0 }); const liveChainRef = useRef(Promise.resolve()); const livePendingRef = useRef(0);
             const liveStateRef = useRef({ idx: 0, max: 0, hist: {} }); liveStateRef.current = { idx: currentIndex, max: maxReachedIndex, hist: turnHistory };
+            const livePunRef = useRef({ key: '', punish: null }); livePunRef.current = { key: punDoneKey, punish };
             const roomUrl = (room, sub = '') => `${FIREBASE_BASE_URL}/live/${room}${sub}.json`;
             // общая «комната» сессии: её имя — хеш секретного ключа сессии, поэтому зайти могут только участники
             useEffect(() => { let on = true; if (profile && isValidAESKey(profile.sessionKey)) liveRoomKey(profile.sessionKey).then(r => { if (on) setLiveRoomId(r); }); else setLiveRoomId(''); return () => { on = false; }; }, [profile && profile.sessionKey]);
-            const liveSend = (method, body, sub = '') => {
+            const liveSend = (method, body, sub = '', suffix = '') => {
                 const room = liveRoomRef.current; if (!room) return Promise.resolve(false);
                 livePendingRef.current++;
-                const p = liveChainRef.current.then(() => fetchWithTimeout(roomUrl(room, sub), { method, headers: { "Content-Type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body) }).then(r => r.ok).catch(() => false)).then(ok => { livePendingRef.current--; return ok; });
+                const p = liveChainRef.current.then(() => fetchWithTimeout(roomUrl(room + suffix, sub), { method, headers: { "Content-Type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body) }).then(r => r.ok).catch(() => false)).then(ok => { livePendingRef.current--; return ok; });
                 liveChainRef.current = p; return p;
             };
-            const livePublish = (extra) => { if (!liveRoomRef.current) return; const lr = liveRef.current; const ver = liveVerNext(lr.ver, deviceIdRef.current), t = Date.now(); lr.ver = ver; lr.t = t; liveSend('PATCH', { ver, by: deviceIdRef.current, t, ...extra }); };
+            // пока в игре одно устройство, состояние в базу не отправляется (force — только для итога игры)
+            const livePublish = (extra, force = false) => { if (!liveRoomRef.current || (!liveSyncRef.current && !force)) return; const lr = liveRef.current; const ver = liveVerNext(lr.ver, deviceIdRef.current), t = Date.now(); lr.ver = ver; lr.t = t; liveSend('PATCH', { ver, by: deviceIdRef.current, t, ...extra }); };
             const livePlayersStr = () => JSON.stringify(((profile && profile.players) || []).slice(0, MAX_PLAYERS).map(p => ({ id: p.id, name: p.name, gender: p.gender })));
-            // запуск игры: этот телефон становится «хозяином» новой партии, остальные устройства сессии увидят приглашение
+            // запуск игры: этот телефон становится «хозяином» новой партии. Пока он один, в базе только «маячок» (кто, сколько вопросов, режим):
+            // сами вопросы и ход игры отправляются, когда к сессии подключится ещё одно устройство (см. liveGoSync)
             const liveStart = (deck, st) => {
                 const room = liveRoomIdRef.current; if (!room || !profile) return false;
-                const me = deviceIdRef.current, t = Date.now(), ver = liveVerNext(0, me), gid = 'g' + t.toString(36) + Math.random().toString(36).slice(2, 5), hs = liveHistStr(st.hist);
-                liveRoomRef.current = room; liveRoleRef.current = 'host';
+                const me = deviceIdRef.current, t = Date.now(), ver = liveVerStart(me, t), gid = 'g' + t.toString(36) + Math.random().toString(36).slice(2, 5), hs = liveHistStr(st.hist);
+                const idsStr = deck.map(q => String(q.id || q.dbKey)).join(',');
+                liveRoomRef.current = room; liveRoleRef.current = 'host'; liveSyncRef.current = false; liveDeckRef.current = idsStr; liveJoiningRef.current = false;
                 liveRef.current = { ver, t, gid, hash: liveHash(st.idx, st.max, hs), spinId: 0, punId: 0, endedSent: false, appliedAt: 0, reassertAt: 0 };
-                setLive({ room, role: 'host' }); setLiveFx(null); setLiveEnded(false); setLiveInvite(null); setLiveCount(1);
-                liveSend('PATCH', { ver, by: me, t, gid, status: 'active', ids: deck.slice(0, LIVE_MAX_DECK).map(q => String(q.id || q.dbKey)).join(','), idx: st.idx, max: st.max, hist: hs, hard: st.hard ? 1 : 0, fx: st.fx, pl: livePlayersStr(), spin: null, pun: null });
+                setLive({ room, role: 'host', sync: false }); setLiveFx(null); setLiveEnded(false); setLiveInvite(null); setLiveCount(1);
+                liveSend('PATCH', { ver, by: me, t, gid, status: 'active', solo: 1, n: deck.length, dk: liveDeckKey(idsStr), ids: null, idx: null, max: null, hist: null, hard: st.hard ? 1 : 0, fx: st.fx, pl: null, spin: null, pun: null });
                 return true;
+            };
+            // к хозяину подключилось ещё одно устройство: отправляем колоду (отдельным узлом — она может быть длиннее лимита одной записи) и текущий ход, дальше игра синхронна
+            const liveGoSync = () => {
+                if (liveSyncRef.current || !liveRoomRef.current || liveRoleRef.current !== 'host') return;
+                liveSyncRef.current = true;
+                const lr = liveRef.current, me = deviceIdRef.current, t = Date.now();
+                setLive(l => ({ ...l, sync: true }));
+                liveSend('PUT', { ver: 1, by: me, t, g: lr.gid, d: liveDeckRef.current }, '', '_d').then(ok => {
+                    if (!ok) { liveSyncRef.current = false; setLive(l => ({ ...l, sync: false })); if (Date.now() - (lr.deckFailAt || 0) > 20000) { lr.deckFailAt = Date.now(); showToast('Не удалось передать вопросы второму устройству — пробуем ещё раз', 4000); } return; }
+                    const st = liveStateRef.current, hs = liveHistStr(st.hist), ver = liveVerNext(lr.ver, me); lr.ver = ver; lr.t = Date.now(); lr.hash = liveHash(st.idx, st.max, hs);
+                    // если у хозяина уже выпало наказание за этот ход, гости должны знать об этом: иначе по своему таймеру выдадут второе
+                    const pr = livePunRef.current, pn = pr.punish || {}; let pun = null;
+                    if (pr.key) { pun = { id: Date.now(), reason: pn.reason || '', player: pn.player || '', text: pn.text || '', icon: pn.icon || '', key: pr.key }; lr.punId = pun.id; }
+                    liveSend('PATCH', { ver, by: me, t: lr.t, solo: null, pl: livePlayersStr(), idx: st.idx, max: st.max, hist: hs, ...(pun ? { pun } : {}) });
+                });
             };
             const liveSpin = (idx, cands, winner) => { if (!liveRoomRef.current) return; const id = Date.now(); liveRef.current.spinId = id; livePublish({ spin: { id, idx, winner, cands: cands.map(p => ({ id: p.id, name: p.name, gender: p.gender })) } }); };
             const livePun = (pn) => { if (!liveRoomRef.current) return; const id = Date.now(); liveRef.current.punId = id; livePublish({ pun: { id, reason: pn.reason, player: pn.player || '', text: pn.text || '', icon: pn.icon || '', key: pn.key || '' } }); };
-            const liveSendEnd = () => { if (!liveRoomRef.current || liveRef.current.endedSent) return; liveRef.current.endedSent = true; livePublish({ status: 'ended' }); };
+            // итог партии: статус «закончена»; имена игроков и список вопросов из общей комнаты убираем — они больше не нужны
+            const liveSendEnd = () => { if (!liveRoomRef.current || liveRef.current.endedSent) return; liveRef.current.endedSent = true; livePublish({ status: 'ended', pl: null }, true); liveSend('DELETE', undefined, '', '_d'); };
             const liveShowSpin = (spin) => {
                 rouletteTimeoutsRef.current.forEach(t => clearTimeout(t)); rouletteTimeoutsRef.current = []; pendingTurnRef.current = null;
                 setTurnPopup({ open: true, spinning: true, winner: spin.winner, spinId: spin.id, candidates: spin.cands || [] });
@@ -1259,18 +1604,30 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
                 rouletteTimeoutsRef.current.push(setTimeout(() => setTurnPopup(st => (st.spinId === spin.id && !st.spinning ? { ...st, open: false } : st)), acc + 2800));
             };
             const liveShowPun = (pn) => { SoundFX.warn(); if (pn.key) setPunDoneKey(pn.key); setPunish({ open: true, remote: true, reason: pn.reason, player: pn.player || '', text: pn.text || '', icon: pn.icon || '🎭' }); };
+            // колода партии лежит отдельным узлом рядом с комнатой (её длина не ограничена лимитом одной записи)
+            const liveFetchDeck = async (room, snap) => {
+                for (let i = 0; i < 3; i++) {
+                    try {
+                        const r = await fetchWithTimeout(roomUrl(room + '_d') + '?t=' + Date.now(), {}, 10000); const d = r.ok ? await r.json() : null;
+                        if (d && d.g === snap.gid && typeof d.d === 'string' && d.d) { const ids = d.d.split(',').filter(Boolean); if (!snap.n || ids.length === snap.n) return ids; }
+                    } catch (e) {}
+                    await new Promise(res => setTimeout(res, 400));
+                }
+                return null;
+            };
             // вход в уже идущую игру (приглашение, переход на новую партию, возврат в начатую)
-            const enterLive = (snap, role) => {
-                const ids = String(snap.ids || '').split(',').filter(Boolean); const map = new Map(profileDb.map(q => [String(q.id || q.dbKey), q])); const deck = ids.map(id => map.get(id)).filter(Boolean);
-                if (!ids.length || deck.length !== ids.length) { showToast('Не удалось присоединиться: не все вопросы загружены. Обновите страницу и попробуйте снова', 5000); return false; }
+            const enterLive = async (snap, role) => {
                 const room = liveRoomIdRef.current; if (!room || !profile) return false;
+                const ids = await liveFetchDeck(room, snap); const map = new Map(profileDb.map(q => [String(q.id || q.dbKey), q])); const deck = ids ? ids.map(id => map.get(id)).filter(Boolean) : [];
+                if (!ids || !ids.length) { showToast('Не удалось получить вопросы игры. Проверьте интернет и попробуйте ещё раз', 5000); return false; }
+                if (deck.length !== ids.length) { showToast('Не удалось присоединиться: не все вопросы загружены. Обновите страницу и попробуйте снова', 5000); return false; }
                 let hist = {}; try { hist = JSON.parse(snap.hist || '{}') || {}; } catch (e) {}
                 let pl = null; try { pl = JSON.parse(snap.pl || 'null'); } catch (e) {}
                 if (Array.isArray(pl) && pl.length) { const key = (a) => a.map(p => p.id + '|' + p.name + '|' + p.gender).join(','); if (key(pl) !== key(profile.players || [])) setProfile(prev => prev ? { ...prev, players: pl.slice(0, MAX_PLAYERS).map(p => ({ id: String(p.id), name: String(p.name || '').slice(0, 25), gender: p.gender === 'girl' ? 'girl' : 'guy' })), updatedAt: Date.now() } : prev); }
                 const idx = Number(snap.idx) || 0, max = Number(snap.max) || 0;
-                liveRoomRef.current = room; liveRoleRef.current = role; rouletteTimeoutsRef.current.forEach(t => clearTimeout(t)); rouletteTimeoutsRef.current = []; pendingTurnRef.current = null;
+                liveRoomRef.current = room; liveRoleRef.current = role; liveSyncRef.current = true; rouletteTimeoutsRef.current.forEach(t => clearTimeout(t)); rouletteTimeoutsRef.current = []; pendingTurnRef.current = null;
                 liveRef.current = { ver: snap.ver, t: snap.t || 0, gid: snap.gid || '', hash: liveHash(idx, max, liveHistStr(hist)), spinId: snap.spin ? snap.spin.id : 0, punId: snap.pun ? snap.pun.id : 0, endedSent: false, appliedAt: Date.now(), reassertAt: 0 };
-                setLive({ room, role }); setLiveEnded(false); setLiveInvite(null); setLiveCount(c => Math.max(c, 1));
+                setLive({ room, role, sync: true }); setLiveEnded(false); setLiveInvite(null); setLiveCount(c => Math.max(c, 1));
                 const f = snap.fx || {}; setLiveFx({ ...settings, timerOn: !!f.timerOn, timerSec: f.timerSec || settings.timerSec, punishOn: !!f.punishOn });
                 setHardMode(!!snap.hard); setPunDoneKey(snap.pun && snap.pun.key ? String(snap.pun.key) : ''); setGameMode('normal'); setGameQuestions(deck); setCurrentIndex(idx); setMaxReachedIndex(max); setTurnHistory(hist);
                 setTurnPopup({ open: false, spinning: false, highlight: 'guy', winner: null, candidates: [] }); setPunish({ open: false, text: '', player: '', icon: '⏰' }); setShowSkipPopup(false); setTimerDismissKey('');
@@ -1286,7 +1643,11 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
             const applyLiveSnapshot = (snap) => {
                 if (!snap || typeof snap.ver !== 'number') return;
                 const lr = liveRef.current, me = deviceIdRef.current;
-                if (snap.gid && lr.gid && snap.gid !== lr.gid) { if (snap.by !== me && snap.status === 'active') { showToast('Запущена новая игра'); enterLive(snap, 'guest'); } return; }
+                if (snap.gid && lr.gid && snap.gid !== lr.gid) {
+                    // новая партия другого устройства: пока там «маячок» без вопросов (solo), ждём — хозяин отправит их, увидев наше присутствие
+                    if (snap.by !== me && snap.status === 'active' && !snap.solo && liveEnteringRef.current !== snap.gid) { liveEnteringRef.current = snap.gid; showToast('Запущена новая игра'); enterLive(snap, 'guest').finally(() => { liveEnteringRef.current = ''; }); }
+                    return;
+                }
                 if (snap.ver < lr.ver) { liveReassert(snap.ver); return; }
                 if (snap.ver === lr.ver) return;
                 lr.ver = snap.ver; lr.t = snap.t || 0;
@@ -1302,7 +1663,7 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
             };
             const applyLiveRef = useRef(null); applyLiveRef.current = applyLiveSnapshot;
             useEffect(() => {
-                if (!live.room || !['game', 'ai_response'].includes(screen)) return;
+                if (!live.room || !live.sync || !['game', 'ai_response'].includes(screen)) return;
                 let stop = false, busy = false;
                 const tick = async () => {
                     if (busy || document.hidden) return; busy = true;
@@ -1314,7 +1675,19 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
                 };
                 const id = setInterval(tick, LIVE_POLL_MS); const vis = () => { if (!document.hidden) tick(); }; document.addEventListener('visibilitychange', vis);
                 return () => { stop = true; clearInterval(id); document.removeEventListener('visibilitychange', vis); };
-            }, [live.room, screen]);
+            }, [live.room, live.sync, screen]);
+            // пока хозяин один, ему нечего синхронизировать: раз в пару секунд смотрим только, не появилось ли второе устройство
+            useEffect(() => {
+                if (!live.room || live.sync || live.role !== 'host' || !['game', 'ai_response'].includes(screen)) return;
+                let stop = false, busy = false;
+                const tick = async () => {
+                    if (busy || stop || document.hidden) return; busy = true;
+                    try { const r = await fetchWithTimeout(roomUrl(live.room, '/p') + '?t=' + Date.now(), {}, 5000); const p = r.ok ? await r.json() : null; if (!stop && liveAlive(p, Date.now(), deviceIdRef.current).others.length > 0) liveGoSync(); } catch (e) {}
+                    busy = false;
+                };
+                const id = setInterval(tick, LIVE_SOLO_MS); const vis = () => { if (!document.hidden) tick(); }; document.addEventListener('visibilitychange', vis);
+                return () => { stop = true; clearInterval(id); document.removeEventListener('visibilitychange', vis); };
+            }, [live.room, live.sync, live.role, screen]);
             // «я здесь»: раз в 8 с отмечаемся в комнате и узнаём, сколько устройств сейчас в игре
             useEffect(() => {
                 if (!live.room || !['game', 'ai_response'].includes(screen)) return;
@@ -1333,11 +1706,11 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
                 return () => { stop = true; clearInterval(id); document.removeEventListener('visibilitychange', vis); };
             }, [live.room, screen]);
             useEffect(() => {
-                if (!live.room || screen !== 'game') return;
+                if (!live.room || !live.sync || screen !== 'game') return;
                 const hs = liveHistStr(turnHistory), h = liveHash(currentIndex, maxReachedIndex, hs);
                 if (h === liveRef.current.hash) return;
                 liveRef.current.hash = h; livePublish({ idx: currentIndex, max: maxReachedIndex, hist: hs });
-            }, [live.room, screen, currentIndex, maxReachedIndex, turnHistory]);
+            }, [live.room, live.sync, screen, currentIndex, maxReachedIndex, turnHistory]);
             // приглашение: на главной и экранах выбора режима смотрим, идёт ли в сессии игра, в которой уже есть другие устройства
             useEffect(() => {
                 if (!['menu', 'mode_select', 'game_setup'].includes(screen) || !liveRoomId || live.room) { setLiveInvite(null); return; }
@@ -1358,18 +1731,48 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
             const liveLeave = () => {
                 const room = liveRoomRef.current, me = deviceIdRef.current;
                 if (room) fetchWithTimeout(roomUrl(room, '/p/' + me), { method: 'DELETE', keepalive: true }, 6000).catch(() => {});
-                liveRoomRef.current = ''; liveRoleRef.current = ''; setLive({ room: '', role: '' }); setLiveFx(null); setLiveCount(0);
+                liveRoomRef.current = ''; liveRoleRef.current = ''; liveSyncRef.current = false; setLive({ room: '', role: '', sync: false }); setLiveFx(null); setLiveCount(0);
             };
             useEffect(() => { if (live.room && !['game', 'ai_response', 'summary'].includes(screen)) liveLeave(); }, [screen]);
             useEffect(() => { const h = () => { if (liveRoomRef.current) liveLeave(); }; window.addEventListener('pagehide', h); return () => window.removeEventListener('pagehide', h); }, []);
             useEffect(() => { if (liveEnded) { setLiveEnded(false); showToast('Игра завершена на другом устройстве'); handleFinishGame(false); } }, [liveEnded]);
-            const joinLive = async () => {
-                if (!profile || !liveRoomIdRef.current) return;
-                let snap = null; try { const r = await fetchWithTimeout(roomUrl(liveRoomIdRef.current) + '?t=' + Date.now(), {}, 8000); snap = r.ok ? await r.json() : null; } catch (e) {}
-                if (!snap || snap.status !== 'active' || !snap.ids) { setLiveInvite(null); showToast('Игра уже закончилась. Начните новую партию — приглашение появится здесь', 5000); return; }
-                if (liveAlive(snap.p, Date.now(), deviceIdRef.current).others.length >= LIVE_MAX_DEVICES) { showToast('В игре уже ' + LIVE_MAX_DEVICES + ' устройств — это максимум для одной сессии. Дождитесь, пока кто-нибудь выйдет', 5000); return; }
-                enterLive(snap, 'guest');
+            // присоединение к идущей игре. Если хозяин пока один, он пришлёт вопросы, только увидев нас, — поэтому сначала отмечаемся в комнате и ждём
+            const liveJoinFlow = async (snap0, quiet = false) => {
+                const room = liveRoomIdRef.current, me = deviceIdRef.current; if (!room || !profile || liveJoiningRef.current) return false;
+                liveJoiningRef.current = true; setLiveJoining(true);
+                let ok = false, announced = false;
+                try {
+                    let snap = snap0;
+                    if (snap.solo) {
+                        announced = true;
+                        await fetchWithTimeout(roomUrl(room, '/p'), { method: 'PATCH', headers: { "Content-Type": "application/json" }, body: JSON.stringify({ [me]: Date.now() }) }, 6000).catch(() => {});
+                        if (!quiet) showToast('Подключаемся к игре…', 4000);
+                        const t0 = Date.now(); snap = null;
+                        while (Date.now() - t0 < LIVE_JOIN_WAIT_MS) {
+                            await new Promise(res => setTimeout(res, 700));
+                            try { const r = await fetchWithTimeout(roomUrl(room) + '?t=' + Date.now(), {}, 6000); const s2 = r.ok ? await r.json() : null; if (s2 && s2.status !== 'active') break; if (s2 && !s2.solo && s2.n > 0) { snap = s2; break; } } catch (e) {}
+                        }
+                        if (!snap) { if (!quiet) showToast('Не удалось подключиться: игра не открыта на устройстве хозяина. Откройте её там и попробуйте снова', 6000); }
+                    }
+                    ok = snap ? await enterLive(snap, 'guest') : false;
+                } finally {
+                    if (!ok && announced) fetchWithTimeout(roomUrl(room, '/p/' + me), { method: 'DELETE' }, 6000).catch(() => {});
+                    liveJoiningRef.current = false; setLiveJoining(false);
+                }
+                return ok;
             };
+            const joinLive = async () => {
+                if (!profile || !liveRoomIdRef.current || liveJoiningRef.current) return;
+                let snap = null; try { const r = await fetchWithTimeout(roomUrl(liveRoomIdRef.current) + '?t=' + Date.now(), {}, 8000); snap = r.ok ? await r.json() : null; } catch (e) {}
+                if (!snap || snap.status !== 'active' || !(snap.n > 0)) { setLiveInvite(null); showToast('Игра уже закончилась. Начните новую партию — приглашение появится здесь', 5000); return; }
+                if (liveAlive(snap.p, Date.now(), deviceIdRef.current).others.length >= LIVE_MAX_DEVICES) { showToast('В игре уже ' + LIVE_MAX_DEVICES + ' устройств — это максимум для одной сессии. Дождитесь, пока кто-нибудь выйдет', 5000); return; }
+                await liveJoinFlow(snap);
+            };
+            // после быстрого подключения по приглашению: если в сессии уже идёт игра, входим в неё сами (когда появится приглашение; ждём не дольше 20 секунд)
+            useEffect(() => {
+                if (!liveInvite || !joinAutoRef.current || screen !== 'menu') return;
+                const age = Date.now() - joinAutoRef.current; joinAutoRef.current = 0; if (age > 20000) return; joinLive();
+            }, [liveInvite, screen]);
             const handleCloseRoulettePopup = () => {
                 rouletteTimeoutsRef.current.forEach(t => clearTimeout(t)); rouletteTimeoutsRef.current = [];
                 const p = pendingTurnRef.current; pendingTurnRef.current = null;
@@ -1382,15 +1785,19 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
                 const qMap = new Map(); profileDb.forEach(q => { qMap.set(q.id, q); qMap.set(q.dbKey, q); });
                 let restoredDeck = profile.savedGame.questionIds.map(id => qMap.get(id)).filter(Boolean);
                 if (restoredDeck.length === 0) { setProfile(prev => ({ ...prev, savedGame: null, updatedAt: Date.now() })); return; }
-                const canLive = !!liveRoomIdRef.current; if (canLive && restoredDeck.length > LIVE_MAX_DECK) restoredDeck = restoredDeck.slice(0, LIVE_MAX_DECK);
+                const canLive = !!liveRoomIdRef.current;
                 const cIdx = Math.min(profile.savedGame.currentIndex || 0, restoredDeck.length - 1); const mIdx = Math.min(profile.savedGame.maxReachedIndex || cIdx, restoredDeck.length - 1); const tHist = profile.savedGame.turnHistory || {};
                 // если эта же партия ещё идёт на других устройствах — возвращаемся в неё, а не затираем её своим старым состоянием
                 if (canLive) {
                     try {
                         const r = await fetchWithTimeout(roomUrl(liveRoomIdRef.current) + '?t=' + Date.now(), {}, 6000); const snap = r.ok ? await r.json() : null;
                         const n = snap ? liveAlive(snap.p, Date.now(), deviceIdRef.current).others.length : 0;
-                        // других устройств сейчас нет — берём состояние из комнаты, если оно не отстаёт от моего сохранения (там самый свежий ход)
-                        if (snap && snap.status === 'active' && snap.ids === restoredDeck.map(q => String(q.id || q.dbKey)).join(',') && n < LIVE_MAX_DEVICES && (n > 0 || (Number(snap.max) || 0) >= mIdx) && enterLive(snap, 'guest')) return;
+                        const sameDeck = !!snap && snap.status === 'active' && snap.dk === liveDeckKey(restoredDeck.map(q => String(q.id || q.dbKey)).join(','));
+                        if (sameDeck && n < LIVE_MAX_DEVICES) {
+                            // другие устройства сейчас в игре — присоединяемся к ним; никого нет — берём состояние из комнаты, если оно не отстаёт от моего сохранения (там самый свежий ход)
+                            if (n > 0) { if (await liveJoinFlow(snap, true)) return; }
+                            else if (!snap.solo && (Number(snap.max) || 0) >= mIdx && await enterLive(snap, 'guest')) return;
+                        }
                     } catch (e) {}
                 }
                 setPunDoneKey(''); setGameMode('normal'); setGameQuestions(restoredDeck); setCurrentIndex(cIdx); setMaxReachedIndex(mIdx); setTurnHistory(tHist); setAnsweredCount(0); setCompletedAllFlag(false); setShowEndGameConfirm(false); setTurnPopup({ open: false, spinning: false, highlight: 'guy', winner: null }); navigate('game');
@@ -1401,10 +1808,9 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
             const handlePressStartButton = () => { SoundFX.click(); if(!profile) return; navigate('mode_select'); };
             const startWithMode = (mode, opts = {}) => {
                 SoundFX.click(); let pool = [];
-                if (mode === 'normal') { pool = profileDb.filter(q => !q.hidden && !q.archived && !q.disabled && selectedCats.includes(q.categoryId) && selectedDiffs.includes(q.level)); if (pool.length === 0) { alert("Нет активных вопросов!"); return; } } else { const catsToUse = selectedCats.length > 0 ? selectedCats : CATEGORIES.map(c => c.id); const diffsToUse = selectedDiffs.length > 0 ? selectedDiffs : DIFFICULTIES.map(d => d.id); pool = profileDb.filter(q => catsToUse.includes(q.categoryId) && diffsToUse.includes(q.level)); if (pool.length === 0) { alert("В базе нет вопросов!"); return; } }
+                if (mode === 'normal') { pool = profileDb.filter(q => !q.hidden && !q.archived && !q.disabled && selectedCats.includes(q.categoryId) && selectedDiffs.includes(q.level)); if (pool.length === 0) { showToast("Нет подходящих вопросов — измените темы или сложность"); return; } } else { const catsToUse = selectedCats.length > 0 ? selectedCats : CATEGORIES.map(c => c.id); const diffsToUse = selectedDiffs.length > 0 ? selectedDiffs : DIFFICULTIES.map(d => d.id); pool = profileDb.filter(q => catsToUse.includes(q.categoryId) && diffsToUse.includes(q.level)); if (pool.length === 0) { showToast("В базе нет подходящих вопросов"); return; } }
                 let shuffled = [...pool]; if (mode === 'normal') { shuffled = buildDeck(pool); } else { for (let i = shuffled.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]; } }
                 const isHard = opts.hard !== undefined ? !!opts.hard : hardMode, canLive = mode === 'normal' && !!liveRoomIdRef.current;
-                if (canLive && shuffled.length > LIVE_MAX_DECK) shuffled = shuffled.slice(0, LIVE_MAX_DECK);
                 setPunDoneKey(''); setGameMode(mode); setGameQuestions(shuffled); setCurrentIndex(0); setMaxReachedIndex(0); setTurnHistory({}); setAnsweredCount(0); setCompletedAllFlag(false); setShowEndGameConfirm(false); navigate('game');
                 if (mode === 'normal') {
                     updateSavedGameProgress(shuffled, 0, 0, {});
@@ -1418,7 +1824,7 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
             const archiveAnsweredQuestions = (questionsToArchive) => { if (!questionsToArchive || questionsToArchive.length === 0 || !profile) return; const newArchKeys = questionsToArchive.map(q => q.id || q.dbKey); setProfile(prev => { const merged = Array.from(new Set([...(prev.archivedIds || []), ...newArchKeys])); return { ...prev, archivedIds: merged, savedGame: null, updatedAt: Date.now() }; }); };
             const handleRestoreSingleFromArchive = (qObj) => { SoundFX.success(); setProfile(prev => ({ ...prev, archivedIds: (prev.archivedIds || []).filter(k => k !== qObj.id && k !== qObj.dbKey), updatedAt: Date.now() })); };
             const handleRestoreBatchFromArchive = (listToRestore) => { if (!listToRestore || listToRestore.length === 0) return; SoundFX.success(); const keysToRemove = new Set(); listToRestore.forEach(q => { keysToRemove.add(q.id); keysToRemove.add(q.dbKey); }); setProfile(prev => ({ ...prev, archivedIds: (prev.archivedIds || []).filter(k => !keysToRemove.has(k)), updatedAt: Date.now() })); };
-            const handleFinishGame = (reachedVeryEnd = false) => { SoundFX.click(); liveSendEnd(); setShowEndGameConfirm(false); if (gameMode === 'test') { navigate('menu'); return; } const totalAnswered = maxReachedIndex + 1; const answeredSlice = gameQuestions.slice(0, totalAnswered); const isAllCleared = reachedVeryEnd || (totalAnswered >= gameQuestions.length && gameQuestions.length > 0); setAnsweredCount(totalAnswered); setCompletedAllFlag(isAllCleared); if (isAllCleared) SoundFX.romanticFinale(); else SoundFX.success(); archiveAnsweredQuestions(answeredSlice); reportGame(totalAnswered); navigate('summary'); };
+            const handleFinishGame = (reachedVeryEnd = false) => { SoundFX.click(); liveSendEnd(); setShowEndGameConfirm(false); if (gameMode === 'test') { navigate('menu'); return; } const totalAnswered = maxReachedIndex + 1; const answeredSlice = gameQuestions.slice(0, totalAnswered); const isAllCleared = reachedVeryEnd || (totalAnswered >= gameQuestions.length && gameQuestions.length > 0); setAnsweredCount(totalAnswered); setCompletedAllFlag(isAllCleared); if (isAllCleared) SoundFX.romanticFinale(); else SoundFX.success(); archiveAnsweredQuestions(answeredSlice); reportGame(totalAnswered, { complete: isAllCleared }); navigate('summary'); };
 
             const triggerAI = async (type) => { if (!ActionGuard.canProceed(600)) return; SoundFX.magic(); setAiType(type); setAiContent(type === 'situation' ? "Моделирую ситуацию..." : "Готовлю разбор психолога..."); setIsAiTyping(true); navigate('ai_response'); const q = gameQuestions[currentIndex]; const pNames = profile?.players?.map(p=>p.name).join(' и ') || "Пара"; const response = await fetchFromAI(type, q.cleanText || q.text, q.categoryId, pNames); if (typingIntervalRef.current) clearInterval(typingIntervalRef.current); setAiContent(""); let i = 0; typingIntervalRef.current = setInterval(() => { setAiContent(response.substring(0, i + 1)); i += 8; if (i >= response.length) { setAiContent(response); clearInterval(typingIntervalRef.current); setIsAiTyping(false); } }, 40); };
             const handleGenerateQuestionAI = async () => { if (!isAdmin || isGeneratingQuestion || !ActionGuard.canProceed(800)) return; SoundFX.magic(); setIsGeneratingQuestion(true); try { const randomCat = CATEGORIES[Math.floor(Math.random() * CATEGORIES.length)]; const randomDiff = DIFFICULTIES[Math.floor(Math.random() * DIFFICULTIES.length)]; const pNames = profile?.players?.map(p=>p.name).join(' и ') || "Пара"; const generatedText = await generateUniqueQuestionAI(randomCat, randomDiff, db, pNames); if (generatedText) { SoundFX.success(); setAddForm({ text: generatedText, cat: randomCat.id, diff: randomDiff.id, targetId: '' }); } } catch (err) {} finally { setIsGeneratingQuestion(false); } };
@@ -1458,6 +1864,27 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
 
             const ToastBanner = () => { if (!toastMsg) return null; return ReactDOM.createPortal( <div style={{ top: 'calc(env(safe-area-inset-top, 0px) + 12px)' }} className="fixed left-1/2 -translate-x-1/2 z-[10000] max-w-[calc(100vw-2rem)] px-4 py-2.5 rounded-full bg-[#161321] border border-rose-500/45 text-white text-xs font-bold shadow-[0_12px_35px_rgba(0,0,0,0.85)] flex items-center gap-2 fade-in"> <span className="text-rose-400"><Icons.Check /></span> <span>{toastMsg}</span> </div>, document.body ); };
             const PwaInstallModal = () => ( <PopupModal isOpen={showPwaModal} onClose={() => setShowPwaModal(false)}> <div className="flex flex-col gap-4 pt-1"> <div className="pr-8"><AskMeLogo size="xs" /></div> <div className="space-y-1 text-left"> <h3 className="text-xl font-bold text-white">Скачать на устройство</h3> <p className="text-xs text-zinc-400 leading-relaxed"> Установите <b className="text-white">ASK ME</b> на домашний экран. </p> </div> {isInAppWebView && ( <div className="p-3.5 rounded-[20px] bg-rose-500/15 border border-rose-500/40 text-xs text-rose-200 leading-relaxed text-left"> ⚠️ Вы открыли сайт во встроенном браузере. Нажмите на иконку <b>Safari/Браузера</b>, чтобы появилась установка. </div> )} <div className="seg"> <button type="button" onClick={() => { SoundFX.click(); setPwaPlatformTab('ios'); }} className={`seg-btn ${ pwaPlatformTab === 'ios' ? 'is-active' : '' }`} >  iPhone </button> <button type="button" onClick={() => { SoundFX.click(); setPwaPlatformTab('android'); }} className={`seg-btn ${ pwaPlatformTab === 'android' ? 'is-active' : '' }`} > 🤖 Android </button> </div> {pwaPlatformTab === 'ios' ? ( <div className="flex flex-col gap-3 text-left text-xs text-zinc-200 bg-white/[0.04] p-4 rounded-[20px] border border-white/10"> <div className="flex items-start gap-3"> <span className="w-6 h-6 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold flex items-center justify-center flex-shrink-0">1</span> <p className="leading-relaxed"> Нажмите кнопку <b className="text-white">«Поделиться»</b> в браузере Safari. </p> </div> <div className="hairline-divider"></div> <div className="flex items-start gap-3"> <span className="w-6 h-6 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold flex items-center justify-center flex-shrink-0">2</span> <p className="leading-relaxed"> Нажмите <b className="text-white">«На экран "Домой"»</b>. </p> </div> <button type="button" onClick={triggerIosNativeShareMenu} className="btn-accent w-full mt-1 flex items-center justify-center gap-2" > <Icons.IosShare /> Открыть меню iOS </button> </div> ) : ( <div className="flex flex-col gap-3 text-left text-xs text-zinc-200 bg-white/[0.04] p-4 rounded-[20px] border border-white/10"> <div className="flex items-start gap-3"> <span className="w-6 h-6 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold flex items-center justify-center flex-shrink-0">1</span> <p className="leading-relaxed"> Нажмите на меню браузера <b className="text-white">«⋮»</b>. </p> </div> <div className="hairline-divider"></div> <div className="flex items-start gap-3"> <span className="w-6 h-6 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold flex items-center justify-center flex-shrink-0">2</span> <p className="leading-relaxed"> Выберите <b className="text-white">«Установить приложение»</b>. </p> </div> </div> )} <button type="button" onClick={() => { SoundFX.click(); setShowPwaModal(false); }} className="btn-primary w-full" > Понятно </button> </div> </PopupModal> );
+
+            // страницы без сессии: «Об игре», документы, быстрое подключение. Показываем сразу, не дожидаясь загрузки вопросов
+            const pageBack = () => navigate(profile ? 'app_menu' : 'onboarding');
+            if (PUBLIC_SCREENS.includes(screen)) {
+                const shell = (children, links = true) => (<div className="safe-screen w-full flex flex-col items-center slide-up relative z-10"><ToastBanner />{children}<AppFooter noLinks={!links} /></div>);
+                if (screen === 'about') return shell(<AboutPage profileDb={profileDb} topicCount={CATEGORIES.length} hasProfile={!!profile} onBack={pageBack} onStart={() => navigate(profile ? 'menu' : 'onboarding')} onShare={sharePage} />);
+                if (screen === 'join') {
+                    const sameSession = !!(joinInvite && profile && profile.sessionKey === joinInvite.key);
+                    return shell(<JoinPage invite={joinInvite} profile={profile} busy={joinBusy} error={joinError} onJoin={handleJoinInvite} onStay={sameSession ? joinContinue : joinDecline} onManual={joinManual} onAbout={() => navigate('about')} />, false);
+                }
+                return shell(<LegalPage docId={screen} onBack={pageBack} />, false);
+            }
+            if (screen === 'invite' && profile) {
+                return (
+                    <div className="safe-screen w-full flex flex-col items-center slide-up relative z-10">
+                        <ToastBanner />
+                        <InvitePage profile={profile} onBack={() => navigate('app_menu')} showToast={showToast} />
+                        <AppFooter />
+                    </div>
+                );
+            }
 
             if (isLoading) return <div className="safe-screen w-full flex flex-col items-center justify-center fade-in relative z-10"><AskMeLogo size="lg" /><p className="text-zinc-500 font-semibold text-xs mt-5">Синхронизация...</p></div>;
 
@@ -1558,15 +1985,33 @@ if (screen === 'app_menu') {
                         { id: 'players', icon: '👥', title: 'Игроки и сессия', desc: 'Имена, состав и восстановление', onClick: () => { if (profile) { setPlayersForm(profile.players); navigate('profile_page'); } } },
                         { id: 'questions', icon: '📚', title: 'Все вопросы', desc: 'Темы и список вопросов', onClick: () => navigate('cat_list') },
                         { id: 'archive', icon: '🗂️', title: 'Архив', desc: `Пройдено вопросов: ${stats.archivedList.length}`, onClick: () => navigate('archive_page') },
-                        ...(isAdmin ? [{ id: 'topics', icon: '⚙️', title: 'Управление темами', desc: 'Добавление тем и порядок', onClick: () => { setTopicDraft(CATEGORIES.map(c => c.id)); setTopicErr(''); navigate('topics_admin'); } }, { id: 'punish', icon: '🎭', title: 'Шаблоны наказаний', desc: 'Список для всех игроков', onClick: () => { setPtEdit(null); setPtErr(''); setPtConfirmId(''); navigate('punish_admin'); } }, { id: 'analytics', icon: '📊', title: 'Аналитика', desc: 'Сессии, вопросы, наказания', onClick: () => { setAnSel(null); setAnConfirm(''); navigate('analytics'); } }, { id: 'hidden', icon: '🙈', title: 'Скрытые вопросы', desc: `Сейчас скрыто: ${stats.hiddenCount}`, onClick: () => { setHqConfirmAll(false); navigate('hidden_q'); } }] : [])
+                        { id: 'about', icon: '✨', title: 'Об игре', desc: 'Что умеет ASK ME и как играть', onClick: () => navigate('about') },
                     ] },
                     { title: 'Настройки', items: [
                         { id: 'sound', icon: isMuted ? '🔇' : '🔊', title: 'Звук и вибрация', desc: isMuted ? 'Выключены' : 'Включены', right: <SettingSwitch on={!isMuted} onChange={toggleMute} label="Звук и вибрация" /> },
                         { id: 'stats', icon: '📈', title: 'Статистика игры', desc: analyticsOn ? 'Включена: помогает улучшать игру' : 'Отключена', right: <SettingSwitch on={analyticsOn} onChange={() => { SoundFX.click(); setAnalyticsOn(v => !v); }} label="Статистика игры" /> },
-                        ...(!isStandalonePWA ? [{ id: 'install', icon: '📲', title: 'Скачать на устройство', desc: 'Добавить на главный экран', onClick: handleInstallPwaClick }] : []),
-                        ...(isAdmin ? [{ id: 'owner', icon: '🔓', title: 'Режим владельца', desc: 'Выйти из режима владельца', onClick: handleLockAdmin }] : [])
+                        ...(!isStandalonePWA ? [{ id: 'install', icon: '📲', title: 'Скачать на устройство', desc: 'Добавить на главный экран', onClick: handleInstallPwaClick }] : [])
                     ] }
                 ];
+                // Пункты владельца: отдельная зона, которую видит только он. Обычный игрок не видит ни самой зоны, ни намёка на неё.
+                const ownerItems = isAdmin ? [
+                    { id: 'topics', icon: '⚙️', title: 'Управление темами', desc: 'Добавление тем и порядок', onClick: () => { setTopicDraft(CATEGORIES.map(c => c.id)); setTopicErr(''); navigate('topics_admin'); } },
+                    { id: 'punish', icon: '🎭', title: 'Шаблоны наказаний', desc: 'Список для всех игроков', onClick: () => { setPtEdit(null); setPtErr(''); setPtConfirmId(''); navigate('punish_admin'); } },
+                    { id: 'analytics', icon: '📊', title: 'Аналитика', desc: 'Сессии, вопросы, наказания', onClick: () => { setAnSel(null); setAnConfirm(''); navigate('analytics'); } },
+                    { id: 'hidden', icon: '🙈', title: 'Скрытые вопросы', desc: `Сейчас скрыто: ${stats.hiddenCount}`, onClick: () => { setHqConfirmAll(false); navigate('hidden_q'); } },
+                    { id: 'owner', icon: '🔓', title: 'Режим владельца', desc: 'Выйти из режима владельца', onClick: handleLockAdmin }
+                ] : [];
+                const renderMenuItems = (items) => items.map(it => {
+                    const body = (<>
+                        <span aria-hidden="true" className="w-10 h-10 rounded-full bg-white/[0.07] flex items-center justify-center text-lg flex-shrink-0">{it.icon}</span>
+                        <span className="flex-1 min-w-0 flex flex-col"><span className="text-sm font-semibold text-white truncate">{it.title}</span><span className="text-xs text-zinc-500 truncate">{it.desc}</span></span>
+                    </>);
+                    return it.right ? (
+                        <div key={it.id} className="min-h-[64px] px-4 flex items-center gap-3.5">{body}{it.right}</div>
+                    ) : (
+                        <button key={it.id} type="button" onClick={() => { SoundFX.click(); it.onClick(); }} className="row">{body}<span aria-hidden="true" className="text-zinc-500 text-xl leading-none">›</span></button>
+                    );
+                });
                 return (
                     <div className="safe-screen w-full flex flex-col items-center slide-up relative z-10">
                         <ToastBanner /> <PwaInstallModal /> {exitConfirmPopup}
@@ -1576,35 +2021,33 @@ if (screen === 'app_menu') {
                         </header>
                         <main className="w-full max-w-md flex flex-col gap-6 pt-6 pb-6">
                             {profile && (
-                                <section>
+                                <section className="flex flex-col gap-2.5">
                                     <SessionIdBadge sessionKey={profile.sessionKey} sessionId={profile.sessionId} onCopy={showToast} size="lg" />
+                                    <div className="flex justify-end"><button type="button" onClick={() => { SoundFX.click(); navigate('invite'); }} className="btn-secondary btn-sm flex items-center gap-2"><Icons.Share /> Пригласить игроков</button></div>
                                 </section>
                             )}
                             {menuSections.map(sec => (
                                 <section key={sec.title} className="flex flex-col gap-2.5">
                                     <h2 className="px-1 text-xs font-bold text-zinc-500">{sec.title}</h2>
-                                    <div className="rounded-[20px] border border-white/10 bg-white/[0.04] divide-y divide-white/[0.06] overflow-hidden">
-                                        {sec.items.map(it => {
-                                            const body = (<>
-                                                <span aria-hidden="true" className="w-10 h-10 rounded-full bg-white/[0.07] flex items-center justify-center text-lg flex-shrink-0">{it.icon}</span>
-                                                <span className="flex-1 min-w-0 flex flex-col"><span className="text-sm font-semibold text-white truncate">{it.title}</span><span className="text-xs text-zinc-500 truncate">{it.desc}</span></span>
-                                            </>);
-                                            return it.right ? (
-                                                <div key={it.id} className="min-h-[64px] px-4 flex items-center gap-3.5">{body}{it.right}</div>
-                                            ) : (
-                                                <button key={it.id} type="button" onClick={() => { SoundFX.click(); it.onClick(); }} className="row">{body}<span aria-hidden="true" className="text-zinc-500 text-xl leading-none">›</span></button>
-                                            );
-                                        })}
-                                    </div>
+                                    <div className="rounded-[20px] border border-white/10 bg-white/[0.04] divide-y divide-white/[0.06] overflow-hidden">{renderMenuItems(sec.items)}</div>
                                 </section>
                             ))}
+                            {isAdmin && (
+                                <section aria-label="Только для владельца" className="owner-zone flex flex-col gap-2.5">
+                                    <h2 className="px-1 text-xs font-bold text-amber-300/90 flex items-center gap-1.5"><Icons.Lock /> Только для владельца <span className="owner-zone-note">видите только вы</span></h2>
+                                    <div className="owner-zone-box divide-y divide-amber-200/10 overflow-hidden">{renderMenuItems(ownerItems)}</div>
+                                </section>
+                            )}
                             <section className="rounded-[20px] border border-rose-500/25 bg-gradient-to-br from-rose-500/[0.12] to-transparent p-5 flex flex-col gap-3">
                                 <div><h2 className="text-sm font-bold text-white">Поделиться игрой</h2><p className="text-xs text-zinc-400 leading-snug mt-1">Отправьте ссылку на игру — присоединиться можно с любого устройства.</p></div>
                                 <button type="button" onClick={handleShareGame} className="btn-primary w-full flex items-center justify-center gap-2"><Icons.Share /> Поделиться</button>
                             </section>
                             {profile && ( <button type="button" onClick={() => { SoundFX.warn(); setShowExitConfirm(true); }} className="btn-danger w-full flex items-center justify-center gap-2"><Icons.Logout /> Выйти из сессии</button> )}
+                            <nav aria-label="Документы" className="legal-links-row">
+                                {LEGAL.order.map(id => <a key={id} href={SCREEN_TO_HASH[id]}>{LEGAL.docs[id].menu}</a>)}
+                            </nav>
                         </main>
-                        <AppFooter />
+                        <AppFooter noLinks />
                     </div>
                 );
             }
@@ -1725,7 +2168,7 @@ if (screen === 'app_menu') {
                 );
             }
             if (screen === 'analytics') {
-                const ag = anData ? aggregateAnalytics(anData.anon) : null;
+                const ag = anFiltered ? aggregateAnalytics(anFiltered.anon) : null;
                 const qTextOf = (id) => { const q = db.find(x => String(x.id) === id || String(x.dbKey) === id); return q ? (q.cleanText || q.text) : `Вопрос удалён (${id})`; };
                 const tile = (v, label) => ( <div key={label} className="rounded-[20px] border border-white/10 bg-white/[0.04] p-4"><div className="font-display text-2xl font-bold text-white">{v}</div><div className="text-xs text-zinc-500 mt-1 leading-snug">{label}</div></div> );
                 return (
@@ -1741,13 +2184,14 @@ if (screen === 'app_menu') {
                                 <button type="button" role="tab" aria-selected={screen === 'analytics'} onClick={() => { SoundFX.click(); navigate('analytics'); }} className={`seg-btn ${screen === 'analytics' ? 'is-active' : ''}`}>Обзор</button>
                                 <button type="button" role="tab" aria-selected={screen === 'analytics_sessions'} onClick={() => { SoundFX.click(); setAnSel(null); navigate('analytics_sessions'); }} className={`seg-btn ${screen === 'analytics_sessions' ? 'is-active' : ''}`}>Сессии</button>
                             </div>
+                                {anMinControl}
                                 {anLoading && <p className="text-sm text-zinc-400 text-center">Загружаем данные…</p>}
                                 {anErr && <div className="flex flex-col gap-3"><span className="ui-error">{anErr}</span><button type="button" onClick={() => { setAnErr(''); setAnData(null); }} className="btn-secondary">Повторить</button></div>}
-                                {ag && ag.games === 0 && <p className="text-sm text-zinc-400 text-center leading-relaxed">Данных пока нет. Они появятся после первых завершённых игр.</p>}
+                                {ag && ag.games === 0 && <p className="text-sm text-zinc-400 text-center leading-relaxed">{anHiddenGames > 0 ? 'Пока нет игр с таким числом отвеченных вопросов. Уменьшите порог выше.' : 'Данных пока нет. Они появятся после первых игр.'}</p>}
                                 {ag && ag.games > 0 && (<>
                                     <p className="ui-hint">Сводка по обезличенным данным: имена игроков здесь не используются.</p>
                                     <div className="grid grid-cols-2 gap-3">
-                                        {tile(ag.sessions, 'Сессий')}{tile(ag.games, 'Завершённых игр')}
+                                        {tile(ag.sessions, 'Сессий')}{tile(ag.games, 'Игр в сводке')}
                                         {tile(ag.avgPlayers.toFixed(1), 'Игроков в игре (в среднем)')}{tile(ag.avgAnswered.toFixed(1), 'Отвеченных вопросов за игру')}
                                         {tile(fmtDur(ag.avgDuration), 'Длительность игры')}{tile(ag.avgAnswerSec ? fmtDur(ag.avgAnswerSec) : '—', 'Среднее время ответа')}
                                         {tile(Math.round(ag.skipRate * 100) + '%', 'Доля пропущенных вопросов')}{tile(Math.round(ag.hardShare * 100) + '%', 'Игр в усложнённом режиме')}
@@ -1774,7 +2218,7 @@ if (screen === 'app_menu') {
                 );
             }
             if (screen === 'analytics_sessions') {
-                const src = anData ? (anView === 'full' ? anData.full : anData.anon) : {};
+                const src = anFiltered ? (anView === 'full' ? anFiltered.full : anFiltered.anon) : {};
                 const list = Object.entries(src || {}).filter(([k, r]) => r && typeof r === 'object').sort((a, b) => (b[1].updatedAt || 0) - (a[1].updatedAt || 0));
                 const sel = anSel && src && src[anSel] ? src[anSel] : null;
                 const qTextOf = (id) => { const q = db.find(x => String(x.id) === id || String(x.dbKey) === id); return q ? (q.cleanText || q.text) : `Вопрос удалён (${id})`; };
@@ -1795,6 +2239,7 @@ if (screen === 'app_menu') {
                                         <button type="button" role="tab" aria-selected={anView === 'full'} onClick={() => { SoundFX.click(); setAnView('full'); }} className={`chip ${anView === 'full' ? 'is-on' : ''}`}>Полные данные</button>
                                         <button type="button" role="tab" aria-selected={anView === 'anon'} onClick={() => { SoundFX.click(); setAnView('anon'); }} className={`chip ${anView === 'anon' ? 'is-on' : ''}`}>Обезличенные</button>
                                     </div>
+                                    {anMinControl}
                                     {anLoading && <p className="text-sm text-zinc-400 text-center">Загружаем данные…</p>}
                                     {anErr && <div className="flex flex-col gap-3"><span className="ui-error">{anErr}</span><button type="button" onClick={() => { setAnErr(''); setAnData(null); }} className="btn-secondary">Повторить</button></div>}
                                     {anData && list.length === 0 && <p className="text-sm text-zinc-400 text-center">Сессий пока нет.</p>}
@@ -1893,8 +2338,28 @@ if (screen === 'app_menu') {
                             </form>
                             <div className="hairline-divider"></div>
                             <button type="button" onClick={() => { SoundFX.warn(); setShowExitConfirm(true); }} className="btn-danger w-full"><Icons.Logout /> Выйти из сессии</button>
+                            <div className="flex flex-col items-center gap-1 text-center">
+                                <button type="button" onClick={() => { SoundFX.warn(); setDelDataOpen(true); }} className="btn-text text-zinc-400">Удалить мои данные</button>
+                                <span className="text-[13px] text-zinc-500 leading-snug">Сотрёт сессию из облака и всё, что игра хранит на этом устройстве</span>
+                            </div>
                             {isAdmin && ( <><div className="hairline-divider"></div> <button onClick={() => { SoundFX.click(); navigate('admin_login'); }} className="btn-accent w-full"> 👑 Управление доступом владельца </button></> )}
                         </main>
+                        <PopupModal isOpen={delDataOpen} onClose={() => { if (!delDataBusy) setDelDataOpen(false); }}>
+                            <div className="flex flex-col gap-4 pt-1">
+                                <h3 className="text-lg font-bold text-white pr-8">Удалить все мои данные?</h3>
+                                <p className="text-sm text-zinc-300 leading-snug">Будет стёрто без возможности восстановления:</p>
+                                <ul className="text-sm text-zinc-400 leading-snug list-disc pl-5 flex flex-col gap-1">
+                                    <li>облачная копия сессии и общая комната игры;</li>
+                                    <li>записи статистики этого устройства;</li>
+                                    <li>имена, архив, настройки и незавершённая партия на этом устройстве.</li>
+                                </ul>
+                                <p className="text-sm text-zinc-400 leading-snug">Другие устройства, где открыта эта сессия, потеряют её. Если сессия может понадобиться — сначала скопируйте ссылку на неё.</p>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <button type="button" disabled={delDataBusy} onClick={() => { SoundFX.click(); setDelDataOpen(false); }} className="btn-secondary">Отмена</button>
+                                    <button type="button" disabled={delDataBusy} onClick={handleDeleteMyData} className="btn-danger">{delDataBusy ? 'Удаляем…' : 'Удалить'}</button>
+                                </div>
+                            </div>
+                        </PopupModal>
                         <AppFooter />
                     </div>
                 );
@@ -1903,7 +2368,7 @@ if (screen === 'app_menu') {
 const liveInviteBanner = liveInvite ? (
                 <div role="status" className="w-full flex items-center justify-between gap-3 rounded-[20px] border border-emerald-400/40 bg-emerald-400/10 px-4 py-3 fade-in">
                     <span className="text-sm text-emerald-100 leading-snug">👥 В вашей сессии уже идёт игра — в ней {liveInvite.count} {declOfNum(liveInvite.count, ['устройство', 'устройства', 'устройств'])}</span>
-                    <button type="button" onClick={joinLive} className="btn-primary btn-sm flex-shrink-0">Присоединиться</button>
+                    <button type="button" onClick={joinLive} disabled={liveJoining} className="btn-primary btn-sm flex-shrink-0">{liveJoining ? 'Подключаемся…' : 'Присоединиться'}</button>
                 </div>
             ) : null;
 if (screen === 'mode_select') {
@@ -1931,7 +2396,7 @@ if (screen === 'mode_select') {
                                     <span className="flex flex-wrap gap-1.5 text-xs font-bold text-amber-100/90"><span className="px-2.5 py-1 rounded-full bg-white/[0.07]">⏱ Таймер</span><span className="px-2.5 py-1 rounded-full bg-white/[0.07]">🎭 Наказания</span></span>
                                 </span>
                             </button>
-                            <p className="px-2 text-xs text-zinc-400 leading-relaxed text-center">👥 Игра сама синхронизируется на всех устройствах вашей сессии — до {MAX_PLAYERS} одновременно: вопросы, очередь, рулетка{'\u00A0'}и таймер{'\u00A0'}у всех одинаковые. Откройте сессию на других телефонах — приглашение появится на главной.</p>
+                            <p className="px-2 text-xs text-zinc-400 leading-relaxed text-center">👥 Если к сессии подключатся другие устройства, игра сама синхронизируется — до {MAX_PLAYERS} одновременно: вопросы, очередь, рулетка{'\u00A0'}и таймер{'\u00A0'}у всех одинаковые. Пока вы играете одни, ничего не отправляется. Пригласить игроков можно из меню.</p>
                             {isAdmin && (
                                 <button onClick={() => { SoundFX.click(); setHardMode(false); startWithMode('test'); }} className="opt-card">
                                     <span aria-hidden="true" className="w-12 h-12 rounded-xl bg-white/[0.07] flex items-center justify-center text-2xl flex-shrink-0">🧪</span>
@@ -1950,13 +2415,33 @@ if (screen === 'mode_select') {
             if (screen === 'menu') {
                 const activeSelectedCatsCount = selectedCats.filter(cid => stats.activeByCat[cid] > 0).length;
                 const hasSavedGame = Boolean(profile?.savedGame && profile.savedGame.questionIds?.length > 0);
+                // почему нельзя начать игру — показываем сразу под кнопкой, а не молча блокируем её
+                const startBlock = !profile ? '' : (selectedCats.length === 0 && selectedDiffs.length === 0) ? 'Выберите хотя бы одну тему и один уровень сложности.' : selectedCats.length === 0 ? 'Выберите хотя бы одну тему.' : selectedDiffs.length === 0 ? 'Выберите хотя бы один уровень сложности.' : stats.availableActive === 0 ? 'Под выбранные темы и сложность не осталось новых вопросов. Измените выбор или верните вопросы из архива.' : '';
+                const handleStartClick = () => {
+                    if (!profile) return;
+                    if (startBlock && !isAdmin) { SoundFX.warn(); setStartErrTick(t => t + 1); return; }
+                    if (hasSavedGame) { SoundFX.click(); setNewGameConfirm(true); return; }
+                    handlePressStartButton();
+                };
+                const newGameConfirmPopup = (
+                    <PopupModal isOpen={newGameConfirm && hasSavedGame} onClose={() => setNewGameConfirm(false)}>
+                        <div className="text-center flex flex-col items-center gap-4 pt-1">
+                            <h3 className="text-lg font-bold text-white pr-6">Вы точно хотите начать новую игру?</h3>
+                            <p className="text-sm text-zinc-400 leading-snug">Текущий прогресс{hasSavedGame ? ` (вопрос ${(profile.savedGame.currentIndex || 0) + 1} из ${profile.savedGame.questionIds.length})` : ''} сбросится — продолжить эту партию будет уже нельзя.</p>
+                            <div className="w-full grid grid-cols-2 gap-3 pt-1">
+                                <button type="button" onClick={() => setNewGameConfirm(false)} className="btn-secondary">Отмена</button>
+                                <button type="button" onClick={() => { setNewGameConfirm(false); handlePressStartButton(); }} className="btn-danger">Начать новую</button>
+                            </div>
+                        </div>
+                    </PopupModal>
+                );
                 const pCount = profile?.players?.length || 0;
                 const pNamesStr = profile?.players?.map(p=>p.name).join(', ') || "Гость";
                 const isGroup = pCount > 2;
 
                 return (
                     <div className="safe-screen w-full flex flex-col items-center justify-between slide-up relative z-10">
-                        <ToastBanner /> {exitConfirmPopup} <PwaInstallModal />
+                        <ToastBanner /> {exitConfirmPopup} {newGameConfirmPopup} <PwaInstallModal />
                         <div className="w-full max-w-md lg:max-w-4xl mx-auto flex flex-col gap-7 pt-1">
                             {liveInviteBanner}
                             <header className="w-full flex items-center justify-between gap-3">
@@ -2019,8 +2504,9 @@ if (screen === 'mode_select') {
                                             <div className="flex flex-col items-center gap-1"><span className="font-display text-4xl font-bold text-rose-500 leading-none">{stats.availableActive}</span><span className="text-xs font-bold text-zinc-500">{declOfNum(stats.availableActive, ['Вопрос', 'Вопроса', 'Вопросов'])}</span></div>
                                         </div>
 
-                                        {hasSavedGame && profile && ( <button onClick={handleResumeSavedGame} className="btn-accent w-full flex items-center justify-center gap-2"><Icons.Play /> Продолжить (Вопрос {(profile.savedGame.currentIndex || 0) + 1})</button> )}
-                                        <button onClick={handlePressStartButton} disabled={!profile || (!isAdmin && stats.availableActive === 0)} className={`w-full ${profile ? 'btn-primary' : 'btn-secondary opacity-60 cursor-not-allowed'}`} > <Icons.Play /> {profile ? "Начать игру" : "Введите имена для игры"} </button>
+                                        {hasSavedGame && profile && ( <button type="button" onClick={handleResumeSavedGame} className="btn-ghost w-full flex items-center justify-center gap-2"><Icons.Play /> Продолжить игру <span className="text-xs font-semibold text-zinc-500">· вопрос {(profile.savedGame.currentIndex || 0) + 1}</span></button> )}
+                                        <button type="button" onClick={handleStartClick} disabled={!profile} aria-disabled={!!startBlock && !isAdmin ? 'true' : undefined} aria-describedby={startBlock ? 'start-hint' : undefined} className={`w-full ${profile ? 'btn-primary' : 'btn-secondary opacity-60 cursor-not-allowed'}`} > <Icons.Play /> {!profile ? "Введите имена для игры" : hasSavedGame ? "Начать новую игру" : "Начать игру"} </button>
+                                        <div id="start-hint" aria-live="polite">{startBlock && ( <p key={startErrTick} role={startErrTick ? 'alert' : undefined} className={`inline-error ${startErrTick ? 'shake' : ''}`}><span aria-hidden="true" className="inline-error-i">!</span><span>{startBlock}{isAdmin ? ' Тестовый режим доступен и без выбора.' : ''}</span></p> )}</div>
                                     </div>
                                 </div>
                             </div>
@@ -2046,6 +2532,7 @@ if (screen === 'mode_select') {
                 const tmUrgent = tm.left <= 5;
                 const tmColor = tm.left <= 5 ? '#f43f5e' : tm.left <= 10 ? '#fbbf24' : '#34d399';
                 const isPreviousQuestion = currentIndex < maxReachedIndex;
+                const curHidden = !!(db.find(x => x.dbKey === currentQ.dbKey) || {}).hidden; // «скрыт для всех» — берём свежее значение из базы, а не из копии в колоде
                 const progressPercent = Math.min(100, Math.round(((currentIndex + 1) / gameQuestions.length) * 100));
                 const nextQ = gameQuestions[currentIndex + 1], prevQ = currentIndex > 0 ? gameQuestions[currentIndex - 1] : null;
                 const showNextPeek = !!nextQ && (gameMode === 'test' || turnDone);
@@ -2065,7 +2552,11 @@ if (screen === 'mode_select') {
                             <div className="flex items-center gap-2">
                                 <div className="px-3.5 py-1.5 rounded-full border border-white/[0.16] text-white font-display font-bold text-xs "> {currentIndex + 1} <span className="text-zinc-500">/</span> {gameQuestions.length} </div>
                                 {live.room && liveCount > 1 && ( <div className="tag" role="status" aria-label={`Устройств в игре: ${liveCount}`}><span aria-hidden="true">👥</span> {liveCount}</div> )}
-                                {isAdmin && gameMode === 'test' && ( <button onClick={() => openEditScreen(currentQ, 'game')} className="btn-icon"><Icons.Edit /></button> )}
+                                {isAdmin && gameMode === 'test' && ( <>
+                                    <button type="button" onClick={() => openEditScreen(currentQ, 'game')} className="btn-icon" aria-label="Редактировать вопрос" title="Редактировать"><Icons.Edit /></button>
+                                    <button type="button" disabled={!!hqBusy} onClick={() => setQuestionHidden(currentQ, !curHidden)} className="btn-icon" aria-label={curHidden ? 'Вернуть вопрос всем' : 'Скрыть вопрос для всех'} title={curHidden ? 'Вернуть вопрос всем' : 'Скрыть для всех'}>{curHidden ? <Icons.Eye /> : <Icons.EyeOff />}</button>
+                                    {curHidden && <span className="tag tag-warn" role="status">Скрыт</span>}
+                                </> )}
                             </div>
                             <div className="flex items-center gap-1.5">
                                 <button onClick={toggleMute} className="btn-icon">{isMuted ? <Icons.SoundOff /> : <Icons.SoundOn />}</button>
@@ -2100,7 +2591,7 @@ if (screen === 'mode_select') {
                                     </div>
                                 ) : assignedPlayerName ? (
                                     <div className="mb-7 flex flex-col items-center gap-2 fade-in">
-                                        <div className="tag lg tag-rose">Отвечает: {assignedPlayerName}</div>
+                                        <div key={`${currentIndex}:${turnEntry && turnEntry.cur}`} className="tag lg tag-rose turn-tag"><span aria-hidden="true" className="turn-dot"></span>Отвечает: <span className="turn-name">{assignedPlayerName}</span></div>
                                         {skippedNames && <span className="text-xs text-amber-200/80 text-center px-4">Пропустили: {skippedNames}</span>}
                                         {timerKey && tm.key === timerKey && timerDismissKey === timerKey && (
                                             <div className="w-56 mt-2 flex flex-col items-center gap-1" role="timer">
@@ -2262,7 +2753,7 @@ if (screen === 'summary') {
                                 ]} />
                                 <div className="hairline-divider"></div>
                                 <div className="flex items-center justify-between">
-                                    <span className="flex items-center gap-2 font-bold text-xs text-zinc-400"><span aria-hidden="true">↷</span> Пропущено</span>
+                                    <span className="flex items-center gap-2.5 font-bold text-xs text-zinc-300"><span aria-hidden="true" className="skip-ico"><Icons.Skip /></span> Пропущено</span>
                                     <span className="font-display text-xl font-bold text-white"><AnimatedCounter target={skippedCount} /></span>
                                 </div>
                             </div>
@@ -2281,7 +2772,6 @@ if (screen === 'summary') {
                     <div className="safe-screen w-full flex flex-col fade-in max-w-md lg:max-w-3xl mx-auto relative z-10">
                         <header className="flex items-center justify-between gap-4 mb-6 pt-2">
                             <div className="flex items-center gap-3.5"><button aria-label="Назад" onClick={() => { SoundFX.click(); navigate('menu'); }} className="btn-icon flex-shrink-0"><Icons.Back /></button><div><h2 className="text-2xl font-bold text-white">Все вопросы</h2><p className="text-xs text-zinc-500 mt-0.5">Активно: {db.length - stats.archivedList.length - stats.disabledCount} из {db.length}</p></div></div>
-                            {isAdmin && <button onClick={() => { SoundFX.click(); setAddStatus(null); setAddForm({ text: '', cat: 'family', diff: 'Простые', targetId: '' }); navigate('add_q'); }} className="btn-primary hidden lg:flex items-center gap-2"><Icons.Plus /> Новый вопрос</button>}
                         </header>
                         <div className="flex-1 flex flex-col gap-8 pb-24">
                             {isAdmin && ( <button type="button" onClick={() => { SoundFX.click(); setTopicDraft(CATEGORIES.map(c => c.id)); setTopicErr(''); navigate('topics_admin'); }} className="btn-secondary w-full flex items-center justify-center gap-2.5">⚙ Управление темами</button> )}
@@ -2296,7 +2786,7 @@ if (screen === 'summary') {
                                 <button onClick={() => { SoundFX.click(); navigate('archive_page'); }} className="flex items-center gap-3 text-left group min-h-[48px]"> <span className="w-10 h-10 rounded-xl bg-white/[0.04] border border-white/10 flex items-center justify-center text-rose-400 group-hover:border-rose-500/40 transition-all"><Icons.Archive /></span> <div><div className="font-bold text-base text-white flex items-center gap-2">Архив вопросов <span className="text-xs text-zinc-500 font-normal">→</span></div><div className="text-xs text-zinc-500">В архиве: {stats.archivedList.length} вопр.</div></div> </button>
                             </div>
                         </div>
-                        {isAdmin && <div className="lg:hidden fixed bottom-5 left-5 right-5 max-w-md mx-auto pointer-events-none"> <button onClick={() => { SoundFX.click(); setAddStatus(null); setAddForm({ text: '', cat: 'family', diff: 'Простые', targetId: '' }); navigate('add_q'); }} className="btn-primary w-full flex items-center justify-center gap-2 pointer-events-auto"><Icons.Plus /> Новый вопрос</button> </div>}
+                        {isAdmin && <div className="fixed bottom-5 left-5 right-5 max-w-md mx-auto pointer-events-none"> <button onClick={() => { SoundFX.click(); setAddStatus(null); setAddForm({ text: '', cat: 'family', diff: 'Простые', targetId: '' }); navigate('add_q'); }} className="btn-primary w-full flex items-center justify-center gap-2 pointer-events-auto"><Icons.Plus /> Новый вопрос</button> </div>}
                     </div>
                 );
             }
@@ -2312,18 +2802,29 @@ if (screen === 'summary') {
 
             if (screen === 'q_list') {
                 const qs = profileDb.filter(q => q.categoryId === viewCategory);
+                const lvlCount = {}; DIFFICULTIES.forEach(d => { lvlCount[d.id] = qs.filter(q => q.level === d.id).length; });
+                const lvlShown = DIFFICULTIES.filter(d => (qLevel === 'all' || qLevel === d.id) && lvlCount[d.id] > 0);
+                const lvlDot = (d) => ({ background: `rgb(var(--lvl-${DIFFICULTIES.indexOf(d) + 1}-rgb))` });
+                const pickLevel = (id) => { if (id === qLevel) return; SoundFX.click(); setQLevel(id); setVisibleLimit(60); };
                 return (
                     <div className="safe-screen w-full flex flex-col fade-in max-w-2xl mx-auto relative z-10">
-                        <header className="flex items-center justify-between gap-4 mb-7 pt-2 flex-shrink-0">
+                        <header className="flex items-center justify-between gap-4 mb-5 pt-2 flex-shrink-0">
                             <div className="flex items-center gap-3.5"><button aria-label="Назад" onClick={() => { SoundFX.click(); navigate('cat_list'); }} className="btn-icon flex-shrink-0"><Icons.Back /></button><h2 className="text-2xl font-bold text-white">{CATEGORIES.find(c => c.id === viewCategory)?.name}</h2></div>
-                            {isAdmin && <button onClick={() => { SoundFX.click(); setAddStatus(null); setAddForm({ text: '', cat: viewCategory || 'family', diff: 'Простые', targetId: '' }); navigate('add_q'); }} className="btn-primary hidden lg:flex items-center gap-2"><Icons.Plus /> Новый вопрос</button>}
                         </header>
+                        <div role="tablist" aria-label="Сортировка по глубине" className="seg level-seg mb-6">
+                            <button type="button" role="tab" aria-selected={qLevel === 'all'} onClick={() => pickLevel('all')} className={`seg-btn level-seg-btn ${qLevel === 'all' ? 'is-active' : ''}`}><span>Все</span>{' '}<span className="level-seg-n">{qs.length}</span></button>
+                            {DIFFICULTIES.map(d => (
+                                <button key={d.id} type="button" role="tab" aria-selected={qLevel === d.id} onClick={() => pickLevel(d.id)} className={`seg-btn level-seg-btn ${qLevel === d.id ? 'is-active' : ''}`}><span className="flex items-center gap-1.5"><span aria-hidden="true" className="level-dot" style={lvlDot(d)}></span>{d.name}</span>{' '}<span className="level-seg-n">{lvlCount[d.id]}</span></button>
+                            ))}
+                        </div>
                         <div className="flex-1 flex flex-col gap-10 pb-24">
-                            {DIFFICULTIES.map(diff => {
-                                const diffQs = qs.filter(q => q.level === diff.id); if (diffQs.length === 0) return null;
-                                return ( <div key={diff.id} className="space-y-3"><h3 className={`text-sm font-bold ${diff.classText}`}>{diff.name}</h3><div className="flex flex-col divide-y divide-white/[0.08] border-y border-white/10"> {diffQs.slice(0, visibleLimit).map(q => ( <div key={q.dbKey} className="py-4 flex items-start justify-between gap-4"> <div className="text-[15px] text-zinc-100 flex-1"><span className="text-rose-400 font-bold mr-2">№ {q.num}.</span>{q.cleanText}{q.hidden && <span className="ml-2 text-xs px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-200 align-middle">Скрыт</span>}</div> <div className="flex items-center gap-2 flex-shrink-0"> {isAdmin && <button disabled={!!hqBusy} onClick={() => setQuestionHidden(q, !q.hidden)} aria-label={q.hidden ? 'Вернуть вопрос' : 'Скрыть вопрос для всех'} title={q.hidden ? 'Вернуть вопрос' : 'Скрыть для всех'} className="btn-icon">{q.hidden ? '👁' : '🙈'}</button>} {isAdmin && <button onClick={() => openEditScreen(q, 'q_list')} className="btn-icon"><Icons.Edit /></button>} </div> </div> ))} </div></div> );
+                            {lvlShown.length === 0 && ( <p className="text-sm text-zinc-400 text-center py-10 leading-relaxed">{qs.length === 0 ? 'В этой теме пока нет вопросов.' : `В этой теме нет вопросов уровня «${(DIFFICULTIES.find(d => d.id === qLevel) || {}).name || ''}».`}</p> )}
+                            {lvlShown.map(diff => {
+                                const diffQs = qs.filter(q => q.level === diff.id); const shown = diffQs.slice(0, visibleLimit); const rest = diffQs.length - shown.length;
+                                return ( <div key={diff.id} className="space-y-3"><h3 className={`text-sm font-bold ${diff.classText}`}>{diff.name} <span className="text-zinc-500 font-semibold">· {diffQs.length}</span></h3><div className="flex flex-col divide-y divide-white/[0.08] border-y border-white/10"> {shown.map(q => ( <div key={q.dbKey} className="py-4 flex items-start justify-between gap-4"> <div className="text-[15px] text-zinc-100 flex-1"><span className="text-rose-400 font-bold mr-2">№ {q.num}.</span>{q.cleanText}{q.hidden && <span className="ml-2 text-xs px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-200 align-middle">Скрыт</span>}</div> <div className="flex items-center gap-2 flex-shrink-0"> {isAdmin && <button disabled={!!hqBusy} onClick={() => setQuestionHidden(q, !q.hidden)} aria-label={q.hidden ? 'Вернуть вопрос' : 'Скрыть вопрос для всех'} title={q.hidden ? 'Вернуть вопрос' : 'Скрыть для всех'} className="btn-icon">{q.hidden ? '👁' : '🙈'}</button>} {isAdmin && <button onClick={() => openEditScreen(q, 'q_list')} className="btn-icon"><Icons.Edit /></button>} </div> </div> ))} </div>{rest > 0 && ( <button type="button" onClick={() => { SoundFX.click(); setVisibleLimit(v => v + 60); }} className="btn-secondary btn-sm w-full">Показать ещё {Math.min(60, rest)} из {rest}</button> )}</div> );
                             })}
                         </div>
+                        {isAdmin && <div className="fixed bottom-5 left-5 right-5 max-w-md mx-auto pointer-events-none"> <button onClick={() => { SoundFX.click(); setAddStatus(null); setAddForm({ text: '', cat: viewCategory || 'family', diff: qLevel !== 'all' ? qLevel : 'Простые', targetId: '' }); navigate('add_q'); }} className="btn-primary w-full flex items-center justify-center gap-2 pointer-events-auto"><Icons.Plus /> Новый вопрос</button> </div>}
                     </div>
                 );
             }
@@ -2337,6 +2838,7 @@ if (screen === 'summary') {
                             {qFormError && <span className="ui-error">{qFormError}</span>}
                             <input type="text" placeholder="ID сессии (оставьте пустым для всех)" value={editForm.targetId} onChange={e => setEditForm({...editForm, targetId: e.target.value})} className="w-full h-[54px] px-5 rounded-2xl bg-white/[0.04] border border-white/[0.16] text-white" />
                             <div className="grid grid-cols-2 gap-4"><CustomSelect value={editForm.cat} onChange={val => setEditForm({...editForm, cat: val})} options={CATEGORIES.map(c=>({value:c.id, label:c.name}))} /><CustomSelect value={editForm.diff} onChange={val => setEditForm({...editForm, diff: val})} options={DIFFICULTIES.map(d=>({value:d.id, label:d.name}))} /></div>
+                            {(() => { const hid = !!(db.find(x => x.dbKey === editingQuestion.dbKey) || {}).hidden; return ( <div className="flex flex-col gap-2"> <button type="button" disabled={!!hqBusy} onClick={() => setQuestionHidden(editingQuestion, !hid)} className="btn-secondary w-full flex items-center justify-center gap-2">{hid ? <Icons.Eye /> : <Icons.EyeOff />} {hid ? 'Вернуть вопрос всем' : 'Скрыть для всех'}</button> <p className="text-xs text-zinc-500 leading-snug text-center">{hid ? 'Сейчас вопрос скрыт: игроки его не видят.' : 'Игроки перестанут видеть вопрос. Вернуть можно здесь или в разделе «Скрытые вопросы».'}</p> </div> ); })()}
                             <button onClick={() => setConfirmModal({ action: 'delete', title: 'Удалить вопрос?' })} className="btn-danger w-full flex items-center justify-center gap-2"><Icons.Trash /> Удалить</button>
                             <div className="mt-auto pt-4 grid grid-cols-2 gap-3.5"><button onClick={() => navigate(returnScreen)} className="btn-secondary w-full">Отмена</button><button onClick={() => { if (editForm.text.trim().length < 3) { SoundFX.warn(); setQFormError('Введите текст вопроса — минимум 3 символа'); return; } setQFormError(''); setConfirmModal({ action: 'save', title: 'Сохранить?' }); }} disabled={isSaving} className="btn-primary w-full"><Icons.Check /> Сохранить</button></div>
                         </div>

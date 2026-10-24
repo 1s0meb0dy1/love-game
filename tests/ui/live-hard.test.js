@@ -1,7 +1,7 @@
 // Усложнённый режим на трёх «телефонах»: таймер и наказания одинаковы у всех, наказание выдаётся один раз на ход,
 // а если хозяин хода пропал — его подхватывает ровно одно из оставшихся устройств. Настройки гостей выключены нарочно:
 // таймер и наказания должны прийти от хозяина партии, а не из локальных настроек.
-const { boot, waitFor, sleep, pos, who, inGame, tap, closeRoulette, devId } = require('../live-helpers.js');
+const { joinGame, boot, waitFor, sleep, pos, who, inGame, tap, closeRoulette, devId } = require('../live-helpers.js');
 const HARD = { timerOn: true, timerSec: 6, punishOn: true, punishments: [{ id: 'x', text: 'Спой припев', level: 'any', icon: '🎤', custom: true }], hiddenTemplates: [] }; // наказание выбирается случайно: из своих и встроенных шаблонов
 const OFF = { timerOn: false, timerSec: 30, punishOn: false, punishments: [], hiddenTemplates: [] };
 const punText = (E) => { const d = [...E.D.querySelectorAll('div')].find(x => x.textContent.trim() === 'Наказание'); return d && d.nextElementSibling ? d.nextElementSibling.textContent.trim() : null; };
@@ -17,10 +17,11 @@ const timeUp = (E) => E.has('Время вышло'), skipPun = (E) => E.has('П
   // хозяин не отвечает — время вышло, наказание выпало у хозяина ещё до прихода гостей
   const expired = await waitFor(() => timeUp(A), 14000);
   T('A: время вышло — окно наказания с текстом (наказание выбирается случайно из шаблонов)', expired && !!punText(A));
-  await sleep(700); const n1 = puns();
+  await sleep(700);
   await waitFor(() => B.has('Присоединиться') && C.has('Присоединиться'), 8000);
-  await B.click('Присоединиться', 2000); await C.click('Присоединиться', 2000);
+  await joinGame(B); await joinGame(C);
   T('B и C присоединились к усложнённой партии', inGame(B) && inGame(C));
+  const n1 = puns(); // хозяинское наказание при подключении передаётся гостям одним событием (с номером хода) — новых после этого быть не должно
   T('гости не показывают старое наказание как новое (окно наказания открыто только у хозяина)', timeUp(A) && !timeUp(B) && !timeUp(C));
   // главная проверка №1: хозяин ещё выполняет наказание, а у гостей по их таймеру не должно выпасть второе
   await sleep(14000);

@@ -23,7 +23,7 @@ module.exports = function makeFakeRtdb(opts = {}) {
     let n = root; for (let i = 0; i < p.length - 1; i++) { if (n[p[i]] === null || typeof n[p[i]] !== 'object') n[p[i]] = {}; n = n[p[i]]; } n[p[p.length - 1]] = clone(val);
   };
   const patchAt = (p, obj) => { Object.entries(obj).forEach(([k, v]) => setAt(p.concat(String(k).split('/').filter(Boolean)), v)); };
-  // правила узла live/$room из database.rules.json
+  // правила узла live/$room (копия правил Firebase: fixtures/live-rules.json)
   const check = (room) => {
     const d = getAt(['live', room]); if (d === undefined) return null;
     if (typeof d !== 'object' || !['ver', 'by', 't'].every(k => d[k] !== undefined && d[k] !== null)) return 'нет обязательных полей ver/by/t';
@@ -34,13 +34,16 @@ module.exports = function makeFakeRtdb(opts = {}) {
     return null;
   };
   const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+  // колода партии лежит отдельным узлом рядом с комнатой: live/<комната>_d (см. protocol v3 в app.jsx)
+  const isDeck = (k) => /_d$/.test(k);
+  const mainRooms = () => Object.keys(root.live || {}).filter(k => !isDeck(k));
   const handle = async (url, init) => {
     const m = String(url).match(/\/live\/([^?]*?)\.json/); if (!m) return null;
     const segs = m[1].split('/').map(decodeURIComponent).filter(Boolean); const method = ((init && init.method) || 'GET').toUpperCase();
     const body = init && init.body ? JSON.parse(init.body) : undefined; const ok = (o) => ({ ok: true, status: 200, json: async () => o, text: async () => JSON.stringify(o) });
     const delay = opts.latency ? opts.latency(method, segs) : 0; if (delay) await sleep(delay);
     const p = ['live'].concat(segs); const room = segs[0];
-    if (method === 'GET') { stats.reads++; const key = segs.slice(1).join('/') || '(комната)'; stats.gets[key] = (stats.gets[key] || 0) + 1; const v = getAt(p); return ok(v === undefined ? null : clone(v)); }
+    if (method === 'GET') { stats.reads++; const key = isDeck(room) ? '(колода)' : (segs.slice(1).join('/') || '(комната)'); stats.gets[key] = (stats.gets[key] || 0) + 1; const v = getAt(p); return ok(v === undefined ? null : clone(v)); }
     stats.writes++; const before = clone(getAt(['live', room]));
     if (method === 'PUT') setAt(p, body); else if (method === 'PATCH') { stats.patches++; patchAt(p, body); } else if (method === 'DELETE') setAt(p, null);
     const err = check(room);
@@ -54,8 +57,10 @@ module.exports = function makeFakeRtdb(opts = {}) {
   return {
     handle, stats, log, limits,
     rooms: () => clone((root.live) || {}),
-    room: () => { const k = Object.keys(root.live || {})[0]; return k ? clone(root.live[k]) : null; },
-    roomId: () => Object.keys(root.live || {})[0] || null,
+    room: () => { const k = mainRooms()[0]; return k ? clone(root.live[k]) : null; },
+    roomId: () => mainRooms()[0] || null,
+    // колода текущей комнаты: { ver, by, t, g, d } или null
+    deck: () => { const k = mainRooms()[0]; return k && root.live[k + '_d'] ? clone(root.live[k + '_d']) : null; },
     // прямая правка комнаты в обход приложения (например, подложить «чужие» устройства)
     seed: (room, sub, val) => { setAt(['live', room].concat(sub), val); },
     attach: (E) => { const base = E.w.fetch; E.w.fetch = async (url, init) => { const r = await handle(url, init); return r || base(url, init); }; },

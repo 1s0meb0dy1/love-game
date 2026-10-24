@@ -1,5 +1,5 @@
 const src=require('../src-loader.js')(); const g=(re)=>src.match(re)[0];
-const code=g(/const normTurn = [\s\S]*?\n        \};\n/)+g(/const isTurnSkipped = [^\n]*\n/)+g(/const gamesOf = [^\n]*\n/)+g(/const buildGameReports = [\s\S]*?\n        \};\n/)+g(/const aggregateAnalytics = [\s\S]*?\n        \};\n/)+'return {buildGameReports,aggregateAnalytics,gamesOf};';
+const code=g(/const normTurn = [\s\S]*?\n        \};\n/)+g(/const isTurnSkipped = [^\n]*\n/)+g(/const gamesOf = [^\n]*\n/)+g(/const buildGameReports = [\s\S]*?\n        \};\n/)+g(/const aggregateAnalytics = [\s\S]*?\n        \};\n/)+g(/const gameCounts = [^\n]*\n/)+g(/const filterAnalytics = [^\n]*\n/)+g(/const countAnalyticsGames = [^\n]*\n/)+'return {buildGameReports,aggregateAnalytics,gamesOf,gameCounts,filterAnalytics,countAnalyticsGames};';
 const f=new Function(code)(); const out=[]; const t=(n,c)=>out.push((c?'PASS ':'FAIL ')+n);
 const P=[{id:'p1',name:'Макс'},{id:'p2',name:'Аня'},{id:'p3',name:'Саша'}];
 const Q=[{id:'q1',categoryId:'family',level:'Простые'},{id:'q2',categoryId:'intimacy',level:'Глубокие'},{id:'q3',categoryId:'family',level:'Средние'},{id:'q4',categoryId:'family',level:'Простые'}];
@@ -17,4 +17,17 @@ t('сводка: 1 сессия, 2 игры, средние значения и 
 t('сводка: среднее время ответа считается только по играм, где оно измерено',agg.avgAnswerSec===20);
 t('сводка: топ тем, пропущенные вопросы (q2 дважды), наказания',agg.topCats[0][0]==='intimacy'&&agg.topCats[0][1]===4&&agg.topSkipped[0][0]==='q2'&&agg.topSkipped[0][1]===2&&agg.topPunish[0][0]==='Станцуй');
 t('пустые/битые данные не ломают сводку',f.aggregateAnalytics(null).games===0&&f.aggregateAnalytics({x:{games:'bad'}}).games===0);
+// порог аналитики: игры от N отвеченных вопросов + полностью пройденные колоды; остальное скрыто, исходные данные не меняются
+const gm=(answered,extra={})=>({startedAt:1,endedAt:2,players:2,answered,skipped:0,...extra});
+const raw={a1:{updatedAt:5,games:{g1:gm(10),g2:gm(50),g3:gm(49),g4:gm(3,{complete:1}),g5:gm(60,{partial:1})}},a2:{updatedAt:6,games:{g1:gm(5)}},a3:'мусор'};
+const f50=f.filterAnalytics(raw,50), f0=f.filterAnalytics(raw,0);
+t('порог 50: остаются игры с 50+ ответами и полностью пройденная колода',Object.keys(f50.a1.games).sort().join()==='g2,g4,g5'&&!f50.a2);
+t('порог 0: остаются все игры',f.countAnalyticsGames(f0)===6&&Object.keys(f0).sort().join()==='a1,a2');
+t('сессия без подходящих игр пропадает целиком, мусорные записи игнорируются',!('a2' in f50)&&!('a3' in f50)&&f.countAnalyticsGames(raw)===6);
+t('фильтр не меняет исходные данные',Object.keys(raw.a1.games).length===5&&f50.a1.updatedAt===5);
+t('граница: 49 не проходит, 50 проходит; complete=true тоже считается',!f.gameCounts(gm(49),50)&&f.gameCounts(gm(50),50)&&f.gameCounts(gm(1,{complete:true}),50)&&!f.gameCounts(null,0)&&!f.gameCounts('x',0));
+t('сводка по отфильтрованным данным: 3 игры, среднее число ответов (50+3+60)/3',f.aggregateAnalytics(f50).games===3&&Math.abs(f.aggregateAnalytics(f50).avgAnswered-(113/3))<1e-9);
+const rp=f.buildGameReports({log,players:P,questions:Q,history:H,total:3,customs:[],now:1000000+600000,complete:true,partial:false}), rq=f.buildGameReports({log,players:P,questions:Q,history:H,total:3,customs:[],now:1000000+600000,complete:false,partial:true});
+t('отчёт игры: complete=1 для пройденной колоды, partial=1 для идущей, без лишних полей иначе',rp.anonGame.complete===1&&rp.anonGame.partial===undefined&&rq.anonGame.partial===1&&rq.anonGame.complete===undefined&&f.buildGameReports({log,players:P,questions:Q,history:H,total:3,customs:[],now:1}).anonGame.complete===undefined);
+
 console.log(out.join('\n'));

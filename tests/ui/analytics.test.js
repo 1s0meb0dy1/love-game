@@ -30,7 +30,20 @@ const btn=(t)=>[...D.querySelectorAll('button')].find(b=>b.textContent.replace(/
     await clickEl([...D.querySelectorAll('main button')].find(b=>/Аналитика/.test(b.textContent)),900);
     T('обзор: вкладка и адрес',D.title==='Аналитика — ASK ME'&&w.location.hash==='#/analytics');
     const txt=()=>D.body.textContent.replace(/\s+/g,' ');
-    T('обзор: сводка по обезличенным данным (2 сессии, 2 игры, ср. игроков 2.5)',/Сессий/.test(txt())&&/2Сессий|2 Сессий/.test(txt().replace(/\s/g,''))&&has('Завершённых игр')&&has('2.5')&&has('Игроков в игре'));
+    // порог аналитики: по умолчанию 50 отвеченных вопросов; полностью пройденные колоды учитываются всегда
+    const chipN=(t)=>[...D.querySelectorAll('[aria-label="Минимум отвеченных вопросов"] button')].find(b=>b.textContent.trim()===t);
+    T('порог по умолчанию — 50 отвеченных вопросов (выбрана кнопка «50»)',!!chipN('50')&&chipN('50').getAttribute('aria-pressed')==='true'&&has('В аналитику идут игры от'));
+    T('в тестовых данных все игры короче 50 → сводка пуста, сказано сколько игр не вошло и что делать',has('Пока нет игр с таким числом отвеченных вопросов')&&has('Не вошло в сводку коротких игр: 2')&&!has('Популярные темы'));
+    const g1=live.anon.a1.games.g1;
+    live.anon.a1.games.g2={...g1,startedAt:1700001000000,endedAt:1700001900000,answered:60,skipped:0}; live.anon.a1.games.g3={...g1,startedAt:1700002000000,endedAt:1700002900000,answered:5,skipped:0,complete:1}; live.anon.a1.games.g4={...g1,startedAt:1700003000000,endedAt:1700003900000,answered:12,skipped:0,partial:1};
+    await clickEl(btn('Обновить данные'),900);
+    const tileGames=()=>{ const t=[...D.querySelectorAll('.font-display')].find(e=>e.nextElementSibling&&/Игр в сводке/.test(e.nextElementSibling.textContent)); return t?+t.textContent:null; };
+    const expectN=(min)=>Object.values(live.anon).flatMap(r=>Object.values(r.games)).filter(g=>g.complete||g.answered>=min).length;
+    T('порог 50: в сводке игра с 60 ответами и полностью пройденная (5 ответов), остальное скрыто ('+expectN(50)+')',tileGames()===expectN(50)&&expectN(50)===2&&has('Не вошло в сводку коротких игр: 3'));
+    await clickEl(chipN('10'),400); T('порог 10: добавилась игра с 12 ответами и с 10 ('+expectN(10)+')',tileGames()===expectN(10)&&expectN(10)===4&&w.localStorage.getItem('askme_an_min_v1')==='10');
+    await clickEl(chipN('Любых'),400); T('«Любых»: в сводке все игры ('+expectN(0)+'), порог сохранён в браузере владельца',tileGames()===expectN(0)&&expectN(0)===5&&w.localStorage.getItem('askme_an_min_v1')==='0'&&!has('Не вошло в сводку'));
+    delete live.anon.a1.games.g2; delete live.anon.a1.games.g3; delete live.anon.a1.games.g4; await clickEl(btn('Обновить данные'),900);
+    T('обзор: сводка по обезличенным данным (2 сессии, 2 игры, ср. игроков 2.5)',/Сессий/.test(txt())&&/2Сессий|2 Сессий/.test(txt().replace(/\s/g,''))&&has('Игр в сводке')&&has('2.5')&&has('Игроков в игре'));
     T('обзор: темы, сложность, пропускаемые вопросы, таймер и наказания',has('Популярные темы')&&has('Сложность отвеченных вопросов')&&has('Чаще всего пропускают')&&/Таймер включали в 50% игр, в среднем на 30 с/.test(txt())&&/×2\s*Станцуй 15 секунд/.test(txt()));
     T('обзор не показывает имён',!has('Макс')&&!has('Аня'));
     await clickEl(btn('Сессии'),600); T('отдельная страница «Сессии» (список с именами и ID)',D.title==='Сессии — Аналитика — ASK ME'&&has('Макс · Аня')&&has('ID ABCD1234')&&has('Лев · Мия · Ян'));
