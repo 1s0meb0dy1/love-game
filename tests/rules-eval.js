@@ -6,8 +6,11 @@
 //   .validate — для узла, куда пишем, и для всех присутствующих потомков (пустые null пропускаются); при DELETE (data = null) не проверяется;
 //   узлы-шаблоны ($id, $room…): их значение подставляется переменной в выражения; явное дочернее правило важнее $other и любого другого шаблона;
 //   в выражениях: auth, newData (child, hasChildren, hasChild, isString, isNumber, isBoolean, exists, val), now, переменные шаблонов.
-// Чего не умеет (в таких случаях выражение упадёт и вернётся отказ с причиной — тихого «разрешено» не будет): data, root, строковые методы Firebase
-// (matches, contains…), .validate предков узла записи (их newData зависит от соседних данных), .read (чтение в тестах не ограничивается).
+// Чего не умеет — и в таких случаях всегда возвращает отказ с причиной, тихого «разрешено» не бывает:
+//   data, root, строковые методы Firebase (matches, contains…) — выражение упадёт, и вернётся отказ с текстом ошибки;
+//   запись НИЖЕ узла с .validate (например, одно поле внутри карточки: tod/<id>/text) — отказ «не поддержано: .validate предка…»: newData предка зависит от
+//   соседних данных, которых у вычислителя нет (для PUT и для DELETE одинаково); запись в сам узел с .validate (tod/<id>) и в узлы выше него (tod), где .validate нет, работает;
+//   .read не применяется (чтение в тестах не ограничивается).
 const wrap = (v) => {
   const obj = v !== null && typeof v === 'object';
   return {
@@ -63,7 +66,7 @@ module.exports.makeRules = function makeRules(json) {
     check(method, path, auth, data) {
       const del = String(method).toUpperCase() === 'DELETE';
       const value = del ? null : data;
-      let node = json, vars = {}, allowed = false; const errors = [];
+      let node = json, vars = {}, allowed = false, ancestorValidate = null; const errors = [];
       const tryWrite = (n, depth) => {
         if (!n || n['.write'] === undefined || allowed) return;
         // newData для .write доступна только на самом узле записи: у предков она зависит от соседних данных
@@ -72,11 +75,13 @@ module.exports.makeRules = function makeRules(json) {
       };
       tryWrite(node, 0);
       for (let i = 0; i < path.length; i++) {
+        if (node && node['.validate'] !== undefined && !ancestorValidate) ancestorValidate = path.slice(0, i).join('/') || '(корень)'; // строгий предок узла записи
         const c = childRule(node, String(path[i]));
         if (!c) { node = null; break; }
         node = c.rule; vars = { ...vars, ...c.vars }; tryWrite(node, i + 1);
       }
       if (!allowed) return 'нет разрешения на запись в ' + path.join('/') + (errors.length ? ' (ошибка в выражении: ' + errors[0] + ')' : '');
+      if (ancestorValidate) return 'не поддержано: .validate предка ' + ancestorValidate + ' при записи в ' + path.join('/') + ' (вычислитель не знает соседних данных предка)';
       if (del) return null;
       return validate(node, vars, value, path.map(String), auth);
     },

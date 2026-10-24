@@ -39,6 +39,12 @@ T('запись сразу всего узла tod: карточки прове�
   && rules.check('PUT', ['tod'], OWNER, { td_a1: card(), td_b2: card() }) !== null
   && rules.check('PUT', ['tod'], { uid: 'x' }, { td_a1: card() }) !== null);
 T('запись вне узла tod (нет правила) отклонена даже владельцу', rules.check('PUT', ['other', 'x'], OWNER, card()) !== null);
+// запись НИЖЕ узла с .validate (поле внутри карточки): .validate карточки зависит от соседних полей, вычислитель их не знает — поэтому отказ, а не «разрешено»
+T('запись поля внутри карточки: id (td_zzz, 50 знаков и даже верный td_a1) отклонена — вычислитель не может проверить .validate карточки', ['td_zzz', 'x'.repeat(50), 'td_a1'].every(v => { const r = rules.check('PUT', ['tod', 'td_a1', 'id'], OWNER, v); return typeof r === 'string' && /не поддержано: \.validate предка/.test(r); }));
+T('запись поля внутри карточки: text отклонена', /не поддержано: \.validate предка/.test(String(rules.check('PUT', ['tod', 'td_a1', 'text'], OWNER, 'x'))));
+T('удаление поля внутри карточки тоже отказ (обязательное поле .validate карточки не даст удалить), а удаление всей карточки разрешено', typeof rules.check('DELETE', ['tod', 'td_a1', 'text'], OWNER, null) === 'string' && rules.check('DELETE', ['tod', 'td_a1', 'text'], OWNER, null) !== null && rules.check('DELETE', ['tod', 'td_a1'], OWNER, null) === null);
+T('запись поля внутри карточки чужим: отказ по праву записи (причина — не .validate)', /нет разрешения на запись/.test(String(rules.check('PUT', ['tod', 'td_a1', 'text'], { uid: 'x' }, 'x'))));
+T('скаляр в PUT /tod владельцем разрешён (у tod нет .validate, как в настоящих правилах), чужим нет', rules.check('PUT', ['tod'], OWNER, 'x') === null && rules.check('PUT', ['tod'], { uid: 'x' }, 'x') !== null);
 
 // --- 2. вычислитель правил на коротких наборах ---
 {
@@ -51,6 +57,8 @@ T('запись вне узла tod (нет правила) отклонена �
   T('вычислитель: выражение с ошибкой (val() пустого поля) — отказ с причиной, а не падение', typeof th.check('PUT', ['x'], null, {}) === 'string' && th.check('PUT', ['x'], null, { a: 'q' }) === null);
   const ex = makeRules({ x: { '.write': 'true', $o: { '.validate': 'false' }, k: { '.validate': 'newData.isNumber()' } } });
   T('вычислитель: явное дочернее правило важнее $other', ex.check('PUT', ['x'], null, { k: 1 }) === null && ex.check('PUT', ['x'], null, { k: 'a' }) !== null && ex.check('PUT', ['x'], null, { z: 1 }) !== null);
+  const av = makeRules({ x: { '.write': 'true', '.validate': 'true', k: { '.validate': 'true' } } });
+  T('вычислитель: запись под узлом с .validate — отказ «не поддержано», даже если .write разрешает и выражения истинны; сам узел и узел без .validate выше — как раньше', /не поддержано: \.validate предка/.test(String(av.check('PUT', ['x', 'k'], null, 1))) && av.check('PUT', ['x'], null, { k: 1 }) === null && makeRules({ x: { '.write': 'true', k: { '.validate': 'true' } } }).check('PUT', ['x', 'k'], null, 1) === null);
   const nl = makeRules({ x: { '.write': 'true', k: { '.validate': 'false' } } });
   T('вычислитель: пустые (null) потомки не проверяются', nl.check('PUT', ['x'], null, { k: null }) === null);
   const ty = makeRules({ x: { '.write': 'true', '.validate': "newData.hasChildren(['n','s','b']) && newData.child('n').isNumber() && newData.child('s').isString() && newData.child('b').isBoolean() && newData.child('s').exists() && !newData.child('q').exists()" } });
@@ -70,6 +78,9 @@ T('запись вне узла tod (нет правила) отклонена �
     T('загрузчик: строки import убраны, export убран, файлы склеены в общей области видимости', m.TOD_A === 2 && m.TOD_B === 5 && m.todTwice(4) === 8);
     let threw = false; try { loadTod([rel('a.js')], ['TOD_MISSING']); } catch (e) { threw = true; }
     T('загрузчик: имя, которого нет в файлах, — ошибка, а не тихий undefined', threw);
+    fs.writeFileSync(path.join(dir, 'c.js'), "export function todLeak() { todLeakedGlobal = 1; }\n");
+    let strict = false; try { loadTod([rel('c.js')], ['todLeak']).todLeak(); } catch (e) { strict = e instanceof ReferenceError; }
+    T('загрузчик: код выполняется в строгом режиме, как настоящая сборка (присваивание необъявленной переменной — ошибка)', strict && typeof todLeakedGlobal === 'undefined');
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 }
 
