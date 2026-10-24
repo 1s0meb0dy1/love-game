@@ -848,7 +848,7 @@ i18nSetLang(readStoredLang());
         // ---- приглашение ----
         const InvitePage = ({ profile, onBack, showToast }) => {
             const url = inviteUrlFor(profile); const [copied, setCopied] = useState(false);
-            const doCopy = async () => { SoundFX.success(); await copyTextToClipboard(url); setCopied(true); showToast('Ссылка-приглашение скопирована'); setTimeout(() => setCopied(false), 2000); };
+            const doCopy = async () => { SoundFX.success(); await copyTextToClipboard(url); setCopied(true); showToast(tr('Ссылка-приглашение скопирована')); setTimeout(() => setCopied(false), 2000); };
             const doShare = async () => { SoundFX.click(); await shareOrCopy({ title: 'Играем в ASK ME', text: 'Присоединяйся к нашей игре в ASK ME', url }, 'Ссылка-приглашение скопирована', showToast); };
             return (<>
                 <PageHeader title={tr("Пригласить игроков")} onBack={onBack} />
@@ -919,10 +919,10 @@ i18nSetLang(readStoredLang());
             const [deferredPwaPrompt, setDeferredPwaPrompt] = useState(null); const [showPwaModal, setShowPwaModal] = useState(false); const [pwaPlatformTab, setPwaPlatformTab] = useState(() => { const ua = navigator.userAgent || ""; return /iPad|iPhone|iPod/i.test(ua) ? 'ios' : 'android'; });
             const isInAppWebView = useMemo(() => /Telegram|Instagram|FBAN|FBAV|TikTok|BytedanceWebview|Viber/i.test(navigator.userAgent || ""), []);
 
-            useEffect(() => { const handleBeforeInstallPrompt = (e) => { e.preventDefault(); setDeferredPwaPrompt(e); }; const handleAppInstalled = () => { setIsStandalonePWA(true); setDeferredPwaPrompt(null); setShowPwaModal(false); showToast("Приложение ASK ME установлено!"); }; window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt); window.addEventListener('appinstalled', handleAppInstalled); return () => { window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt); window.removeEventListener('appinstalled', handleAppInstalled); }; }, []);
+            useEffect(() => { const handleBeforeInstallPrompt = (e) => { e.preventDefault(); setDeferredPwaPrompt(e); }; const handleAppInstalled = () => { setIsStandalonePWA(true); setDeferredPwaPrompt(null); setShowPwaModal(false); showToast(tr("Приложение ASK ME установлено!")); }; window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt); window.addEventListener('appinstalled', handleAppInstalled); return () => { window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt); window.removeEventListener('appinstalled', handleAppInstalled); }; }, []);
 
             const handleInstallPwaClick = async () => { SoundFX.click(); if (deferredPwaPrompt) { deferredPwaPrompt.prompt(); const { outcome } = await deferredPwaPrompt.userChoice; if (outcome === 'accepted') setDeferredPwaPrompt(null); return; } setShowPwaModal(true); };
-            const triggerIosNativeShareMenu = async () => { SoundFX.click(); const cleanAppUrl = `${window.location.origin}${window.location.pathname}`; if (navigator.share) { try { await navigator.share({ title: "Ask Me", url: cleanAppUrl }); return; } catch (e) {} } showToast("Нажмите на кнопку «Поделиться» [↑] на панели самого браузера Safari", 4500, 'info'); };
+            const triggerIosNativeShareMenu = async () => { SoundFX.click(); const cleanAppUrl = `${window.location.origin}${window.location.pathname}`; if (navigator.share) { try { await navigator.share({ title: "Ask Me", url: cleanAppUrl }); return; } catch (e) {} } showToast(tr("Нажмите на кнопку «Поделиться» [↑] на панели самого браузера Safari"), 4500, 'info'); };
             const showErrorPopup = (title, msg) => { SoundFX.warn(); setResultModal({ ok: false, title, msg }); };
 
             const [profile, setProfile] = useState(() => {
@@ -1095,14 +1095,14 @@ i18nSetLang(readStoredLang());
                 const room = liveRoomIdRef.current; if (room) { jobs.push(del(roomUrl(room))); jobs.push(del(roomUrl(room + '_d'))); }
                 if (aid) ['anon', 'full'].forEach(k => jobs.push(del(`${FIREBASE_BASE_URL}/analytics/${k}/${aid}.json`)));
                 const results = await Promise.all(jobs);
-                if (results.some(ok => !ok)) { setDelDataBusy(false); SoundFX.warn(); showToast('Не удалось удалить данные из облака. Проверьте интернет и повторите — ничего не потеряно', 6000, 'warn'); return; }
+                if (results.some(ok => !ok)) { setDelDataBusy(false); SoundFX.warn(); showToast(tr('Не удалось удалить данные из облака. Проверьте интернет и повторите — ничего не потеряно'), 6000, 'warn'); return; }
                 try { const rm = []; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && (k === PROFILE_STORAGE_KEY || k.startsWith('askme_sess_') || k.startsWith('askme_aid_') || [SETTINGS_KEY, 'askme_hard_mode_v1', 'askme_analytics_v1', 'askme_seen_topics_v1', AN_MIN_KEY].includes(k))) rm.push(k); } rm.forEach(k => localStorage.removeItem(k)); } catch (e) {}
                 setDelDataOpen(false); setDelDataBusy(false); setProfile(null); setIsPreviewMode(false);
                 setPlayersForm([{ id: 'p1', name: '', gender: 'guy' }, { id: 'p2', name: '', gender: 'girl' }]); setPlayersError(''); setRestoreIdInput(''); setRestoreError('');
-                SoundFX.success(); navigate('onboarding'); showToast('Все ваши данные удалены', 4000);
+                SoundFX.success(); navigate('onboarding'); showToast(tr('Все ваши данные удалены'), 4000);
             };
 
-            const handleShareGame = async () => { SoundFX.click(); const shareUrl = `${window.location.origin}${window.location.pathname}#/welcome`; if (navigator.share) { try { await navigator.share({ title: "ASK ME — Игра", text: "Откровенные разговоры ❤️", url: shareUrl }); return; } catch (e) { if (e.name === 'AbortError') return; } } await copyTextToClipboard(shareUrl); showToast("Ссылка на игру скопирована!"); };
+            const handleShareGame = async () => { SoundFX.click(); const shareUrl = `${window.location.origin}${window.location.pathname}#/welcome`; if (navigator.share) { try { await navigator.share({ title: "ASK ME — Игра", text: "Откровенные разговоры ❤️", url: shareUrl }); return; } catch (e) { if (e.name === 'AbortError') return; } } await copyTextToClipboard(shareUrl); showToast(tr("Ссылка на игру скопирована!")); };
             const toggleMute = () => { const nextState = !isMuted; setIsMuted(nextState); SoundFX.muted = nextState; if (!nextState) SoundFX.click(); };
             const handleLogoSecretTap = () => { const nextCount = logoTapCount + 1; setLogoTapCount(nextCount); if (nextCount >= 5) { SoundFX.magic(); setLogoTapCount(0); setAdminPinError(''); navigate('admin_login'); } };
 
@@ -1112,7 +1112,7 @@ i18nSetLang(readStoredLang());
                 SoundFX.success(); setPlayersError('');
                 const isNewSession = (!profile?.sessionId || isPreviewMode); const newSid = isNewSession ? generateSessionId() : profile.sessionId; const newKey = (!isNewSession && isValidAESKey(profile?.sessionKey)) ? profile.sessionKey : await generateAESKey();
                 const updatedProfile = { sessionId: newSid, sessionKey: newKey, players: validPlayers, archivedIds: isNewSession ? [] : (profile?.archivedIds || []), disabledIds: isNewSession ? [] : (profile?.disabledIds || []), savedGame: isNewSession ? null : (profile?.savedGame || null), joinAt: isNewSession ? 0 : (profile?.joinAt || 0), updatedAt: Date.now() };
-                setProfile(updatedProfile); syncSessionToCloud(updatedProfile); setIsPreviewMode(false); if (isNewSession) navigate('session_created'); else { showToast("Имена сохранены"); navigate('menu'); }
+                setProfile(updatedProfile); syncSessionToCloud(updatedProfile); setIsPreviewMode(false); if (isNewSession) navigate('session_created'); else { showToast(tr("Имена сохранены")); navigate('menu'); }
             };
             const handleExitSession = () => {
                 try { localStorage.removeItem(PROFILE_STORAGE_KEY); } catch (e) {}
@@ -1136,7 +1136,7 @@ i18nSetLang(readStoredLang());
             const addPlayerField = () => { if(playersForm.length >= MAX_PLAYERS) return; SoundFX.click(); setPlayersForm([...playersForm, { id: 'p'+Date.now(), name: '', gender: 'guy' }]); };
 
             const handleUnlockAdmin = async (e) => {
-                e.preventDefault(); if (await verifyAdminSecret(adminForm.email, adminForm.pass)) { const t = await Auth.token(); SoundFX.success(); setIsAdmin(true); localStorage.setItem(ADMIN_STORAGE_KEY, "true"); setAdminForm({email:'', pass:''}); setAdminPinError(''); if(t) cleanupOldSessions(t); } else { SoundFX.warn(); setAdminPinError('Неверный Email или Пароль'); }
+                e.preventDefault(); if (await verifyAdminSecret(adminForm.email, adminForm.pass)) { const t = await Auth.token(); SoundFX.success(); setIsAdmin(true); localStorage.setItem(ADMIN_STORAGE_KEY, "true"); setAdminForm({email:'', pass:''}); setAdminPinError(''); if(t) cleanupOldSessions(t); } else { SoundFX.warn(); setAdminPinError(tr('Неверный Email или Пароль')); }
             };
             const handleLockAdmin = () => { SoundFX.click(); setIsAdmin(false); localStorage.removeItem(ADMIN_STORAGE_KEY); Auth.ownerLogout(); };
             const [syncBusy, setSyncBusy] = useState(false);
@@ -1516,24 +1516,24 @@ i18nSetLang(readStoredLang());
             const addTopic = async () => {
                 const name = sanitizeInput(newTopicName, 30).trim();
                 const icon = (newTopicIcon || '').trim().slice(0, 16) || '✨';
-                if (!/\p{Extended_Pictographic}/u.test(icon)) { SoundFX.warn(); setTopicErr('Введите эмодзи, например 🌍'); return; }
-                if (name.length < 2) { SoundFX.warn(); setTopicErr('Назовите тему хотя бы двумя буквами'); return; }
-                if (CATEGORIES.some(c => c.name.toLowerCase() === name.toLowerCase())) { SoundFX.warn(); setTopicErr('Тема с таким названием уже есть'); return; }
-                if (CATEGORIES.length >= 30) { SoundFX.warn(); setTopicErr('Максимум — 30 тем'); return; }
+                if (!/\p{Extended_Pictographic}/u.test(icon)) { SoundFX.warn(); setTopicErr(tr('Введите эмодзи, например 🌍')); return; }
+                if (name.length < 2) { SoundFX.warn(); setTopicErr(tr('Назовите тему хотя бы двумя буквами')); return; }
+                if (CATEGORIES.some(c => c.name.toLowerCase() === name.toLowerCase())) { SoundFX.warn(); setTopicErr(tr('Тема с таким названием уже есть')); return; }
+                if (CATEGORIES.length >= 30) { SoundFX.warn(); setTopicErr(tr('Максимум — 30 тем')); return; }
                 setTopicBusy(true);
                 try {
                     const id = 'c' + Date.now().toString(36);
                     const order = CATEGORIES.map(c => c.id).concat(id);
                     await writeTopics({ custom: { ...topicsDataRef.current.custom, [id]: { id, name, icon } }, order });
                     setTopicDraft(order); setNewTopicName(''); setNewTopicIcon(''); setTopicErr('');
-                    SoundFX.success(); showToast('Тема добавлена');
-                } catch (e) { showErrorPopup('Тема не сохранилась', 'Проверьте интернет и вход владельца, затем попробуйте ещё раз.'); }
+                    SoundFX.success(); showToast(tr('Тема добавлена'));
+                } catch (e) { showErrorPopup(tr('Тема не сохранилась'), 'Проверьте интернет и вход владельца, затем попробуйте ещё раз.'); }
                 setTopicBusy(false);
             };
             const saveTopicOrder = async () => {
                 setTopicBusy(true);
-                try { await writeTopics({ custom: topicsDataRef.current.custom, order: topicDraft }); SoundFX.success(); showToast('Порядок тем сохранён'); }
-                catch (e) { showErrorPopup('Порядок не сохранился', 'Проверьте интернет и вход владельца, затем попробуйте ещё раз.'); }
+                try { await writeTopics({ custom: topicsDataRef.current.custom, order: topicDraft }); SoundFX.success(); showToast(tr('Порядок тем сохранён')); }
+                catch (e) { showErrorPopup(tr('Порядок не сохранился'), 'Проверьте интернет и вход владельца, затем попробуйте ещё раз.'); }
                 setTopicBusy(false);
             };
             useEffect(() => {
@@ -1560,22 +1560,22 @@ i18nSetLang(readStoredLang());
             const startPtEdit = (t) => { SoundFX.click(); setPtEdit(t ? t.id : 'new'); setPtText(t ? t.text : ''); setPtIcon(t ? t.icon : ''); setPtLevel(t ? t.level : 'any'); setPtErr(''); setPtConfirmId(''); };
             const savePt = async () => {
                 const text = sanitizeInput(ptText, 80).trim(); const icon = (ptIcon || '').trim().slice(0, 16) || '🎭';
-                if (text.length < 3) { SoundFX.warn(); setPtErr('Опишите наказание хотя бы парой слов'); return; }
-                if (!/\p{Extended_Pictographic}/u.test(icon)) { SoundFX.warn(); setPtErr('Введите эмодзи, например 🎤'); return; }
-                if (ptEdit === 'new' && punishTemplates.length >= 100) { SoundFX.warn(); setPtErr('Максимум — 100 шаблонов'); return; }
+                if (text.length < 3) { SoundFX.warn(); setPtErr(tr('Опишите наказание хотя бы парой слов')); return; }
+                if (!/\p{Extended_Pictographic}/u.test(icon)) { SoundFX.warn(); setPtErr(tr('Введите эмодзи, например 🎤')); return; }
+                if (ptEdit === 'new' && punishTemplates.length >= 100) { SoundFX.warn(); setPtErr(tr('Максимум — 100 шаблонов')); return; }
                 setPtBusy(true);
                 try {
                     const next = ptEdit === 'new' ? [...punishTemplates, { id: 't' + Date.now().toString(36), text, level: ptLevel, icon }] : punishTemplates.map(t => t.id === ptEdit ? { ...t, text, level: ptLevel, icon } : t);
-                    await writePunishTemplates(next); SoundFX.success(); showToast('Шаблон сохранён'); setPtEdit(null); setPtErr('');
-                } catch (e) { showErrorPopup('Шаблон не сохранился', 'Проверьте интернет и вход владельца, затем попробуйте ещё раз.'); }
+                    await writePunishTemplates(next); SoundFX.success(); showToast(tr('Шаблон сохранён')); setPtEdit(null); setPtErr('');
+                } catch (e) { showErrorPopup(tr('Шаблон не сохранился'), 'Проверьте интернет и вход владельца, затем попробуйте ещё раз.'); }
                 setPtBusy(false);
             };
             const deletePt = async (id) => {
                 if (ptConfirmId !== id) { SoundFX.warn(); setPtConfirmId(id); setPtErr(''); return; }
-                if (punishTemplates.length <= 1) { SoundFX.warn(); setPtErr('Нужен хотя бы один шаблон'); setPtConfirmId(''); return; }
+                if (punishTemplates.length <= 1) { SoundFX.warn(); setPtErr(tr('Нужен хотя бы один шаблон')); setPtConfirmId(''); return; }
                 setPtBusy(true);
-                try { await writePunishTemplates(punishTemplates.filter(t => t.id !== id)); SoundFX.success(); showToast('Шаблон удалён'); }
-                catch (e) { showErrorPopup('Шаблон не удалился', 'Проверьте интернет и вход владельца, затем попробуйте ещё раз.'); }
+                try { await writePunishTemplates(punishTemplates.filter(t => t.id !== id)); SoundFX.success(); showToast(tr('Шаблон удалён')); }
+                catch (e) { showErrorPopup(tr('Шаблон не удалился'), 'Проверьте интернет и вход владельца, затем попробуйте ещё раз.'); }
                 setPtConfirmId(''); setPtBusy(false);
             };
             const logTurnEnd = (kind) => { const g = gameLogRef.current; if (!g || !g.turnStart) return; if (kind === 'answer' && g.durations.length < 500) g.durations.push(Math.round((Date.now() - g.turnStart) / 1000)); g.turnStart = 0; };
@@ -1635,8 +1635,8 @@ i18nSetLang(readStoredLang());
                     const rs = await Promise.all(['anon', 'full'].map(k => fetchWithTimeout(`${FIREBASE_BASE_URL}/analytics/${k}/${aid}.json`, { method: "DELETE" })));
                     if (rs.some(r => !r.ok)) throw new Error('HTTP');
                     setAnData(d => { const n = { anon: { ...d.anon }, full: { ...d.full } }; delete n.anon[aid]; delete n.full[aid]; return n; });
-                    setAnSel(null); SoundFX.success(); showToast('Сессия удалена');
-                } catch (e) { showErrorPopup('Сессия не удалена', 'Проверьте интернет и вход владельца, затем попробуйте ещё раз.'); }
+                    setAnSel(null); SoundFX.success(); showToast(tr('Сессия удалена'));
+                } catch (e) { showErrorPopup(tr('Сессия не удалена'), 'Проверьте интернет и вход владельца, затем попробуйте ещё раз.'); }
                 setAnConfirm(''); setAnBusy(false);
             };
             useEffect(() => {
@@ -1652,7 +1652,7 @@ i18nSetLang(readStoredLang());
                     if (!res.ok) throw new Error('HTTP ' + res.status);
                     setDb(prev => { const next = prev.map(x => x.dbKey === q.dbKey ? { ...x, hidden: !!hide } : x); try { localStorage.setItem(OFFLINE_DB_CACHE_KEY, JSON.stringify(next)); } catch (e) {} return next; });
                     SoundFX.success(); showToast(hide ? 'Вопрос скрыт для всех' : 'Вопрос снова доступен');
-                } catch (e) { showErrorPopup('Не удалось изменить вопрос', 'Проверьте интернет и вход владельца, затем попробуйте ещё раз.'); }
+                } catch (e) { showErrorPopup(tr('Не удалось изменить вопрос'), 'Проверьте интернет и вход владельца, затем попробуйте ещё раз.'); }
                 setHqBusy('');
             };
             const restoreAllHidden = async () => {
@@ -1665,8 +1665,8 @@ i18nSetLang(readStoredLang());
                     const res = await fetchWithTimeout(`${FIREBASE_BASE_URL}${dbSubPath}.json`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
                     if (!res.ok) throw new Error('HTTP ' + res.status);
                     setDb(prev => { const next = prev.map(x => x.hidden ? { ...x, hidden: false } : x); try { localStorage.setItem(OFFLINE_DB_CACHE_KEY, JSON.stringify(next)); } catch (e) {} return next; });
-                    SoundFX.success(); showToast('Все вопросы возвращены');
-                } catch (e) { showErrorPopup('Не удалось вернуть вопросы', 'Проверьте интернет и вход владельца, затем попробуйте ещё раз.'); }
+                    SoundFX.success(); showToast(tr('Все вопросы возвращены'));
+                } catch (e) { showErrorPopup(tr('Не удалось вернуть вопросы'), 'Проверьте интернет и вход владельца, затем попробуйте ещё раз.'); }
                 setHqConfirmAll(false); setHqBusy('');
             };
             const [live, setLive] = useState({ room: '', role: '', sync: false }); const [liveJoining, setLiveJoining] = useState(false); const [liveInvite, setLiveInvite] = useState(null); const [liveEnded, setLiveEnded] = useState(false); const [liveCount, setLiveCount] = useState(0); const [liveRoomId, setLiveRoomId] = useState('');
@@ -1706,7 +1706,7 @@ i18nSetLang(readStoredLang());
                 const lr = liveRef.current, me = deviceIdRef.current, t = Date.now();
                 setLive(l => ({ ...l, sync: true }));
                 liveSend('PUT', { ver: 1, by: me, t, g: lr.gid, d: liveDeckRef.current }, '', '_d').then(ok => {
-                    if (!ok) { liveSyncRef.current = false; setLive(l => ({ ...l, sync: false })); if (Date.now() - (lr.deckFailAt || 0) > 20000) { lr.deckFailAt = Date.now(); showToast('Не удалось передать вопросы второму устройству — пробуем ещё раз', 4000, 'warn'); } return; }
+                    if (!ok) { liveSyncRef.current = false; setLive(l => ({ ...l, sync: false })); if (Date.now() - (lr.deckFailAt || 0) > 20000) { lr.deckFailAt = Date.now(); showToast(tr('Не удалось передать вопросы второму устройству — пробуем ещё раз'), 4000, 'warn'); } return; }
                     const st = liveStateRef.current, hs = liveHistStr(st.hist), ver = liveVerNext(lr.ver, me); lr.ver = ver; lr.t = Date.now(); lr.hash = liveHash(st.idx, st.max, hs);
                     // если у хозяина уже выпало наказание за этот ход, гости должны знать об этом: иначе по своему таймеру выдадут второе
                     const pr = livePunRef.current, pn = pr.punish || {}; let pun = null;
@@ -1742,8 +1742,8 @@ i18nSetLang(readStoredLang());
             const enterLive = async (snap, role) => {
                 const room = liveRoomIdRef.current; if (!room || !profile) return false;
                 const ids = await liveFetchDeck(room, snap); const map = new Map(profileDb.map(q => [String(q.id || q.dbKey), q])); const deck = ids ? ids.map(id => map.get(id)).filter(Boolean) : [];
-                if (!ids || !ids.length) { showToast('Не удалось получить вопросы игры. Проверьте интернет и попробуйте ещё раз', 5000, 'warn'); return false; }
-                if (deck.length !== ids.length) { showToast('Не удалось присоединиться: не все вопросы загружены. Обновите страницу и попробуйте снова', 5000, 'warn'); return false; }
+                if (!ids || !ids.length) { showToast(tr('Не удалось получить вопросы игры. Проверьте интернет и попробуйте ещё раз'), 5000, 'warn'); return false; }
+                if (deck.length !== ids.length) { showToast(tr('Не удалось присоединиться: не все вопросы загружены. Обновите страницу и попробуйте снова'), 5000, 'warn'); return false; }
                 let hist = {}; try { hist = JSON.parse(snap.hist || '{}') || {}; } catch (e) {}
                 let pl = null; try { pl = JSON.parse(snap.pl || 'null'); } catch (e) {}
                 if (Array.isArray(pl) && pl.length) { const key = (a) => a.map(p => p.id + '|' + p.name + '|' + p.gender).join(','); if (key(pl) !== key(profile.players || [])) setProfile(prev => prev ? { ...prev, players: pl.slice(0, MAX_PLAYERS).map(p => ({ id: String(p.id), name: String(p.name || '').slice(0, 25), gender: p.gender === 'girl' ? 'girl' : 'guy' })), updatedAt: Date.now() } : prev); }
@@ -1768,7 +1768,7 @@ i18nSetLang(readStoredLang());
                 const lr = liveRef.current, me = deviceIdRef.current;
                 if (snap.gid && lr.gid && snap.gid !== lr.gid) {
                     // новая партия другого устройства: пока там «маячок» без вопросов (solo), ждём — хозяин отправит их, увидев наше присутствие
-                    if (snap.by !== me && snap.status === 'active' && !snap.solo && liveEnteringRef.current !== snap.gid) { liveEnteringRef.current = snap.gid; showToast('Запущена новая игра', 2800, 'info'); enterLive(snap, 'guest').finally(() => { liveEnteringRef.current = ''; }); }
+                    if (snap.by !== me && snap.status === 'active' && !snap.solo && liveEnteringRef.current !== snap.gid) { liveEnteringRef.current = snap.gid; showToast(tr('Запущена новая игра'), 2800, 'info'); enterLive(snap, 'guest').finally(() => { liveEnteringRef.current = ''; }); }
                     return;
                 }
                 if (snap.ver < lr.ver) { liveReassert(snap.ver); return; }
@@ -1858,7 +1858,7 @@ i18nSetLang(readStoredLang());
             };
             useEffect(() => { if (live.room && !['game', 'ai_response', 'summary'].includes(screen)) liveLeave(); }, [screen]);
             useEffect(() => { const h = () => { if (liveRoomRef.current) liveLeave(); }; window.addEventListener('pagehide', h); return () => window.removeEventListener('pagehide', h); }, []);
-            useEffect(() => { if (liveEnded) { setLiveEnded(false); showToast('Игра завершена на другом устройстве', 2800, 'info'); handleFinishGame(false); } }, [liveEnded]);
+            useEffect(() => { if (liveEnded) { setLiveEnded(false); showToast(tr('Игра завершена на другом устройстве'), 2800, 'info'); handleFinishGame(false); } }, [liveEnded]);
             // присоединение к идущей игре. Если хозяин пока один, он пришлёт вопросы, только увидев нас, — поэтому сначала отмечаемся в комнате и ждём
             const liveJoinFlow = async (snap0, quiet = false) => {
                 const room = liveRoomIdRef.current, me = deviceIdRef.current; if (!room || !profile || liveJoiningRef.current) return false;
@@ -1869,13 +1869,13 @@ i18nSetLang(readStoredLang());
                     if (snap.solo) {
                         announced = true;
                         await fetchWithTimeout(roomUrl(room, '/p'), { method: 'PATCH', headers: { "Content-Type": "application/json" }, body: JSON.stringify({ [me]: Date.now() }) }, 6000).catch(() => {});
-                        if (!quiet) showToast('Подключаемся к игре…', 4000, 'info');
+                        if (!quiet) showToast(tr('Подключаемся к игре…'), 4000, 'info');
                         const t0 = Date.now(); snap = null;
                         while (Date.now() - t0 < LIVE_JOIN_WAIT_MS) {
                             await new Promise(res => setTimeout(res, 700));
                             try { const r = await fetchWithTimeout(roomUrl(room) + '?t=' + Date.now(), {}, 6000); const s2 = r.ok ? await r.json() : null; if (s2 && s2.status !== 'active') break; if (s2 && !s2.solo && s2.n > 0) { snap = s2; break; } } catch (e) {}
                         }
-                        if (!snap) { if (!quiet) showToast('Не удалось подключиться: игра не открыта на устройстве хозяина. Откройте её там и попробуйте снова', 6000, 'warn'); }
+                        if (!snap) { if (!quiet) showToast(tr('Не удалось подключиться: игра не открыта на устройстве хозяина. Откройте её там и попробуйте снова'), 6000, 'warn'); }
                     }
                     ok = snap ? await enterLive(snap, 'guest') : false;
                 } finally {
@@ -1887,8 +1887,8 @@ i18nSetLang(readStoredLang());
             const joinLive = async () => {
                 if (!profile || !liveRoomIdRef.current || liveJoiningRef.current) return;
                 let snap = null; try { const r = await fetchWithTimeout(roomUrl(liveRoomIdRef.current) + '?t=' + Date.now(), {}, 8000); snap = r.ok ? await r.json() : null; } catch (e) {}
-                if (!snap || snap.status !== 'active' || !(snap.n > 0)) { setLiveInvite(null); showToast('Игра уже закончилась. Начните новую партию — приглашение появится здесь', 5000, 'info'); return; }
-                const cap = deviceCap(profile, snap); if (liveAlive(snap.p, Date.now(), deviceIdRef.current).others.length >= cap) { showToast('В игре уже ' + cap + ' ' + declOfNum(cap, ['устройство', 'устройства', 'устройств']) + ' — по числу игроков в сессии. Дождитесь, пока кто-нибудь выйдет, или добавьте игроков в «Игроки и сессия»', 6000, 'warn'); return; }
+                if (!snap || snap.status !== 'active' || !(snap.n > 0)) { setLiveInvite(null); showToast(tr('Игра уже закончилась. Начните новую партию — приглашение появится здесь'), 5000, 'info'); return; }
+                const cap = deviceCap(profile, snap); if (liveAlive(snap.p, Date.now(), deviceIdRef.current).others.length >= cap) { showToast(tr('В игре уже ') + cap + ' ' + declOfNum(cap, ['устройство', 'устройства', 'устройств']) + ' — по числу игроков в сессии. Дождитесь, пока кто-нибудь выйдет, или добавьте игроков в «Игроки и сессия»', 6000, 'warn'); return; }
                 await liveJoinFlow(snap);
             };
             // после быстрого подключения по приглашению: если в сессии уже идёт игра, входим в неё сами (когда появится приглашение; ждём не дольше 20 секунд)
@@ -1925,7 +1925,7 @@ i18nSetLang(readStoredLang());
                     } catch (e) {}
                 }
                 // чужую идущую игру нельзя затирать своим старым сохранением: liveStart заставил бы всех её участников перейти в мою колоду
-                if (busyElsewhere) { if (!silent) showToast('В сессии уже идёт игра на другом устройстве, и подключиться к ней не удалось. Попробуйте ещё раз или завершите её там', 6000, 'warn'); return false; }
+                if (busyElsewhere) { if (!silent) showToast(tr('В сессии уже идёт игра на другом устройстве, и подключиться к ней не удалось. Попробуйте ещё раз или завершите её там'), 6000, 'warn'); return false; }
                 setPunDoneKey(''); setGameMode('normal'); setGameQuestions(restoredDeck); setCurrentIndex(cIdx); setMaxReachedIndex(mIdx); setTurnHistory(tHist); setAnsweredCount(0); setCompletedAllFlag(false); setShowEndGameConfirm(false); setTurnPopup({ open: false, spinning: false, highlight: 'guy', winner: null }); navigate('game');
                 if (canLive) liveStart(restoredDeck, { idx: cIdx, max: mIdx, hist: tHist, hard: hardMode, fx: { timerOn: hardMode && !!settings.timerOn, timerSec: settings.timerSec, punishOn: hardMode && !!settings.punishOn } });
                 if (!tHist[cIdx]) triggerRouletteForIndex(cIdx, tHist, restoredDeck);
@@ -1984,7 +1984,7 @@ i18nSetLang(readStoredLang());
                 })();
             };
             const handleAddQuestion = async (e) => {
-                e.preventDefault(); if (!isAdmin || isSaving) return; if (addForm.text.trim().length < 3) { SoundFX.warn(); setQFormError('Введите текст вопроса — минимум 3 символа'); return; } setQFormError(''); if (!ActionGuard.canProceed(1000)) return; SoundFX.click(); setIsSaving(true);
+                e.preventDefault(); if (!isAdmin || isSaving) return; if (addForm.text.trim().length < 3) { SoundFX.warn(); setQFormError(tr('Введите текст вопроса — минимум 3 символа')); return; } setQFormError(''); if (!ActionGuard.canProceed(1000)) return; SoundFX.click(); setIsSaving(true);
                 try {
                     const cleanInput = sanitizeInput(addForm.text.replace(/^№\s*\d+\.\s*/, ''), 500); if (!cleanInput) throw new Error("Пустой текст"); const nextNum = db.length + 1; const numericKeys = db.map(item => Number(item.dbKey)).filter(n => !isNaN(n)); const nextDbKey = numericKeys.length > 0 ? String(Math.max(...numericKeys) + 1) : String(db.length); const newId = `v_db_${nextNum}_${Math.random().toString(36).substring(2, 6)}`;
                     // Зберігаємо одразу (не чекаємо на переклад), українську версію допише фоновий автопереклад.
@@ -3010,7 +3010,7 @@ if (screen === 'summary') {
                             <CustomSelect value={editForm.aud} onChange={val => setEditForm({...editForm, aud: val})} options={[{value:'both', label:audienceLabel('both')},{value:'couple', label:audienceLabel('couple')},{value:'group', label:audienceLabel('group')}]} />
                             {(() => { const hid = !!(db.find(x => x.dbKey === editingQuestion.dbKey) || {}).hidden; return ( <div className="flex flex-col gap-2"> <button type="button" disabled={!!hqBusy} onClick={() => setQuestionHidden(editingQuestion, !hid)} className="btn-secondary w-full flex items-center justify-center gap-2">{hid ? <Icons.Eye /> : <Icons.EyeOff />} {hid ? 'Вернуть вопрос всем' : 'Скрыть для всех'}</button> <p className="text-xs text-zinc-500 leading-snug text-center">{hid ? 'Сейчас вопрос скрыт: игроки его не видят.' : 'Игроки перестанут видеть вопрос. Вернуть можно здесь или в разделе «Скрытые вопросы».'}</p> </div> ); })()}
                             <button onClick={() => setConfirmModal({ action: 'delete', title: 'Удалить вопрос?' })} className="btn-danger w-full flex items-center justify-center gap-2"><Icons.Trash /> {tr("Удалить")}</button>
-                            <div className="mt-auto pt-4 grid grid-cols-2 gap-3.5"><button onClick={() => navigate(returnScreen)} className="btn-secondary w-full">{tr("Отмена")}</button><button onClick={() => { if (editForm.text.trim().length < 3) { SoundFX.warn(); setQFormError('Введите текст вопроса — минимум 3 символа'); return; } setQFormError(''); setConfirmModal({ action: 'save', title: 'Сохранить?' }); }} disabled={isSaving} className="btn-primary w-full"><Icons.Check /> {tr("Сохранить")}</button></div>
+                            <div className="mt-auto pt-4 grid grid-cols-2 gap-3.5"><button onClick={() => navigate(returnScreen)} className="btn-secondary w-full">{tr("Отмена")}</button><button onClick={() => { if (editForm.text.trim().length < 3) { SoundFX.warn(); setQFormError(tr('Введите текст вопроса — минимум 3 символа')); return; } setQFormError(''); setConfirmModal({ action: 'save', title: 'Сохранить?' }); }} disabled={isSaving} className="btn-primary w-full"><Icons.Check /> {tr("Сохранить")}</button></div>
                         </div>
                         <PopupModal isOpen={Boolean(confirmModal)} onClose={() => setConfirmModal(null)}>
                             {confirmModal && <div className="text-center gap-5 pt-2"><h3 className="font-bold text-white mb-4">{confirmModal.title}</h3><div className="grid grid-cols-2 gap-3 w-full"><button onClick={() => setConfirmModal(null)} className="btn-secondary">{tr("Отмена")}</button><button onClick={() => confirmModal.action === 'delete' ? executeDeleteQuestion() : executeSaveEdit()} className="btn-primary">{tr("Да")}</button></div></div>}
