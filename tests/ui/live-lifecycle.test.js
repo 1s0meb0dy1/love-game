@@ -1,7 +1,7 @@
 // Жизненный цикл живой игры на трёх «телефонах» с задержками сети: перезапуск хозяином, завершение «для всех»,
-// устаревшие отметки устройств и лимит в 10 устройств. База в памяти с правилами Firebase (копия в fixtures).
+// устаревшие отметки устройств. Лимит устройств — в live-cap.test.js. База в памяти с правилами Firebase (копия в fixtures).
 const { joinGame, startGame, boot, waitFor, sleep, qn, pos, who, inGame, onSummary, devId, chip, closeRoulette, openGameMenu } = require('../live-helpers.js');
-(async () => { const S = await boot(3, { latency: () => 30 + Math.random() * 220 }); const { devs, db, T } = S; const [A, B, C] = devs;
+(async () => { const S = await boot(3, { latency: () => 30 + Math.random() * 220 }, { players: 3 }); const { devs, db, T } = S; const [A, B, C] = devs;
  try {
   const onMenu = (E) => E.D.title.startsWith('ASK ME —');
   await A.click('Начать игру', 700); await A.click('Обычный режим', 4200); await closeRoulette(A, 600);
@@ -26,8 +26,6 @@ const { joinGame, startGame, boot, waitFor, sleep, qn, pos, who, inGame, onSumma
   await sleep(9000);
   T('значок «👥 3» у всех после перезапуска (' + chip(A) + ', ' + chip(B) + ', ' + chip(C) + ')', chip(A) === '3' && chip(B) === '3' && chip(C) === '3');
 
-  const snapActive = db.room(), deckActive = db.deck(); // «живая» партия — пригодится ниже, чтобы вернуть комнату в активное состояние вместе с колодой
-
   // «Для всех»: завершает партию на всех устройствах
   await openGameMenu(C); await C.click('Для всех', 1500);
   T('C завершил партию «Для всех»: он на итогах, в комнате статус ended', onSummary(C) && db.room().status === 'ended');
@@ -41,23 +39,6 @@ const { joinGame, startGame, boot, waitFor, sleep, qn, pos, who, inGame, onSumma
   db.seed(room, ['p'], null); db.seed(room, ['status'], 'active'); db.seed(room, ['p', 'призрак'], now() - 200000);
   await sleep(4200);
   T('отметка давностью 200 с считается устаревшей: приглашения нет', !A.has('Присоединиться'));
-
-  // лимит: 10 устройств в игре — одиннадцатое не пускаем
-  db.seed(room, [], { ...snapActive, status: 'active' }); db.seed(room + '_d', [], deckActive); // после «Для всех» колоду удаляют вместе с партией: возвращаем и комнату, и колоду
-  const ghosts = (n) => { db.seed(room, ['p'], null); for (let i = 1; i <= n; i++) db.seed(room, ['p', 'g' + i], now()); };
-  ghosts(10);
-  const saw10 = await waitFor(() => A.has('в ней 10 устройств'), 8000);
-  T('приглашение показывает 10 устройств', saw10);
-  await A.click('Присоединиться', 700); // отказ приходит сразу; сообщение живёт около трёх секунд, поэтому проверяем без долгого ожидания входа
-  T('одиннадцатое устройство не пускают: «В игре уже 10 устройств», игра не открылась', A.has('В игре уже 10 устройств') && !inGame(A));
-  T('причина показана сообщением: максимум для одной сессии', A.has('это максимум для одной сессии'));
-
-  // девять устройств — десятое (последнее) входит
-  ghosts(9); await waitFor(() => A.has('в ней 9 устройств'), 8000);
-  await joinGame(A); await closeRoulette(A, 300);
-  T('десятое устройство входит в игру', inGame(A));
-  await sleep(2500);
-  T('значок показывает «👥 10»', chip(A) === '10');
 
   T('ни одна запись не отклонена правилами базы', db.stats.denied === 0);
   S.finish(0);

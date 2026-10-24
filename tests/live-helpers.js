@@ -37,6 +37,9 @@ async function boot(n, dbOpts, extra = {}) {
   if (extra.setupA) await extra.setupA(A);
   A.w.eval(A.code); await sleep(1800);
   const inputs = [...A.D.querySelectorAll('input[type="text"]')]; A.setVal(inputs[0], 'Макс'); A.setVal(inputs[1], 'Аня'); await sleep(200);
+  // игроков в сессии столько же, сколько устройств в игре (extra.players, по умолчанию 2): больше устройств, чем игроков, в одну партию не пускают
+  const MORE = ['Ира', 'Олег', 'Света', 'Паша', 'Лена', 'Дима', 'Катя', 'Тимур'];
+  for (let i = 2; i < (extra.players || 2); i++) { await A.click('Добавить игрока', 150); const fields = [...A.D.querySelectorAll('input[type="text"]')]; A.setVal(fields[i], MORE[i - 2]); await sleep(100); }
   await A.click('Создать сессию', 1200); await A.click('Перейти к игре', 900);
   for (const E of devs.slice(1)) {
     for (let i = 0; i < A.w.localStorage.length; i++) { const k = A.w.localStorage.key(i); if (k !== 'askme_auth_v2') E.w.localStorage.setItem(k, A.w.localStorage.getItem(k)); }

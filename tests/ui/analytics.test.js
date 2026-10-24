@@ -22,7 +22,7 @@ const btn=(t)=>[...D.querySelectorAll('button')].find(b=>b.textContent.replace(/
       T('после игры отправлены ДВА отдельных отчёта: обезличенный и полный (PATCH)',an.length===1&&fu.length===1&&an[0].aid===fu[0].aid&&/^a[0-9a-f]{16}$/.test(an[0].aid));
       const ag=Object.entries(an[0].body).find(([k])=>k.startsWith('games/'))[1], fg=Object.entries(fu[0].body).find(([k])=>k.startsWith('games/'))[1];
       T('обезличенный отчёт без имён и без ID сессии',!/Макс|Аня/.test(JSON.stringify(an[0].body))&&!('sid' in an[0].body)&&!('names' in an[0].body));
-      T('полный отчёт: ID сессии, имена и результаты по игрокам',fu[0].body.sid&&fu[0].body.sid.length===8&&JSON.stringify(fu[0].body.names)==='["Макс","Аня"]'&&fg.perPlayer.length===2&&fg.perPlayer[0].name==='Макс');
+      T('полный отчёт: имена и результаты по игрокам, а ID сессии не отправляется (по ID можно войти в сессию) и стирается из прежних записей',fu[0].body.sid===null&&!/"[A-Z0-9]{8}"/.test(JSON.stringify(fu[0].body.names))&&JSON.stringify(fu[0].body.names)==='["Макс","Аня"]'&&fg.perPlayer.length===2&&fg.perPlayer[0].name==='Макс');
       T('итоги в отчёте: 1 отвечен, 1 пропущен, обычный режим, без таймера',ag.answered===1&&ag.skipped===1&&ag.mode==='normal'&&ag.timerSec===0&&ag.players===2&&typeof ag.durationSec==='number');
     }
   } else {
@@ -46,10 +46,10 @@ const btn=(t)=>[...D.querySelectorAll('button')].find(b=>b.textContent.replace(/
     T('обзор: сводка по обезличенным данным (2 сессии, 2 игры, ср. игроков 2.5)',/Сессий/.test(txt())&&/2Сессий|2 Сессий/.test(txt().replace(/\s/g,''))&&has('Игр в сводке')&&has('2.5')&&has('Игроков в игре'));
     T('обзор: темы, сложность, пропускаемые вопросы, таймер и наказания',has('Популярные темы')&&has('Сложность отвеченных вопросов')&&has('Чаще всего пропускают')&&/Таймер включали в 50% игр, в среднем на 30 с/.test(txt())&&/×2\s*Станцуй 15 секунд/.test(txt()));
     T('обзор не показывает имён',!has('Макс')&&!has('Аня'));
-    await clickEl(btn('Сессии'),600); T('отдельная страница «Сессии» (список с именами и ID)',D.title==='Сессии — Аналитика — ASK ME'&&has('Макс · Аня')&&has('ID ABCD1234')&&has('Лев · Мия · Ян'));
+    await clickEl(btn('Сессии'),600); T('отдельная страница «Сессии» (список с именами; ID сессии, оставшийся в старой записи, не показывается)',D.title==='Сессии — Аналитика — ASK ME'&&has('Макс · Аня')&&!has('ABCD1234')&&has('Лев · Мия · Ян'));
     await clickEl(btn('Обезличенные'),300); T('обезличенный список: без имён и ID',has('Сессия №')&&!has('Макс')&&!has('ABCD1234'));
     await clickEl(btn('Полные данные'),300); await clickEl(btn('Макс · Аня'),400);
-    T('карточка сессии: имена, ID, игры, таймер/наказания, по игрокам, списки',has('ID сессии: ABCD1234')&&has('Усложнённый')&&has('⏱ Таймер: 30 с')&&has('Макс: 6 отв. / 1 проп.')&&has('Отвеченные вопросы (2)')&&has('Свои наказания игроков (1)')&&has('Выпавшие наказания (1)'));
+    T('карточка сессии: имена, ключ записи (не ID сессии), игры, таймер/наказания, по игрокам, списки',has('Ключ записи:')&&!has('ABCD1234')&&has('Усложнённый')&&has('⏱ Таймер: 30 с')&&has('Макс: 6 отв. / 1 проп.')&&has('Отвеченные вопросы (2)')&&has('Свои наказания игроков (1)')&&has('Выпавшие наказания (1)'));
     await clickEl(btn('Удалить сессию'),200); T('удаление в два шага: сначала просит подтверждения',has('Точно удалить?')&&!reqs.some(r=>r.method==='DELETE'));
     await clickEl(btn('Точно удалить?'),600); const dels=reqs.filter(r=>r.method==='DELETE');
     T('удалены ОБА набора данных сессии (anon и full)',dels.length===2&&dels.every(d=>d.aid==='a1')&&new Set(dels.map(d=>d.kind)).size===2);

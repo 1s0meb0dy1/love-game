@@ -33,19 +33,29 @@ const boot = async (hash, withProfile) => {
   T('цифры подставлены из базы: вопросов ' + A.qCount + ', тем 10, уровней 3, игроков 10 (получено ' + nums.join('/') + ')', nums[0] === String(A.qCount) && nums[1] === '10' && nums[2] === '3' && nums[3] === '10' && labels.length === ABOUT.numbers.length);
   T('шаги «Как это работает»: ' + ABOUT.steps.length + ' пункта по порядку, с номерами', D.querySelectorAll('.about-steps li').length === ABOUT.steps.length && [...D.querySelectorAll('.about-step-n')].map(e => e.textContent).join('') === ABOUT.steps.map((_, i) => i + 1).join(''));
 
-  // демо-вопрос
+  // демо-вопрос: ровно 9 примеров — по 3 на каждую глубину
   const tabs = () => [...D.querySelectorAll('[aria-label="Глубина вопроса"] [role="tab"]')]; const shown = () => norm(D.querySelector('.about-q p').textContent);
+  const nextBtn = () => D.querySelector('.about-page .btn-secondary'); const counter = () => norm(D.querySelector('.about-q').nextElementSibling.textContent);
   const clean = (q) => norm(q.text.replace(/^№\s*\d+\.\s*/, ''));
   const intimacy = new Set(Object.values(A.exp).filter(q => q.categoryId === 'intimacy').map(clean));
   const byLevel = (lv) => new Set(Object.values(A.exp).filter(q => q.level === lv && q.categoryId !== 'intimacy').map(clean));
   T('демо: три вкладки глубины, выбрана первая, вопрос показан', tabs().length === 3 && tabs()[0].getAttribute('aria-selected') === 'true' && shown().length > 10);
-  let okLevel = true, okIntim = true; const seen = new Set();
+  let okLevel = true, okIntim = true, okCycle = true, okCount = true, okReal = true; const seen = new Set();
   for (const [i, lv] of ['Простые', 'Средние', 'Глубокие'].entries()) {
     await c(tabs()[i], 200); okLevel = okLevel && tabs()[i].getAttribute('aria-selected') === 'true' && D.querySelector('.about-q').className.includes('lvl-' + (i + 1));
-    for (let k = 0; k < 12; k++) { const q = shown(); seen.add(q); if (intimacy.has(q)) okIntim = false; if (!byLevel(lv).has(q)) okLevel = false; await c(D.querySelector('.about-page .btn-secondary'), 120); }
+    const row = [];
+    for (let k = 0; k < 4; k++) { row.push(shown()); okCount = okCount && counter() === (k % 3 + 1) + ' / 3'; await c(nextBtn(), 120); }
+    row.forEach(q => { seen.add(q); if (intimacy.has(q)) okIntim = false; if (!byLevel(lv).has(q)) okReal = false; });
+    okCycle = okCycle && new Set(row.slice(0, 3)).size === 3 && row[3] === row[0] && row.slice(0, 3).join('|') === ABOUT.demo.examples[lv].map(norm).join('|');
   }
-  T('демо: у каждой глубины свой цвет карточки и вопросы именно этой глубины из базы (разных вопросов: ' + seen.size + ')', okLevel && seen.size >= 5);
+  T('демо: у каждой глубины свой цвет карточки, у вкладки аккуратно выбран уровень', okLevel);
+  T('демо: у каждой глубины ровно 3 примера по порядку, четвёртое нажатие возвращает к первому, под карточкой «1 / 3»…«3 / 3»', okCycle && okCount);
+  T('демо: всего 9 разных примеров (получено ' + seen.size + ')', seen.size === 9);
+  T('демо: это настоящие вопросы из базы игры именно этой глубины', okReal);
   T('демо: вопросы из темы «Интим» не показываются на публичной странице', okIntim);
+  await c(tabs()[1], 150); await c(nextBtn(), 100); await c(tabs()[2], 150); await c(tabs()[1], 150);
+  T('демо: при смене вкладки показ начинается с первого примера этой глубины', shown() === norm(ABOUT.demo.examples['Средние'][0]) && counter() === '1 / 3');
+  await c(tabs()[0], 150);
 
   // возможности: фильтр и раскрытие
   const featRows = () => [...D.querySelectorAll('[aria-labelledby="about-feat"] .about-acc-item .row')];

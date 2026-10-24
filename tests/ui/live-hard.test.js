@@ -6,7 +6,7 @@ const HARD = { timerOn: true, timerSec: 6, punishOn: true, punishments: [{ id: '
 const OFF = { timerOn: false, timerSec: 30, punishOn: false, punishments: [], hiddenTemplates: [] };
 const punText = (E) => { const d = [...E.D.querySelectorAll('div')].find(x => x.textContent.trim() === 'Наказание'); return d && d.nextElementSibling ? d.nextElementSibling.textContent.trim() : null; };
 const timeUp = (E) => E.has('Время вышло'), skipPun = (E) => E.has('Пропуск вопроса'), timerShown = (E) => !!E.D.querySelector('[role="timer"]');
-(async () => { const S = await boot(3, { latency: () => 20 + Math.random() * 120 }, { setupA: (A) => A.w.localStorage.setItem('askme_game_settings_v1', JSON.stringify(HARD)), setupB: (E) => E.w.localStorage.setItem('askme_game_settings_v1', JSON.stringify(OFF)) });
+(async () => { const S = await boot(3, { latency: () => 20 + Math.random() * 120 }, { players: 3, setupA: (A) => A.w.localStorage.setItem('askme_game_settings_v1', JSON.stringify(HARD)), setupB: (E) => E.w.localStorage.setItem('askme_game_settings_v1', JSON.stringify(OFF)) });
  const { devs, db, T } = S; const [A, B, C] = devs; const puns = () => new Set(db.log.filter(l => l.body && l.body.pun && l.body.pun.id).map(l => l.body.pun.id)).size;
  try {
   await A.click('Начать игру', 700); await A.click('Усложнённый режим', 900);
@@ -28,20 +28,27 @@ const timeUp = (E) => E.has('Время вышло'), skipPun = (E) => E.has('П
   T('пока хозяин выполняет наказание, у гостей второго наказания нет (событий наказания: ' + puns() + ', было ' + n1 + ')', puns() === n1 && !timeUp(B) && !timeUp(C));
   T('хозяин по-прежнему видит своё окно наказания', timeUp(A));
   const w0 = who(A), p0 = pos(A);
-  await A.click('Выполнено', 3000);
-  T('A выполнил наказание → ход перешёл дальше у всех (' + who(A) + ' = ' + who(B) + ' = ' + who(C) + ')', who(A) !== w0 && who(B) === who(A) && who(C) === who(A) && pos(A) === p0);
-  T('у гостей таймер взят от хозяина: у B и C виден обратный отсчёт нового хода', await waitFor(() => timerShown(B) && timerShown(C), 3000));
+  await A.click('Выполнено', 600);
+  const moved = await waitFor(() => who(A) && who(A) !== w0 && who(B) === who(A) && who(C) === who(A) && pos(A) === p0, 12000);
+  T('A выполнил наказание → ход перешёл дальше у всех (' + who(A) + ' = ' + who(B) + ' = ' + who(C) + ')', moved);
+  T('у гостей таймер взят от хозяина: у B и C виден обратный отсчёт нового хода', await waitFor(() => timerShown(B) && timerShown(C), 6000));
 
-  // пропуск с наказанием на гостевом устройстве: у остальных то же окно с пометкой «Пропуск вопроса»
-  const n2 = puns();
-  await C.click('Пропустить', 600); await C.click('Только', 1500);
-  const seen = await waitFor(() => skipPun(A) && skipPun(B), 6000);
-  T('C пропустил ход с наказанием: A и B видят то же окно «Пропуск вопроса» с тем же текстом', seen && punText(A) === punText(C) && punText(B) === punText(C) && !!punText(C));
-  T('наказание за пропуск выдано один раз', puns() === n2 + 1);
-  await C.click('Выполнено', 3000);
-  T('C выполнил наказание → окна закрылись у всех, оба игрока пропустили — вопрос пропущен', [A, B, C].every(E => !skipPun(E) && E.has('Вопрос пропущен')));
+  // пропуск с наказанием на гостевом устройстве: у остальных то же окно с пометкой «Пропуск вопроса».
+  // Игроков трое: хозяин не ответил по таймеру, потом пропускают второй и третий — только после этого вопрос считается пропущенным
+  for (const round of [1, 2]) {
+    const nBefore = puns(); const wPrev = who(C);
+    await waitFor(() => C.btns().some(b => /Пропустить/.test(b.textContent) && !b.disabled), 8000);
+    await C.click('Пропустить', 600); await C.click('Только', 1500);
+    const seen = await waitFor(() => skipPun(A) && skipPun(B) && skipPun(C), 12000);
+    T('пропуск №' + round + ': C пропустил ход с наказанием — A и B видят то же окно «Пропуск вопроса» с тем же текстом', seen && punText(A) === punText(C) && punText(B) === punText(C) && !!punText(C));
+    T('пропуск №' + round + ': наказание выдано один раз', puns() === nBefore + 1);
+    await C.click('Выполнено', 600);
+    if (round === 1) T('после первого пропуска ход перешёл к третьему игроку, вопрос ещё не пропущен (' + wPrev + ' → ' + who(C) + ')', await waitFor(() => [A, B, C].every(E => !skipPun(E) && who(E) && who(E) !== wPrev) && who(A) === who(B) && who(B) === who(C), 12000) && !A.has('Вопрос пропущен'));
+    else T('C выполнил наказание → окна закрылись у всех, все трое пропустили — вопрос пропущен', await waitFor(() => [A, B, C].every(E => !skipPun(E) && E.has('Вопрос пропущен')), 12000));
+  }
 
   // следующий вопрос запускает B — значит, хозяин хода теперь B. Затем B «пропадает»
+  await sleep(900); // сразу после прихода нового состояния нажатия кратко игнорируются (LIVE_TAP_GUARD_MS)
   await B.click('Далее', 4200); await closeRoulette(B, 400);
   const nxt = await waitFor(() => pos(A) === pos(B) && pos(C) === pos(B) && timerShown(A) && timerShown(C), 8000);
   T('начался следующий вопрос: у A и C идёт таймер (вопрос ' + pos(A) + ' = ' + pos(C) + ')', nxt);

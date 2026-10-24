@@ -16,7 +16,7 @@ T('legal: нет пустых и пробельных строк (' + legalStr.l
 T('about: у возможностей уникальные id и все группы из списка featureGroups', dup(ABOUT.features.map(f => f.id)).length === 0 && ABOUT.features.every(f => ABOUT.featureGroups.some(g => g.id === f.group && g.id !== 'all')) && ABOUT.featureGroups[0].id === 'all');
 T('about: у каждой возможности есть значок, заголовок, короткое и подробное описание', ABOUT.features.every(f => f.icon && f.title && f.short && f.more));
 T('about: в каждой группе (кроме «Все») есть хотя бы одна возможность — нет пустых чипов', ABOUT.featureGroups.slice(1).every(g => ABOUT.features.some(f => f.group === g.id)));
-T('about: для всех трёх глубин есть запасные вопросы (пока база не загрузилась)', ['Простые', 'Средние', 'Глубокие'].every(l => Array.isArray(ABOUT.demo.fallback[l]) && ABOUT.demo.fallback[l].length >= 2));
+T('about: «Попробуйте» — ровно по 3 разных примера на каждую из трёх глубин (всего 9), без пустых строк', (() => { const ex = ABOUT.demo.examples, lv = ['Простые', 'Средние', 'Глубокие']; return Object.keys(ex).join() === lv.join() && lv.every(l => Array.isArray(ex[l]) && ex[l].length === 3 && ex[l].every(q => typeof q === 'string' && q.trim().length > 10)) && new Set(lv.flatMap(l => ex[l])).size === 9; })());
 const ph = []; aboutStr.forEach(([, s]) => { for (const m of s.matchAll(/\{(\w+)(?:#([^}]+))?\}/g)) ph.push([m[1], m[2]]); });
 T('about: все заготовки {…} известны приложению (' + [...new Set(ph.map(x => x[0]))].join(', ') + ')', ph.every(([k]) => KNOWN.includes(k)));
 T('about: у заготовок со склонением ровно три формы через запятую', ph.filter(([, f]) => f).every(([, f]) => f.split(',').length === 3 && f.split(',').every(x => x.trim())));

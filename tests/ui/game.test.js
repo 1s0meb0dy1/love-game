@@ -23,7 +23,7 @@ const mainEl=()=>D.querySelector('main.select-none');
   T('пропуск игрока при включённых наказаниях -> окно с наказанием',has('Пропуск вопроса')&&has('Наказание'));
   await click('Выполнено',500);
   T('после наказания ход перешёл следующему и написано «Пропустили: …»',/Отвечает:/.test(D.body.textContent)&&/Пропустили:\s*(Макс|Аня)/.test(D.body.textContent));
-  T('тост-уведомление учитывает безопасную зону (вырез/остров)',[...D.querySelectorAll('div')].some(d=>/safe-area-inset-top/.test(d.getAttribute('style')||'')));
+  T('тост-уведомление учитывает безопасную зону (вырез/остров)',/\.toast-layer \{[^}]*safe-area-inset-top/.test(require('fs').readFileSync(require('path').join(__dirname,'../../src/styles.css'),'utf8')));
   await click('Далее',500); T('все прошли очередь: «Вопрос пройден» + «Пропустили: …»',has('Вопрос пройден')&&/Пропустили:/.test(D.body.textContent));
   await click('Далее',3700); await click('К вопросу',500); const q2=qnum(); T('открыт следующий вопрос ('+q1+' → '+q2+')',q2&&q2!==q1);
   const mn=mainEl(); ptr(mn,'pointerdown',200,300); ptr(mn,'pointermove',150,302); ptr(mn,'pointermove',90,303); await sleep(30);

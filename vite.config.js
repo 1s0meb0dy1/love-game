@@ -10,7 +10,7 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'prompt', // новую версию ставит src/main.jsx — не посреди партии (иначе страница перезагружается и игра обрывается)
       includeAssets: ['icons/favicon.png', 'icons/apple-touch-icon.png'],
       manifest: {
         name: 'ASK ME', short_name: 'Ask Me', description: 'Откровенные разговоры для двоих и компании',
@@ -25,6 +25,7 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,png,svg,woff2}'],
         cleanupOutdatedCaches: true,
+        clientsClaim: true,
         navigateFallback: 'index.html'
       }
     })

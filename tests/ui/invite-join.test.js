@@ -35,7 +35,7 @@ const finish = (E) => { allErrors.push(...E.errors); E.w.close(); };
   // ---------- страница «Пригласить игроков» ----------
   A = await boot('#/more', { profile: PROFILE(SID, KEY, ['Макс', 'Аня']) }); let { w, D, sleep, c, btn, has } = A;
   const invBtn = btn('Пригласить игроков');
-  T('в меню есть маленькая кнопка «Пригласить игроков» (btn-sm), а не крупный блок', !!invBtn && /btn-sm/.test(invBtn.className));
+  T('в меню кнопка «Пригласить игроков» — обычная кнопка по UI-киту (btn-secondary) на всю ширину, не маленькая (btn-sm)', !!invBtn && /btn-secondary/.test(invBtn.className) && /\bw-full\b/.test(invBtn.className) && !/btn-sm/.test(invBtn.className));
   await c(invBtn, 600);
   T('кнопка ведёт на страницу приглашения: заголовок, вкладка, адрес', D.title === 'Пригласить игроков — ASK ME' && w.location.hash === '#/invite' && D.querySelector('h1').textContent === 'Пригласить игроков');
   const svg = D.querySelector('svg.qr-svg'); const url = 'https://example.test/love-game/#/join?sid=' + SID + '&key=' + KEY;
@@ -110,12 +110,13 @@ const finish = (E) => { allErrors.push(...E.errors); E.w.close(); };
   w.localStorage.setItem('askme_game_settings_v1', '{"x":1}'); w.localStorage.setItem('askme_analytics_v1', '1'); w.localStorage.setItem('askme_seen_topics_v1', '[]'); w.localStorage.setItem('askme_sess_' + SID, '{}');
   await c(btn('Удалить мои данные'), 400); const pop = D.querySelector('.viewport-popup-box');
   T('«Удалить мои данные» сначала спрашивает подтверждение и объясняет, что будет стёрто', !!pop && /Удалить все мои данные/.test(pop.textContent) && /без возможности восстановления/.test(pop.textContent) && !!btn('Отмена') && A.log.every(r => r.method !== 'DELETE'));
-  await c(btn('Отмена'), 400); T('«Отмена» ничего не удаляет', !D.querySelector('.viewport-popup-box') && A.log.every(r => r.method !== 'DELETE') && !!A.prof() && Object.keys(st3).length === 1);
+  await c(btn('Отмена'), 400); T('«Отмена» ничего не удаляет', !D.querySelector('.viewport-popup-box') && A.log.every(r => r.method !== 'DELETE') && !!A.prof() && !!st3[dbKey(KEY)]);
   await c(btn('Удалить мои данные'), 400); const nBefore = A.log.length; await c([...D.querySelectorAll('.viewport-popup-box button')].find(b => b.textContent.trim() === 'Удалить'), 1500);
   const dels = A.log.filter(r => r.method === 'DELETE').map(r => r.kind + '/' + r.path);
   T('удалены: облачная копия сессии и обе записи статистики этого устройства (' + dels.join(', ') + ')', dels.includes('sessions/' + dbKey(KEY)) && dels.includes('analytics/anon/abc123') && dels.includes('analytics/full/abc123') && !st3[dbKey(KEY)]);
   const left = Object.keys(JSON.parse(JSON.stringify(Object.fromEntries([...Array(w.localStorage.length).keys()].map(i => [w.localStorage.key(i), 1]))))).filter(k => /^askme_(device_profile|sess_|aid_|game_settings|hard_mode|analytics_v1|seen_topics|an_min)/.test(k));
   T('локальные данные стёрты (профиль, копии сессии, настройки, ID статистики); осталось: ' + (left.join(', ') || 'ничего лишнего'), left.length === 0);
+  T('подсказка об удалении — уведомление «ok» (зелёное, role="status")', !!D.querySelector('.toast.toast-ok[role="status"]') && /Все ваши данные удалены/.test(D.querySelector('.toast').textContent));
   T('после удаления открыт экран создания сессии и показана подсказка «Все ваши данные удалены»', D.title === 'ASK ME — начните игру' && /Все ваши данные удалены/.test(D.body.textContent) && !A.prof());
   finish(A);
 
@@ -123,7 +124,9 @@ const finish = (E) => { allErrors.push(...E.errors); E.w.close(); };
   const st4 = { [dbKey(KEY)]: await cloudSession(KEY, ['Макс', 'Аня']) };
   A = await boot('#/profile', { profile: PROFILE(SID, KEY, ['Макс', 'Аня']), store: st4, failDeleteSessions: true }); ({ w, D, sleep, c, btn } = A);
   await c(btn('Удалить мои данные'), 400); await c([...D.querySelectorAll('.viewport-popup-box button')].find(b => b.textContent.trim() === 'Удалить'), 1500);
-  T('если облако не ответило — ничего не стёрто локально, показана понятная ошибка, можно повторить', !!A.prof() && A.prof().sessionId === SID && /Не удалось удалить данные из облака/.test(D.body.textContent) && D.title === 'Игроки и сессия — ASK ME'); finish(A);
+  T('если облако не ответило — ничего не стёрто локально, показана понятная ошибка, можно повторить', !!A.prof() && A.prof().sessionId === SID && /Не удалось удалить данные из облака/.test(D.body.textContent) && D.title === 'Игроки и сессия — ASK ME');
+  T('ошибка облака — уведомление «warn» (янтарное, role="alert"), а не зелёная галочка', !!D.querySelector('.toast.toast-warn[role="alert"]') && /Не удалось удалить данные из облака/.test(D.querySelector('.toast').textContent));
+  finish(A);
 
   console.log(res.join('\n')); console.log('--- captured runtime errors:', allErrors.length); allErrors.slice(0, 6).forEach(e => console.log(' ', e)); process.exit(0);
  } catch (err) { console.log(res.join('\n')); console.log('TEST CRASH:', err.stack.split('\n').slice(0, 3).join(' | '), '|', A && A.D.title, A && A.D.body.textContent.replace(/\s+/g, ' ').slice(0, 200)); process.exit(1); } })();
