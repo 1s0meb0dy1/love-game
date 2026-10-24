@@ -1,0 +1,31 @@
+{
+ "_comment": "Копия узла tod из правил Firebase для режима «Правда или действие» (боевой идентификатор владельца заменён на OWNER_UID). Это копия для тестов: тесты проверяют запись карточек теми же ограничениями. Если меняете правила для tod — обновите и этот файл. Публикация правил в боевую базу — только после явного «да» владельца.",
+ "tod": {
+  ".read": true,
+  ".write": "auth != null && auth.uid === 'OWNER_UID'",
+  "$id": {
+   ".validate": "newData.hasChildren(['id','type','difficulty','text','isActive']) && newData.child('id').val() === $id && newData.child('id').val().length <= 16",
+   "id": {
+    ".validate": "newData.isString()"
+   },
+   "type": {
+    ".validate": "newData.val() === 'truth' || newData.val() === 'dare'"
+   },
+   "difficulty": {
+    ".validate": "newData.val() === 'easy' || newData.val() === 'medium' || newData.val() === 'hard'"
+   },
+   "text": {
+    ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 300"
+   },
+   "isActive": {
+    ".validate": "newData.isBoolean()"
+   },
+   "updatedAt": {
+    ".validate": "newData.isNumber()"
+   },
+   "$other": {
+    ".validate": false
+   }
+  }
+ }
+}
