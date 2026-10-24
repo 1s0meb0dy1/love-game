@@ -1,6 +1,6 @@
 // Запуск всех проверок: node tests/run-all.js [--unit | --ui]
 const { spawn } = require('child_process'); const path = require('path');
-const UNIT = ['deck', 'analytics-logic', 'punishment-logic', 'sound', 'topics-logic', 'turn-queue', 'reel-and-queue', 'live-logic', 'content', 'update'].map(n => ({ name: 'unit/' + n, file: `unit/${n}.test.js`, env: {} }));
+const UNIT = ['deck', 'analytics-logic', 'punishment-logic', 'sound', 'topics-logic', 'turn-queue', 'reel-and-queue', 'live-logic', 'content', 'update', 'tod-rules'].map(n => ({ name: 'unit/' + n, file: `unit/${n}.test.js`, env: {} }));
 const UI = [
   ['game', {}], ['timer', {}], ['modes', { FLOW: 'hard' }], ['modes', { FLOW: 'normal' }], ['modes', { FLOW: 'admin' }], ['results', {}],
   ['menu', { FLOW: 'player' }], ['menu', { FLOW: 'admin' }], ['punishment-templates', { FLOW: 'player' }], ['punishment-templates', { FLOW: 'admin' }],

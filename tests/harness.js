@@ -3,8 +3,16 @@ const fs = require('fs'); const path = require('path'); const { JSDOM } = requir
 module.exports = (opts = {}) => {
   const root = path.join(__dirname, '..');
   const appSrc = fs.readFileSync(process.env.APP_JSX || path.join(root, 'src/app.jsx'), 'utf8'); // APP_JSX — запасной путь к другой версии кода (чтобы сравнить «до» и «после» правки)
-  // тексты страниц лежат в src/content/*.js — в сборке это обычные модули, в тесте вставляем их прямо в код (без `export`)
-  const inlined = appSrc.replace(/^import \{[^}]*\} from '\.\/content\/([\w-]+)\.js';[ \t]*$/gm, (m, name) => fs.readFileSync(path.join(root, 'src/content', name + '.js'), 'utf8').replace(/^export /gm, ''));
+  // тексты страниц лежат в src/content/*.js, модули режима «Правда или действие» — в src/tod/*.js(x): в сборке это обычные модули,
+  // в тесте вставляем их прямо в код (без `export`) на месте однострочного импорта, в порядке импортов. Импорты внутри вставленного модуля
+  // раскрываются так же (каждый файл один раз, зависимость раньше зависимого), поэтому app.jsx не обязан импортировать то, что нужно только модулю.
+  const seen = new Set();
+  const inline = (src, dir) => src.replace(/^import \{[^}]*\} from '(\.{1,2}\/[\w\/-]+\.jsx?)';[ \t]*$/gm, (m, rel) => {
+    const file = path.resolve(dir, rel); if (!/[\\/]src[\\/](content|tod)[\\/][\w-]+\.jsx?$/.test(file)) return m; // остальные импорты убираются ниже
+    if (seen.has(file)) return ''; seen.add(file);
+    return inline(fs.readFileSync(file, 'utf8'), path.dirname(file)).replace(/^export /gm, '');
+  });
+  const inlined = inline(appSrc, path.join(root, 'src'));
   const jsx = inlined.replace(/^import .*$/gm, '').replace(/^const ReactDOM = \{ \.\.\.ReactDOMAll, createRoot \};$/m, '');
   const code = (module.exports.__cache = module.exports.__cache && module.exports.__cache.jsx === jsx ? module.exports.__cache : { jsx, code: babel.transformSync(jsx, { presets: [['@babel/preset-react', { runtime: 'classic' }]] }).code }).code;
   const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8') + '\n<style>' + fs.readFileSync(path.join(root, 'src/styles.css'), 'utf8') + '</style>';
