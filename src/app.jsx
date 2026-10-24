@@ -675,8 +675,9 @@ i18nSetLang(readStoredLang());
         const fetchFromAI = async (promptType, questionText, catId, pNames) => {
             const cleanQuestion = questionText.replace(/^№\s*\d+\.\s*/, '').trim(); const catObj = CATEGORIES.find(c => c.id === catId); const catName = catObj ? catObj.name : "Отношения"; const randomSeed = Math.floor(Math.random() * 999999);
             let systemPrompt = "", userPrompt = "";
-            if (promptType === "situation") { systemPrompt = "Ты креативный сценарист и психолог отношений. Пиши живо, реалистично, без шаблонов."; userPrompt = `Мы играем (${pNames}). Вопрос из темы "${catName}": "${cleanQuestion}". Сгенерируй новый ответ (код ${randomSeed}) из 2 блоков:\n\n🎬 Моделирование ситуации:\n(1 реалистичная жизненная ситуация из 3 предложений, которая происходит с нами сейчас и подводит к вопросу "${cleanQuestion}". От первого лица "мы").\n\n👩👨 Как бы ответили большинство девушек и парней:\n(Как на этот вопрос обычно отвечают).`; } 
+            if (promptType === "situation") { systemPrompt = "Ты креативный сценарист и психолог отношений. Пиши живо, реалистично, без шаблонов."; userPrompt = `Мы играем (${pNames}). Вопрос из темы "${catName}": "${cleanQuestion}". Сгенерируй новый ответ (код ${randomSeed}) из 2 блоков:\n\n🎬 Моделирование ситуации:\n(1 реалистичная жизненная ситуация из 3 предложений, которая происходит с нами сейчас и подводит к вопросу "${cleanQuestion}". От первого лица "мы").\n\n👩👨 Как бы ответили большинство девушек и парней:\n(Как на этот вопрос обычно отвечают).`; }
             else { systemPrompt = "Ты практикующий семейный психотерапевт и сексолог."; userPrompt = `Разбери вопрос для игроков (${pNames}) из темы "${catName}": "${cleanQuestion}" (код ${randomSeed}) строго по 6 пунктам:\n\n🧠 Как лучше поступить в этой ситуации:\n👩👨 Как обычно отвечают большинство девушек и парней:\n💡 Интересные факты:\n📊 Статистика:\n🔗 Как это влияет на отношения:\n🛠️ Психологические советы:`; }
+            if (getLang() === 'uk') systemPrompt += " Відповідай українською мовою, зберігаючи ці самі emoji-заголовки блоків.";
             const netResponse = await callNeuralNet(systemPrompt, userPrompt, 950);
             if (netResponse) return netResponse; return synthesizeSmartFallback(promptType, cleanQuestion, catId, pNames);
         };
@@ -2308,7 +2309,7 @@ if (screen === 'app_menu') {
                                                 {items.map(t => (
                                                     <div key={t.id} className="flex items-center gap-2 rounded-[20px] border border-white/10 bg-white/[0.04] px-3.5 py-3">
                                                         <span aria-hidden="true" className="w-10 h-10 rounded-full bg-white/[0.07] flex items-center justify-center text-lg flex-shrink-0">{t.icon}</span>
-                                                        <span className="flex-1 min-w-0 text-sm text-zinc-100 leading-snug">{t.text}</span>
+                                                        <span className="flex-1 min-w-0 text-sm text-zinc-100 leading-snug">{tr(t.text)}</span>
                                                         <button type="button" aria-label={`Изменить: ${t.text}`} onClick={() => startPtEdit(t)} className="btn-icon plain flex-shrink-0">✎</button>
                                                         <button type="button" disabled={ptBusy} aria-label={ptConfirmId === t.id ? 'Подтвердить удаление' : `Удалить: ${t.text}`} onClick={() => deletePt(t.id)} className={`flex-shrink-0 ${ptConfirmId === t.id ? 'btn-danger btn-sm' : 'btn-icon plain'}`}>{ptConfirmId === t.id ? 'Точно?' : '🗑'}</button>
                                                     </div>
@@ -2828,7 +2829,7 @@ if (screen === 'mode_select') {
                                 {punish.text ? (
                                     <div className="w-full rounded-[20px] border border-rose-500/35 bg-rose-500/10 p-4">
                                         <div className="text-xs font-bold text-rose-300 mb-1">{tr("Наказание")}</div>
-                                        <p className="text-base font-semibold text-white leading-snug">{punish.text}</p>
+                                        <p className="text-base font-semibold text-white leading-snug">{tr(punish.text)}</p>
                                     </div>
                                 ) : ( <p className="text-sm text-zinc-400">{tr("Ход переходит дальше.")}</p> )}
                                 <button type="button" onClick={closePunish} className="btn-primary w-full">{punish.text ? 'Выполнено' : 'Продолжить'}</button>
