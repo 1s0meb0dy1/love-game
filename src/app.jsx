@@ -1138,6 +1138,39 @@ i18nSetLang(readStoredLang());
                 e.preventDefault(); if (await verifyAdminSecret(adminForm.email, adminForm.pass)) { const t = await Auth.token(); SoundFX.success(); setIsAdmin(true); localStorage.setItem(ADMIN_STORAGE_KEY, "true"); setAdminForm({email:'', pass:''}); setAdminPinError(''); if(t) cleanupOldSessions(t); } else { SoundFX.warn(); setAdminPinError('Неверный Email или Пароль'); }
             };
             const handleLockAdmin = () => { SoundFX.click(); setIsAdmin(false); localStorage.removeItem(ADMIN_STORAGE_KEY); Auth.ownerLogout(); };
+            const [syncBusy, setSyncBusy] = useState(false);
+            // Одноразова синхронізація: заливає нові питання та проставляє аудиторію/готові переклади наявним (пише під токеном власника).
+            const handleSeedUpload = async () => {
+                if (!isAdmin || syncBusy) return; if (!Auth.hasOwner()) { SoundFX.warn(); showToast(tr('Увійдіть як власник'), 2600, 'warn'); return; }
+                SoundFX.click(); setSyncBusy(true); showToast(tr('Синхронізую дані…'), 2200);
+                try {
+                    const { SEED } = await import('./data/seed.js');
+                    const existingIds = new Set(db.map(q => String(q.id)));
+                    const toAdd = SEED.newQuestions.filter(q => !existingIds.has(String(q.id)));
+                    let maxKey = Math.max(0, ...db.map(q => Number(q.dbKey)).filter(n => !isNaN(n)));
+                    const addObj = {}; toAdd.forEach((q, i) => { addObj[String(maxKey + 1 + i)] = { id: q.id, categoryId: q.categoryId, level: q.level, audience: q.audience, text: q.text, text_uk: q.text_uk }; });
+                    if (Object.keys(addObj).length) { const r = await fetchWithTimeout(`${FIREBASE_BASE_URL}${dbSubPath}.json`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(addObj) }); if (!r.ok) throw new Error('add ' + r.status); }
+                    const patch = {}; db.forEach(q => { const a = SEED.oldAudience[q.dbKey]; if (a && !q.audience) patch[`${q.dbKey}/audience`] = a; const uk = SEED.oldUk[q.dbKey]; if (uk && !(q.cleanTextUk && q.cleanTextUk.trim())) patch[`${q.dbKey}/text_uk`] = uk; });
+                    const entries = Object.entries(patch); for (let i = 0; i < entries.length; i += 400) { const slice = Object.fromEntries(entries.slice(i, i + 400)); if (Object.keys(slice).length) { const r = await fetchWithTimeout(`${FIREBASE_BASE_URL}${dbSubPath}.json`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(slice) }); if (!r.ok) throw new Error('patch ' + r.status); } }
+                    const res = await fetchWithTimeout(`${FIREBASE_BASE_URL}${dbSubPath}.json?t=${Date.now()}`); if (res.ok) { const data = await res.json(); if (data) { const pd = parseDatabaseObject(data); setDb(pd); try { localStorage.setItem(OFFLINE_DB_CACHE_KEY, JSON.stringify(pd)); } catch (e) {} } }
+                    SoundFX.success(); showToast(`${tr('Готово. Додано нових:')} ${Object.keys(addObj).length}`, 3000);
+                } catch (e) { SoundFX.warn(); showToast(tr('Помилка синхронізації (потрібен вхід власника)'), 3000, 'warn'); } finally { setSyncBusy(false); }
+            };
+            // Дозаповнення українських перекладів для всіх наявних питань (переклад у браузері — Pollinations тут стабільний).
+            const handleTranslateAll = async () => {
+                if (!isAdmin || syncBusy) return; if (!Auth.hasOwner()) { SoundFX.warn(); showToast(tr('Увійдіть як власник'), 2600, 'warn'); return; }
+                const pending = db.filter(q => !(q.cleanTextUk && q.cleanTextUk.trim()));
+                if (!pending.length) { showToast(tr('Усі питання вже перекладені')); return; }
+                SoundFX.click(); setSyncBusy(true); let okN = 0;
+                try {
+                    for (let i = 0; i < pending.length; i++) {
+                        const q = pending[i]; const uk = await translateText(q.cleanText, 'uk');
+                        if (uk) { await fetchWithTimeout(`${FIREBASE_BASE_URL}${dbSubPath}/${q.dbKey}.json`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text_uk: uk }) }).catch(() => {}); setDb(prev => prev.map(x => x.dbKey === q.dbKey ? { ...x, cleanTextUk: uk } : x)); okN++; }
+                        if ((i + 1) % 15 === 0) showToast(`${tr('Перекладаю')} ${i + 1}/${pending.length}`, 1500);
+                    }
+                    SoundFX.success(); showToast(`${tr('Перекладено')}: ${okN}/${pending.length}`, 3000);
+                } catch (e) { SoundFX.warn(); showToast(`${tr('Перервано')}: ${okN}/${pending.length}`, 3000, 'warn'); } finally { setSyncBusy(false); }
+            };
 
             const parseDatabaseObject = (rawObj) => {
                 const entries = Object.entries(rawObj); const parsed = [];
@@ -2105,25 +2138,27 @@ i18nSetLang(readStoredLang());
 
 if (screen === 'app_menu') {
                 const menuSections = [
-                    { title: 'Разделы', items: [
-                        { id: 'players', icon: '👥', title: 'Игроки и сессия', desc: 'Имена, состав и восстановление', onClick: () => { if (profile) { setPlayersForm(profile.players); navigate('profile_page'); } } },
-                        { id: 'questions', icon: '📚', title: 'Все вопросы', desc: 'Темы и список вопросов', onClick: () => navigate('cat_list') },
-                        { id: 'archive', icon: '🗂️', title: 'Архив', desc: `Пройдено вопросов: ${stats.archivedList.length}`, onClick: () => navigate('archive_page') },
-                        { id: 'about', icon: '✨', title: 'Об игре', desc: 'Что умеет ASK ME и как играть', onClick: () => navigate('about') },
+                    { title: tr('Разделы'), items: [
+                        { id: 'players', icon: '👥', title: tr('Игроки и сессия'), desc: tr('Имена, состав и восстановление'), onClick: () => { if (profile) { setPlayersForm(profile.players); navigate('profile_page'); } } },
+                        { id: 'questions', icon: '📚', title: tr('Все вопросы'), desc: tr('Темы и список вопросов'), onClick: () => navigate('cat_list') },
+                        { id: 'archive', icon: '🗂️', title: tr('Архив'), desc: `${tr('Пройдено вопросов:')} ${stats.archivedList.length}`, onClick: () => navigate('archive_page') },
+                        { id: 'about', icon: '✨', title: tr('Об игре'), desc: tr('Что умеет ASK ME и как играть'), onClick: () => navigate('about') },
                     ] },
-                    { title: 'Настройки', items: [
-                        { id: 'sound', icon: isMuted ? '🔇' : '🔊', title: 'Звук и вибрация', desc: isMuted ? 'Выключены' : 'Включены', right: <SettingSwitch on={!isMuted} onChange={toggleMute} label="Звук и вибрация" /> },
-                        { id: 'stats', icon: '📈', title: 'Статистика игры', desc: analyticsOn ? 'Включена: помогает улучшать игру' : 'Отключена', right: <SettingSwitch on={analyticsOn} onChange={() => { SoundFX.click(); setAnalyticsOn(v => !v); }} label="Статистика игры" /> },
-                        ...(!isStandalonePWA ? [{ id: 'install', icon: '📲', title: 'Скачать на устройство', desc: 'Добавить на главный экран', onClick: handleInstallPwaClick }] : [])
+                    { title: tr('Настройки'), items: [
+                        { id: 'sound', icon: isMuted ? '🔇' : '🔊', title: tr('Звук и вибрация'), desc: isMuted ? tr('Выключены') : tr('Включены'), right: <SettingSwitch on={!isMuted} onChange={toggleMute} label="Звук и вибрация" /> },
+                        { id: 'stats', icon: '📈', title: tr('Статистика игры'), desc: analyticsOn ? tr('Включена: помогает улучшать игру') : tr('Отключена'), right: <SettingSwitch on={analyticsOn} onChange={() => { SoundFX.click(); setAnalyticsOn(v => !v); }} label="Статистика игры" /> },
+                        ...(!isStandalonePWA ? [{ id: 'install', icon: '📲', title: tr('Скачать на устройство'), desc: tr('Добавить на главный экран'), onClick: handleInstallPwaClick }] : [])
                     ] }
                 ];
                 // Пункты владельца: отдельная зона, которую видит только он. Обычный игрок не видит ни самой зоны, ни намёка на неё.
                 const ownerItems = isAdmin ? [
-                    { id: 'topics', icon: '⚙️', title: 'Управление темами', desc: 'Добавление тем и порядок', onClick: () => { setTopicDraft(CATEGORIES.map(c => c.id)); setTopicErr(''); navigate('topics_admin'); } },
-                    { id: 'punish', icon: '🎭', title: 'Шаблоны наказаний', desc: 'Список для всех игроков', onClick: () => { setPtEdit(null); setPtErr(''); setPtConfirmId(''); navigate('punish_admin'); } },
-                    { id: 'analytics', icon: '📊', title: 'Аналитика', desc: 'Сессии, вопросы, наказания', onClick: () => { setAnSel(null); setAnConfirm(''); navigate('analytics'); } },
-                    { id: 'hidden', icon: '🙈', title: 'Скрытые вопросы', desc: `Сейчас скрыто: ${stats.hiddenCount}`, onClick: () => { setHqConfirmAll(false); navigate('hidden_q'); } },
-                    { id: 'owner', icon: '🔓', title: 'Режим владельца', desc: 'Выйти из режима владельца', onClick: handleLockAdmin }
+                    { id: 'topics', icon: '⚙️', title: tr('Управление темами'), desc: tr('Добавление тем и порядок'), onClick: () => { setTopicDraft(CATEGORIES.map(c => c.id)); setTopicErr(''); navigate('topics_admin'); } },
+                    { id: 'punish', icon: '🎭', title: tr('Шаблоны наказаний'), desc: tr('Список для всех игроков'), onClick: () => { setPtEdit(null); setPtErr(''); setPtConfirmId(''); navigate('punish_admin'); } },
+                    { id: 'analytics', icon: '📊', title: tr('Аналитика'), desc: tr('Сессии, вопросы, наказания'), onClick: () => { setAnSel(null); setAnConfirm(''); navigate('analytics'); } },
+                    { id: 'hidden', icon: '🙈', title: tr('Скрытые вопросы'), desc: `${tr('Сейчас скрыто:')} ${stats.hiddenCount}`, onClick: () => { setHqConfirmAll(false); navigate('hidden_q'); } },
+                    { id: 'datasync', icon: '⬆️', title: tr('Залити нові питання'), desc: tr('Нові питання + аудиторія в базу'), onClick: handleSeedUpload },
+                    { id: 'translateall', icon: '🌐', title: tr('Перекласти всі питання'), desc: tr('Дозаповнити українські версії'), onClick: handleTranslateAll },
+                    { id: 'owner', icon: '🔓', title: tr('Режим владельца'), desc: tr('Выйти из режима владельца'), onClick: handleLockAdmin }
                 ] : [];
                 const renderMenuItems = (items) => items.map(it => {
                     const body = (<>
@@ -2141,13 +2176,13 @@ if (screen === 'app_menu') {
                         <PwaInstallModal /> {exitConfirmPopup}
                         <header className="w-full max-w-md flex items-center gap-3 pt-2">
                             <button type="button" onClick={() => { SoundFX.click(); navigate('menu'); }} aria-label="Назад" className="btn-icon flex-shrink-0"><Icons.Back /></button>
-                            <h1 className="flex-1 text-center pr-11 text-lg font-bold text-white">Меню</h1>
+                            <h1 className="flex-1 text-center pr-11 text-lg font-bold text-white">{tr('Меню')}</h1>
                         </header>
                         <main className="w-full max-w-md flex flex-col gap-6 pt-6 pb-6">
                             {profile && (
                                 <section className="flex flex-col gap-2.5">
                                     <SessionIdBadge sessionKey={profile.sessionKey} sessionId={profile.sessionId} onCopy={showToast} size="lg" />
-                                    <button type="button" onClick={() => openInvite('app_menu')} className="btn-secondary w-full flex items-center justify-center gap-2"><Icons.Share /> Пригласить игроков</button>
+                                    <button type="button" onClick={() => openInvite('app_menu')} className="btn-secondary w-full flex items-center justify-center gap-2"><Icons.Share /> {tr('Пригласить игроков')}</button>
                                 </section>
                             )}
                             {menuSections.map(sec => (
@@ -2163,10 +2198,10 @@ if (screen === 'app_menu') {
                                 </section>
                             )}
                             <section className="rounded-[20px] border border-rose-500/25 bg-gradient-to-br from-rose-500/[0.12] to-transparent p-5 flex flex-col gap-3">
-                                <div><h2 className="text-sm font-bold text-white">Поделиться игрой</h2><p className="text-xs text-zinc-400 leading-snug mt-1">Отправьте ссылку на игру — присоединиться можно с любого устройства.</p></div>
-                                <button type="button" onClick={handleShareGame} className="btn-primary w-full flex items-center justify-center gap-2"><Icons.Share /> Поделиться</button>
+                                <div><h2 className="text-sm font-bold text-white">{tr('Поделиться игрой')}</h2><p className="text-xs text-zinc-400 leading-snug mt-1">{tr('Отправьте ссылку на игру — присоединиться можно с любого устройства.')}</p></div>
+                                <button type="button" onClick={handleShareGame} className="btn-primary w-full flex items-center justify-center gap-2"><Icons.Share /> {tr('Поделиться')}</button>
                             </section>
-                            {profile && ( <button type="button" onClick={() => { SoundFX.warn(); setShowExitConfirm(true); }} className="btn-danger w-full flex items-center justify-center gap-2"><Icons.Logout /> Выйти из сессии</button> )}
+                            {profile && ( <button type="button" onClick={() => { SoundFX.warn(); setShowExitConfirm(true); }} className="btn-danger w-full flex items-center justify-center gap-2"><Icons.Logout /> {tr('Выйти из сессии')}</button> )}
                             <nav aria-label="Документы" className="legal-links-row">
                                 {LEGAL.order.map(id => <a key={id} href={SCREEN_TO_HASH[id]}>{LEGAL.docs[id].menu}</a>)}
                             </nav>
