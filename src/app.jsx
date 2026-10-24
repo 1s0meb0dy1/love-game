@@ -241,7 +241,7 @@ i18nSetLang(readStoredLang());
         };
 
         const PopupModal = ({ isOpen, onClose, children }) => {
-            if (!isOpen) return null; return ReactDOM.createPortal(<div className="viewport-popup-overlay fade-in" onClick={() => { if (onClose) { SoundFX.click(); onClose(); } }}> <div className="viewport-popup-box slide-up" role="dialog" aria-modal="true" onClick={e => e.stopPropagation()}> {onClose && ( <button type="button" onClick={() => { SoundFX.click(); onClose(); }} aria-label="Закрыть" className="btn-icon absolute top-3 right-3" > <Icons.Close /> </button> )} {children} </div> </div>, document.body);
+            if (!isOpen) return null; return ReactDOM.createPortal(<div className="viewport-popup-overlay fade-in" onClick={() => { if (onClose) { SoundFX.click(); onClose(); } }}> <div className="viewport-popup-box slide-up" role="dialog" aria-modal="true" onClick={e => e.stopPropagation()}> {onClose && ( <button type="button" onClick={() => { SoundFX.click(); onClose(); }} aria-label={tr("Закрыть")} className="btn-icon absolute top-3 right-3" > <Icons.Close /> </button> )} {children} </div> </div>, document.body);
         };
 
         // ---- Всплывающие уведомления ----
@@ -320,22 +320,22 @@ i18nSetLang(readStoredLang());
                 <section className={`fx-card ${on ? 'is-on' : ''}`}>
                     <div className="flex items-center gap-3">
                         <span aria-hidden="true" className="fx-ico">⏱</span>
-                        <div className="flex-1 min-w-0"><div className="text-sm font-bold text-white">Таймер на ответ</div><div className="text-xs text-zinc-400 leading-snug">Не успел — наказание, и ход переходит дальше</div></div>
+                        <div className="flex-1 min-w-0"><div className="text-sm font-bold text-white">{tr("Таймер на ответ")}</div><div className="text-xs text-zinc-400 leading-snug">{tr("Не успел — наказание, и ход переходит дальше")}</div></div>
                         <SettingSwitch on={on} onChange={onToggle} label="Таймер на ответ" />
                     </div>
                     {on && (
                         <div className="fx-body fade-in">
                             <div className="timer-stepper">
-                                <button type="button" className="btn-icon timer-step" aria-label="Меньше на 5 секунд" disabled={sec <= TIMER_MIN} onClick={() => step(-5)}>−</button>
+                                <button type="button" className="btn-icon timer-step" aria-label={tr("Меньше на 5 секунд")} disabled={sec <= TIMER_MIN} onClick={() => step(-5)}>−</button>
                                 <div className="timer-readout">
-                                    <input type="number" inputMode="numeric" min={TIMER_MIN} max={TIMER_MAX} aria-label="Секунд на ответ" value={draft !== null ? draft : sec} style={{ width: `${Math.max(1, String(draft !== null ? draft : sec).length) + 0.5}ch` }} onChange={e => setDraft(e.target.value)} onBlur={commit} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); commit(); e.target.blur(); } }} className="timer-num font-display" />
-                                    <span className="timer-unit">сек</span>
+                                    <input type="number" inputMode="numeric" min={TIMER_MIN} max={TIMER_MAX} aria-label={tr("Секунд на ответ")} value={draft !== null ? draft : sec} style={{ width: `${Math.max(1, String(draft !== null ? draft : sec).length) + 0.5}ch` }} onChange={e => setDraft(e.target.value)} onBlur={commit} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); commit(); e.target.blur(); } }} className="timer-num font-display" />
+                                    <span className="timer-unit">{tr("сек")}</span>
                                 </div>
-                                <button type="button" className="btn-icon timer-step" aria-label="Больше на 5 секунд" disabled={sec >= TIMER_MAX} onClick={() => step(5)}>+</button>
+                                <button type="button" className="btn-icon timer-step" aria-label={tr("Больше на 5 секунд")} disabled={sec >= TIMER_MAX} onClick={() => step(5)}>+</button>
                             </div>
                             <div className="text-xs text-zinc-400 text-center -mt-1">{timerCaption(sec)}{sec >= 60 ? ` · ${fmtSec(sec)}` : ''}</div>
-                            <input type="range" min={TIMER_MIN} max={TIMER_MAX} step="5" value={sec} onChange={e => { setDraft(null); onSec(clampTimer(e.target.value)); }} aria-label="Время на ответ, секунд" className="timer-range" style={{ '--p': pct + '%' }} />
-                            <div className="timer-presets" role="group" aria-label="Быстрый выбор времени">
+                            <input type="range" min={TIMER_MIN} max={TIMER_MAX} step="5" value={sec} onChange={e => { setDraft(null); onSec(clampTimer(e.target.value)); }} aria-label={tr("Время на ответ, секунд")} className="timer-range" style={{ '--p': pct + '%' }} />
+                            <div className="timer-presets" role="group" aria-label={tr("Быстрый выбор времени")}>
                                 {TIMER_PRESETS.map(p => ( <button key={p} type="button" aria-pressed={sec === p} onClick={() => { SoundFX.click(); setDraft(null); onSec(p); }} className={`chip ${sec === p ? 'is-on' : ''}`}>{p} с</button> ))}
                             </div>
                         </div>
@@ -387,8 +387,8 @@ i18nSetLang(readStoredLang());
                             <button type="button" aria-label={`Перетащить тему «${c.name}»`} onPointerDown={e => onDown(e, c.id)} style={{ touchAction: 'none' }} className="btn-icon plain cursor-grab">⠿</button>
                             <span aria-hidden="true" className="text-lg">{c.icon}</span>
                             <span className="flex-1 min-w-0 text-sm font-semibold text-white truncate">{c.name}</span>
-                            <button type="button" aria-label="Поднять выше" disabled={i === 0} onClick={() => move(i, i - 1)} className="btn-icon plain">▲</button>
-                            <button type="button" aria-label="Опустить ниже" disabled={i === items.length - 1} onClick={() => move(i, i + 1)} className="btn-icon plain">▼</button>
+                            <button type="button" aria-label={tr("Поднять выше")} disabled={i === 0} onClick={() => move(i, i - 1)} className="btn-icon plain">▲</button>
+                            <button type="button" aria-label={tr("Опустить ниже")} disabled={i === items.length - 1} onClick={() => move(i, i + 1)} className="btn-icon plain">▼</button>
                         </li>
                     ))}
                 </ul>
@@ -609,16 +609,16 @@ i18nSetLang(readStoredLang());
                 return (
                     <div className="w-full p-5 rounded-[20px] bg-[#13111a] border border-white/10 flex items-center gap-4 shadow-lg">
                         <div className="flex-1 min-w-0 flex flex-col gap-1">
-                            <span className="text-xs font-bold text-zinc-500">ID вашей сессии</span>
+                            <span className="text-xs font-bold text-zinc-500">{tr("ID вашей сессии")}</span>
                             <span className="font-display text-[26px] leading-tight font-bold text-white tracking-[0.06em] break-all">{sessionId}</span>
-                            <span className="text-xs text-zinc-400">Для восстановления прогресса при выходе</span>
+                            <span className="text-xs text-zinc-400">{tr("Для восстановления прогресса при выходе")}</span>
                         </div>
-                        <button type="button" onClick={handleCopyClick} aria-label="Скопировать" className={`btn-icon flex-shrink-0 ${copied ? 'is-on' : ''}`}>{copied ? <Icons.Check /> : <Icons.Copy />}</button>
+                        <button type="button" onClick={handleCopyClick} aria-label={tr("Скопировать")} className={`btn-icon flex-shrink-0 ${copied ? 'is-on' : ''}`}>{copied ? <Icons.Check /> : <Icons.Copy />}</button>
                     </div>
                 );
             }
             return (
-                <button type="button" onClick={handleCopyClick} title="Копировать ID" className={`btn-sm ${ copied ? 'btn-accent' : 'btn-secondary' }`} > <span className="text-zinc-500 font-semibold">ID:</span> <span className="text-rose-300">{sessionId}</span> <span className="text-zinc-400">{copied ? <Icons.Check /> : <Icons.Copy />}</span> </button>
+                <button type="button" onClick={handleCopyClick} title={tr("Копировать ID")} className={`btn-sm ${ copied ? 'btn-accent' : 'btn-secondary' }`} > <span className="text-zinc-500 font-semibold">ID:</span> <span className="text-rose-300">{sessionId}</span> <span className="text-zinc-400">{copied ? <Icons.Check /> : <Icons.Copy />}</span> </button>
             );
         };
 
@@ -633,7 +633,7 @@ i18nSetLang(readStoredLang());
             <footer className="w-full py-6 flex flex-col items-center justify-center gap-3 select-none z-10">
                 {divider && <div aria-hidden="true" className={`footer-rule mb-3 ${wide ? 'is-wide' : ''}`}></div>}
                 <div className="flex items-center justify-center gap-3 opacity-60 hover:opacity-100 transition-opacity"> <AskMeLogo size="xs" /> <span className="text-white/20 text-xs">•</span> <span className="text-xs text-zinc-400 font-semibold"> by <span className="text-rose-400">yedvinn</span> </span> </div>
-                {!noLinks && <nav aria-label="Информация" className="footer-links"><a href="#/about">Об игре</a><a href="#/privacy">Конфиденциальность</a><a href="#/terms">Соглашение</a></nav>}
+                {!noLinks && <nav aria-label={tr("Информация")} className="footer-links"><a href="#/about">{tr("Об игре")}</a><a href="#/privacy">{tr("Конфиденциальность")}</a><a href="#/terms">{tr("Соглашение")}</a></nav>}
             </footer>
         );
 
@@ -711,7 +711,7 @@ i18nSetLang(readStoredLang());
 
         const PageHeader = ({ title, onBack, right = null }) => (
             <header className="w-full max-w-md flex items-center gap-3 pt-2">
-                <button type="button" onClick={() => { SoundFX.click(); onBack(); }} aria-label="Назад" className="btn-icon flex-shrink-0"><Icons.Back /></button>
+                <button type="button" onClick={() => { SoundFX.click(); onBack(); }} aria-label={tr("Назад")} className="btn-icon flex-shrink-0"><Icons.Back /></button>
                 <h1 className="flex-1 text-center text-lg font-bold text-white">{title}</h1>
                 {right || <div className="w-11 flex-shrink-0" aria-hidden="true"></div>}
             </header>
@@ -720,7 +720,7 @@ i18nSetLang(readStoredLang());
         // QR-код рисуется прямо в разметке (векторно), чтобы не зависеть от внешних сервисов и не отправлять ссылку-ключ в интернет
         const QrSvg = ({ text, label }) => {
             const model = useMemo(() => { try { const qr = qrcode(0, 'M'); qr.addData(text); qr.make(); const n = qr.getModuleCount(); let d = ''; for (let r = 0; r < n; r++) { let c = 0; while (c < n) { if (!qr.isDark(r, c)) { c++; continue; } let e = c; while (e < n && qr.isDark(r, e)) e++; d += `M${c + 4} ${r + 4}h${e - c}v1h-${e - c}z`; c = e; } } return { n, d }; } catch (e) { return null; } }, [text]);
-            if (!model) return <p className="ui-error text-center">Не получилось построить QR-код — отправьте ссылку.</p>;
+            if (!model) return <p className="ui-error text-center">{tr("Не получилось построить QR-код — отправьте ссылку.")}</p>;
             const size = model.n + 8;
             return (<svg className="qr-svg" viewBox={`0 0 ${size} ${size}`} role="img" aria-label={label} shapeRendering="crispEdges" data-qr-modules={model.n}><rect width={size} height={size} rx="3" fill="#fff" /><path d={model.d} fill="#0a0710" /></svg>);
         };
@@ -746,7 +746,7 @@ i18nSetLang(readStoredLang());
                         </section>
                     ))}
                     <p className="text-[13px] text-zinc-500 leading-relaxed">{LEGAL.contactNote}</p>
-                    <nav aria-label="Другие документы" className="legal-others">
+                    <nav aria-label={tr("Другие документы")} className="legal-others">
                         {LEGAL.order.filter(id => id !== docId).map(id => <a key={id} href={SCREEN_TO_HASH[id]}>{LEGAL.docs[id].menu}</a>)}
                     </nav>
                 </main>
@@ -765,7 +765,7 @@ i18nSetLang(readStoredLang());
             const feats = ABOUT.features.filter(f => group === 'all' || f.group === group);
             const levelOf = (id) => DIFFICULTIES.findIndex(d => d.id === id) + 1;
             return (<>
-                <PageHeader title="Об игре" onBack={onBack} right={<button type="button" onClick={() => { SoundFX.click(); onShare(); }} aria-label="Поделиться страницей" className="btn-icon flex-shrink-0"><Icons.Share /></button>} />
+                <PageHeader title={tr("Об игре")} onBack={onBack} right={<button type="button" onClick={() => { SoundFX.click(); onShare(); }} aria-label={tr("Поделиться страницей")} className="btn-icon flex-shrink-0"><Icons.Share /></button>} />
                 <main className="w-full max-w-md flex flex-col gap-8 pt-6 pb-4 about-page">
                     <section className="about-hero">
                         <AskMeLogo size="md" />
@@ -777,7 +777,7 @@ i18nSetLang(readStoredLang());
                     <section aria-labelledby="about-demo" className="flex flex-col gap-3">
                         <h2 id="about-demo" className="about-h2">{ABOUT.demo.title}</h2>
                         <p className="text-sm text-zinc-400 leading-snug">{F(ABOUT.demo.hint)}</p>
-                        <div className="seg w-full" role="tablist" aria-label="Глубина вопроса">
+                        <div className="seg w-full" role="tablist" aria-label={tr("Глубина вопроса")}>
                             {DIFFICULTIES.map(d => (<button key={d.id} type="button" role="tab" aria-selected={lvl === d.id} onClick={() => { SoundFX.click(); setLvl(d.id); setStep(0); }} className={`seg-btn ${lvl === d.id ? 'is-active' : ''}`}>{d.name}</button>))}
                         </div>
                         <div key={lvl + ':' + step} className={`about-q lvl-${levelOf(lvl)} fade-in`} aria-live="polite"><p>{question}</p></div>
@@ -785,7 +785,7 @@ i18nSetLang(readStoredLang());
                         <button type="button" onClick={() => { SoundFX.click(); setStep(n => (n + 1) % list.length); }} className="btn-secondary w-full">{ABOUT.demo.next}</button>
                     </section>
 
-                    <section aria-label="Игра в цифрах" className="about-numbers">
+                    <section aria-label={tr("Игра в цифрах")} className="about-numbers">
                         {ABOUT.numbers.map((n, i) => (<div key={i} className="about-num"><span className="about-num-v">{F(n.value)}</span><span className="about-num-l">{F(n.label)}</span></div>))}
                     </section>
 
@@ -798,7 +798,7 @@ i18nSetLang(readStoredLang());
 
                     <section aria-labelledby="about-feat" className="flex flex-col gap-3">
                         <h2 id="about-feat" className="about-h2">{ABOUT.featuresTitle}</h2>
-                        <div className="about-chips" role="tablist" aria-label="Категории возможностей">
+                        <div className="about-chips" role="tablist" aria-label={tr("Категории возможностей")}>
                             {ABOUT.featureGroups.map(g => (<button key={g.id} type="button" role="tab" aria-selected={group === g.id} onClick={() => { SoundFX.click(); setGroup(g.id); setOpenF(null); }} className={`chip flex-shrink-0 ${group === g.id ? 'is-on' : ''}`}>{g.label}</button>))}
                         </div>
                         <div className="about-acc">
@@ -837,7 +837,7 @@ i18nSetLang(readStoredLang());
                         <h2>{ABOUT.cta.title}</h2>
                         <p>{ABOUT.cta.text}</p>
                         <button type="button" onClick={() => { SoundFX.click(); onStart(); }} className="btn-primary w-full">{hasProfile ? ABOUT.hero.ctaHave : ABOUT.hero.cta}</button>
-                        <button type="button" onClick={() => { SoundFX.click(); onShare(); }} className="btn-ghost w-full flex items-center justify-center gap-2"><Icons.Share /> Поделиться страницей</button>
+                        <button type="button" onClick={() => { SoundFX.click(); onShare(); }} className="btn-ghost w-full flex items-center justify-center gap-2"><Icons.Share /> {tr("Поделиться страницей")}</button>
                     </section>
                     <p className="text-[13px] text-zinc-500 text-center">Версия страницы {ABOUT.version} · обновлена {ABOUT.updated}</p>
                 </main>
@@ -850,32 +850,32 @@ i18nSetLang(readStoredLang());
             const doCopy = async () => { SoundFX.success(); await copyTextToClipboard(url); setCopied(true); showToast('Ссылка-приглашение скопирована'); setTimeout(() => setCopied(false), 2000); };
             const doShare = async () => { SoundFX.click(); await shareOrCopy({ title: 'Играем в ASK ME', text: 'Присоединяйся к нашей игре в ASK ME', url }, 'Ссылка-приглашение скопирована', showToast); };
             return (<>
-                <PageHeader title="Пригласить игроков" onBack={onBack} />
+                <PageHeader title={tr("Пригласить игроков")} onBack={onBack} />
                 <main className="w-full max-w-md flex flex-col gap-6 pt-6 pb-4 invite-page">
-                    <p className="text-[15px] text-zinc-200 leading-relaxed">Отправьте ссылку или покажите код — второй телефон сразу окажется в вашей сессии, и вы сможете играть одну партию вместе.</p>
+                    <p className="text-[15px] text-zinc-200 leading-relaxed">{tr("Отправьте ссылку или покажите код — второй телефон сразу окажется в вашей сессии, и вы сможете играть одну партию вместе.")}</p>
                     {url ? (<>
-                        <section className="qr-card" aria-label="QR-код приглашения">
+                        <section className="qr-card" aria-label={tr("QR-код приглашения")}>
                             <QrSvg text={url} label="QR-код приглашения в сессию" />
-                            <p>Наведите камеру телефона на код</p>
+                            <p>{tr("Наведите камеру телефона на код")}</p>
                         </section>
                         <section className="flex flex-col gap-3">
-                            <div className="invite-link" aria-label="Ссылка-приглашение"><span className="invite-link-t">Ссылка-приглашение</span><span className="invite-link-v">{siteUrl('#/join?sid=' + profile.sessionId + '&key=')}••••••••</span></div>
-                            <button type="button" onClick={doShare} className="btn-primary w-full flex items-center justify-center gap-2"><Icons.Share /> Поделиться ссылкой</button>
+                            <div className="invite-link" aria-label={tr("Ссылка-приглашение")}><span className="invite-link-t">{tr("Ссылка-приглашение")}</span><span className="invite-link-v">{siteUrl('#/join?sid=' + profile.sessionId + '&key=')}••••••••</span></div>
+                            <button type="button" onClick={doShare} className="btn-primary w-full flex items-center justify-center gap-2"><Icons.Share /> {tr("Поделиться ссылкой")}</button>
                             <button type="button" onClick={doCopy} className="btn-secondary w-full">{copied ? 'Скопировано' : 'Скопировать ссылку'}</button>
                         </section>
                     </>) : (
-                        <p className="ui-error text-center">Ссылка для этой сессии ещё готовится. Закройте и откройте страницу снова через несколько секунд.</p>
+                        <p className="ui-error text-center">{tr("Ссылка для этой сессии ещё готовится. Закройте и откройте страницу снова через несколько секунд.")}</p>
                     )}
                     <section aria-labelledby="inv-how" className="flex flex-col gap-3">
-                        <h2 id="inv-how" className="about-h2">Как подключиться</h2>
+                        <h2 id="inv-how" className="about-h2">{tr("Как подключиться")}</h2>
                         <ol className="about-steps">
-                            <li><span className="about-step-n" aria-hidden="true">1</span><div><p>Откройте ссылку или отсканируйте код на втором телефоне.</p></div></li>
-                            <li><span className="about-step-n" aria-hidden="true">2</span><div><p>Нажмите «Присоединиться» — регистрироваться не нужно.</p></div></li>
+                            <li><span className="about-step-n" aria-hidden="true">1</span><div><p>{tr("Откройте ссылку или отсканируйте код на втором телефоне.")}</p></div></li>
+                            <li><span className="about-step-n" aria-hidden="true">2</span><div><p>{tr("Нажмите «Присоединиться» — регистрироваться не нужно.")}</p></div></li>
                             <li><span className="about-step-n" aria-hidden="true">3</span><div><p>Играйте вместе: до {deviceCap(profile)} устройств — столько же, сколько игроков в сессии. Вопросы, очередь и таймер у всех одинаковые.</p></div></li>
                         </ol>
                     </section>
-                    <div className="invite-warn" role="note"><b>Берегите ссылку.</b> Она открывает всю сессию: имена игроков и прогресс. Отправляйте её только тем, кому доверяете.</div>
-                    <p className="text-[13px] text-zinc-500 text-center">ID сессии: <span className="font-display tracking-[0.06em] text-zinc-300">{profile.sessionId}</span></p>
+                    <div className="invite-warn" role="note"><b>{tr("Берегите ссылку.")}</b> {tr("Она открывает всю сессию: имена игроков и прогресс. Отправляйте её только тем, кому доверяете.")}</div>
+                    <p className="text-[13px] text-zinc-500 text-center">{tr("ID сессии:")} <span className="font-display tracking-[0.06em] text-zinc-300">{profile.sessionId}</span></p>
                 </main>
             </>);
         };
@@ -885,21 +885,21 @@ i18nSetLang(readStoredLang());
             const valid = !!(invite && isValidAESKey(invite.key)); const same = !!(valid && profile && profile.sessionKey === invite.key);
             const other = !!(valid && profile && !same); let body;
             if (!valid) body = (<>
-                <h1 className="join-h">Ссылка не подошла</h1>
-                <p className="join-p">Похоже, ссылка обрезалась при пересылке. Попросите отправить её ещё раз или введите ID сессии вручную.</p>
-                <button type="button" onClick={onManual} className="btn-primary w-full">Ввести вручную</button>
-                <button type="button" onClick={onAbout} className="btn-ghost w-full">Что это за игра</button>
+                <h1 className="join-h">{tr("Ссылка не подошла")}</h1>
+                <p className="join-p">{tr("Похоже, ссылка обрезалась при пересылке. Попросите отправить её ещё раз или введите ID сессии вручную.")}</p>
+                <button type="button" onClick={onManual} className="btn-primary w-full">{tr("Ввести вручную")}</button>
+                <button type="button" onClick={onAbout} className="btn-ghost w-full">{tr("Что это за игра")}</button>
             </>); else if (same) body = (<>
-                <h1 className="join-h">Вы уже в этой сессии</h1>
-                <p className="join-p">Эта ссылка открывает ту же сессию, что и на этом устройстве. Можно играть.</p>
-                <button type="button" onClick={onStay} className="btn-primary w-full">К игре</button>
+                <h1 className="join-h">{tr("Вы уже в этой сессии")}</h1>
+                <p className="join-p">{tr("Эта ссылка открывает ту же сессию, что и на этом устройстве. Можно играть.")}</p>
+                <button type="button" onClick={onStay} className="btn-primary w-full">{tr("К игре")}</button>
             </>); else body = (<>
                 <h1 className="join-h">{other ? 'Перейти в другую сессию?' : 'Вас пригласили в ASK ME'}</h1>
                 <p className="join-p">{other ? 'На этом устройстве сейчас открыта своя сессия. Если присоединиться, здесь откроется приглашённая. Прежняя останется в облаке: вернуться в неё можно по её ссылке (она есть в меню) — сохраните её заранее.' : 'Присоединитесь к сессии — и будете играть вместе с остальными: общие вопросы, очередь и таймер. Регистрироваться не нужно.'}</p>
                 {isValidSessionIdFormat(invite.sid) && <span className="join-chip">Сессия {invite.sid}</span>}
                 {error && <p className="inline-error" role="alert">{error}</p>}
                 <button type="button" disabled={busy} onClick={onJoin} className="btn-primary w-full">{busy ? 'Подключаемся…' : 'Присоединиться'}</button>
-                {other ? <button type="button" disabled={busy} onClick={onStay} className="btn-ghost w-full">Остаться в своей сессии</button> : <button type="button" disabled={busy} onClick={onAbout} className="btn-ghost w-full">Что это за игра</button>}
+                {other ? <button type="button" disabled={busy} onClick={onStay} className="btn-ghost w-full">{tr("Остаться в своей сессии")}</button> : <button type="button" disabled={busy} onClick={onAbout} className="btn-ghost w-full">{tr("Что это за игра")}</button>}
             </>);
             return (<main className="w-full max-w-sm flex flex-col items-center gap-4 text-center my-auto py-8 join-page"><AskMeLogo size="lg" />{body}</main>);
         };
@@ -1122,12 +1122,12 @@ i18nSetLang(readStoredLang());
             const exitConfirmPopup = (
                 <PopupModal isOpen={showExitConfirm && !!profile} onClose={() => setShowExitConfirm(false)}>
                     <div className="text-center flex flex-col items-center gap-4 pt-1">
-                        <h3 className="text-lg font-bold text-white">Выйти из сессии?</h3>
-                        <p className="text-sm text-zinc-400 leading-snug">Прогресс сохранён. Чтобы вернуться, понадобится ID сессии — скопируйте его, пока он перед глазами.</p>
+                        <h3 className="text-lg font-bold text-white">{tr("Выйти из сессии?")}</h3>
+                        <p className="text-sm text-zinc-400 leading-snug">{tr("Прогресс сохранён. Чтобы вернуться, понадобится ID сессии — скопируйте его, пока он перед глазами.")}</p>
                         {profile && <SessionIdBadge sessionKey={profile.sessionKey} sessionId={profile.sessionId} onCopy={showToast} size="lg" />}
                         <div className="w-full grid grid-cols-2 gap-3 pt-1">
-                            <button type="button" onClick={() => setShowExitConfirm(false)} className="btn-secondary">Остаться</button>
-                            <button type="button" onClick={handleExitSession} className="btn-danger">Выйти</button>
+                            <button type="button" onClick={() => setShowExitConfirm(false)} className="btn-secondary">{tr("Остаться")}</button>
+                            <button type="button" onClick={handleExitSession} className="btn-danger">{tr("Выйти")}</button>
                         </div>
                     </div>
                 </PopupModal>
@@ -1418,8 +1418,8 @@ i18nSetLang(readStoredLang());
             const pregameContent = (
                 <div className="flex flex-col gap-5 text-left">
                         <div className="text-center">
-                            <h3 className="text-lg font-bold text-white">Усложнённый режим</h3>
-                            <p className="text-sm text-zinc-400 mt-1 leading-snug">Добавьте азарта: включите хотя бы одно усложнение — таймер на ответ или наказания.</p>
+                            <h3 className="text-lg font-bold text-white">{tr("Усложнённый режим")}</h3>
+                            <p className="text-sm text-zinc-400 mt-1 leading-snug">{tr("Добавьте азарта: включите хотя бы одно усложнение — таймер на ответ или наказания.")}</p>
                         </div>
                         <div className="flex flex-wrap justify-center gap-2 text-xs font-bold ">
                             <span className={chip}>⏱ {settings.timerOn ? `${settings.timerSec} с на ответ` : 'без таймера'}</span>
@@ -1431,7 +1431,7 @@ i18nSetLang(readStoredLang());
                                 <section className={`fx-card ${settings.punishOn ? 'is-on' : ''}`}>
                                     <div className="flex items-center gap-3">
                                         <span aria-hidden="true" className="fx-ico">🎭</span>
-                                        <div className="flex-1 min-w-0"><div className="text-sm font-bold text-white">Наказания</div><div className="text-xs text-zinc-400 leading-snug">Случайное задание, если время вышло. Можно привязать к сложности вопроса.</div></div>
+                                        <div className="flex-1 min-w-0"><div className="text-sm font-bold text-white">Наказания</div><div className="text-xs text-zinc-400 leading-snug">{tr("Случайное задание, если время вышло. Можно привязать к сложности вопроса.")}</div></div>
                                         <SettingSwitch on={settings.punishOn} onChange={() => { SoundFX.click(); patchSettings({ punishOn: !settings.punishOn }); }} label="Наказания" />
                                     </div>
                                     {settings.punishOn && (
@@ -1456,18 +1456,18 @@ i18nSetLang(readStoredLang());
                                                 {(settings.hiddenTemplates || []).length > 0 && ( <button type="button" onClick={() => { SoundFX.click(); setSettings(st => ({ ...st, hiddenTemplates: [] })); }} className="btn-text muted underline underline-offset-4 self-start">Вернуть скрытые ({(settings.hiddenTemplates || []).length})</button> )}
                                             </div>
                                             {!showAddPunish ? (
-                                                <button type="button" onClick={() => { SoundFX.click(); setShowAddPunish(true); }} className="btn-secondary w-full">+ Добавить наказание</button>
+                                                <button type="button" onClick={() => { SoundFX.click(); setShowAddPunish(true); }} className="btn-secondary w-full">{tr("+ Добавить наказание")}</button>
                                             ) : (
                                                 <div className="flex flex-col gap-3 rounded-[20px] border border-white/10 bg-white/[0.04] p-4 fade-in">
-                                                    <h3 className="text-sm font-bold text-white">Новое наказание</h3>
-                                                    <input type="text" maxLength={80} value={newPunish} onChange={e => { setNewPunish(e.target.value); setPunishErr(''); }} placeholder="Например: спой припев любимой песни" aria-label="Текст наказания" className="px-4 text-sm" />
+                                                    <h3 className="text-sm font-bold text-white">{tr("Новое наказание")}</h3>
+                                                    <input type="text" maxLength={80} value={newPunish} onChange={e => { setNewPunish(e.target.value); setPunishErr(''); }} placeholder={tr("Например: спой припев любимой песни")} aria-label={tr("Текст наказания")} className="px-4 text-sm" />
                                                     {punishErr && <span className="ui-error">{punishErr}</span>}
-                                                    <select value={newPunishLevel} onChange={e => setNewPunishLevel(e.target.value)} aria-label="Для какой сложности вопроса" className="px-4 text-sm text-white">
+                                                    <select value={newPunishLevel} onChange={e => setNewPunishLevel(e.target.value)} aria-label={tr("Для какой сложности вопроса")} className="px-4 text-sm text-white">
                                                         {LEVEL_OPTIONS.map(o => <option key={o[0]} value={o[0]} className="bg-[#0a0710]">{o[1]}</option>)}
                                                     </select>
                                                     <div className="grid grid-cols-2 gap-3">
-                                                        <button type="button" onClick={() => { SoundFX.click(); setShowAddPunish(false); setNewPunish(''); setPunishErr(''); }} className="btn-secondary">Отмена</button>
-                                                        <button type="button" onClick={addPunishment} className="btn-primary">Добавить</button>
+                                                        <button type="button" onClick={() => { SoundFX.click(); setShowAddPunish(false); setNewPunish(''); setPunishErr(''); }} className="btn-secondary">{tr("Отмена")}</button>
+                                                        <button type="button" onClick={addPunishment} className="btn-primary">{tr("Добавить")}</button>
                                                     </div>
                                                 </div>
                                             )}
@@ -1477,8 +1477,8 @@ i18nSetLang(readStoredLang());
                             </div>
                         )}
                         <div className="flex flex-col gap-2">
-                            <button type="button" disabled={!(settings.timerOn || settings.punishOn)} onClick={startFromPregame} className="btn-primary w-full">Начать игру</button>
-                            {!(settings.timerOn || settings.punishOn) && <p role="alert" className="inline-error"><span aria-hidden="true" className="inline-error-i">!</span><span>Включите хотя бы одно усложнение: таймер или наказания.</span></p>}
+                            <button type="button" disabled={!(settings.timerOn || settings.punishOn)} onClick={startFromPregame} className="btn-primary w-full">{tr("Начать игру")}</button>
+                            {!(settings.timerOn || settings.punishOn) && <p role="alert" className="inline-error"><span aria-hidden="true" className="inline-error-i">!</span><span>{tr("Включите хотя бы одно усложнение: таймер или наказания.")}</span></p>}
                         </div>
                     </div>
             );
@@ -1620,8 +1620,8 @@ i18nSetLang(readStoredLang());
             const anHiddenGames = anData && anFiltered ? Math.max(0, countAnalyticsGames(anData.anon) - countAnalyticsGames(anFiltered.anon)) : 0;
             const anMinControl = (
                 <section className="rounded-[20px] border border-white/10 bg-white/[0.04] p-4 flex flex-col gap-3">
-                    <div><div className="text-sm font-bold text-white">В аналитику идут игры от</div><div className="text-xs text-zinc-500 leading-snug mt-0.5">Число отвеченных вопросов в игре. Полностью пройденные колоды учитываются всегда.</div></div>
-                    <div className="flex flex-wrap gap-2" role="group" aria-label="Минимум отвеченных вопросов">
+                    <div><div className="text-sm font-bold text-white">{tr("В аналитику идут игры от")}</div><div className="text-xs text-zinc-500 leading-snug mt-0.5">{tr("Число отвеченных вопросов в игре. Полностью пройденные колоды учитываются всегда.")}</div></div>
+                    <div className="flex flex-wrap gap-2" role="group" aria-label={tr("Минимум отвеченных вопросов")}>
                         {AN_MIN_CHOICES.map(n => ( <button key={n} type="button" aria-pressed={anMin === n} onClick={() => setAnMin(n)} className={`chip ${anMin === n ? 'is-on' : ''}`}>{n === 0 ? 'Любых' : n}</button> ))}
                     </div>
                     {anData && anHiddenGames > 0 && <p className="text-xs text-zinc-500">Не вошло в сводку коротких игр: {anHiddenGames}. Уменьшите число, чтобы увидеть их.</p>}
@@ -2022,7 +2022,7 @@ i18nSetLang(readStoredLang());
                 } catch (err) { SoundFX.warn(); setResultModal({ ok: false, msg: `Ошибка: ${err.message}` }); } finally { setIsSaving(false); }
             };
 
-            const PwaInstallModal = () => ( <PopupModal isOpen={showPwaModal} onClose={() => setShowPwaModal(false)}> <div className="flex flex-col gap-4 pt-1"> <div className="pr-8"><AskMeLogo size="xs" /></div> <div className="space-y-1 text-left"> <h3 className="text-xl font-bold text-white">Скачать на устройство</h3> <p className="text-xs text-zinc-400 leading-relaxed"> Установите <b className="text-white">ASK ME</b> на домашний экран. </p> </div> {isInAppWebView && ( <div className="p-3.5 rounded-[20px] bg-rose-500/15 border border-rose-500/40 text-xs text-rose-200 leading-relaxed text-left"> ⚠️ Вы открыли сайт во встроенном браузере. Нажмите на иконку <b>Safari/Браузера</b>, чтобы появилась установка. </div> )} <div className="seg"> <button type="button" onClick={() => { SoundFX.click(); setPwaPlatformTab('ios'); }} className={`seg-btn ${ pwaPlatformTab === 'ios' ? 'is-active' : '' }`} >  iPhone </button> <button type="button" onClick={() => { SoundFX.click(); setPwaPlatformTab('android'); }} className={`seg-btn ${ pwaPlatformTab === 'android' ? 'is-active' : '' }`} > 🤖 Android </button> </div> {pwaPlatformTab === 'ios' ? ( <div className="flex flex-col gap-3 text-left text-xs text-zinc-200 bg-white/[0.04] p-4 rounded-[20px] border border-white/10"> <div className="flex items-start gap-3"> <span className="w-6 h-6 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold flex items-center justify-center flex-shrink-0">1</span> <p className="leading-relaxed"> Нажмите кнопку <b className="text-white">«Поделиться»</b> в браузере Safari. </p> </div> <div className="hairline-divider"></div> <div className="flex items-start gap-3"> <span className="w-6 h-6 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold flex items-center justify-center flex-shrink-0">2</span> <p className="leading-relaxed"> Нажмите <b className="text-white">«На экран "Домой"»</b>. </p> </div> <button type="button" onClick={triggerIosNativeShareMenu} className="btn-accent w-full mt-1 flex items-center justify-center gap-2" > <Icons.IosShare /> Открыть меню iOS </button> </div> ) : ( <div className="flex flex-col gap-3 text-left text-xs text-zinc-200 bg-white/[0.04] p-4 rounded-[20px] border border-white/10"> <div className="flex items-start gap-3"> <span className="w-6 h-6 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold flex items-center justify-center flex-shrink-0">1</span> <p className="leading-relaxed"> Нажмите на меню браузера <b className="text-white">«⋮»</b>. </p> </div> <div className="hairline-divider"></div> <div className="flex items-start gap-3"> <span className="w-6 h-6 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold flex items-center justify-center flex-shrink-0">2</span> <p className="leading-relaxed"> Выберите <b className="text-white">«Установить приложение»</b>. </p> </div> </div> )} <button type="button" onClick={() => { SoundFX.click(); setShowPwaModal(false); }} className="btn-primary w-full" > Понятно </button> </div> </PopupModal> );
+            const PwaInstallModal = () => ( <PopupModal isOpen={showPwaModal} onClose={() => setShowPwaModal(false)}> <div className="flex flex-col gap-4 pt-1"> <div className="pr-8"><AskMeLogo size="xs" /></div> <div className="space-y-1 text-left"> <h3 className="text-xl font-bold text-white">{tr("Скачать на устройство")}</h3> <p className="text-xs text-zinc-400 leading-relaxed"> {tr("Установите")} <b className="text-white">ASK ME</b> {tr("на домашний экран.")} </p> </div> {isInAppWebView && ( <div className="p-3.5 rounded-[20px] bg-rose-500/15 border border-rose-500/40 text-xs text-rose-200 leading-relaxed text-left"> {tr("⚠️ Вы открыли сайт во встроенном браузере. Нажмите на иконку")} <b>Safari/Браузера</b>{tr(", чтобы появилась установка.")} </div> )} <div className="seg"> <button type="button" onClick={() => { SoundFX.click(); setPwaPlatformTab('ios'); }} className={`seg-btn ${ pwaPlatformTab === 'ios' ? 'is-active' : '' }`} >  iPhone </button> <button type="button" onClick={() => { SoundFX.click(); setPwaPlatformTab('android'); }} className={`seg-btn ${ pwaPlatformTab === 'android' ? 'is-active' : '' }`} > 🤖 Android </button> </div> {pwaPlatformTab === 'ios' ? ( <div className="flex flex-col gap-3 text-left text-xs text-zinc-200 bg-white/[0.04] p-4 rounded-[20px] border border-white/10"> <div className="flex items-start gap-3"> <span className="w-6 h-6 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold flex items-center justify-center flex-shrink-0">1</span> <p className="leading-relaxed"> {tr("Нажмите кнопку")} <b className="text-white">{tr("«Поделиться»")}</b> {tr("в браузере Safari.")} </p> </div> <div className="hairline-divider"></div> <div className="flex items-start gap-3"> <span className="w-6 h-6 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold flex items-center justify-center flex-shrink-0">2</span> <p className="leading-relaxed"> {tr("Нажмите")} <b className="text-white">{tr("«На экран \"Домой\"»")}</b>. </p> </div> <button type="button" onClick={triggerIosNativeShareMenu} className="btn-accent w-full mt-1 flex items-center justify-center gap-2" > <Icons.IosShare /> {tr("Открыть меню iOS")} </button> </div> ) : ( <div className="flex flex-col gap-3 text-left text-xs text-zinc-200 bg-white/[0.04] p-4 rounded-[20px] border border-white/10"> <div className="flex items-start gap-3"> <span className="w-6 h-6 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold flex items-center justify-center flex-shrink-0">1</span> <p className="leading-relaxed"> {tr("Нажмите на меню браузера")} <b className="text-white">«⋮»</b>. </p> </div> <div className="hairline-divider"></div> <div className="flex items-start gap-3"> <span className="w-6 h-6 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold flex items-center justify-center flex-shrink-0">2</span> <p className="leading-relaxed"> {tr("Выберите")} <b className="text-white">{tr("«Установить приложение»")}</b>. </p> </div> </div> )} <button type="button" onClick={() => { SoundFX.click(); setShowPwaModal(false); }} className="btn-primary w-full" > {tr("Понятно")} </button> </div> </PopupModal> );
 
             // страницы без сессии: «Об игре», документы, быстрое подключение. Показываем сразу, не дожидаясь загрузки вопросов
             const pageBack = () => navigate(profile ? 'app_menu' : 'onboarding');
@@ -2044,31 +2044,31 @@ i18nSetLang(readStoredLang());
                 );
             }
 
-            if (isLoading) return <div className="safe-screen w-full flex flex-col items-center justify-center fade-in relative z-10"><AskMeLogo size="lg" /><p className="text-zinc-500 font-semibold text-xs mt-5">Синхронизация...</p></div>;
+            if (isLoading) return <div className="safe-screen w-full flex flex-col items-center justify-center fade-in relative z-10"><AskMeLogo size="lg" /><p className="text-zinc-500 font-semibold text-xs mt-5">{tr("Синхронизация...")}</p></div>;
 
             if (screen === 'admin_login') {
                 return (
                     <div className="safe-screen w-full flex flex-col items-center justify-between slide-up relative z-10">
                         <header className="w-full max-w-md flex items-center justify-between pt-2">
-                            <button aria-label="Назад" onClick={() => { SoundFX.click(); navigate(profile ? 'menu' : 'onboarding'); }} className="btn-icon flex-shrink-0"><Icons.Back /></button>
+                            <button aria-label={tr("Назад")} onClick={() => { SoundFX.click(); navigate(profile ? 'menu' : 'onboarding'); }} className="btn-icon flex-shrink-0"><Icons.Back /></button>
                             <AskMeLogo size="xs" />
                             <div className="w-12"></div>
                         </header>
                         <main className="w-full max-w-sm flex flex-col items-center text-center gap-6 my-auto py-8">
                             <div className="w-14 h-14 rounded-xl bg-rose-500/15 border border-rose-500/35 flex items-center justify-center text-rose-400"><Icons.Lock /></div>
-                            <div className="space-y-1.5"><h1 className="text-2xl font-bold text-white">Доступ владельца</h1></div>
+                            <div className="space-y-1.5"><h1 className="text-2xl font-bold text-white">{tr("Доступ владельца")}</h1></div>
                             {isAdmin ? (
                                 <div className="w-full flex flex-col gap-4 pt-2">
-                                    <div className="py-3 px-4 rounded-[20px] border border-rose-500/35 bg-rose-500/10 text-xs font-bold text-rose-300">👑 Права владельца активны</div>
-                                    <button onClick={() => { SoundFX.click(); navigate('menu'); }} className="btn-primary w-full">Перейти в меню</button>
-                                    <button onClick={handleLockAdmin} className="btn-secondary w-full">Отключить режим владельца</button>
+                                    <div className="py-3 px-4 rounded-[20px] border border-rose-500/35 bg-rose-500/10 text-xs font-bold text-rose-300">{tr("👑 Права владельца активны")}</div>
+                                    <button onClick={() => { SoundFX.click(); navigate('menu'); }} className="btn-primary w-full">{tr("Перейти в меню")}</button>
+                                    <button onClick={handleLockAdmin} className="btn-secondary w-full">{tr("Отключить режим владельца")}</button>
                                 </div>
                             ) : (
                                 <form onSubmit={handleUnlockAdmin} className="w-full flex flex-col gap-4 pt-2">
                                     <input type="email" required value={adminForm.email} onChange={e => setAdminForm({...adminForm, email: e.target.value})} placeholder="Email (Firebase Auth)" className="w-full h-[54px] px-5 rounded-2xl bg-white/[0.04] border border-white/[0.16] text-center text-base text-white outline-none focus:border-rose-500" />
-                                    <input type="password" required value={adminForm.pass} onChange={e => setAdminForm({...adminForm, pass: e.target.value})} placeholder="Пароль" className="w-full h-[54px] px-5 rounded-2xl bg-white/[0.04] border border-white/[0.16] text-center text-base text-white outline-none focus:border-rose-500" />
+                                    <input type="password" required value={adminForm.pass} onChange={e => setAdminForm({...adminForm, pass: e.target.value})} placeholder={tr("Пароль")} className="w-full h-[54px] px-5 rounded-2xl bg-white/[0.04] border border-white/[0.16] text-center text-base text-white outline-none focus:border-rose-500" />
                                     {adminPinError && <span className="ui-error font-medium">{adminPinError}</span>}
-                                    <button type="submit" className="btn-primary w-full">Войти</button>
+                                    <button type="submit" className="btn-primary w-full">{tr("Войти")}</button>
                                 </form>
                             )}
                         </main>
@@ -2084,9 +2084,9 @@ i18nSetLang(readStoredLang());
                         <div className="flex-1 flex items-center justify-center w-full py-6">
                             <div className="w-full max-w-sm flex flex-col items-center text-center gap-6">
                                 <AskMeLogo size="md" />
-                                <div className="space-y-2"><h1 className="font-display text-2xl font-bold text-white">Сессия готова!</h1><p className="text-xs text-zinc-400 leading-relaxed">Сохраните ID сессии: по нему можно вернуться в игру с любого устройства.</p></div>
+                                <div className="space-y-2"><h1 className="font-display text-2xl font-bold text-white">{tr("Сессия готова!")}</h1><p className="text-xs text-zinc-400 leading-relaxed">{tr("Сохраните ID сессии: по нему можно вернуться в игру с любого устройства.")}</p></div>
                                 <SessionIdBadge sessionKey={profile?.sessionKey} sessionId={profile.sessionId} onCopy={showToast} size="lg" />
-                                <button onClick={() => { SoundFX.click(); navigate('menu'); }} className="btn-primary w-full flex items-center justify-center gap-2 mt-2">Перейти к игре <Icons.Next /></button>
+                                <button onClick={() => { SoundFX.click(); navigate('menu'); }} className="btn-primary w-full flex items-center justify-center gap-2 mt-2">{tr("Перейти к игре")} <Icons.Next /></button>
                             </div>
                         </div>
                         <AppFooter />
@@ -2102,8 +2102,8 @@ i18nSetLang(readStoredLang());
                         <div className="flex-1 flex items-center justify-center w-full py-6">
                             <div className="w-full max-w-sm flex flex-col items-center text-center gap-7">
                                 <AskMeLogo size="lg" onClick={handleLogoSecretTap} />
-                                <div className="space-y-1.5"><h1 className="font-display text-2xl md:text-3xl font-bold text-white tracking-tight">Добро пожаловать</h1><p className="text-xs text-zinc-400 leading-relaxed">Создайте новую сессию или введите 8-значный ID, чтобы продолжить сохранённую игру.</p></div>
-                                <div className="seg w-full"> <button type="button" onClick={() => { SoundFX.click(); setAuthTab('create'); setRestoreError(''); }} className={`seg-btn ${ authTab === 'create' ? 'is-active' : '' }`} > Новая игра </button> <button type="button" onClick={() => { SoundFX.click(); setAuthTab('restore'); setRestoreError(''); }} className={`seg-btn ${ authTab === 'restore' ? 'is-active' : '' }`} > Войти по ID </button> </div>
+                                <div className="space-y-1.5"><h1 className="font-display text-2xl md:text-3xl font-bold text-white tracking-tight">{tr("Добро пожаловать")}</h1><p className="text-xs text-zinc-400 leading-relaxed">{tr("Создайте новую сессию или введите 8-значный ID, чтобы продолжить сохранённую игру.")}</p></div>
+                                <div className="seg w-full"> <button type="button" onClick={() => { SoundFX.click(); setAuthTab('create'); setRestoreError(''); }} className={`seg-btn ${ authTab === 'create' ? 'is-active' : '' }`} > {tr("Новая игра")} </button> <button type="button" onClick={() => { SoundFX.click(); setAuthTab('restore'); setRestoreError(''); }} className={`seg-btn ${ authTab === 'restore' ? 'is-active' : '' }`} > {tr("Войти по ID")} </button> </div>
                                 {authTab === 'create' ? (
                                     <form noValidate onSubmit={handleSaveProfileNames} className="w-full flex flex-col gap-3 text-left fade-in">
                                         {playersForm.map((p, idx) => (
@@ -2115,20 +2115,20 @@ i18nSetLang(readStoredLang());
                                         ))}
                                         {playersForm.length >= MAX_PLAYERS && ( <span className="text-xs text-zinc-500 text-center">Максимум — {MAX_PLAYERS} игроков</span> )}
                                 {playersForm.length < MAX_PLAYERS && (
-                                            <button type="button" onClick={addPlayerField} className="btn-dashed w-full"> <Icons.Plus /> Добавить игрока </button>
+                                            <button type="button" onClick={addPlayerField} className="btn-dashed w-full"> <Icons.Plus /> {tr("Добавить игрока")} </button>
                                         )}
                                         {playersError && <p className="ui-error text-center">{playersError}</p>}
-                                <button type="submit" className="btn-primary w-full flex items-center justify-center gap-2 mt-2"> Создать сессию <Icons.Next /> </button>
+                                <button type="submit" className="btn-primary w-full flex items-center justify-center gap-2 mt-2"> {tr("Создать сессию")} <Icons.Next /> </button>
                                     </form>
                                 ) : (
                                     <form onSubmit={handleRestoreBySessionId} className="w-full flex flex-col gap-4 text-left fade-in">
-                                        <input type="text" required maxLength={400} value={restoreIdInput} onChange={e => setRestoreIdInput(e.target.value.slice(0, 400))} placeholder="Ссылка из игры или ID" className="w-full h-[54px] px-5 rounded-2xl bg-white/[0.04] border border-white/[0.16] text-center text-sm text-white placeholder-zinc-600 outline-none focus:border-rose-500" />
+                                        <input type="text" required maxLength={400} value={restoreIdInput} onChange={e => setRestoreIdInput(e.target.value.slice(0, 400))} placeholder={tr("Ссылка из игры или ID")} className="w-full h-[54px] px-5 rounded-2xl bg-white/[0.04] border border-white/[0.16] text-center text-sm text-white placeholder-zinc-600 outline-none focus:border-rose-500" />
                                         {restoreError && <p className="ui-error text-center font-medium">{restoreError}</p>}
                                         <button type="submit" disabled={isRestoringSession || !restoreIdInput.trim()} className="btn-primary w-full flex items-center justify-center gap-2 mt-2"> {isRestoringSession ? "Поиск..." : "Восстановить прогресс"} <Icons.Next /> </button>
                                     </form>
                                 )}
-                                {!isStandalonePWA && ( <button type="button" onClick={handleInstallPwaClick} className="btn-accent btn-sm"> <Icons.DownloadApp /> Скачать на устройство </button> )}
-                                {profile && ( <button type="button" onClick={() => { SoundFX.click(); navigate('menu'); }} className="btn-text muted underline underline-offset-4"> Вернуться в текущую сессию </button> )}
+                                {!isStandalonePWA && ( <button type="button" onClick={handleInstallPwaClick} className="btn-accent btn-sm"> <Icons.DownloadApp /> {tr("Скачать на устройство")} </button> )}
+                                {profile && ( <button type="button" onClick={() => { SoundFX.click(); navigate('menu'); }} className="btn-text muted underline underline-offset-4"> {tr("Вернуться в текущую сессию")} </button> )}
                             </div>
                         </div>
                         <AppFooter />
@@ -2175,7 +2175,7 @@ if (screen === 'app_menu') {
                     <div className="safe-screen w-full flex flex-col items-center slide-up relative z-10">
                         <PwaInstallModal /> {exitConfirmPopup}
                         <header className="w-full max-w-md flex items-center gap-3 pt-2">
-                            <button type="button" onClick={() => { SoundFX.click(); navigate('menu'); }} aria-label="Назад" className="btn-icon flex-shrink-0"><Icons.Back /></button>
+                            <button type="button" onClick={() => { SoundFX.click(); navigate('menu'); }} aria-label={tr("Назад")} className="btn-icon flex-shrink-0"><Icons.Back /></button>
                             <h1 className="flex-1 text-center pr-11 text-lg font-bold text-white">{tr('Меню')}</h1>
                         </header>
                         <main className="w-full max-w-md flex flex-col gap-6 pt-6 pb-6">
@@ -2192,8 +2192,8 @@ if (screen === 'app_menu') {
                                 </section>
                             ))}
                             {isAdmin && (
-                                <section aria-label="Только для владельца" className="owner-zone flex flex-col gap-2.5">
-                                    <h2 className="px-1 text-xs font-bold text-amber-300/90 flex items-center gap-1.5"><Icons.Lock /> Только для владельца <span className="owner-zone-note">видите только вы</span></h2>
+                                <section aria-label={tr("Только для владельца")} className="owner-zone flex flex-col gap-2.5">
+                                    <h2 className="px-1 text-xs font-bold text-amber-300/90 flex items-center gap-1.5"><Icons.Lock /> {tr("Только для владельца")} <span className="owner-zone-note">{tr("видите только вы")}</span></h2>
                                     <div className="owner-zone-box divide-y divide-amber-200/10 overflow-hidden">{renderMenuItems(ownerItems)}</div>
                                 </section>
                             )}
@@ -2202,7 +2202,7 @@ if (screen === 'app_menu') {
                                 <button type="button" onClick={handleShareGame} className="btn-primary w-full flex items-center justify-center gap-2"><Icons.Share /> {tr('Поделиться')}</button>
                             </section>
                             {profile && ( <button type="button" onClick={() => { SoundFX.warn(); setShowExitConfirm(true); }} className="btn-danger w-full flex items-center justify-center gap-2"><Icons.Logout /> {tr('Выйти из сессии')}</button> )}
-                            <nav aria-label="Документы" className="legal-links-row">
+                            <nav aria-label={tr("Документы")} className="legal-links-row">
                                 {LEGAL.order.map(id => <a key={id} href={SCREEN_TO_HASH[id]}>{LEGAL.docs[id].menu}</a>)}
                             </nav>
                         </main>
@@ -2215,9 +2215,9 @@ if (screen === 'app_menu') {
                 return (
                     <div className="safe-screen w-full flex flex-col items-center slide-up relative z-10">
                         <header className="w-full max-w-md flex items-center justify-between pt-2">
-                            <button type="button" onClick={() => { SoundFX.click(); navigate('mode_select'); }} aria-label="Назад" className="btn-icon flex-shrink-0"><Icons.Back /></button>
-                            <h1 className="flex-1 text-center text-lg font-bold text-white">Усложнённый режим</h1>
-                            <button type="button" onClick={() => openInvite('game_setup')} aria-label="Пригласить игроков" title="Пригласить игроков" className="btn-icon flex-shrink-0"><Icons.Share /></button>
+                            <button type="button" onClick={() => { SoundFX.click(); navigate('mode_select'); }} aria-label={tr("Назад")} className="btn-icon flex-shrink-0"><Icons.Back /></button>
+                            <h1 className="flex-1 text-center text-lg font-bold text-white">{tr("Усложнённый режим")}</h1>
+                            <button type="button" onClick={() => openInvite('game_setup')} aria-label={tr("Пригласить игроков")} title={tr("Пригласить игроков")} className="btn-icon flex-shrink-0"><Icons.Share /></button>
                         </header>
                         <main className="w-full max-w-md flex flex-col gap-6 py-6">{pregameContent}</main>
                         <AppFooter divider={false} />
@@ -2230,18 +2230,18 @@ if (screen === 'app_menu') {
                 return (
                     <div className="safe-screen w-full flex flex-col items-center slide-up relative z-10">
                         <header className="w-full max-w-md flex items-center justify-between pt-2">
-                            <button type="button" onClick={() => { SoundFX.click(); navigate('cat_list'); }} aria-label="Назад" className="btn-icon flex-shrink-0"><Icons.Back /></button>
-                            <h1 className="flex-1 text-center text-lg font-bold text-white">Управление темами</h1>
+                            <button type="button" onClick={() => { SoundFX.click(); navigate('cat_list'); }} aria-label={tr("Назад")} className="btn-icon flex-shrink-0"><Icons.Back /></button>
+                            <h1 className="flex-1 text-center text-lg font-bold text-white">{tr("Управление темами")}</h1>
                             <div className="w-11 flex-shrink-0" aria-hidden="true"></div>
                         </header>
                         <main className="w-full max-w-md flex flex-col gap-7 py-6">
-                            {!isAdmin ? ( <p className="text-sm text-zinc-400 text-center">Раздел доступен только владельцу.</p> ) : (
+                            {!isAdmin ? ( <p className="text-sm text-zinc-400 text-center">{tr("Раздел доступен только владельцу.")}</p> ) : (
                                 <>
                                     <section className="flex flex-col gap-3">
-                                        <div><h2 className="text-sm font-bold text-white">Новая тема</h2><p className="text-xs text-zinc-500 leading-snug mt-0.5">Выберите эмодзи из набора или введите любую с клавиатуры устройства, затем назовите тему. Она сразу появится на главной и в списках.</p></div>
+                                        <div><h2 className="text-sm font-bold text-white">{tr("Новая тема")}</h2><p className="text-xs text-zinc-500 leading-snug mt-0.5">{tr("Выберите эмодзи из набора или введите любую с клавиатуры устройства, затем назовите тему. Она сразу появится на главной и в списках.")}</p></div>
                                         <div className="flex gap-2">
-                                            <input type="text" value={newTopicIcon} maxLength={16} onChange={e => { setNewTopicIcon(e.target.value); setTopicErr(''); }} placeholder="✨" aria-label="Эмодзи темы" className="w-20 text-center text-2xl" />
-                                            <input type="text" value={newTopicName} maxLength={30} onChange={e => { setNewTopicName(e.target.value); setTopicErr(''); }} placeholder="Название темы" aria-label="Название темы" className="flex-1 min-w-0 px-4 text-sm" />
+                                            <input type="text" value={newTopicIcon} maxLength={16} onChange={e => { setNewTopicIcon(e.target.value); setTopicErr(''); }} placeholder="✨" aria-label={tr("Эмодзи темы")} className="w-20 text-center text-2xl" />
+                                            <input type="text" value={newTopicName} maxLength={30} onChange={e => { setNewTopicName(e.target.value); setTopicErr(''); }} placeholder={tr("Название темы")} aria-label={tr("Название темы")} className="flex-1 min-w-0 px-4 text-sm" />
                                         </div>
                                         <div className="flex gap-1.5 overflow-x-auto pb-1" role="tablist">
                                             {EMOJI_SETS.map((set, i) => ( <button key={set[0]} type="button" role="tab" aria-selected={emojiTab === i} onClick={() => { SoundFX.click(); setEmojiTab(i); }} className={`chip flex-shrink-0 ${emojiTab === i ? 'is-on' : ''}`}>{set[0]}</button> ))}
@@ -2254,9 +2254,9 @@ if (screen === 'app_menu') {
                                     </section>
                                     <div className="hairline-divider"></div>
                                     <section className="flex flex-col gap-3">
-                                        <div><h2 className="text-sm font-bold text-white">Порядок тем</h2><p className="text-xs text-zinc-500 leading-snug mt-0.5">Потяните за ⠿ или нажимайте стрелки. Порядок изменится на главной и во всех списках.</p></div>
+                                        <div><h2 className="text-sm font-bold text-white">{tr("Порядок тем")}</h2><p className="text-xs text-zinc-500 leading-snug mt-0.5">{tr("Потяните за ⠿ или нажимайте стрелки. Порядок изменится на главной и во всех списках.")}</p></div>
                                         <TopicReorderList items={draft.map(id => CATEGORIES.find(c => c.id === id)).filter(Boolean)} onChange={items => setTopicDraft(items.map(c => c.id))} />
-                                        <button type="button" disabled={topicBusy || !orderChanged} onClick={saveTopicOrder} className="btn-secondary w-full">Сохранить порядок</button>
+                                        <button type="button" disabled={topicBusy || !orderChanged} onClick={saveTopicOrder} className="btn-secondary w-full">{tr("Сохранить порядок")}</button>
                                     </section>
                                 </>
                             )}
@@ -2269,31 +2269,31 @@ if (screen === 'app_menu') {
                 return (
                     <div className="safe-screen w-full flex flex-col items-center slide-up relative z-10">
                         <header className="w-full max-w-md flex items-center gap-3 pt-2">
-                            <button type="button" onClick={() => { SoundFX.click(); navigate('app_menu'); }} aria-label="Назад" className="btn-icon flex-shrink-0"><Icons.Back /></button>
-                            <h1 className="flex-1 text-center pr-11 text-lg font-bold text-white">Шаблоны наказаний</h1>
+                            <button type="button" onClick={() => { SoundFX.click(); navigate('app_menu'); }} aria-label={tr("Назад")} className="btn-icon flex-shrink-0"><Icons.Back /></button>
+                            <h1 className="flex-1 text-center pr-11 text-lg font-bold text-white">{tr("Шаблоны наказаний")}</h1>
                         </header>
                         <main className="w-full max-w-md flex flex-col gap-6 pt-6 pb-6">
-                            {!isAdmin ? ( <p className="text-sm text-zinc-400 text-center">Раздел доступен только владельцу.</p> ) : (
+                            {!isAdmin ? ( <p className="text-sm text-zinc-400 text-center">{tr("Раздел доступен только владельцу.")}</p> ) : (
                                 <>
-                                    <p className="ui-hint">Эти наказания видят все игроки в усложнённом режиме. Каждый игрок может скрыть любой шаблон у себя или добавить свои.</p>
+                                    <p className="ui-hint">{tr("Эти наказания видят все игроки в усложнённом режиме. Каждый игрок может скрыть любой шаблон у себя или добавить свои.")}</p>
                                     {ptEdit === null ? (
-                                        <button type="button" onClick={() => startPtEdit(null)} className="btn-primary w-full">+ Новый шаблон</button>
+                                        <button type="button" onClick={() => startPtEdit(null)} className="btn-primary w-full">{tr("+ Новый шаблон")}</button>
                                     ) : (
                                         <section className="flex flex-col gap-3 rounded-[20px] border border-white/10 bg-white/[0.04] p-4 fade-in">
                                             <h2 className="text-sm font-bold text-white">{ptEdit === 'new' ? 'Новый шаблон' : 'Редактирование шаблона'}</h2>
                                             <div className="flex gap-2">
-                                                <input type="text" value={ptIcon} maxLength={16} onChange={e => { setPtIcon(e.target.value); setPtErr(''); }} placeholder="🎭" aria-label="Эмодзи шаблона" className="w-20 text-center text-2xl" />
-                                                <input type="text" value={ptText} maxLength={80} onChange={e => { setPtText(e.target.value); setPtErr(''); }} placeholder="Например: спой припев" aria-label="Текст наказания" className="flex-1 min-w-0 text-sm" />
+                                                <input type="text" value={ptIcon} maxLength={16} onChange={e => { setPtIcon(e.target.value); setPtErr(''); }} placeholder="🎭" aria-label={tr("Эмодзи шаблона")} className="w-20 text-center text-2xl" />
+                                                <input type="text" value={ptText} maxLength={80} onChange={e => { setPtText(e.target.value); setPtErr(''); }} placeholder={tr("Например: спой припев")} aria-label={tr("Текст наказания")} className="flex-1 min-w-0 text-sm" />
                                             </div>
                                             <div className="flex flex-wrap gap-1.5">
                                                 {PUNISH_EMOJIS.map(em => ( <button key={em} type="button" aria-label={`Иконка ${em}`} onClick={() => { SoundFX.click(); setPtIcon(em); setPtErr(''); }} className={`btn-icon ${ptIcon === em ? 'is-on' : ''}`}>{em}</button> ))}
                                             </div>
-                                            <select value={ptLevel} onChange={e => setPtLevel(e.target.value)} aria-label="Для какой сложности вопроса" className="text-sm text-white">
+                                            <select value={ptLevel} onChange={e => setPtLevel(e.target.value)} aria-label={tr("Для какой сложности вопроса")} className="text-sm text-white">
                                                 {LEVEL_OPTIONS.map(o => <option key={o[0]} value={o[0]} className="bg-[#0a0710]">{o[1]}</option>)}
                                             </select>
                                             {ptErr && <span className="ui-error">{ptErr}</span>}
                                             <div className="grid grid-cols-2 gap-3">
-                                                <button type="button" onClick={() => { SoundFX.click(); setPtEdit(null); setPtErr(''); }} className="btn-secondary">Отмена</button>
+                                                <button type="button" onClick={() => { SoundFX.click(); setPtEdit(null); setPtErr(''); }} className="btn-secondary">{tr("Отмена")}</button>
                                                 <button type="button" disabled={ptBusy} onClick={savePt} className="btn-primary">{ptBusy ? 'Сохраняем…' : 'Сохранить'}</button>
                                             </div>
                                         </section>
@@ -2330,42 +2330,42 @@ if (screen === 'app_menu') {
                 return (
                     <div className="safe-screen w-full flex flex-col items-center slide-up relative z-10">
                         <header className="w-full max-w-md flex items-center gap-3 pt-2">
-                            <button type="button" onClick={() => { SoundFX.click(); navigate('app_menu'); }} aria-label="Назад" className="btn-icon flex-shrink-0"><Icons.Back /></button>
-                            <h1 className="flex-1 text-center pr-11 text-lg font-bold text-white">Аналитика</h1>
+                            <button type="button" onClick={() => { SoundFX.click(); navigate('app_menu'); }} aria-label={tr("Назад")} className="btn-icon flex-shrink-0"><Icons.Back /></button>
+                            <h1 className="flex-1 text-center pr-11 text-lg font-bold text-white">{tr("Аналитика")}</h1>
                         </header>
                         <main className="w-full max-w-md flex flex-col gap-6 pt-6 pb-6">
-                            {!isAdmin ? ( <p className="text-sm text-zinc-400 text-center">Раздел доступен только владельцу.</p> ) : (<>
+                            {!isAdmin ? ( <p className="text-sm text-zinc-400 text-center">{tr("Раздел доступен только владельцу.")}</p> ) : (<>
                                 <div className="seg" role="tablist">
-                                <button type="button" role="tab" aria-selected={screen === 'analytics'} onClick={() => { SoundFX.click(); navigate('analytics'); }} className={`seg-btn ${screen === 'analytics' ? 'is-active' : ''}`}>Обзор</button>
-                                <button type="button" role="tab" aria-selected={screen === 'analytics_sessions'} onClick={() => { SoundFX.click(); setAnSel(null); navigate('analytics_sessions'); }} className={`seg-btn ${screen === 'analytics_sessions' ? 'is-active' : ''}`}>Сессии</button>
+                                <button type="button" role="tab" aria-selected={screen === 'analytics'} onClick={() => { SoundFX.click(); navigate('analytics'); }} className={`seg-btn ${screen === 'analytics' ? 'is-active' : ''}`}>{tr("Обзор")}</button>
+                                <button type="button" role="tab" aria-selected={screen === 'analytics_sessions'} onClick={() => { SoundFX.click(); setAnSel(null); navigate('analytics_sessions'); }} className={`seg-btn ${screen === 'analytics_sessions' ? 'is-active' : ''}`}>{tr("Сессии")}</button>
                             </div>
                                 {anMinControl}
-                                {anLoading && <p className="text-sm text-zinc-400 text-center">Загружаем данные…</p>}
-                                {anErr && <div className="flex flex-col gap-3"><span className="ui-error">{anErr}</span><button type="button" onClick={() => { setAnErr(''); setAnData(null); }} className="btn-secondary">Повторить</button></div>}
+                                {anLoading && <p className="text-sm text-zinc-400 text-center">{tr("Загружаем данные…")}</p>}
+                                {anErr && <div className="flex flex-col gap-3"><span className="ui-error">{anErr}</span><button type="button" onClick={() => { setAnErr(''); setAnData(null); }} className="btn-secondary">{tr("Повторить")}</button></div>}
                                 {ag && ag.games === 0 && <p className="text-sm text-zinc-400 text-center leading-relaxed">{anHiddenGames > 0 ? 'Пока нет игр с таким числом отвеченных вопросов. Уменьшите порог выше.' : 'Данных пока нет. Они появятся после первых игр.'}</p>}
                                 {ag && ag.games > 0 && (<>
-                                    <p className="ui-hint">Сводка по обезличенным данным: имена игроков здесь не используются.</p>
+                                    <p className="ui-hint">{tr("Сводка по обезличенным данным: имена игроков здесь не используются.")}</p>
                                     <div className="grid grid-cols-2 gap-3">
                                         {tile(ag.sessions, 'Сессий')}{tile(ag.games, 'Игр в сводке')}
                                         {tile(ag.avgPlayers.toFixed(1), 'Игроков в игре (в среднем)')}{tile(ag.avgAnswered.toFixed(1), 'Отвеченных вопросов за игру')}
                                         {tile(fmtDur(ag.avgDuration), 'Длительность игры')}{tile(ag.avgAnswerSec ? fmtDur(ag.avgAnswerSec) : '—', 'Среднее время ответа')}
                                         {tile(Math.round(ag.skipRate * 100) + '%', 'Доля пропущенных вопросов')}{tile(Math.round(ag.hardShare * 100) + '%', 'Игр в усложнённом режиме')}
                                     </div>
-                                    <section className="rounded-[20px] border border-white/10 bg-white/[0.04] p-5 flex flex-col gap-4"><h2 className="ui-title-section">Популярные темы</h2>
+                                    <section className="rounded-[20px] border border-white/10 bg-white/[0.04] p-5 flex flex-col gap-4"><h2 className="ui-title-section">{tr("Популярные темы")}</h2>
                                         <SummaryBars total={Math.max(1, ...ag.topCats.map(c => c[1]))} rows={ag.topCats.map(([id, n]) => { const c = CATEGORIES.find(x => x.id === id); return { label: (c ? c.icon + ' ' + c.name : id), count: n, cls: 'text-zinc-300', bar: 'bg-rose-500' }; })} />
                                     </section>
-                                    <section className="rounded-[20px] border border-white/10 bg-white/[0.04] p-5 flex flex-col gap-4"><h2 className="ui-title-section">Сложность отвеченных вопросов</h2>
+                                    <section className="rounded-[20px] border border-white/10 bg-white/[0.04] p-5 flex flex-col gap-4"><h2 className="ui-title-section">{tr("Сложность отвеченных вопросов")}</h2>
                                         <SummaryBars total={Math.max(1, ...Object.values(ag.levels))} rows={[['Простые', 'Лёгкие', 'diff-text-1', 'bg-emerald-400'], ['Средние', 'Средние', 'diff-text-2', 'bg-amber-400'], ['Глубокие', 'Глубокие', 'diff-text-3', 'bg-rose-500']].map(([k, label, cls, bar]) => ({ label, count: ag.levels[k] || 0, cls, bar }))} />
                                     </section>
-                                    <section className="rounded-[20px] border border-white/10 bg-white/[0.04] p-5 flex flex-col gap-3"><h2 className="ui-title-section">Чаще всего пропускают</h2>
-                                        {ag.topSkipped.length === 0 ? <p className="text-sm text-zinc-500">Пропусков пока нет.</p> : ag.topSkipped.map(([id, n]) => ( <div key={id} className="flex items-start gap-3"><span className="font-bold text-rose-300 w-8 flex-shrink-0">×{n}</span><span className="text-sm text-zinc-200 leading-snug">{qTextOf(id)}</span></div> ))}
+                                    <section className="rounded-[20px] border border-white/10 bg-white/[0.04] p-5 flex flex-col gap-3"><h2 className="ui-title-section">{tr("Чаще всего пропускают")}</h2>
+                                        {ag.topSkipped.length === 0 ? <p className="text-sm text-zinc-500">{tr("Пропусков пока нет.")}</p> : ag.topSkipped.map(([id, n]) => ( <div key={id} className="flex items-start gap-3"><span className="font-bold text-rose-300 w-8 flex-shrink-0">×{n}</span><span className="text-sm text-zinc-200 leading-snug">{qTextOf(id)}</span></div> ))}
                                     </section>
-                                    <section className="rounded-[20px] border border-white/10 bg-white/[0.04] p-5 flex flex-col gap-3"><h2 className="ui-title-section">Таймер и наказания</h2>
+                                    <section className="rounded-[20px] border border-white/10 bg-white/[0.04] p-5 flex flex-col gap-3"><h2 className="ui-title-section">{tr("Таймер и наказания")}</h2>
                                         <p className="text-sm text-zinc-300">Таймер включали в {Math.round(ag.timerShare * 100)}% игр{ag.avgTimer ? `, в среднем на ${Math.round(ag.avgTimer)} с` : ''}. Наказаний выпало: {ag.punishShown}.</p>
                                         {ag.topPunish.map(([t, n]) => ( <div key={t} className="flex items-start gap-3"><span className="font-bold text-amber-300 w-8 flex-shrink-0">×{n}</span><span className="text-sm text-zinc-200 leading-snug">{t}</span></div> ))}
                                     </section>
                                 </>)}
-                                <button type="button" onClick={() => { SoundFX.click(); setAnData(null); setAnErr(''); }} className="btn-ghost w-full">Обновить данные</button>
+                                <button type="button" onClick={() => { SoundFX.click(); setAnData(null); setAnErr(''); }} className="btn-ghost w-full">{tr("Обновить данные")}</button>
                             </>)}
                         </main>
                         <AppFooter />
@@ -2380,23 +2380,23 @@ if (screen === 'app_menu') {
                 return (
                     <div className="safe-screen w-full flex flex-col items-center slide-up relative z-10">
                         <header className="w-full max-w-md flex items-center gap-3 pt-2">
-                            <button type="button" onClick={() => { SoundFX.click(); if (anSel) {{ setAnSel(null); setAnConfirm(''); }} else navigate('analytics'); }} aria-label="Назад" className="btn-icon flex-shrink-0"><Icons.Back /></button>
-                            <h1 className="flex-1 text-center pr-11 text-lg font-bold text-white">Сессии</h1>
+                            <button type="button" onClick={() => { SoundFX.click(); if (anSel) {{ setAnSel(null); setAnConfirm(''); }} else navigate('analytics'); }} aria-label={tr("Назад")} className="btn-icon flex-shrink-0"><Icons.Back /></button>
+                            <h1 className="flex-1 text-center pr-11 text-lg font-bold text-white">{tr("Сессии")}</h1>
                         </header>
                         <main className="w-full max-w-md flex flex-col gap-5 pt-6 pb-6">
-                            {!isAdmin ? ( <p className="text-sm text-zinc-400 text-center">Раздел доступен только владельцу.</p> ) : (<>
+                            {!isAdmin ? ( <p className="text-sm text-zinc-400 text-center">{tr("Раздел доступен только владельцу.")}</p> ) : (<>
                                 {!sel && (<><div className="seg" role="tablist">
-                                <button type="button" role="tab" aria-selected={screen === 'analytics'} onClick={() => { SoundFX.click(); navigate('analytics'); }} className={`seg-btn ${screen === 'analytics' ? 'is-active' : ''}`}>Обзор</button>
-                                <button type="button" role="tab" aria-selected={screen === 'analytics_sessions'} onClick={() => { SoundFX.click(); setAnSel(null); navigate('analytics_sessions'); }} className={`seg-btn ${screen === 'analytics_sessions' ? 'is-active' : ''}`}>Сессии</button>
+                                <button type="button" role="tab" aria-selected={screen === 'analytics'} onClick={() => { SoundFX.click(); navigate('analytics'); }} className={`seg-btn ${screen === 'analytics' ? 'is-active' : ''}`}>{tr("Обзор")}</button>
+                                <button type="button" role="tab" aria-selected={screen === 'analytics_sessions'} onClick={() => { SoundFX.click(); setAnSel(null); navigate('analytics_sessions'); }} className={`seg-btn ${screen === 'analytics_sessions' ? 'is-active' : ''}`}>{tr("Сессии")}</button>
                             </div>
                                     <div className="grid grid-cols-2 gap-2" role="tablist">
-                                        <button type="button" role="tab" aria-selected={anView === 'full'} onClick={() => { SoundFX.click(); setAnView('full'); }} className={`chip ${anView === 'full' ? 'is-on' : ''}`}>Полные данные</button>
-                                        <button type="button" role="tab" aria-selected={anView === 'anon'} onClick={() => { SoundFX.click(); setAnView('anon'); }} className={`chip ${anView === 'anon' ? 'is-on' : ''}`}>Обезличенные</button>
+                                        <button type="button" role="tab" aria-selected={anView === 'full'} onClick={() => { SoundFX.click(); setAnView('full'); }} className={`chip ${anView === 'full' ? 'is-on' : ''}`}>{tr("Полные данные")}</button>
+                                        <button type="button" role="tab" aria-selected={anView === 'anon'} onClick={() => { SoundFX.click(); setAnView('anon'); }} className={`chip ${anView === 'anon' ? 'is-on' : ''}`}>{tr("Обезличенные")}</button>
                                     </div>
                                     {anMinControl}
-                                    {anLoading && <p className="text-sm text-zinc-400 text-center">Загружаем данные…</p>}
-                                    {anErr && <div className="flex flex-col gap-3"><span className="ui-error">{anErr}</span><button type="button" onClick={() => { setAnErr(''); setAnData(null); }} className="btn-secondary">Повторить</button></div>}
-                                    {anData && list.length === 0 && <p className="text-sm text-zinc-400 text-center">Сессий пока нет.</p>}
+                                    {anLoading && <p className="text-sm text-zinc-400 text-center">{tr("Загружаем данные…")}</p>}
+                                    {anErr && <div className="flex flex-col gap-3"><span className="ui-error">{anErr}</span><button type="button" onClick={() => { setAnErr(''); setAnData(null); }} className="btn-secondary">{tr("Повторить")}</button></div>}
+                                    {anData && list.length === 0 && <p className="text-sm text-zinc-400 text-center">{tr("Сессий пока нет.")}</p>}
                                     {list.map(([aid, r], i) => { const gs = gamesOf(r); return (
                                         <button key={aid} type="button" onClick={() => { SoundFX.click(); setAnSel(aid); setAnConfirm(''); }} className="card-btn">
                                             <span className="flex items-center justify-between gap-2"><span className="text-sm font-bold text-white truncate">{anView === 'full' ? ((r.names || []).join(' · ') || 'Без имён') : `Сессия №${list.length - i}`}</span><span className="text-zinc-500 text-xl leading-none" aria-hidden="true">›</span></span>
@@ -2418,7 +2418,7 @@ if (screen === 'app_menu') {
                                         {(g.customPunishments || []).length > 0 && ( <details className="text-xs text-zinc-300"><summary className="cursor-pointer text-zinc-400 py-1">Свои наказания игроков ({g.customPunishments.length})</summary><ul className="flex flex-col gap-1.5 pt-2">{g.customPunishments.map((t, i) => <li key={i} className="leading-snug">• {t}</li>)}</ul></details> )}
                                     </section> ))}
                                     <button type="button" disabled={anBusy} onClick={() => deleteAnSession(anSel)} className={`w-full ${anConfirm === anSel ? 'btn-danger' : 'btn-secondary'}`}>{anConfirm === anSel ? 'Точно удалить? Нажмите ещё раз' : '🗑 Удалить сессию и все её данные'}</button>
-                                    <p className="ui-hint text-center">Удаляются и полные, и обезличенные данные этой сессии.</p>
+                                    <p className="ui-hint text-center">{tr("Удаляются и полные, и обезличенные данные этой сессии.")}</p>
                                 </>); })()}
                             </>)}
                         </main>
@@ -2431,20 +2431,20 @@ if (screen === 'app_menu') {
                 return (
                     <div className="safe-screen w-full flex flex-col items-center slide-up relative z-10">
                         <header className="w-full max-w-md flex items-center gap-3 pt-2">
-                            <button type="button" onClick={() => { SoundFX.click(); navigate('app_menu'); }} aria-label="Назад" className="btn-icon flex-shrink-0"><Icons.Back /></button>
-                            <h1 className="flex-1 text-center pr-11 text-lg font-bold text-white">Скрытые вопросы</h1>
+                            <button type="button" onClick={() => { SoundFX.click(); navigate('app_menu'); }} aria-label={tr("Назад")} className="btn-icon flex-shrink-0"><Icons.Back /></button>
+                            <h1 className="flex-1 text-center pr-11 text-lg font-bold text-white">{tr("Скрытые вопросы")}</h1>
                         </header>
                         <main className="w-full max-w-md flex flex-col gap-6 pt-6 pb-6">
-                            {!isAdmin ? ( <p className="text-sm text-zinc-400 text-center">Раздел доступен только владельцу.</p> ) : (<>
-                                <p className="ui-hint">Эти вопросы временно скрыты: игроки их не видят, и они не попадают в игру. Вернуть вопрос можно в любой момент.</p>
-                                {hid.length === 0 ? ( <p className="text-sm text-zinc-400 text-center py-6">Скрытых вопросов нет. Скрыть вопрос можно в списке вопросов кнопкой 🙈.</p> ) : (<>
+                            {!isAdmin ? ( <p className="text-sm text-zinc-400 text-center">{tr("Раздел доступен только владельцу.")}</p> ) : (<>
+                                <p className="ui-hint">{tr("Эти вопросы временно скрыты: игроки их не видят, и они не попадают в игру. Вернуть вопрос можно в любой момент.")}</p>
+                                {hid.length === 0 ? ( <p className="text-sm text-zinc-400 text-center py-6">{tr("Скрытых вопросов нет. Скрыть вопрос можно в списке вопросов кнопкой 🙈.")}</p> ) : (<>
                                     {CATEGORIES.map(c => { const items = hid.filter(q => q.categoryId === c.id); if (!items.length) return null; return (
                                         <section key={c.id} className="flex flex-col gap-2">
                                             <h2 className="ui-title-section">{c.icon} {c.name} · {items.length}</h2>
                                             {items.map(q => (
                                                 <div key={q.dbKey} className="flex items-start gap-3 rounded-[20px] border border-white/10 bg-white/[0.04] px-3.5 py-3">
                                                     <span className="flex-1 min-w-0 text-sm text-zinc-100 leading-snug">{qDisplay(q)}</span>
-                                                    <button type="button" disabled={!!hqBusy} onClick={() => setQuestionHidden(q, false)} className="btn-secondary btn-sm flex-shrink-0">Вернуть</button>
+                                                    <button type="button" disabled={!!hqBusy} onClick={() => setQuestionHidden(q, false)} className="btn-secondary btn-sm flex-shrink-0">{tr("Вернуть")}</button>
                                                 </div>
                                             ))}
                                         </section> ); })}
@@ -2461,8 +2461,8 @@ if (screen === 'app_menu') {
                     <div className="safe-screen w-full flex flex-col items-center justify-between slide-up relative z-10">
                         <PwaInstallModal /> {exitConfirmPopup}
                         <header className="w-full max-w-md flex items-center justify-between pt-2">
-                            <button aria-label="Назад" onClick={() => { SoundFX.click(); navigate('menu'); }} className="btn-icon flex-shrink-0"><Icons.Back /></button>
-                            <h1 className="flex-1 text-center text-lg font-bold text-white">Игроки и сессия</h1>
+                            <button aria-label={tr("Назад")} onClick={() => { SoundFX.click(); navigate('menu'); }} className="btn-icon flex-shrink-0"><Icons.Back /></button>
+                            <h1 className="flex-1 text-center text-lg font-bold text-white">{tr("Игроки и сессия")}</h1>
                             <div className="w-11 flex-shrink-0" aria-hidden="true"></div>
                         </header>
                         <main className="w-full max-w-sm flex flex-col gap-6 my-auto py-6">
@@ -2476,39 +2476,39 @@ if (screen === 'app_menu') {
                                     </div>
                                 ))}
                                 {playersForm.length >= MAX_PLAYERS && ( <span className="text-xs text-zinc-500 text-center">Максимум — {MAX_PLAYERS} игроков</span> )}
-                                {playersForm.length < MAX_PLAYERS && ( <button type="button" onClick={addPlayerField} className="btn-dashed w-full"> <Icons.Plus /> Добавить игрока </button> )}
+                                {playersForm.length < MAX_PLAYERS && ( <button type="button" onClick={addPlayerField} className="btn-dashed w-full"> <Icons.Plus /> {tr("Добавить игрока")} </button> )}
                                 {playersError && <p className="ui-error text-center">{playersError}</p>}
-                                <button type="submit" className="btn-primary w-full mt-1"> Сохранить имена </button>
+                                <button type="submit" className="btn-primary w-full mt-1"> {tr("Сохранить имена")} </button>
                             </form>
                             <div className="hairline-divider"></div>
                             <form onSubmit={handleRestoreBySessionId} className="flex flex-col gap-3">
-                                <label className="block text-xs font-bold text-zinc-400 ml-1"> Восстановить другую сессию </label>
+                                <label className="block text-xs font-bold text-zinc-400 ml-1"> {tr("Восстановить другую сессию")} </label>
                                 <div className="flex gap-2">
-                                    <input type="text" maxLength={400} value={restoreIdInput} onChange={e => setRestoreIdInput(e.target.value.slice(0, 400))} placeholder="Ссылка или ID" className="flex-1 h-[54px] px-4 rounded-xl bg-white/[0.04] border border-white/[0.16] text-sm text-white outline-none focus:border-rose-500" />
+                                    <input type="text" maxLength={400} value={restoreIdInput} onChange={e => setRestoreIdInput(e.target.value.slice(0, 400))} placeholder={tr("Ссылка или ID")} className="flex-1 h-[54px] px-4 rounded-xl bg-white/[0.04] border border-white/[0.16] text-sm text-white outline-none focus:border-rose-500" />
                                     <button type="submit" disabled={isRestoringSession || !restoreIdInput.trim()} className="btn-secondary"> {isRestoringSession ? "..." : "Войти"} </button>
                                 </div>
                                 {restoreError && <span className="ui-error">{restoreError}</span>}
                             </form>
                             <div className="hairline-divider"></div>
-                            <button type="button" onClick={() => { SoundFX.warn(); setShowExitConfirm(true); }} className="btn-danger w-full"><Icons.Logout /> Выйти из сессии</button>
+                            <button type="button" onClick={() => { SoundFX.warn(); setShowExitConfirm(true); }} className="btn-danger w-full"><Icons.Logout /> {tr("Выйти из сессии")}</button>
                             <div className="flex flex-col items-center gap-1 text-center">
-                                <button type="button" onClick={() => { SoundFX.warn(); setDelDataOpen(true); }} className="btn-text text-zinc-400">Удалить мои данные</button>
-                                <span className="text-[13px] text-zinc-500 leading-snug">Сотрёт сессию из облака и всё, что игра хранит на этом устройстве</span>
+                                <button type="button" onClick={() => { SoundFX.warn(); setDelDataOpen(true); }} className="btn-text text-zinc-400">{tr("Удалить мои данные")}</button>
+                                <span className="text-[13px] text-zinc-500 leading-snug">{tr("Сотрёт сессию из облака и всё, что игра хранит на этом устройстве")}</span>
                             </div>
-                            {isAdmin && ( <><div className="hairline-divider"></div> <button onClick={() => { SoundFX.click(); navigate('admin_login'); }} className="btn-accent w-full"> 👑 Управление доступом владельца </button></> )}
+                            {isAdmin && ( <><div className="hairline-divider"></div> <button onClick={() => { SoundFX.click(); navigate('admin_login'); }} className="btn-accent w-full"> {tr("👑 Управление доступом владельца")} </button></> )}
                         </main>
                         <PopupModal isOpen={delDataOpen} onClose={() => { if (!delDataBusy) setDelDataOpen(false); }}>
                             <div className="flex flex-col gap-4 pt-1">
-                                <h3 className="text-lg font-bold text-white pr-8">Удалить все мои данные?</h3>
-                                <p className="text-sm text-zinc-300 leading-snug">Будет стёрто без возможности восстановления:</p>
+                                <h3 className="text-lg font-bold text-white pr-8">{tr("Удалить все мои данные?")}</h3>
+                                <p className="text-sm text-zinc-300 leading-snug">{tr("Будет стёрто без возможности восстановления:")}</p>
                                 <ul className="text-sm text-zinc-400 leading-snug list-disc pl-5 flex flex-col gap-1">
-                                    <li>облачная копия сессии и общая комната игры;</li>
-                                    <li>записи статистики этого устройства;</li>
-                                    <li>имена, архив, настройки и незавершённая партия на этом устройстве.</li>
+                                    <li>{tr("облачная копия сессии и общая комната игры;")}</li>
+                                    <li>{tr("записи статистики этого устройства;")}</li>
+                                    <li>{tr("имена, архив, настройки и незавершённая партия на этом устройстве.")}</li>
                                 </ul>
-                                <p className="text-sm text-zinc-400 leading-snug">Другие устройства, где открыта эта сессия, потеряют её. Если сессия может понадобиться — сначала скопируйте ссылку на неё.</p>
+                                <p className="text-sm text-zinc-400 leading-snug">{tr("Другие устройства, где открыта эта сессия, потеряют её. Если сессия может понадобиться — сначала скопируйте ссылку на неё.")}</p>
                                 <div className="grid grid-cols-2 gap-2">
-                                    <button type="button" disabled={delDataBusy} onClick={() => { SoundFX.click(); setDelDataOpen(false); }} className="btn-secondary">Отмена</button>
+                                    <button type="button" disabled={delDataBusy} onClick={() => { SoundFX.click(); setDelDataOpen(false); }} className="btn-secondary">{tr("Отмена")}</button>
                                     <button type="button" disabled={delDataBusy} onClick={handleDeleteMyData} className="btn-danger">{delDataBusy ? 'Удаляем…' : 'Удалить'}</button>
                                 </div>
                             </div>
@@ -2528,25 +2528,25 @@ if (screen === 'mode_select') {
                 return (
                     <div className="safe-screen w-full flex flex-col items-center slide-up relative z-10">
                         <header className="w-full max-w-md flex items-center gap-3 pt-2">
-                            <button aria-label="Назад" onClick={() => { SoundFX.click(); navigate('menu'); }} className="btn-icon flex-shrink-0"><Icons.Back /></button>
-                            <h1 className="flex-1 text-center text-lg font-bold text-white">Выберите режим</h1>
-                            <button type="button" onClick={() => openInvite('mode_select')} aria-label="Пригласить игроков" title="Пригласить игроков" className="btn-icon flex-shrink-0"><Icons.Share /></button>
+                            <button aria-label={tr("Назад")} onClick={() => { SoundFX.click(); navigate('menu'); }} className="btn-icon flex-shrink-0"><Icons.Back /></button>
+                            <h1 className="flex-1 text-center text-lg font-bold text-white">{tr("Выберите режим")}</h1>
+                            <button type="button" onClick={() => openInvite('mode_select')} aria-label={tr("Пригласить игроков")} title={tr("Пригласить игроков")} className="btn-icon flex-shrink-0"><Icons.Share /></button>
                         </header>
                         <main className="w-full max-w-md flex flex-col gap-4 pt-6 pb-8">
                             {liveInviteBanner}
                             <button disabled={stats.availableActive === 0} onClick={() => { SoundFX.click(); setHardMode(false); startWithMode('normal', { hard: false }); }} className="opt-card opt-brand">
                                 <span aria-hidden="true" className="w-12 h-12 rounded-xl bg-rose-500/20 flex items-center justify-center text-2xl flex-shrink-0">💬</span>
                                 <span className="flex-1 min-w-0 flex flex-col gap-1.5">
-                                    <span className="flex items-center justify-between gap-2"><span className="font-bold text-sm text-white">Обычный режим</span> <span className="text-xs font-bold px-2.5 py-0.5 rounded-lg bg-rose-500/25 text-rose-200">{stats.availableActive} вопр.</span></span>
-                                    <span className="text-xs text-zinc-300 leading-relaxed">Без лишних настроек: жребий определяет, кто отвечает первым. Пройденные вопросы уходят в Архив.</span>
+                                    <span className="flex items-center justify-between gap-2"><span className="font-bold text-sm text-white">{tr("Обычный режим")}</span> <span className="text-xs font-bold px-2.5 py-0.5 rounded-lg bg-rose-500/25 text-rose-200">{stats.availableActive} вопр.</span></span>
+                                    <span className="text-xs text-zinc-300 leading-relaxed">{tr("Без лишних настроек: жребий определяет, кто отвечает первым. Пройденные вопросы уходят в Архив.")}</span>
                                 </span>
                             </button>
                             <button disabled={stats.availableActive === 0} onClick={() => { SoundFX.click(); navigate('game_setup'); }} className="opt-card opt-ember">
                                 <span aria-hidden="true" className="w-12 h-12 rounded-xl bg-amber-400/15 flex items-center justify-center text-2xl flex-shrink-0">🔥</span>
                                 <span className="flex-1 min-w-0 flex flex-col gap-2">
-                                    <span className="font-bold text-sm text-white">Усложнённый режим</span>
-                                    <span className="text-xs text-zinc-300 leading-relaxed">Больше азарта: добавьте таймер на ответ и наказания за пропуск. Нужно выбрать хотя бы одно усложнение.</span>
-                                    <span className="flex flex-wrap gap-1.5 text-xs font-bold text-amber-100/90"><span className="px-2.5 py-1 rounded-full bg-white/[0.07]">⏱ Таймер</span><span className="px-2.5 py-1 rounded-full bg-white/[0.07]">🎭 Наказания</span></span>
+                                    <span className="font-bold text-sm text-white">{tr("Усложнённый режим")}</span>
+                                    <span className="text-xs text-zinc-300 leading-relaxed">{tr("Больше азарта: добавьте таймер на ответ и наказания за пропуск. Нужно выбрать хотя бы одно усложнение.")}</span>
+                                    <span className="flex flex-wrap gap-1.5 text-xs font-bold text-amber-100/90"><span className="px-2.5 py-1 rounded-full bg-white/[0.07]">{tr("⏱ Таймер")}</span><span className="px-2.5 py-1 rounded-full bg-white/[0.07]">{tr("🎭 Наказания")}</span></span>
                                 </span>
                             </button>
                             <p className="px-2 text-xs text-zinc-400 leading-relaxed text-center">👥 Если к сессии подключатся другие устройства, игра сама синхронизируется — до {profile ? deviceCap(profile) : MAX_PLAYERS} одновременно (по числу игроков): вопросы, очередь, рулетка{'\u00A0'}и таймер{'\u00A0'}у всех одинаковые. Пока вы играете одни, ничего не отправляется. Пригласить игроков можно кнопкой в шапке.</p>
@@ -2554,8 +2554,8 @@ if (screen === 'mode_select') {
                                 <button onClick={() => { SoundFX.click(); setHardMode(false); startWithMode('test'); }} className="opt-card">
                                     <span aria-hidden="true" className="w-12 h-12 rounded-xl bg-white/[0.07] flex items-center justify-center text-2xl flex-shrink-0">🧪</span>
                                     <span className="flex-1 min-w-0 flex flex-col gap-1.5">
-                                        <span className="flex items-center justify-between gap-2"><span className="font-bold text-sm text-zinc-200">Тестовый режим</span> <span className="text-xs font-bold px-2.5 py-0.5 rounded-lg bg-white/[0.10] text-zinc-300">{stats.availableTotal > 0 ? stats.availableTotal : db.length} вопр.</span></span>
-                                        <span className="text-xs text-zinc-400 leading-relaxed">Для владельца: все вопросы (включая Архив) и редактирование карточек.</span>
+                                        <span className="flex items-center justify-between gap-2"><span className="font-bold text-sm text-zinc-200">{tr("Тестовый режим")}</span> <span className="text-xs font-bold px-2.5 py-0.5 rounded-lg bg-white/[0.10] text-zinc-300">{stats.availableTotal > 0 ? stats.availableTotal : db.length} вопр.</span></span>
+                                        <span className="text-xs text-zinc-400 leading-relaxed">{tr("Для владельца: все вопросы (включая Архив) и редактирование карточек.")}</span>
                                     </span>
                                 </button>
                             )}
@@ -2579,11 +2579,11 @@ if (screen === 'mode_select') {
                 const newGameConfirmPopup = (
                     <PopupModal isOpen={newGameConfirm && hasSavedGame} onClose={() => setNewGameConfirm(false)}>
                         <div className="text-center flex flex-col items-center gap-4 pt-1">
-                            <h3 className="text-lg font-bold text-white pr-6">Вы точно хотите начать новую игру?</h3>
+                            <h3 className="text-lg font-bold text-white pr-6">{tr("Вы точно хотите начать новую игру?")}</h3>
                             <p className="text-sm text-zinc-400 leading-snug">Текущий прогресс{hasSavedGame ? ` (вопрос ${(profile.savedGame.currentIndex || 0) + 1} из ${profile.savedGame.questionIds.length})` : ''} сбросится — продолжить эту партию будет уже нельзя.</p>
                             <div className="w-full grid grid-cols-2 gap-3 pt-1">
-                                <button type="button" onClick={() => setNewGameConfirm(false)} className="btn-secondary">Отмена</button>
-                                <button type="button" onClick={() => { setNewGameConfirm(false); handlePressStartButton(); }} className="btn-danger">Начать новую</button>
+                                <button type="button" onClick={() => setNewGameConfirm(false)} className="btn-secondary">{tr("Отмена")}</button>
+                                <button type="button" onClick={() => { setNewGameConfirm(false); handlePressStartButton(); }} className="btn-danger">{tr("Начать новую")}</button>
                             </div>
                         </div>
                     </PopupModal>
@@ -2602,7 +2602,7 @@ if (screen === 'mode_select') {
                                     <Icons.User /> <span className="truncate max-w-[120px] sm:max-w-[200px]">{pNamesStr}</span> {isAdmin && <span className="text-rose-400 text-xs">●</span>}
                                 </button>
                                 <div className="flex items-center gap-2 flex-shrink-0">
-                                    <div className="flex items-center rounded-full border border-white/[0.16] bg-white/[0.04] p-0.5 text-[11px] font-bold select-none" role="group" aria-label="Мова / Язык">
+                                    <div className="flex items-center rounded-full border border-white/[0.16] bg-white/[0.04] p-0.5 text-[11px] font-bold select-none" role="group" aria-label={tr("Мова / Язык")}>
                                         <button type="button" onClick={() => { if (lang !== 'uk') { SoundFX.toggle(true); changeLang('uk'); } }} aria-pressed={lang === 'uk'} className={`px-2.5 py-1.5 rounded-full transition-colors ${lang === 'uk' ? 'bg-rose-500 text-white' : 'text-zinc-400'}`}>UA</button>
                                         <button type="button" onClick={() => { if (lang !== 'ru') { SoundFX.toggle(true); changeLang('ru'); } }} aria-pressed={lang === 'ru'} className={`px-2.5 py-1.5 rounded-full transition-colors ${lang === 'ru' ? 'bg-rose-500 text-white' : 'text-zinc-400'}`}>RU</button>
                                     </div>
@@ -2660,22 +2660,22 @@ if (screen === 'mode_select') {
                                 <div className="lg:col-span-5 flex flex-col gap-7 lg:pl-6 lg:border-l lg:border-white/10">
                                     <div className="lg:hidden hairline-divider"></div>
                                     <div className="space-y-3.5">
-                                        <div className="flex items-center justify-between"><h2 className="text-xs font-bold text-zinc-400">Список вопросов</h2><span className="text-xs text-zinc-500">В архиве: <b className="text-zinc-300">{stats.archivedList.length}</b></span></div>
-                                        <button onClick={() => { SoundFX.click(); navigate('cat_list'); }} className="btn-secondary w-full flex items-center justify-center gap-2.5"><Icons.List /> Все вопросы</button>
+                                        <div className="flex items-center justify-between"><h2 className="text-xs font-bold text-zinc-400">{tr("Список вопросов")}</h2><span className="text-xs text-zinc-500">{tr("В архиве:")} <b className="text-zinc-300">{stats.archivedList.length}</b></span></div>
+                                        <button onClick={() => { SoundFX.click(); navigate('cat_list'); }} className="btn-secondary w-full flex items-center justify-center gap-2.5"><Icons.List /> {tr("Все вопросы")}</button>
                                     </div>
                                     <div className="flex flex-col gap-5">
-                                        <div className="flex items-center gap-3 w-full"><div className="h-[1px] flex-1 bg-white/[0.10]"></div><span className="text-xs font-bold text-zinc-400">Доступно для новой игры</span><div className="h-[1px] flex-1 bg-white/[0.10]"></div></div>
+                                        <div className="flex items-center gap-3 w-full"><div className="h-[1px] flex-1 bg-white/[0.10]"></div><span className="text-xs font-bold text-zinc-400">{tr("Доступно для новой игры")}</span><div className="h-[1px] flex-1 bg-white/[0.10]"></div></div>
                                         <div className="grid grid-cols-[1fr_auto_1fr] items-center py-1">
                                             <div className="flex flex-col items-center gap-1"><span className="font-display text-4xl font-bold text-white leading-none">{activeSelectedCatsCount}</span><span className="text-xs font-bold text-zinc-500">{declOfNum(activeSelectedCatsCount, ['Тема', 'Темы', 'Тем'])}</span></div>
                                             <div className="h-9 w-[1px] bg-white/[0.10]"></div>
                                             <div className="flex flex-col items-center gap-1"><span className="font-display text-4xl font-bold text-rose-500 leading-none">{stats.availableActive}</span><span className="text-xs font-bold text-zinc-500">{declOfNum(stats.availableActive, ['Вопрос', 'Вопроса', 'Вопросов'])}</span></div>
                                         </div>
 
-                                        {hasSavedGame && profile && ( <button type="button" onClick={() => handleResumeSavedGame()} className="btn-ghost w-full flex items-center justify-center gap-2"><Icons.Play /> Продолжить игру <span className="text-xs font-semibold text-zinc-500">· вопрос {(profile.savedGame.currentIndex || 0) + 1}</span></button> )}
+                                        {hasSavedGame && profile && ( <button type="button" onClick={() => handleResumeSavedGame()} className="btn-ghost w-full flex items-center justify-center gap-2"><Icons.Play /> {tr("Продолжить игру")} <span className="text-xs font-semibold text-zinc-500">· вопрос {(profile.savedGame.currentIndex || 0) + 1}</span></button> )}
                                         <div className="flex flex-col">
                                             <button type="button" onClick={handleStartClick} disabled={!profile} aria-disabled={!!startBlock && !isAdmin ? 'true' : undefined} aria-describedby={startBlock ? 'start-hint' : undefined} className={`w-full ${profile ? 'btn-primary' : 'btn-secondary opacity-60 cursor-not-allowed'}`} > <Icons.Play /> {!profile ? "Введите имена для игры" : hasSavedGame ? "Начать новую игру" : "Начать игру"} </button>
                                             <div id="start-hint" aria-live="polite">{startBlock && ( <p key={startErrTick} role={startErrTick ? 'alert' : undefined} className={`inline-error ${startErrTick ? 'shake' : ''}`}><span aria-hidden="true" className="inline-error-i">!</span><span>{startBlock}{isAdmin ? ' Тестовый режим доступен и без выбора.' : ''}</span></p> )}</div>
-                                            {profile && ( <p className="mt-3.5 text-center text-xs text-zinc-500">ID сессии: <span className="font-semibold text-zinc-300 select-all">{profile.sessionId}</span></p> )}
+                                            {profile && ( <p className="mt-3.5 text-center text-xs text-zinc-500">{tr("ID сессии:")} <span className="font-semibold text-zinc-300 select-all">{profile.sessionId}</span></p> )}
                                         </div>
                                     </div>
                                 </div>
@@ -2688,7 +2688,7 @@ if (screen === 'mode_select') {
 
             if (screen === 'game') {
                 const currentQ = gameQuestions[currentIndex];
-                if (!currentQ) return <div className="safe-screen w-full flex flex-col items-center justify-center fade-in relative z-10"><AskMeLogo size="lg" /><p className="text-zinc-500 font-semibold text-xs mt-5">Возвращаемся в игру...</p></div>;
+                if (!currentQ) return <div className="safe-screen w-full flex flex-col items-center justify-center fade-in relative z-10"><AskMeLogo size="lg" /><p className="text-zinc-500 font-semibold text-xs mt-5">{tr("Возвращаемся в игру...")}</p></div>;
                 const categoryInfo = CATEGORIES.find(c => c.id === currentQ.categoryId) || CATEGORIES[0]; const diffInfo = DIFFICULTIES.find(d => d.id === currentQ.level) || DIFFICULTIES[0];
                 const cleanText = qDisplay(currentQ);
                 const turnEntry = normTurn(turnHistory[currentIndex]);
@@ -2721,14 +2721,14 @@ if (screen === 'mode_select') {
                                 <div className="px-3.5 py-1.5 rounded-full border border-white/[0.16] text-white font-display font-bold text-xs "> {currentIndex + 1} <span className="text-zinc-500">/</span> {gameQuestions.length} </div>
                                 {live.room && liveCount > 1 && ( <div className="tag" role="status" aria-label={`Устройств в игре: ${liveCount}`}><span aria-hidden="true">👥</span> {liveCount}</div> )}
                                 {isAdmin && gameMode === 'test' && ( <>
-                                    <button type="button" onClick={() => openEditScreen(currentQ, 'game')} className="btn-icon" aria-label="Редактировать вопрос" title="Редактировать"><Icons.Edit /></button>
+                                    <button type="button" onClick={() => openEditScreen(currentQ, 'game')} className="btn-icon" aria-label={tr("Редактировать вопрос")} title={tr("Редактировать")}><Icons.Edit /></button>
                                     <button type="button" disabled={!!hqBusy} onClick={() => setQuestionHidden(currentQ, !curHidden)} className="btn-icon" aria-label={curHidden ? 'Вернуть вопрос всем' : 'Скрыть вопрос для всех'} title={curHidden ? 'Вернуть вопрос всем' : 'Скрыть для всех'}>{curHidden ? <Icons.Eye /> : <Icons.EyeOff />}</button>
-                                    {curHidden && <span className="tag tag-warn" role="status">Скрыт</span>}
+                                    {curHidden && <span className="tag tag-warn" role="status">{tr("Скрыт")}</span>}
                                 </> )}
                             </div>
                             <div className="flex items-center gap-1.5">
                                 <button onClick={toggleMute} className="btn-icon">{isMuted ? <Icons.SoundOff /> : <Icons.SoundOn />}</button>
-                                <button onClick={() => { SoundFX.warn(); setShowEndGameConfirm(true); }} className="btn-secondary btn-sm"><Icons.Menu /> <span className="hidden sm:inline">Меню</span></button>
+                                <button onClick={() => { SoundFX.warn(); setShowEndGameConfirm(true); }} className="btn-secondary btn-sm"><Icons.Menu /> <span className="hidden sm:inline">{tr("Меню")}</span></button>
                             </div>
                         </header>
 
@@ -2741,7 +2741,7 @@ if (screen === 'mode_select') {
                             <div ref={cardRef} className="relative z-10 w-full" style={{ willChange: 'transform, opacity', touchAction: 'pan-y' }}>
                             {swipeHint && ( <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10 px-3 py-1 rounded-full text-xs font-bold bg-white/[0.10] border border-white/[0.16] text-zinc-100 pointer-events-none fade-in">{swipeHint}</div> )}
                             <div className="relative w-full flex flex-col items-center justify-center slide-up rounded-[28px] border border-white/10 bg-gradient-to-b from-[#1b1824] to-[#100e16] px-6 pt-7 pb-6 sm:px-8 shadow-[0_32px_64px_-24px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.07)]" style={{ minHeight: 'min(60dvh, 540px)' }} key={currentQ.dbKey + '_' + currentIndex}>
-                                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 h-7 rounded-full bg-[#1b1824] border border-white/[0.16] flex items-center gap-2 text-xs font-bold text-zinc-300 whitespace-nowrap">Вопрос № {currentQ.num} {gameMode === 'test' && currentQ.archived && ( <span className="text-xs px-1.5 rounded bg-white/[0.10] text-zinc-300">В архиве</span> )}</div>
+                                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 h-7 rounded-full bg-[#1b1824] border border-white/[0.16] flex items-center gap-2 text-xs font-bold text-zinc-300 whitespace-nowrap">Вопрос № {currentQ.num} {gameMode === 'test' && currentQ.archived && ( <span className="text-xs px-1.5 rounded bg-white/[0.10] text-zinc-300">{tr("В архиве")}</span> )}</div>
                                 <div className="flex flex-col items-center gap-1.5 mb-6 pt-2">
                                     
                                     <div className="flex items-center gap-2 text-xs font-bold text-zinc-200"> <span>{categoryInfo.icon}</span> <span>{categoryInfo.name}</span> <span className="text-zinc-500">•</span> <span className={diffInfo.classText}>{diffInfo.name}</span> </div>
@@ -2751,15 +2751,15 @@ if (screen === 'mode_select') {
                                 {gameMode === 'normal' && (turnDone ? (
                                     <div className="mb-7 flex flex-col items-center gap-2 fade-in">
                                         {turnSkipped ? (
-                                            <div className="tag lg tag-warn"><span aria-hidden="true">↷</span> Вопрос пропущен</div>
+                                            <div className="tag lg tag-warn"><span aria-hidden="true">↷</span> {tr("Вопрос пропущен")}</div>
                                         ) : (
-                                            <div className="tag lg tag-ok"><span aria-hidden="true">✓</span> Вопрос пройден</div>
+                                            <div className="tag lg tag-ok"><span aria-hidden="true">✓</span> {tr("Вопрос пройден")}</div>
                                         )}
                                         {!turnSkipped && skippedNames && <span className="text-xs text-amber-200/80 text-center px-4">Пропустили: {skippedNames}</span>}
                                     </div>
                                 ) : assignedPlayerName ? (
                                     <div className="mb-7 flex flex-col items-center gap-2 fade-in">
-                                        <div key={`${currentIndex}:${turnEntry && turnEntry.cur}`} className="tag lg tag-rose turn-tag"><span aria-hidden="true" className="turn-dot"></span>Отвечает: <span className="turn-name">{assignedPlayerName}</span></div>
+                                        <div key={`${currentIndex}:${turnEntry && turnEntry.cur}`} className="tag lg tag-rose turn-tag"><span aria-hidden="true" className="turn-dot"></span>{tr("Отвечает:")} <span className="turn-name">{assignedPlayerName}</span></div>
                                         {skippedNames && <span className="text-xs text-amber-200/80 text-center px-4">Пропустили: {skippedNames}</span>}
                                         {timerKey && tm.key === timerKey && timerDismissKey === timerKey && (
                                             <div className="w-56 mt-2 flex flex-col items-center gap-1" role="timer">
@@ -2770,19 +2770,19 @@ if (screen === 'mode_select') {
                                     </div>
                                 ) : null)}
                                 <div className="grid grid-cols-2 gap-3 w-full max-w-sm">
-                                    <button onClick={() => triggerAI('situation')} className="btn-secondary flex items-center justify-center gap-2"> <span className="text-rose-400"><Icons.Sparkles /></span> Ситуация </button>
-                                    <button onClick={() => triggerAI('psych')} className="btn-accent flex items-center justify-center gap-2"> <Icons.Bulb /> Совет </button>
+                                    <button onClick={() => triggerAI('situation')} className="btn-secondary flex items-center justify-center gap-2"> <span className="text-rose-400"><Icons.Sparkles /></span> {tr("Ситуация")} </button>
+                                    <button onClick={() => triggerAI('psych')} className="btn-accent flex items-center justify-center gap-2"> <Icons.Bulb /> {tr("Совет")} </button>
                                 </div>
                                 {gameMode === 'normal' && turnEntry && turnEntry.cur && !turnDone && (
-                                    <button type="button" onClick={() => { SoundFX.click(); setShowSkipPopup(true); }} className="btn-ghost mt-3 w-full max-w-sm"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></svg> Пропустить вопрос</button>
+                                    <button type="button" onClick={() => { SoundFX.click(); setShowSkipPopup(true); }} className="btn-ghost mt-3 w-full max-w-sm"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></svg> {tr("Пропустить вопрос")}</button>
                                 )}
-                                {currentIndex === 0 && ( <p className="mt-6 text-xs text-zinc-500 text-center">Листайте карточки свайпами или кнопками</p> )}
+                                {currentIndex === 0 && ( <p className="mt-6 text-xs text-zinc-500 text-center">{tr("Листайте карточки свайпами или кнопками")}</p> )}
                             </div></div></div>
                         </main>
 
                         <div className="fixed bottom-0 left-0 right-0 p-4 sm:p-6 z-20 bg-gradient-to-t from-[#0a0710] via-[#0a0710]/90 to-transparent" style={{ paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom))' }}>
                             <div className="max-w-lg mx-auto grid grid-cols-2 gap-3.5">
-                                <button onClick={handlePrevQuestion} disabled={currentIndex === 0} className="btn-secondary w-full flex items-center justify-center gap-2"><Icons.Back /> Назад</button>
+                                <button onClick={handlePrevQuestion} disabled={currentIndex === 0} className="btn-secondary w-full flex items-center justify-center gap-2"><Icons.Back /> {tr("Назад")}</button>
                                 <button onClick={handleNextQuestion} className="btn-primary w-full flex items-center justify-center gap-2">{(currentIndex === gameQuestions.length - 1 && turnDone) ? (gameMode === 'test' ? "В меню" : "Итоги") : "Далее"} <Icons.Next /></button>
                             </div>
                         </div>
@@ -2794,7 +2794,7 @@ if (screen === 'mode_select') {
                                     <h3 className="text-lg font-bold text-white">{turnPopup.spinning ? "Определяем, кто отвечает…" : "Отвечает:"}</h3>
                                     {turnPopup.candidates && turnPopup.candidates.length > 0 && ( <TurnReel key={turnPopup.spinId} players={turnPopup.candidates} winnerId={turnPopup.winner} spinning={turnPopup.spinning} /> )}
                                 </div>
-                                <button type="button" disabled={turnPopup.spinning} onClick={handleCloseRoulettePopup} className="btn-primary w-full">К вопросу</button>
+                                <button type="button" disabled={turnPopup.spinning} onClick={handleCloseRoulettePopup} className="btn-primary w-full">{tr("К вопросу")}</button>
                             </div>
                         </PopupModal>
 
@@ -2808,14 +2808,14 @@ if (screen === 'mode_select') {
                                     </svg>
                                     <div className="absolute inset-0 flex flex-col items-center justify-center">
                                         <span className={`font-display text-4xl font-bold tabular-nums ${tmUrgent ? 'text-rose-300 animate-pulse' : 'text-white'}`}>{Math.max(0, tm.left)}</span>
-                                        <span className="text-xs font-bold text-zinc-500">сек</span>
+                                        <span className="text-xs font-bold text-zinc-500">{tr("сек")}</span>
                                     </div>
                                 </div>
                                 <p className="text-sm text-zinc-300 leading-snug max-h-24 overflow-y-auto px-1">{cleanText}</p>
-                                {fx.punishOn && <span className="text-xs text-zinc-500">Не успеете — выпадет наказание</span>}
+                                {fx.punishOn && <span className="text-xs text-zinc-500">{tr("Не успеете — выпадет наказание")}</span>}
                                 <div className="w-full grid grid-cols-2 gap-3 pt-1">
-                                    <button type="button" onClick={() => { SoundFX.click(); setShowSkipPopup(true); }} className="btn-secondary">Пропустить</button>
-                                    <button type="button" onClick={handleNextQuestion} className="btn-primary">Ответил(а)</button>
+                                    <button type="button" onClick={() => { SoundFX.click(); setShowSkipPopup(true); }} className="btn-secondary">{tr("Пропустить")}</button>
+                                    <button type="button" onClick={handleNextQuestion} className="btn-primary">{tr("Ответил(а)")}</button>
                                 </div>
                             </div>
                         </PopupModal>
@@ -2827,18 +2827,18 @@ if (screen === 'mode_select') {
                                 <h3 className="text-xl font-bold text-white">{punish.reason === 'skip' ? (punish.player ? `${punish.player} пропускает вопрос` : 'Вопрос пропущен') : (punish.player ? `${punish.player}, время вышло!` : 'Время вышло!')}</h3>
                                 {punish.text ? (
                                     <div className="w-full rounded-[20px] border border-rose-500/35 bg-rose-500/10 p-4">
-                                        <div className="text-xs font-bold text-rose-300 mb-1">Наказание</div>
+                                        <div className="text-xs font-bold text-rose-300 mb-1">{tr("Наказание")}</div>
                                         <p className="text-base font-semibold text-white leading-snug">{punish.text}</p>
                                     </div>
-                                ) : ( <p className="text-sm text-zinc-400">Ход переходит дальше.</p> )}
+                                ) : ( <p className="text-sm text-zinc-400">{tr("Ход переходит дальше.")}</p> )}
                                 <button type="button" onClick={closePunish} className="btn-primary w-full">{punish.text ? 'Выполнено' : 'Продолжить'}</button>
                             </div>
                         </PopupModal>
 
                         <PopupModal isOpen={showSkipPopup && gameMode === 'normal'} onClose={() => setShowSkipPopup(false)}>
                             <div className="text-center flex flex-col items-center gap-4 pt-1">
-                                <h3 className="text-lg font-bold text-white">Пропустить вопрос?</h3>
-                                <p className="text-sm text-zinc-400 leading-snug">Выберите, кто пропускает. Пропуски попадут в итоги игры.</p>
+                                <h3 className="text-lg font-bold text-white">{tr("Пропустить вопрос?")}</h3>
+                                <p className="text-sm text-zinc-400 leading-snug">{tr("Выберите, кто пропускает. Пропуски попадут в итоги игры.")}</p>
                                 <div className="w-full flex flex-col gap-3 text-left">
                                     {assignedPlayerName && (
                                         <button type="button" onClick={skipForPlayer} className="card-btn">
@@ -2847,21 +2847,21 @@ if (screen === 'mode_select') {
                                         </button>
                                     )}
                                     <button type="button" onClick={skipForAll} className="card-btn accent">
-                                        <span className="block text-sm font-bold text-rose-200">Для всех</span>
-                                        <span className="block text-xs text-rose-200/70 mt-1 leading-snug">Никто не хочет отвечать — переходим к следующему вопросу.</span>
+                                        <span className="block text-sm font-bold text-rose-200">{tr("Для всех")}</span>
+                                        <span className="block text-xs text-rose-200/70 mt-1 leading-snug">{tr("Никто не хочет отвечать — переходим к следующему вопросу.")}</span>
                                     </button>
                                 </div>
-                                <button type="button" onClick={() => setShowSkipPopup(false)} className="btn-text muted pt-1">Отмена</button>
+                                <button type="button" onClick={() => setShowSkipPopup(false)} className="btn-text muted pt-1">{tr("Отмена")}</button>
                             </div>
                         </PopupModal>
 
                         <PopupModal isOpen={showEndGameConfirm} onClose={() => setShowEndGameConfirm(false)}>
                             <div className="text-center flex flex-col items-center gap-5 pt-2">
-                                <h3 className="text-lg font-bold text-white pr-4 pl-4">Завершить текущую партию?</h3>
+                                <h3 className="text-lg font-bold text-white pr-4 pl-4">{tr("Завершить текущую партию?")}</h3>
                                 {gameMode === 'normal' && <p className="text-xs text-zinc-400 leading-relaxed">Пройденные вопросы ({maxReachedIndex + 1} шт.) перейдут в Архив сессии <b className="text-rose-300">{profile.sessionId}</b>.</p>}
                                 {live.room && liveCount > 1 && <p className="text-xs text-amber-200/90 leading-relaxed">Партия закончится у всех: в игре {liveCount} {declOfNum(liveCount, ['устройство', 'устройства', 'устройств'])}. Чтобы выйти только самому, выберите «Выйти, остальные продолжат».</p>}
-                                <div className="grid grid-cols-2 gap-3 w-full"> <button onClick={() => { SoundFX.click(); setShowEndGameConfirm(false); }} className="btn-secondary w-full">Отмена</button> <button onClick={() => handleFinishGame(false)} className="btn-primary w-full">{live.room && liveCount > 1 ? 'Для всех' : 'Да'}</button> </div>
-                                {live.room && liveCount > 1 && <button type="button" onClick={() => { SoundFX.click(); setShowEndGameConfirm(false); navigate('menu'); }} className="btn-secondary w-full">Выйти, остальные продолжат</button>}
+                                <div className="grid grid-cols-2 gap-3 w-full"> <button onClick={() => { SoundFX.click(); setShowEndGameConfirm(false); }} className="btn-secondary w-full">{tr("Отмена")}</button> <button onClick={() => handleFinishGame(false)} className="btn-primary w-full">{live.room && liveCount > 1 ? 'Для всех' : 'Да'}</button> </div>
+                                {live.room && liveCount > 1 && <button type="button" onClick={() => { SoundFX.click(); setShowEndGameConfirm(false); navigate('menu'); }} className="btn-secondary w-full">{tr("Выйти, остальные продолжат")}</button>}
                             </div>
                         </PopupModal>
                     </div>
@@ -2872,7 +2872,7 @@ if (screen === 'mode_select') {
                 const currentQ = gameQuestions[currentIndex]; const isSituation = aiType === 'situation';
                 return (
                     <div className="safe-screen w-full flex flex-col justify-between fade-in relative z-10">
-                        <header className="w-full max-w-2xl mx-auto flex items-center justify-between py-2 flex-shrink-0"> <button aria-label="Назад" onClick={() => { SoundFX.click(); navigate('game'); }} className="btn-icon flex-shrink-0"><Icons.Back /></button> <AskMeLogo size="xs" /> <span className="text-xs font-bold text-zinc-500">№ {currentQ?.num}</span> </header>
+                        <header className="w-full max-w-2xl mx-auto flex items-center justify-between py-2 flex-shrink-0"> <button aria-label={tr("Назад")} onClick={() => { SoundFX.click(); navigate('game'); }} className="btn-icon flex-shrink-0"><Icons.Back /></button> <AskMeLogo size="xs" /> <span className="text-xs font-bold text-zinc-500">№ {currentQ?.num}</span> </header>
                         <main className="flex-1 flex flex-col items-center py-6 pb-28 overflow-y-auto no-scrollbar">
                             <div className="w-full max-w-xl flex flex-col items-center slide-up gap-6">
                                 <div className="text-center space-y-2"> <span className="text-xs font-bold text-rose-400">{isSituation ? "Моделирование ситуации" : "Разбор психолога"}</span> <p className="text-base font-medium text-zinc-200 px-2">«{currentQ?.cleanText || currentQ?.text}»</p> </div>
@@ -2880,7 +2880,7 @@ if (screen === 'mode_select') {
                                 <div className={`w-full text-left text-zinc-200 text-[15px] md:text-base leading-relaxed whitespace-pre-wrap ${isAiTyping ? 'ai-cursor' : ''}`}>{aiContent}</div>
                             </div>
                         </main>
-                        <div className="fixed bottom-0 left-0 right-0 p-4 sm:p-6 z-20 bg-gradient-to-t from-[#0a0710] via-[#0a0710]/90 to-transparent"> <div className="max-w-xl mx-auto"> <button onClick={() => { SoundFX.click(); navigate('game'); }} className="btn-primary w-full flex items-center justify-center">К вопросу</button> </div> </div>
+                        <div className="fixed bottom-0 left-0 right-0 p-4 sm:p-6 z-20 bg-gradient-to-t from-[#0a0710] via-[#0a0710]/90 to-transparent"> <div className="max-w-xl mx-auto"> <button onClick={() => { SoundFX.click(); navigate('game'); }} className="btn-primary w-full flex items-center justify-center">{tr("К вопросу")}</button> </div> </div>
                     </div>
                 );
             }
@@ -2905,13 +2905,13 @@ if (screen === 'summary') {
                             <div className="reveal flex flex-col items-center gap-3" style={{ animationDelay: '160ms' }}>
                                 <SummaryRing frac={frac}>
                                     <div className="font-display text-5xl font-extrabold text-white leading-none"><AnimatedCounter target={total} /></div>
-                                    <span className="text-xs font-bold text-zinc-500 mt-2">отвечено</span>
+                                    <span className="text-xs font-bold text-zinc-500 mt-2">{tr("отвечено")}</span>
                                 </SummaryRing>
-                                <p className="text-zinc-500 text-xs">Пройденные вопросы переехали в архив</p>
+                                <p className="text-zinc-500 text-xs">{tr("Пройденные вопросы переехали в архив")}</p>
                             </div>
                             <div className="reveal flex flex-col items-center gap-2.5" style={{ animationDelay: '260ms' }}>
                                 <span className="inline-flex px-4 py-2 rounded-full border border-rose-500/35 bg-rose-500/10 text-sm font-semibold text-rose-100">{titleBadge}</span>
-                                {isAllAnswered && ( <button type="button" onClick={() => SoundFX.romanticFinale()} className="btn-ghost btn-sm">🎵 Мелодия финала</button> )}
+                                {isAllAnswered && ( <button type="button" onClick={() => SoundFX.romanticFinale()} className="btn-ghost btn-sm">{tr("🎵 Мелодия финала")}</button> )}
                             </div>
                             <div className="reveal w-full rounded-[20px] border border-white/10 bg-white/[0.04] p-5 flex flex-col gap-5" style={{ animationDelay: '360ms' }}>
                                 <SummaryBars total={total} rows={[
@@ -2921,13 +2921,13 @@ if (screen === 'summary') {
                                 ]} />
                                 <div className="hairline-divider"></div>
                                 <div className="flex items-center justify-between">
-                                    <span className="flex items-center gap-2.5 font-bold text-xs text-zinc-300"><span aria-hidden="true" className="skip-ico"><Icons.Skip /></span> Пропущено</span>
+                                    <span className="flex items-center gap-2.5 font-bold text-xs text-zinc-300"><span aria-hidden="true" className="skip-ico"><Icons.Skip /></span> {tr("Пропущено")}</span>
                                     <span className="font-display text-xl font-bold text-white"><AnimatedCounter target={skippedCount} /></span>
                                 </div>
                             </div>
                             <div className={`reveal w-full grid gap-3 ${canReplay ? 'grid-cols-2' : 'grid-cols-1'}`} style={{ animationDelay: '460ms' }}>
-                                {canReplay && ( <button type="button" onClick={() => { SoundFX.click(); navigate('mode_select'); }} className="btn-secondary">Играть ещё</button> )}
-                                <button type="button" onClick={() => { SoundFX.click(); navigate('menu'); }} className="btn-primary flex items-center justify-center gap-2"><Icons.Check /> В меню</button>
+                                {canReplay && ( <button type="button" onClick={() => { SoundFX.click(); navigate('mode_select'); }} className="btn-secondary">{tr("Играть ещё")}</button> )}
+                                <button type="button" onClick={() => { SoundFX.click(); navigate('menu'); }} className="btn-primary flex items-center justify-center gap-2"><Icons.Check /> {tr("В меню")}</button>
                             </div>
                         </div>
                         <AppFooter />
@@ -2939,19 +2939,19 @@ if (screen === 'summary') {
                 return (
                     <div className="safe-screen w-full flex flex-col fade-in max-w-md lg:max-w-3xl mx-auto relative z-10">
                         <header className="flex items-center justify-between gap-4 mb-6 pt-2">
-                            <div className="flex items-center gap-3.5"><button aria-label="Назад" onClick={() => { SoundFX.click(); navigate('menu'); }} className="btn-icon flex-shrink-0"><Icons.Back /></button><div><h2 className="text-2xl font-bold text-white">Все вопросы</h2><p className="text-xs text-zinc-500 mt-0.5">Активно: {db.length - stats.archivedList.length - stats.disabledCount} из {db.length}</p></div></div>
+                            <div className="flex items-center gap-3.5"><button aria-label={tr("Назад")} onClick={() => { SoundFX.click(); navigate('menu'); }} className="btn-icon flex-shrink-0"><Icons.Back /></button><div><h2 className="text-2xl font-bold text-white">{tr("Все вопросы")}</h2><p className="text-xs text-zinc-500 mt-0.5">Активно: {db.length - stats.archivedList.length - stats.disabledCount} из {db.length}</p></div></div>
                         </header>
                         <div className="flex-1 flex flex-col gap-8 pb-24">
-                            {isAdmin && ( <button type="button" onClick={() => { SoundFX.click(); setTopicDraft(CATEGORIES.map(c => c.id)); setTopicErr(''); navigate('topics_admin'); }} className="btn-secondary w-full flex items-center justify-center gap-2.5">⚙ Управление темами</button> )}
+                            {isAdmin && ( <button type="button" onClick={() => { SoundFX.click(); setTopicDraft(CATEGORIES.map(c => c.id)); setTopicErr(''); navigate('topics_admin'); }} className="btn-secondary w-full flex items-center justify-center gap-2.5">{tr("⚙ Управление темами")}</button> )}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 divide-y md:divide-y-0 border-y border-white/10 divide-white/[0.08]">
                                 {CATEGORIES.map(cat => (
                                     <button key={cat.id} onClick={() => { SoundFX.click(); setViewCategory(cat.id); setVisibleLimit(60); navigate('q_list'); }} className="row justify-between md:border-b md:border-white/10">
-                                        <div className="flex items-center gap-3.5"><span className="text-2xl">{cat.icon}</span><div><div className="font-semibold text-base text-white">{cat.name}</div><div className="text-xs text-zinc-500">Активных: <span className="text-zinc-300 font-semibold">{stats.activeByCat[cat.id] || 0}</span> из {stats.totalByCat[cat.id] || 0}</div></div></div><span className="text-zinc-500"><Icons.Next /></span>
+                                        <div className="flex items-center gap-3.5"><span className="text-2xl">{cat.icon}</span><div><div className="font-semibold text-base text-white">{cat.name}</div><div className="text-xs text-zinc-500">{tr("Активных:")} <span className="text-zinc-300 font-semibold">{stats.activeByCat[cat.id] || 0}</span> из {stats.totalByCat[cat.id] || 0}</div></div></div><span className="text-zinc-500"><Icons.Next /></span>
                                     </button>
                                 ))}
                             </div>
                             <div className="pt-2 flex flex-col gap-4">
-                                <button onClick={() => { SoundFX.click(); navigate('archive_page'); }} className="flex items-center gap-3 text-left group min-h-[48px]"> <span className="w-10 h-10 rounded-xl bg-white/[0.04] border border-white/10 flex items-center justify-center text-rose-400 group-hover:border-rose-500/40 transition-all"><Icons.Archive /></span> <div><div className="font-bold text-base text-white flex items-center gap-2">Архив вопросов <span className="text-xs text-zinc-500 font-normal">→</span></div><div className="text-xs text-zinc-500">В архиве: {stats.archivedList.length} вопр.</div></div> </button>
+                                <button onClick={() => { SoundFX.click(); navigate('archive_page'); }} className="flex items-center gap-3 text-left group min-h-[48px]"> <span className="w-10 h-10 rounded-xl bg-white/[0.04] border border-white/10 flex items-center justify-center text-rose-400 group-hover:border-rose-500/40 transition-all"><Icons.Archive /></span> <div><div className="font-bold text-base text-white flex items-center gap-2">{tr("Архив вопросов")} <span className="text-xs text-zinc-500 font-normal">→</span></div><div className="text-xs text-zinc-500">В архиве: {stats.archivedList.length} вопр.</div></div> </button>
                             </div>
                         </div>
                         {isAdmin && <div className="fixed bottom-5 left-5 right-5 max-w-md mx-auto pointer-events-none"> <button onClick={() => { SoundFX.click(); setAddStatus(null); setAddForm({ text: '', cat: 'family', diff: 'Простые', targetId: '', aud: 'both' }); navigate('add_q'); }} className="btn-primary w-full flex items-center justify-center gap-2 pointer-events-auto"><Icons.Plus /> {tr("Новый вопрос")}</button> </div>}
@@ -2962,8 +2962,8 @@ if (screen === 'summary') {
             if (screen === 'archive_page') {
                 return (
                     <div className="safe-screen w-full flex flex-col fade-in max-w-2xl mx-auto relative z-10">
-                        <header className="flex items-center justify-between gap-3 mb-6 pt-2 flex-wrap"> <div className="flex items-center gap-3.5"><button aria-label="Назад" onClick={() => { SoundFX.click(); navigate('cat_list'); }} className="btn-icon flex-shrink-0"><Icons.Back /></button><div><h2 className="text-2xl font-bold text-white">Архив вопросов</h2></div></div> </header>
-                        {stats.archivedList.length === 0 ? ( <div className="flex-1 flex flex-col items-center justify-center text-center py-16 gap-4"><div className="w-12 h-12 rounded-xl bg-white/[0.04] border border-white/10 flex items-center justify-center text-zinc-500"><Icons.Archive /></div><p className="text-sm text-zinc-400 max-w-xs leading-relaxed">Архив пуст.</p><button onClick={() => navigate('cat_list')} className="btn-secondary mt-2">К темам</button></div> ) : ( <div className="flex-1 flex flex-col gap-6 pb-24"><div className="flex flex-col divide-y divide-white/[0.08] border-y border-white/10"> {stats.archivedList.slice(0, 50).map(q => ( <div key={q.dbKey} className="py-4 flex items-start justify-between gap-4"><div className="text-sm text-zinc-200"><div className="flex items-center gap-2 text-xs mb-1"><span className="text-rose-400 font-bold">№ {q.num}</span></div>{qDisplay(q)}</div><button onClick={() => handleRestoreSingleFromArchive(q)} className="btn-secondary btn-sm"><Icons.Restore /> {tr("Вернуть")}</button></div> ))} </div> <button onClick={() => handleRestoreBatchFromArchive(stats.archivedList)} className="btn-primary w-full flex items-center justify-center gap-2 mt-2"><Icons.Restore /> Вернуть все</button></div> )}
+                        <header className="flex items-center justify-between gap-3 mb-6 pt-2 flex-wrap"> <div className="flex items-center gap-3.5"><button aria-label={tr("Назад")} onClick={() => { SoundFX.click(); navigate('cat_list'); }} className="btn-icon flex-shrink-0"><Icons.Back /></button><div><h2 className="text-2xl font-bold text-white">{tr("Архив вопросов")}</h2></div></div> </header>
+                        {stats.archivedList.length === 0 ? ( <div className="flex-1 flex flex-col items-center justify-center text-center py-16 gap-4"><div className="w-12 h-12 rounded-xl bg-white/[0.04] border border-white/10 flex items-center justify-center text-zinc-500"><Icons.Archive /></div><p className="text-sm text-zinc-400 max-w-xs leading-relaxed">{tr("Архив пуст.")}</p><button onClick={() => navigate('cat_list')} className="btn-secondary mt-2">{tr("К темам")}</button></div> ) : ( <div className="flex-1 flex flex-col gap-6 pb-24"><div className="flex flex-col divide-y divide-white/[0.08] border-y border-white/10"> {stats.archivedList.slice(0, 50).map(q => ( <div key={q.dbKey} className="py-4 flex items-start justify-between gap-4"><div className="text-sm text-zinc-200"><div className="flex items-center gap-2 text-xs mb-1"><span className="text-rose-400 font-bold">№ {q.num}</span></div>{qDisplay(q)}</div><button onClick={() => handleRestoreSingleFromArchive(q)} className="btn-secondary btn-sm"><Icons.Restore /> {tr("Вернуть")}</button></div> ))} </div> <button onClick={() => handleRestoreBatchFromArchive(stats.archivedList)} className="btn-primary w-full flex items-center justify-center gap-2 mt-2"><Icons.Restore /> {tr("Вернуть все")}</button></div> )}
                     </div>
                 );
             }
@@ -2977,10 +2977,10 @@ if (screen === 'summary') {
                 return (
                     <div className="safe-screen w-full flex flex-col fade-in max-w-2xl mx-auto relative z-10">
                         <header className="flex items-center justify-between gap-4 mb-5 pt-2 flex-shrink-0">
-                            <div className="flex items-center gap-3.5"><button aria-label="Назад" onClick={() => { SoundFX.click(); navigate('cat_list'); }} className="btn-icon flex-shrink-0"><Icons.Back /></button><h2 className="text-2xl font-bold text-white">{CATEGORIES.find(c => c.id === viewCategory)?.name}</h2></div>
+                            <div className="flex items-center gap-3.5"><button aria-label={tr("Назад")} onClick={() => { SoundFX.click(); navigate('cat_list'); }} className="btn-icon flex-shrink-0"><Icons.Back /></button><h2 className="text-2xl font-bold text-white">{CATEGORIES.find(c => c.id === viewCategory)?.name}</h2></div>
                         </header>
-                        <div role="tablist" aria-label="Сортировка по глубине" className="seg level-seg mb-6">
-                            <button type="button" role="tab" aria-selected={qLevel === 'all'} onClick={() => pickLevel('all')} className={`seg-btn level-seg-btn ${qLevel === 'all' ? 'is-active' : ''}`}><span>Все</span>{' '}<span className="level-seg-n">{qs.length}</span></button>
+                        <div role="tablist" aria-label={tr("Сортировка по глубине")} className="seg level-seg mb-6">
+                            <button type="button" role="tab" aria-selected={qLevel === 'all'} onClick={() => pickLevel('all')} className={`seg-btn level-seg-btn ${qLevel === 'all' ? 'is-active' : ''}`}><span>{tr("Все")}</span>{' '}<span className="level-seg-n">{qs.length}</span></button>
                             {DIFFICULTIES.map(d => (
                                 <button key={d.id} type="button" role="tab" aria-selected={qLevel === d.id} onClick={() => pickLevel(d.id)} className={`seg-btn level-seg-btn ${qLevel === d.id ? 'is-active' : ''}`}><span className="flex items-center gap-1.5"><span aria-hidden="true" className="level-dot" style={lvlDot(d)}></span>{d.name}</span>{' '}<span className="level-seg-n">{lvlCount[d.id]}</span></button>
                             ))}
@@ -3000,22 +3000,22 @@ if (screen === 'summary') {
             if (screen === 'edit_q' && editingQuestion && isAdmin) {
                 return (
                     <div className="safe-screen w-full flex flex-col fade-in max-w-lg mx-auto relative z-10">
-                        <header className="flex items-center gap-3.5 mb-6 pt-2"><button aria-label="Назад" onClick={() => { SoundFX.click(); navigate(returnScreen); }} className="btn-icon flex-shrink-0"><Icons.Back /></button><div><h2 className="text-xl font-bold text-white">Редактирование</h2><p className="text-xs text-zinc-500">№ {editingQuestion.num}</p></div></header>
+                        <header className="flex items-center gap-3.5 mb-6 pt-2"><button aria-label={tr("Назад")} onClick={() => { SoundFX.click(); navigate(returnScreen); }} className="btn-icon flex-shrink-0"><Icons.Back /></button><div><h2 className="text-xl font-bold text-white">{tr("Редактирование")}</h2><p className="text-xs text-zinc-500">№ {editingQuestion.num}</p></div></header>
                         <div className="flex-1 flex flex-col gap-5 slide-up">
                             <textarea value={editForm.text} onChange={e => { setEditForm({...editForm, text: e.target.value}); setQFormError(''); }} className="w-full p-4 rounded-2xl bg-white/[0.04] border border-white/[0.16] text-base text-white h-36 focus:border-rose-500"></textarea>
                             {qFormError && <span className="ui-error">{qFormError}</span>}
-                            <input type="text" placeholder="ID сессии (оставьте пустым для всех)" value={editForm.targetId} onChange={e => setEditForm({...editForm, targetId: e.target.value})} className="w-full h-[54px] px-5 rounded-2xl bg-white/[0.04] border border-white/[0.16] text-white" />
+                            <input type="text" placeholder={tr("ID сессии (оставьте пустым для всех)")} value={editForm.targetId} onChange={e => setEditForm({...editForm, targetId: e.target.value})} className="w-full h-[54px] px-5 rounded-2xl bg-white/[0.04] border border-white/[0.16] text-white" />
                             <div className="grid grid-cols-2 gap-4"><CustomSelect value={editForm.cat} onChange={val => setEditForm({...editForm, cat: val})} options={CATEGORIES.map(c=>({value:c.id, label:catLabel(c.id, c.name)}))} /><CustomSelect value={editForm.diff} onChange={val => setEditForm({...editForm, diff: val})} options={DIFFICULTIES.map(d=>({value:d.id, label:diffLabel(d.id, d.name)}))} /></div>
                             <CustomSelect value={editForm.aud} onChange={val => setEditForm({...editForm, aud: val})} options={[{value:'both', label:audienceLabel('both')},{value:'couple', label:audienceLabel('couple')},{value:'group', label:audienceLabel('group')}]} />
                             {(() => { const hid = !!(db.find(x => x.dbKey === editingQuestion.dbKey) || {}).hidden; return ( <div className="flex flex-col gap-2"> <button type="button" disabled={!!hqBusy} onClick={() => setQuestionHidden(editingQuestion, !hid)} className="btn-secondary w-full flex items-center justify-center gap-2">{hid ? <Icons.Eye /> : <Icons.EyeOff />} {hid ? 'Вернуть вопрос всем' : 'Скрыть для всех'}</button> <p className="text-xs text-zinc-500 leading-snug text-center">{hid ? 'Сейчас вопрос скрыт: игроки его не видят.' : 'Игроки перестанут видеть вопрос. Вернуть можно здесь или в разделе «Скрытые вопросы».'}</p> </div> ); })()}
-                            <button onClick={() => setConfirmModal({ action: 'delete', title: 'Удалить вопрос?' })} className="btn-danger w-full flex items-center justify-center gap-2"><Icons.Trash /> Удалить</button>
-                            <div className="mt-auto pt-4 grid grid-cols-2 gap-3.5"><button onClick={() => navigate(returnScreen)} className="btn-secondary w-full">Отмена</button><button onClick={() => { if (editForm.text.trim().length < 3) { SoundFX.warn(); setQFormError('Введите текст вопроса — минимум 3 символа'); return; } setQFormError(''); setConfirmModal({ action: 'save', title: 'Сохранить?' }); }} disabled={isSaving} className="btn-primary w-full"><Icons.Check /> Сохранить</button></div>
+                            <button onClick={() => setConfirmModal({ action: 'delete', title: 'Удалить вопрос?' })} className="btn-danger w-full flex items-center justify-center gap-2"><Icons.Trash /> {tr("Удалить")}</button>
+                            <div className="mt-auto pt-4 grid grid-cols-2 gap-3.5"><button onClick={() => navigate(returnScreen)} className="btn-secondary w-full">{tr("Отмена")}</button><button onClick={() => { if (editForm.text.trim().length < 3) { SoundFX.warn(); setQFormError('Введите текст вопроса — минимум 3 символа'); return; } setQFormError(''); setConfirmModal({ action: 'save', title: 'Сохранить?' }); }} disabled={isSaving} className="btn-primary w-full"><Icons.Check /> {tr("Сохранить")}</button></div>
                         </div>
                         <PopupModal isOpen={Boolean(confirmModal)} onClose={() => setConfirmModal(null)}>
-                            {confirmModal && <div className="text-center gap-5 pt-2"><h3 className="font-bold text-white mb-4">{confirmModal.title}</h3><div className="grid grid-cols-2 gap-3 w-full"><button onClick={() => setConfirmModal(null)} className="btn-secondary">Отмена</button><button onClick={() => confirmModal.action === 'delete' ? executeDeleteQuestion() : executeSaveEdit()} className="btn-primary">Да</button></div></div>}
+                            {confirmModal && <div className="text-center gap-5 pt-2"><h3 className="font-bold text-white mb-4">{confirmModal.title}</h3><div className="grid grid-cols-2 gap-3 w-full"><button onClick={() => setConfirmModal(null)} className="btn-secondary">{tr("Отмена")}</button><button onClick={() => confirmModal.action === 'delete' ? executeDeleteQuestion() : executeSaveEdit()} className="btn-primary">{tr("Да")}</button></div></div>}
                         </PopupModal>
                         <PopupModal isOpen={Boolean(resultModal)} onClose={() => { const target = resultModal?.afterCloseScreen; setResultModal(null); if (target) navigate(target); }}>
-                            {resultModal && <div className="text-center gap-4 pt-2"><h3 className="text-lg font-bold text-white mb-2">{resultModal.msg}</h3><button onClick={() => { const target = resultModal.afterCloseScreen; setResultModal(null); if (target) navigate(target); }} className="btn-primary w-full mt-1">Понятно</button></div>}
+                            {resultModal && <div className="text-center gap-4 pt-2"><h3 className="text-lg font-bold text-white mb-2">{resultModal.msg}</h3><button onClick={() => { const target = resultModal.afterCloseScreen; setResultModal(null); if (target) navigate(target); }} className="btn-primary w-full mt-1">{tr("Понятно")}</button></div>}
                         </PopupModal>
                     </div>
                 );
@@ -3024,18 +3024,18 @@ if (screen === 'summary') {
             if (screen === 'add_q' && isAdmin) {
                 return (
                     <div className="safe-screen w-full flex flex-col fade-in max-w-lg mx-auto relative z-10">
-                        <header className="flex items-center gap-3.5 mb-6 pt-2"><button aria-label="Назад" onClick={() => { SoundFX.click(); navigate(viewCategory ? 'q_list' : 'cat_list'); }} className="btn-icon flex-shrink-0"><Icons.Back /></button><h2 className="text-xl font-bold text-white">Новый вопрос</h2></header>
+                        <header className="flex items-center gap-3.5 mb-6 pt-2"><button aria-label={tr("Назад")} onClick={() => { SoundFX.click(); navigate(viewCategory ? 'q_list' : 'cat_list'); }} className="btn-icon flex-shrink-0"><Icons.Back /></button><h2 className="text-xl font-bold text-white">{tr("Новый вопрос")}</h2></header>
                         {addStatus ? (
-                            <div className="flex-1 flex flex-col items-center justify-center slide-up"><h3 className="text-2xl font-bold text-white">{addStatus.ok ? 'Вопрос добавлен' : 'Ошибка'}</h3><p className="text-xs text-zinc-400 mb-4 mt-2">{addStatus.msg}</p><div className="grid grid-cols-2 gap-3 w-full max-w-xs"><button onClick={() => navigate(viewCategory ? 'q_list' : 'cat_list')} className="btn-secondary">К списку</button><button onClick={() => setAddStatus(null)} className="btn-primary">Еще один</button></div></div>
+                            <div className="flex-1 flex flex-col items-center justify-center slide-up"><h3 className="text-2xl font-bold text-white">{addStatus.ok ? 'Вопрос добавлен' : 'Ошибка'}</h3><p className="text-xs text-zinc-400 mb-4 mt-2">{addStatus.msg}</p><div className="grid grid-cols-2 gap-3 w-full max-w-xs"><button onClick={() => navigate(viewCategory ? 'q_list' : 'cat_list')} className="btn-secondary">{tr("К списку")}</button><button onClick={() => setAddStatus(null)} className="btn-primary">{tr("Еще один")}</button></div></div>
                         ) : (
                             <form noValidate onSubmit={handleAddQuestion} className="flex-1 flex flex-col gap-5 slide-up">
-                                <textarea value={addForm.text} onChange={e => { setAddForm({...addForm, text: e.target.value}); setQFormError(''); }} className="w-full p-4 rounded-2xl bg-white/[0.04] border border-white/[0.16] text-base text-white h-36 focus:border-rose-500" placeholder="Введите вопрос..."></textarea>
+                                <textarea value={addForm.text} onChange={e => { setAddForm({...addForm, text: e.target.value}); setQFormError(''); }} className="w-full p-4 rounded-2xl bg-white/[0.04] border border-white/[0.16] text-base text-white h-36 focus:border-rose-500" placeholder={tr("Введите вопрос...")}></textarea>
                             {qFormError && <span className="ui-error">{qFormError}</span>}
-                                <input type="text" placeholder="ID сессии (оставьте пустым для всех)" value={addForm.targetId} onChange={e => setAddForm({...addForm, targetId: e.target.value})} className="w-full h-[54px] px-5 rounded-2xl bg-white/[0.04] border border-white/[0.16] text-white" />
+                                <input type="text" placeholder={tr("ID сессии (оставьте пустым для всех)")} value={addForm.targetId} onChange={e => setAddForm({...addForm, targetId: e.target.value})} className="w-full h-[54px] px-5 rounded-2xl bg-white/[0.04] border border-white/[0.16] text-white" />
                                 <div className="grid grid-cols-2 gap-4"><CustomSelect value={addForm.cat} onChange={val => setAddForm({...addForm, cat: val})} options={CATEGORIES.map(c=>({value:c.id, label:catLabel(c.id, c.name)}))} /><CustomSelect value={addForm.diff} onChange={val => setAddForm({...addForm, diff: val})} options={DIFFICULTIES.map(d=>({value:d.id, label:diffLabel(d.id, d.name)}))} /></div>
                                 <CustomSelect value={addForm.aud} onChange={val => setAddForm({...addForm, aud: val})} options={[{value:'both', label:audienceLabel('both')},{value:'couple', label:audienceLabel('couple')},{value:'group', label:audienceLabel('group')}]} />
                                 <button type="button" disabled={isGeneratingQuestion} onClick={handleGenerateQuestionAI} className="btn-accent w-full flex items-center justify-center gap-2"><Icons.Sparkles /> {isGeneratingQuestion ? "Генерация..." : "Идея от ИИ"}</button>
-                                <div className="mt-auto pt-4 grid grid-cols-2 gap-3.5"><button type="button" onClick={() => navigate(viewCategory ? 'q_list' : 'cat_list')} className="btn-secondary w-full">Отмена</button><button type="submit" disabled={isSaving || !addForm.text.trim()} className="btn-primary w-full flex items-center justify-center gap-2"><Icons.Plus /> Сохранить</button></div>
+                                <div className="mt-auto pt-4 grid grid-cols-2 gap-3.5"><button type="button" onClick={() => navigate(viewCategory ? 'q_list' : 'cat_list')} className="btn-secondary w-full">{tr("Отмена")}</button><button type="submit" disabled={isSaving || !addForm.text.trim()} className="btn-primary w-full flex items-center justify-center gap-2"><Icons.Plus /> {tr("Сохранить")}</button></div>
                             </form>
                         )}
                     </div>
