@@ -1,11 +1,11 @@
 // Запуск всех проверок: node tests/run-all.js [--unit | --ui]
 const { spawn } = require('child_process'); const path = require('path');
-const UNIT = ['deck', 'analytics-logic', 'punishment-logic', 'sound', 'topics-logic', 'turn-queue', 'reel-and-queue', 'live-logic', 'content', 'update', 'tod-rules', 'tod-model'].map(n => ({ name: 'unit/' + n, file: `unit/${n}.test.js`, env: {} }));
+const UNIT = ['deck', 'analytics-logic', 'punishment-logic', 'sound', 'topics-logic', 'turn-queue', 'reel-and-queue', 'live-logic', 'content', 'update', 'tod-rules', 'tod-model', 'tod-cards'].map(n => ({ name: 'unit/' + n, file: `unit/${n}.test.js`, env: {} }));
 const UI = [
   ['game', {}], ['timer', {}], ['modes', { FLOW: 'hard' }], ['modes', { FLOW: 'normal' }], ['modes', { FLOW: 'admin' }], ['results', {}],
   ['menu', { FLOW: 'player' }], ['menu', { FLOW: 'admin' }], ['punishment-templates', { FLOW: 'player' }], ['punishment-templates', { FLOW: 'admin' }],
   ['analytics', { FLOW: 'player' }], ['analytics', { FLOW: 'optout' }], ['analytics', { FLOW: 'admin' }],
-  ['hidden-questions', { FLOW: 'player' }], ['hidden-questions', { FLOW: 'admin' }], ['question-form', {}], ['card-effects', {}], ['live', {}], ['live-lifecycle', {}], ['live-hard', {}], ['live-admin', {}], ['live-resume', {}], ['quick-ui', { FLOW: 'player' }], ['quick-ui', { FLOW: 'admin' }], ['analytics-partial', {}], ['about-legal', {}], ['invite-join', {}], ['live-invite', {}], ['cloud-payload', {}], ['live-solo-timeout', {}], ['game-resume', {}], ['id-login', {}], ['invite-share', {}], ['live-cap', {}], ['resume-guard', {}], ['ui-polish', {}]
+  ['hidden-questions', { FLOW: 'player' }], ['hidden-questions', { FLOW: 'admin' }], ['question-form', {}], ['card-effects', {}], ['live', {}], ['live-lifecycle', {}], ['live-hard', {}], ['live-admin', {}], ['live-resume', {}], ['quick-ui', { FLOW: 'player' }], ['quick-ui', { FLOW: 'admin' }], ['analytics-partial', {}], ['about-legal', {}], ['invite-join', {}], ['live-invite', {}], ['cloud-payload', {}], ['live-solo-timeout', {}], ['game-resume', {}], ['id-login', {}], ['invite-share', {}], ['live-cap', {}], ['resume-guard', {}], ['ui-polish', {}], ['tod-cards-load', {}]
 ].map(([n, env]) => ({ name: `ui/${n}${env.FLOW ? ' [' + env.FLOW + ']' : ''}`, file: `ui/${n}.test.js`, env }));
 const only = process.argv[2]; const jobs = only === '--unit' ? UNIT : only === '--ui' ? UI : [...UNIT, ...UI];
 const run = (job) => new Promise((resolve) => {

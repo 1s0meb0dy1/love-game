@@ -4,6 +4,9 @@ import { createRoot } from 'react-dom/client';
 import qrcode from 'qrcode-generator';
 import { ABOUT } from './content/about.js';
 import { LEGAL } from './content/legal.js';
+import { TOD_STARTER } from './content/tod-cards.js';
+import { todCleanList } from './tod/model.js';
+import { todLoadCards, todSaveCard, todSeedStarter, todActive, todReadCache, todWriteCache } from './tod/cards.js';
 const ReactDOM = { ...ReactDOMAll, createRoot };
 
         const { useState, useEffect, useRef, useMemo } = React;
@@ -879,6 +882,9 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
             return (<main className="w-full max-w-sm flex flex-col items-center gap-4 text-center my-auto py-8 join-page"><AskMeLogo size="lg" />{body}</main>);
         };
 
+        // Режим «Правда или действие»: всё, что нужно модулю карточек (src/tod/cards.js) от приложения — адрес базы, запрос с токеном входа, хранилище и стартовый набор
+        const todCardsEnv = { baseUrl: FIREBASE_BASE_URL, fetch: fetchWithTimeout, storage: (() => { try { return localStorage; } catch (e) { return null; } })(), starter: TOD_STARTER };
+
         function App() {
             const [db, setDb] = useState([]); const [dbSubPath, setDbSubPath] = useState("/questions"); const [isLoading, setIsLoading] = useState(true);
 
@@ -929,6 +935,9 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
             const [showAddPunish, setShowAddPunish] = useState(false);
             const [punishTemplates, setPunishTemplates] = useState(readPunishCache);
             const allPunishments = [...punishTemplates.filter(t => !(settings.hiddenTemplates || []).includes(t.id)), ...settings.punishments];
+            // карточки режима «Правда или действие»: сначала кэш устройства (или стартовый набор), затем эффект ниже подменяет их данными из базы; source — откуда сейчас список: 'db' | 'cache' | 'starter'
+            const [todBoot] = useState(() => { const cached = todReadCache(todCardsEnv.storage); return cached.length ? { list: cached, source: 'cache' } : { list: todCleanList(TOD_STARTER), source: 'starter' }; });
+            const [todCards, setTodCards] = useState(todBoot.list); const [todSource, setTodSource] = useState(todBoot.source);
             const [ptEdit, setPtEdit] = useState(null); const [ptText, setPtText] = useState(''); const [ptIcon, setPtIcon] = useState(''); const [ptLevel, setPtLevel] = useState('any');
             const [ptErr, setPtErr] = useState(''); const [ptBusy, setPtBusy] = useState(false); const [ptConfirmId, setPtConfirmId] = useState('');
             const [analyticsOn, setAnalyticsOn] = useState(() => { try { return localStorage.getItem('askme_analytics_v1') !== '0'; } catch (e) { return true; } });
@@ -1477,6 +1486,11 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
                         try { localStorage.setItem(PUNISH_CACHE_KEY, JSON.stringify(list)); } catch (e) {}
                     } catch (e) {}
                 })();
+                return () => { off = true; };
+            }, []);
+            useEffect(() => {
+                let off = false;
+                todLoadCards(todCardsEnv).then(r => { if (!off) { setTodCards(r.list); setTodSource(r.source); } }).catch(() => {});
                 return () => { off = true; };
             }, []);
             const writePunishTemplates = async (list) => {
