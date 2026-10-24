@@ -22,7 +22,12 @@ const btn=(t)=>[...D.querySelectorAll('button')].find(b=>b.textContent.replace(/
       T('после игры отправлены ДВА отдельных отчёта: обезличенный и полный (PATCH)',an.length===1&&fu.length===1&&an[0].aid===fu[0].aid&&/^a[0-9a-f]{16}$/.test(an[0].aid));
       const ag=Object.entries(an[0].body).find(([k])=>k.startsWith('games/'))[1], fg=Object.entries(fu[0].body).find(([k])=>k.startsWith('games/'))[1];
       T('обезличенный отчёт без имён и без ID сессии',!/Макс|Аня/.test(JSON.stringify(an[0].body))&&!('sid' in an[0].body)&&!('names' in an[0].body));
-      T('полный отчёт: имена и результаты по игрокам, а ID сессии не отправляется (по ID можно войти в сессию) и стирается из прежних записей',fu[0].body.sid===null&&!/"[A-Z0-9]{8}"/.test(JSON.stringify(fu[0].body.names))&&JSON.stringify(fu[0].body.names)==='["Макс","Аня"]'&&fg.perPlayer.length===2&&fg.perPlayer[0].name==='Макс');
+      T('полный отчёт: имена и результаты по игрокам, а ID сессии не отправляется (по ID можно войти в сессию): вместо него пустая строка, она же стирает ID из прежних записей',fu[0].body.sid===''&&!/"[A-Z0-9]{8}"/.test(JSON.stringify(fu[0].body.names))&&JSON.stringify(fu[0].body.names)==='["Макс","Аня"]'&&fg.perPlayer.length===2&&fg.perPlayer[0].name==='Макс');
+      { const R=JSON.parse(require('fs').readFileSync(require('path').join(__dirname,'../fixtures/analytics-rules.json'),'utf8')).analytics; const rule=R.full.$aid['.validate'], rule2=R.anon.$aid['.validate'];
+        const need=(r)=>(r.match(/hasChildren\(\[([^\]]*)\]\)/)[1].match(/'(\w+)'/g)||[]).map(x=>x.slice(1,-1)); const fresh=(b)=>Object.fromEntries(Object.entries(b).filter(([k,v])=>v!==null&&!k.includes('/')));
+        const f=fresh(fu[0].body), a2=fresh(an[0].body), maxSid=Number((rule.match(/sid'\)\.val\(\)\.length <= (\d+)/)||[])[1]);
+        T('запись расширенного отчёта проходит правило базы analytics/full (обязательны '+need(rule).join(', ')+'; sid — строка ≤'+maxSid+'): первая запись новой сессии не отклоняется', need(rule).every(k=>k in f)&&typeof f.updatedAt==='number'&&typeof f.sid==='string'&&f.sid.length<=maxSid&&Array.isArray(f.names));
+        T('запись обезличенного отчёта проходит правило analytics/anon (обязательны '+need(rule2).join(', ')+')', need(rule2).every(k=>k in a2)&&typeof a2.updatedAt==='number'); }
       T('итоги в отчёте: 1 отвечен, 1 пропущен, обычный режим, без таймера',ag.answered===1&&ag.skipped===1&&ag.mode==='normal'&&ag.timerSec===0&&ag.players===2&&typeof ag.durationSec==='number');
     }
   } else {

@@ -1,0 +1,19 @@
+{
+ "_comment": "Копия узла analytics из правил Firebase (идентификатор владельца заменён на OWNER_UID). Тест analytics проверяет, что запись приложения проходит правило analytics/full/$aid (там обязательны updatedAt, sid, names). Если меняете правило в консоли — обновите и этот файл.",
+ "analytics": {
+  ".read": "auth != null && auth.uid === 'OWNER_UID'",
+  ".write": "auth != null && auth.uid === 'OWNER_UID'",
+  "anon": {
+   "$aid": {
+    ".write": "auth != null",
+    ".validate": "newData.hasChildren(['updatedAt']) && newData.child('updatedAt').isNumber()"
+   }
+  },
+  "full": {
+   "$aid": {
+    ".write": "auth != null",
+    ".validate": "newData.hasChildren(['updatedAt','sid','names']) && newData.child('updatedAt').isNumber() && newData.child('sid').isString() && newData.child('sid').val().length <= 16"
+   }
+  }
+ }
+}

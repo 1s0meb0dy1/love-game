@@ -1521,7 +1521,8 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
                     const gid = 'g' + g.startedAt.toString(36), now = Date.now(); const base = { updatedAt: now }; if (fresh) base.createdAt = now;
                     const send = (kind, body) => fetchWithTimeout(`${FIREBASE_BASE_URL}/analytics/${kind}/${aid}.json`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).catch(() => {});
                     send('anon', { ...base, ['games/' + gid]: anonGame });
-                    send('full', { ...base, sid: null, names: profile.players.map(p => String(p.name).slice(0, 25)), ['games/' + gid]: fullGame });
+                    // правило базы analytics/full требует поле sid (строка ≤16), поэтому вместо ID шлём пустую строку: она же затирает ID, записанный прежними версиями (копия правила: tests/fixtures/analytics-rules.json)
+                    send('full', { ...base, sid: '', names: profile.players.map(p => String(p.name).slice(0, 25)), ['games/' + gid]: fullGame });
                 } catch (e) {}
             };
             const loadAnalytics = async () => {
