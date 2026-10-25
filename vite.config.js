@@ -30,5 +30,5 @@ export default defineConfig({
       }
     })
   ],
-  build: { target: 'es2019', sourcemap: false, rollupOptions: { output: { manualChunks: { react: ['react', 'react-dom'] } } } }
+  build: { target: 'es2019', sourcemap: false, rollupOptions: { output: { manualChunks(id) { if (/node_modules\/(react|react-dom|scheduler)\//.test(id)) return 'react'; } } } }
 });

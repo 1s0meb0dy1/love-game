@@ -101,7 +101,7 @@ const finish = (E) => { allErrors.push(...E.errors); E.w.close(); };
   const OLD = 'OLDS7777'; const st2 = { ['sess_' + legacyHash(OLD)]: { payload: legacyPayload({ players: PROFILE(OLD, 'x', ['Олег', 'Ира']).players, archivedIds: [], disabledIds: [] }, OLD), updatedAt: Date.now() } };
   A = await boot(st2, { hash: '/welcome' }); ({ w, D, sleep, c, btn } = A);
   await c(btn('Войти по ID'), 300); await A.type(OLD); await c(btn('Восстановить прогресс'), 400);
-  T('сессия старого формата входит по ID и переезжает под новый ключ (старая запись удалена)', await A.wait(() => A.prof() && A.prof().sessionId === OLD && A.prof().sessionKey, 8000) && !st2['sess_' + legacyHash(OLD)]);
+  T('сессия старого формата входит по ID и переезжает под новый ключ (старая запись удалена)', await A.wait(() => A.prof() && A.prof().sessionId === OLD && A.prof().sessionKey && !st2['sess_' + legacyHash(OLD)], 8000));
   finish(A);
   const st3 = { [dbKey(KEY)]: store[dbKey(KEY)] };
   A = await boot(st3, { hash: '/welcome' }); ({ w, D, sleep, c, btn } = A);
@@ -128,7 +128,7 @@ const finish = (E) => { allErrors.push(...E.errors); E.w.close(); };
   A = await boot(st4, { profile: PROFILE(OLDID, OLDKEY, ['Нина', 'Юра'], { joinAt: Date.now() }), hash: '/profile' }); ({ w, D, sleep, c, btn } = A);
   st4[dbKey(OLDKEY)] = { payload: 'x', updatedAt: 1 };
   await c(btn('Удалить мои данные'), 400); await c([...D.querySelectorAll('button')].filter(b => /Удалить/.test(b.textContent)).pop(), 1500);
-  T('«Удалить мои данные» стирает из облака и сессию, и замок входа по ID', !st4[dbKey(OLDKEY)] && !st4[jp]);
+  T('«Удалить мои данные» удаляет содержимое сессии и замка, оставляя запрет повторной записи', st4[dbKey(OLDKEY)]?.deleted === true && st4[jp]?.deleted === true && st4[dbKey(OLDKEY)].payload === '' && st4[jp].payload === '');
   finish(A);
 
   console.log(res.join('\n')); console.log('--- captured runtime errors:', allErrors.length); allErrors.slice(0, 6).forEach(e => console.log(' ', e)); process.exit(0);

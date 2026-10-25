@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client';
 import qrcode from 'qrcode-generator';
 import { ABOUT } from './content/about.js';
 import { LEGAL } from './content/legal.js';
+import { createSessionTasks, createSessionStore, createLiveWriter, mergeTurnHistories } from './session-io.js';
 const ReactDOM = { ...ReactDOMAll, createRoot };
 
         const { useState, useEffect, useRef, useMemo } = React;
@@ -12,6 +13,7 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
         const PROFILE_STORAGE_KEY = "askme_device_profile_v4";
         const ADMIN_STORAGE_KEY = "askme_admin_unlocked_v4";
         const OFFLINE_DB_CACHE_KEY = "askme_offline_db_cache_v2";
+        const sessionTasks = createSessionTasks({ isDeleted: sid => { try { return localStorage.getItem('askme_deleted_' + sid) === '1'; } catch (e) { return false; } } });
 
         const declOfNum = (number, titles) => {
             const cases = [2, 0, 1, 1, 1, 2];
@@ -19,14 +21,34 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
         };
 
         const fetchWithTimeout = async (url, options = {}, ms = 20000) => {
-            if (typeof url === "string" && url.startsWith(FIREBASE_BASE_URL)) {
-                const token = await Auth.token();
-                if (token) url += (url.includes("?") ? "&" : "?") + "auth=" + encodeURIComponent(token);
-            }
             const ctrl = new AbortController();
+            const abort = () => ctrl.abort();
+            if (options.signal?.aborted) abort();
+            options.signal?.addEventListener('abort', abort, { once: true });
             const timer = setTimeout(() => ctrl.abort(), ms);
-            try { return await fetch(url, { ...options, signal: ctrl.signal }); } 
-            finally { clearTimeout(timer); }
+            try {
+                const parsed = new URL(url);
+                if (parsed.origin === FIREBASE_BASE_URL) {
+                    if (!parsed.searchParams.has('auth')) {
+                        if (ctrl.signal.aborted) throw new DOMException('Запрос отменён', 'AbortError');
+                        const token = await new Promise((resolve, reject) => {
+                            const cancelled = () => reject(new DOMException('Запрос отменён', 'AbortError'));
+                            ctrl.signal.addEventListener('abort', cancelled, { once: true });
+                            Auth.token().then(value => { ctrl.signal.removeEventListener('abort', cancelled); resolve(value); }, error => { ctrl.signal.removeEventListener('abort', cancelled); reject(error); });
+                        });
+                        if (token) parsed.searchParams.set('auth', token);
+                    }
+                    url = parsed.toString();
+                }
+                if (ctrl.signal.aborted) throw new DOMException('Запрос отменён', 'AbortError');
+                const response = await fetch(url, { ...options, signal: ctrl.signal });
+                if (!response.text) return response;
+                const body = await response.text();
+                return { ok: response.ok, status: response.status, headers: response.headers, text: async () => body, json: async () => JSON.parse(body) };
+            } finally {
+                clearTimeout(timer);
+                options.signal?.removeEventListener('abort', abort);
+            }
         };
 
         const FIREBASE_API_KEY = "AIzaSyDBE1-ZGgrHOVVUzl0Pcnkua-heJyRyoqg"; 
@@ -36,15 +58,30 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
         const Auth = {
             store: (() => { try { return JSON.parse(localStorage.getItem(AUTH_STORAGE_KEY)) || {}; } catch (e) { return {}; } })(),
             anonPending: null,
-            persist() { try { localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(this.store)); } catch (e) {} },
-            pack(d) { const ttl = Number(d.expiresIn || d.expires_in || 3600); return { idToken: d.idToken || d.id_token, refreshToken: d.refreshToken || d.refresh_token, expiresAt: Date.now() + (ttl - 60) * 1000 }; },
+            refreshPending: {},
+            listeners: new Set(),
+            persist() { try { localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(this.store)); } catch (e) {} this.listeners.forEach(listener => listener()); },
+            pack(d) { const ttl = Number(d.expiresIn || d.expires_in || 3600); return { idToken: d.idToken || d.id_token, refreshToken: d.refreshToken || d.refresh_token, uid: d.localId || d.user_id || '', expiresAt: Date.now() + (ttl - 60) * 1000 }; },
             async post(url, body, form) {
                 const r = await fetchWithTimeout(url, { method: "POST", headers: { "Content-Type": form ? "application/x-www-form-urlencoded" : "application/json" }, body: form ? new URLSearchParams(body).toString() : JSON.stringify(body) }, 15000);
                 const d = await r.json(); if (!r.ok) throw new Error((d && d.error && d.error.message) || "AUTH_ERROR"); return d;
             },
             async fresh(kind) {
                 const rec = this.store[kind]; if (!rec) return null; if (rec.expiresAt > Date.now()) return rec.idToken;
-                try { const d = await this.post(`https://securetoken.googleapis.com/v1/token?key=${FIREBASE_API_KEY}`, { grant_type: "refresh_token", refresh_token: rec.refreshToken }, true); this.store[kind] = this.pack(d); this.persist(); return this.store[kind].idToken; } catch (e) { delete this.store[kind]; this.persist(); return null; }
+                if (!this.refreshPending[kind]) this.refreshPending[kind] = (async () => {
+                    try {
+                        const d = await this.post(`https://securetoken.googleapis.com/v1/token?key=${FIREBASE_API_KEY}`, { grant_type: "refresh_token", refresh_token: rec.refreshToken }, true);
+                        if (this.store[kind] !== rec) return null;
+                        this.store[kind] = this.pack(d); this.persist(); return this.store[kind].idToken;
+                    } catch (e) {
+                        if (/^(INVALID_REFRESH_TOKEN|TOKEN_EXPIRED|USER_DISABLED|USER_NOT_FOUND)$/.test(e.message)) {
+                            if (this.store[kind] === rec) { delete this.store[kind]; this.persist(); }
+                            return null;
+                        }
+                        throw e; // временная ошибка не стирает refresh token и не меняет пользователя
+                    } finally { delete this.refreshPending[kind]; }
+                })();
+                return this.refreshPending[kind];
             },
             async token() {
                 if (!FIREBASE_API_KEY) return null; const owner = await this.fresh("owner"); if (owner) return owner; const anon = await this.fresh("anon"); if (anon) return anon;
@@ -52,6 +89,17 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
                 return this.anonPending;
             },
             hasOwner() { return !!this.store.owner; },
+            async uid() {
+                const token = await this.token(); if (!token) throw new Error('AUTH_REQUIRED');
+                const rec = this.store.owner?.idToken === token ? this.store.owner : this.store.anon;
+                if (!rec) throw new Error('AUTH_REQUIRED');
+                if (!rec.uid) {
+                    const data = await this.post(`${AUTH_BASE}:lookup?key=${FIREBASE_API_KEY}`, { idToken: token });
+                    rec.uid = data.users?.[0]?.localId || ''; this.persist();
+                }
+                if (!rec.uid) throw new Error('AUTH_REQUIRED');
+                return rec.uid;
+            },
             ownerLogout() { delete this.store.owner; this.persist(); }
         };
 
@@ -59,6 +107,9 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
             try {
                 if (!FIREBASE_API_KEY || !email) return false;
                 const d = await Auth.post(`${AUTH_BASE}:signInWithPassword?key=${FIREBASE_API_KEY}`, { email: email, password: String(password || ""), returnSecureToken: true });
+                // Разрешение на запись публичного контента выдаёт серверный UID-rule.
+                const check = await fetchWithTimeout(`${FIREBASE_BASE_URL}/analytics/anon.json?shallow=true&auth=${encodeURIComponent(d.idToken)}`);
+                if (!check.ok) return false;
                 Auth.store.owner = Auth.pack(d); Auth.persist(); return true;
             } catch (e) { return false; }
         };
@@ -89,7 +140,23 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
         };
         // облачная копия расшифровывается ключом, который знают все, у кого есть ссылка или ID, — типы полей проверяем, прежде чем класть их в состояние
         const cleanPlayers = (v) => Array.isArray(v) ? v.filter(p => p && typeof p === 'object' && (typeof p.id === 'string' || typeof p.id === 'number')).slice(0, MAX_PLAYERS).map(p => ({ id: String(p.id).slice(0, 40), name: String(p.name || '').slice(0, 25), gender: p.gender === 'girl' ? 'girl' : 'guy' })) : [];
-        const cleanSavedGame = (g) => (g && typeof g === 'object' && Array.isArray(g.questionIds) && g.questionIds.length) ? { ...g, questionIds: cleanIdList(g.questionIds), currentIndex: Number(g.currentIndex) || 0, maxReachedIndex: Number(g.maxReachedIndex) || 0, turnHistory: (g.turnHistory && typeof g.turnHistory === 'object') ? g.turnHistory : {} } : null;
+        const cleanSavedGame = (g) => {
+            if (!g || typeof g !== 'object' || !Array.isArray(g.questionIds)) return null;
+            const questionIds = cleanIdList(g.questionIds); if (!questionIds.length) return null;
+            const index = value => Math.max(0, Math.min(questionIds.length - 1, Math.floor(Number(value) || 0)));
+            return { questionIds, currentIndex: index(g.currentIndex), maxReachedIndex: Math.max(index(g.currentIndex), index(g.maxReachedIndex)), turnHistory: cleanTurnHistory(g.turnHistory, questionIds.length) };
+        };
+        const cleanTurnHistory = (value, count = 5000) => {
+            if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+            const out = {};
+            for (const [key, raw] of Object.entries(value)) {
+                if (!/^\d+$/.test(key) || Number(key) >= count) continue;
+                const entry = normTurn(raw); if (!entry || (entry.cur !== null && typeof entry.cur !== 'string')) continue;
+                const ids = list => list.filter(id => typeof id === 'string' && id.length <= 40).slice(0, MAX_PLAYERS);
+                out[key] = { cur: entry.cur, answered: ids(entry.answered), skippedBy: ids(entry.skippedBy), skippedAll: !!entry.skippedAll, ...(typeof raw?.dev === 'string' ? { dev: raw.dev.slice(0, 40) } : {}) };
+            }
+            return out;
+        };
         const cleanIdList = (v, max = 5000) => Array.isArray(v) ? v.filter(x => typeof x === 'string' || typeof x === 'number').slice(0, max) : [];
 
         let lastSyncToastAt = 0;
@@ -107,6 +174,18 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
         const sessionDbKey = async (keyStr) => {
             const h = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode("askme-session-v1:" + keyStr)));
             return "s_" + Array.from(h).map(b => b.toString(16).padStart(2, "0")).join("");
+        };
+        const questionAudienceKey = async (key) => {
+            const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('askme-question-audience-v1:' + key));
+            return 'aud_' + Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+        };
+        const questionTarget = async (input, profile, savedTarget = '') => {
+            const sid = String(input || '').trim().toUpperCase();
+            if (!sid) return savedTarget;
+            if (!isValidSessionIdFormat(sid)) throw new Error('Введите 8-значный ID сессии');
+            const key = profile?.sessionId === sid && isValidAESKey(profile.sessionKey) ? profile.sessionKey : await lookupJoinCode(sid);
+            if (!key) throw new Error('Сессия не найдена или недоступна. Откройте её на устройстве игрока и повторите');
+            return questionAudienceKey(key);
         };
         const CYR_TO_LAT = { "А": "A", "В": "B", "С": "C", "Е": "E", "Н": "H", "К": "K", "М": "M", "Р": "P", "Т": "T", "Х": "X", "У": "Y" };
         const parseRestoreInput = (raw) => {
@@ -130,7 +209,12 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
             try {
                 if (!isValidSessionIdFormat(sid) || !isValidAESKey(key)) return false;
                 const { path, lockKey } = await joinCodeParts(sid); const payload = await encryptSessionAES({ k: key }, lockKey); if (!payload) return false;
-                const r = await fetchWithTimeout(joinCodeUrl(path), { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ payload, updatedAt: Date.now() }) }); return r.ok;
+                const previous = await fetchWithTimeout(joinCodeUrl(path), { headers: { 'X-Firebase-ETag': 'true' } });
+                if (!previous.ok && previous.status !== 404) return false;
+                const existing = previous.ok ? await previous.json() : null;
+                if (existing?.deleted) return false;
+                if (existing?.payload) { const decoded = await decryptSessionAES(existing.payload, lockKey); if (decoded?.k !== key) return false; }
+                const r = await fetchWithTimeout(joinCodeUrl(path), { method: "PUT", headers: { "Content-Type": "application/json", 'If-Match': previous.headers?.get('ETag') || 'null_etag' }, body: JSON.stringify({ payload, updatedAt: Date.now() }) }); return r.ok;
             } catch (e) { return false; }
         };
         const lookupJoinCode = async (sid) => { // ключ сессии по ID; "" — замка нет / не открылся; null — облако не ответило (сеть, отказ базы)
@@ -140,7 +224,8 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
                 const dec = data && typeof data.payload === "string" ? await decryptSessionAES(data.payload, lockKey) : null; return dec && isValidAESKey(dec.k) ? dec.k : "";
             } catch (e) { return null; }
         };
-        const removeJoinCode = async (sid) => { try { if (!isValidSessionIdFormat(sid)) return true; const { path } = await joinCodeParts(sid); return (await fetchWithTimeout(joinCodeUrl(path), { method: "DELETE" }, 10000)).ok; } catch (e) { return false; } };
+        const retireSessionUrl = async (url) => (await fetchWithTimeout(url, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ payload: '', updatedAt: Date.now(), deleted: true }) }, 10000)).ok;
+        const removeJoinCode = async (sid) => { try { if (!isValidSessionIdFormat(sid)) return true; const { path } = await joinCodeParts(sid); return await retireSessionUrl(joinCodeUrl(path)); } catch (e) { return false; } };
 
         const sanitizeInput = (str, maxLength = 600) => String(str||"").replace(/[<>]/g, "").replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "").trim().slice(0, maxLength);
         const sanitizeName = (str) => sanitizeInput(str, 20).replace(/\d/g, ''); 
@@ -236,7 +321,28 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
         };
 
         const PopupModal = ({ isOpen, onClose, children }) => {
-            if (!isOpen) return null; return ReactDOM.createPortal(<div className="viewport-popup-overlay fade-in" onClick={() => { if (onClose) { SoundFX.click(); onClose(); } }}> <div className="viewport-popup-box slide-up" role="dialog" aria-modal="true" onClick={e => e.stopPropagation()}> {onClose && ( <button type="button" onClick={() => { SoundFX.click(); onClose(); }} aria-label="Закрыть" className="btn-icon absolute top-3 right-3" > <Icons.Close /> </button> )} {children} </div> </div>, document.body);
+            const box = useRef(null), closeRef = useRef(onClose); closeRef.current = onClose;
+            useEffect(() => {
+                if (!isOpen) return;
+                const previous = document.activeElement, root = document.getElementById('root');
+                const oldInert = root?.inert; if (root) root.inert = true;
+                const controls = () => [...(box.current?.querySelectorAll('button:not([disabled]),a[href],input:not([disabled]),textarea:not([disabled]),select:not([disabled]),[tabindex="0"]') || [])];
+                const title = box.current?.querySelector('h1,h2,h3');
+                if (title) box.current.setAttribute('aria-label', title.textContent);
+                (controls()[0] || box.current)?.focus();
+                const keydown = event => {
+                    if (event.key === 'Escape' && closeRef.current) { event.preventDefault(); closeRef.current(); }
+                    if (event.key !== 'Tab') return;
+                    const list = controls(), first = list[0], last = list[list.length - 1];
+                    if (!first) { event.preventDefault(); box.current?.focus(); }
+                    else if (event.shiftKey && (document.activeElement === first || !box.current?.contains(document.activeElement))) { event.preventDefault(); last.focus(); }
+                    else if (!event.shiftKey && (document.activeElement === last || !box.current?.contains(document.activeElement))) { event.preventDefault(); first.focus(); }
+                };
+                document.addEventListener('keydown', keydown);
+                return () => { document.removeEventListener('keydown', keydown); if (root) root.inert = oldInert; if (previous?.isConnected) previous.focus(); };
+            }, [isOpen]);
+            if (!isOpen) return null;
+            return ReactDOM.createPortal(<div className="viewport-popup-overlay fade-in" onClick={() => { if (onClose) { SoundFX.click(); onClose(); } }}><div ref={box} tabIndex={-1} className="viewport-popup-box slide-up" role="dialog" aria-label="Диалог" aria-modal="true" onClick={e => e.stopPropagation()}>{onClose && <button type="button" onClick={() => { SoundFX.click(); onClose(); }} aria-label="Закрыть" className="btn-icon absolute top-3 right-3"><Icons.Close /></button>}{children}</div></div>, document.body);
         };
 
         // ---- Всплывающие уведомления ----
@@ -447,6 +553,9 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
         const gamesOf = (rec) => Object.values((rec && rec.games) || {}).filter(g => g && typeof g === 'object').sort((a, b) => (b.startedAt || 0) - (a.startedAt || 0));
         // Порог аналитики: в сводку идут игры, где отвечено не меньше AN_MIN вопросов, и все полностью пройденные колоды. Задаёт владелец.
         const SESSION_PAYLOAD_MAX = 59000; // правило базы для sessions/$sid/payload: короче 60000 знаков (копия правила: tests/fixtures/sessions-rules.json). Поднимаете правило — поднимите и это число (на 1000 меньше)
+        const sessionStore = createSessionStore({ request: fetchWithTimeout,
+            urlFor: async key => `${FIREBASE_BASE_URL}/sessions/${await sessionDbKey(key)}.json`,
+            encrypt: encryptSessionAES, decrypt: decryptSessionAES, maxPayload: SESSION_PAYLOAD_MAX });
         const AN_MIN_KEY = 'askme_an_min_v1', AN_MIN_DEFAULT = 50, AN_FLOOR = 10, AN_MIN_CHOICES = [0, 10, 20, 30, 50, 100];
         const readAnMin = () => { try { const raw = localStorage.getItem(AN_MIN_KEY); const n = raw === null ? NaN : Number(raw); return Number.isFinite(n) && n >= 0 ? Math.min(1000, Math.round(n)) : AN_MIN_DEFAULT; } catch (e) { return AN_MIN_DEFAULT; } };
         const gameCounts = (g, min) => !!g && typeof g === 'object' && (g.complete === 1 || g.complete === true || (Number(g.answered) || 0) >= min);
@@ -458,6 +567,7 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
             let answered = 0, skipped = 0;
             (questions || []).slice(0, total).forEach((q, i) => {
                 const e = normTurn(history[i]); const qid = String(q.id || q.dbKey || i);
+                if (!e || e.cur || !(players || []).length || !players.every(p => e.answered.includes(p.id))) return;
                 if (e && isTurnSkipped(e, players)) { skipped++; if (skippedIds.length < 400) skippedIds.push(qid); }
                 else { answered++; if (answeredIds.length < 400) answeredIds.push(qid); byCat[q.categoryId] = (byCat[q.categoryId] || 0) + 1; byLevel[q.level] = (byLevel[q.level] || 0) + 1; }
                 if (e) e.answered.forEach(id => { const r = per.find(x => x.id === id); if (!r) return; if (e.skippedBy.includes(id)) r.skipped++; else r.answered++; });
@@ -517,7 +627,7 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
         const liveHash = (idx, max, hist) => idx + '|' + max + '|' + hist;
         // короткий «отпечаток» колоды: по нему устройства узнают, что у них одна и та же партия, не скачивая всю колоду
         const liveDeckKey = (idsStr) => { let h = 2166136261; for (let i = 0; i < idsStr.length; i++) { h ^= idsStr.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return idsStr.split(',').length + '-' + h.toString(36); };
-        // у каждого устройства своя дробная часть версии: две одновременные записи никогда не получают одинаковый номер
+        // дробная часть помогает упорядочить устройства; атомарность обеспечивает серверный ETag/If-Match
         const liveFrac = (id) => { let h = 0; String(id).split('').forEach(ch => { h = (h * 31 + ch.charCodeAt(0)) % 999983; }); return (h + 1) / 1000000; };
         const liveVerNext = (prev, id) => Math.floor(Number(prev) || 0) + 1 + liveFrac(id);
         // версия первой записи новой партии отсчитывается от времени (десятые доли секунды): так она заведомо не совпадёт с версиями прошлых партий в этой комнате,
@@ -562,7 +672,7 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
             return { t: tIndex, final, start: final - REEL.TRAVEL * stride };
         };
         const TurnReel = ({ players, winnerId, spinning }) => {
-            const k = players.length;
+            const k = Math.max(1, players.length);
             const t = reelTarget(k, Math.max(0, players.findIndex(p => p.id === winnerId)));
             const wrapRef = React.useRef(null);
             const [pos, setPos] = React.useState({ x: 0, anim: false, ready: false });
@@ -632,10 +742,10 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
             </footer>
         );
 
-        const callNeuralNet = async (systemPrompt, userPrompt, maxTokens = 900) => {
+        const callNeuralNet = async (systemPrompt, userPrompt, maxTokens = 900, signal) => {
             const randomSeed = Math.floor(Math.random() * 10000000);
-            try { const response = await fetchWithTimeout("https://text.pollinations.ai/openai", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: "openai", seed: randomSeed, temperature: 0.92, messages: [ { role: "system", content: systemPrompt }, { role: "user", content: userPrompt } ] }) }); if (response.ok) { const data = await response.json(); const content = data?.choices?.[0]?.message?.content; if (content) return content.trim(); } } catch (e) {}
-            try { const compactPrompt = userPrompt.slice(0, 520); const fallbackUrl = `https://text.pollinations.ai/${encodeURIComponent(compactPrompt)}?seed=${randomSeed}&model=openai`; const response = await fetchWithTimeout(fallbackUrl); if (response.ok) { const text = await response.text(); if (text && text.length > 10 && !text.includes("<!DOCTYPE")) return text.trim(); } } catch (e) {} return null;
+            try { const response = await fetchWithTimeout("https://text.pollinations.ai/openai", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: "openai", max_tokens: maxTokens, seed: randomSeed, temperature: 0.92, messages: [ { role: "system", content: systemPrompt }, { role: "user", content: userPrompt } ] }), signal }); if (response.ok) { const data = await response.json(); const content = data?.choices?.[0]?.message?.content; if (content) return content.trim(); } } catch (e) {}
+            return null;
         };
 
         const synthesizeSmartFallback = (promptType, cleanQuestion, catId, p1Name, p2Name) => {
@@ -644,15 +754,15 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
             const chosenSetting = settings[Math.floor(Math.random() * settings.length)];
 
             if (promptType === "situation") { return `🎬 Моделирование ситуации:\n${chosenSetting}. Я ловлю твой взгляд, делаю паузу и с искренним любопытством спрашиваю: «${cleanQuestion}»\n\n👩👨 Как бы ответили большинство:\n• Для большинства это вопрос про эмоциональный подтекст, чувство безопасности и доверие.\n• Кто-то склонен воспринимать такой вопрос более прямолинейно и практично.`; }
-            return `🧠 Как лучше поступить:\nОбсуждая вопрос «${cleanQuestion}» (тема «${catObj.name}»), важно отказаться от оценочных суждений.\n\n👩👨 Как обычно отвечают большинство:\nМногие отвечают на этот вопрос через призму чувств, контекста отношений и долгосрочной надежности.\n\n💡 Интересные факты:\nИсследования нейробиологов показывают, что когда партнеры честно отвечают на непростые вопросы, снижается активность миндалевидного тела.\n\n📊 Статистика:\nОколо 72% людей замалчивают подобные вопросы, однако те, кто открыто проговаривают их, демонстрируют на 40% более высокий уровень удовлетворенности.\n\n🔗 Как это влияет на отношения:\nПрямой разговор снимает напряжение и избавляет от додумывания.\n\n🛠️ Психологические советы:\n1. Говорите о своих ощущениях через «Я-сообщения».\n2. Уточняйте с интересом, а не с претензией.`;
+            return `Сервис подсказок сейчас недоступен.\n\nОбсудите вопрос «${cleanQuestion}» в своём темпе: что вы чувствуете, чего хотите и какие границы важны. Это общая подсказка для разговора.`;
         };
 
-        const fetchFromAI = async (promptType, questionText, catId, pNames) => {
+        const fetchFromAI = async (promptType, questionText, catId, pNames, signal) => {
             const cleanQuestion = questionText.replace(/^№\s*\d+\.\s*/, '').trim(); const catObj = CATEGORIES.find(c => c.id === catId); const catName = catObj ? catObj.name : "Отношения"; const randomSeed = Math.floor(Math.random() * 999999);
             let systemPrompt = "", userPrompt = "";
             if (promptType === "situation") { systemPrompt = "Ты креативный сценарист и психолог отношений. Пиши живо, реалистично, без шаблонов."; userPrompt = `Мы играем (${pNames}). Вопрос из темы "${catName}": "${cleanQuestion}". Сгенерируй новый ответ (код ${randomSeed}) из 2 блоков:\n\n🎬 Моделирование ситуации:\n(1 реалистичная жизненная ситуация из 3 предложений, которая происходит с нами сейчас и подводит к вопросу "${cleanQuestion}". От первого лица "мы").\n\n👩👨 Как бы ответили большинство девушек и парней:\n(Как на этот вопрос обычно отвечают).`; } 
             else { systemPrompt = "Ты практикующий семейный психотерапевт и сексолог."; userPrompt = `Разбери вопрос для игроков (${pNames}) из темы "${catName}": "${cleanQuestion}" (код ${randomSeed}) строго по 6 пунктам:\n\n🧠 Как лучше поступить в этой ситуации:\n👩👨 Как обычно отвечают большинство девушек и парней:\n💡 Интересные факты:\n📊 Статистика:\n🔗 Как это влияет на отношения:\n🛠️ Психологические советы:`; }
-            const netResponse = await callNeuralNet(systemPrompt, userPrompt, 950);
+            const netResponse = await callNeuralNet(systemPrompt, userPrompt, 950, signal);
             if (netResponse) return netResponse; return synthesizeSmartFallback(promptType, cleanQuestion, catId, pNames);
         };
 
@@ -879,7 +989,10 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
             return (<main className="w-full max-w-sm flex flex-col items-center gap-4 text-center my-auto py-8 join-page"><AskMeLogo size="lg" />{body}</main>);
         };
 
+        const PwaInstallModal = ({ showPwaModal, setShowPwaModal, isInAppWebView, pwaPlatformTab, setPwaPlatformTab, triggerIosNativeShareMenu }) => ( <PopupModal isOpen={showPwaModal} onClose={() => setShowPwaModal(false)}> <div className="flex flex-col gap-4 pt-1"> <div className="pr-8"><AskMeLogo size="xs" /></div> <div className="space-y-1 text-left"> <h3 className="text-xl font-bold text-white">Скачать на устройство</h3> <p className="text-xs text-zinc-400 leading-relaxed"> Установите <b className="text-white">ASK ME</b> на домашний экран. </p> </div> {isInAppWebView && ( <div className="p-3.5 rounded-[20px] bg-rose-500/15 border border-rose-500/40 text-xs text-rose-200 leading-relaxed text-left"> ⚠️ Вы открыли сайт во встроенном браузере. Нажмите на иконку <b>Safari/Браузера</b>, чтобы появилась установка. </div> )} <div className="seg"> <button type="button" onClick={() => { SoundFX.click(); setPwaPlatformTab('ios'); }} className={`seg-btn ${ pwaPlatformTab === 'ios' ? 'is-active' : '' }`} >  iPhone </button> <button type="button" onClick={() => { SoundFX.click(); setPwaPlatformTab('android'); }} className={`seg-btn ${ pwaPlatformTab === 'android' ? 'is-active' : '' }`} > 🤖 Android </button> </div> {pwaPlatformTab === 'ios' ? ( <div className="flex flex-col gap-3 text-left text-xs text-zinc-200 bg-white/[0.04] p-4 rounded-[20px] border border-white/10"> <div className="flex items-start gap-3"> <span className="w-6 h-6 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold flex items-center justify-center flex-shrink-0">1</span> <p className="leading-relaxed"> Нажмите кнопку <b className="text-white">«Поделиться»</b> в браузере Safari. </p> </div> <div className="hairline-divider"></div> <div className="flex items-start gap-3"> <span className="w-6 h-6 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold flex items-center justify-center flex-shrink-0">2</span> <p className="leading-relaxed"> Нажмите <b className="text-white">«На экран "Домой"»</b>. </p> </div> <button type="button" onClick={triggerIosNativeShareMenu} className="btn-accent w-full mt-1 flex items-center justify-center gap-2" > <Icons.IosShare /> Открыть меню iOS </button> </div> ) : ( <div className="flex flex-col gap-3 text-left text-xs text-zinc-200 bg-white/[0.04] p-4 rounded-[20px] border border-white/10"> <div className="flex items-start gap-3"> <span className="w-6 h-6 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold flex items-center justify-center flex-shrink-0">1</span> <p className="leading-relaxed"> Нажмите на меню браузера <b className="text-white">«⋮»</b>. </p> </div> <div className="hairline-divider"></div> <div className="flex items-start gap-3"> <span className="w-6 h-6 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold flex items-center justify-center flex-shrink-0">2</span> <p className="leading-relaxed"> Выберите <b className="text-white">«Установить приложение»</b>. </p> </div> </div> )} <button type="button" onClick={() => { SoundFX.click(); setShowPwaModal(false); }} className="btn-primary w-full" > Понятно </button> </div> </PopupModal> );
+
         function App() {
+            const [loadError, setLoadError] = useState(''); const [dbLoadAttempt, setDbLoadAttempt] = useState(0);
             const [db, setDb] = useState([]); const [dbSubPath, setDbSubPath] = useState("/questions"); const [isLoading, setIsLoading] = useState(true);
 
             const [isStandalonePWA, setIsStandalonePWA] = useState(() => { try { return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true; } catch (e) { return false; } });
@@ -901,7 +1014,8 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
                             let pts = parsed.players;
                             if(!pts) { pts = [ { id: 'p1', name: sanitizeName(parsed.guyName || ''), gender: 'guy' }, { id: 'p2', name: sanitizeName(parsed.girlName || ''), gender: 'girl' } ]; }
                             const sid = (parsed.sessionId && isValidSessionIdFormat(parsed.sessionId)) ? parsed.sessionId.toUpperCase() : generateSessionId();
-                            return { sessionId: sid, sessionKey: isValidAESKey(parsed.sessionKey) ? parsed.sessionKey : undefined, players: pts, archivedIds: Array.isArray(parsed.archivedIds) ? parsed.archivedIds : [], disabledIds: Array.isArray(parsed.disabledIds) ? parsed.disabledIds : [], savedGame: parsed.savedGame || null, joinAt: Math.min(Number(parsed.joinAt) || 0, Date.now()), updatedAt: parsed.updatedAt || Date.now() };
+                            if (sessionTasks.blocked(sid)) return null;
+                            return { sessionId: sid, sessionKey: isValidAESKey(parsed.sessionKey) ? parsed.sessionKey : undefined, players: cleanPlayers(pts), archivedIds: cleanIdList(parsed.archivedIds), disabledIds: cleanIdList(parsed.disabledIds), savedGame: cleanSavedGame(parsed.savedGame), syncConflict: parsed.syncConflict === true, legacyPath: typeof parsed.legacyPath === 'string' && /^sess_[a-f0-9]{16}$/.test(parsed.legacyPath) ? parsed.legacyPath : undefined, joinAt: Math.min(Number(parsed.joinAt) || 0, Date.now()), updatedAt: parsed.updatedAt || Date.now() };
                         }
                     }
                 } catch (e) {} return null;
@@ -909,6 +1023,7 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
 
             const [isPreviewMode, setIsPreviewMode] = useState(false);
             const [isAdmin, setIsAdmin] = useState(() => { try { return Auth.hasOwner(); } catch (e) { return false; } });
+            useEffect(() => { const refreshRole = () => setIsAdmin(Auth.hasOwner()); Auth.listeners.add(refreshRole); return () => Auth.listeners.delete(refreshRole); }, []);
             const [authTab, setAuthTab] = useState('create');
             const [showExitConfirm, setShowExitConfirm] = useState(false);
             const [playersError, setPlayersError] = useState('');
@@ -928,7 +1043,7 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
             const fx = liveFx || (hardMode ? settings : { ...settings, timerOn: false, punishOn: false });
             const [showAddPunish, setShowAddPunish] = useState(false);
             const [punishTemplates, setPunishTemplates] = useState(readPunishCache);
-            const allPunishments = [...punishTemplates.filter(t => !(settings.hiddenTemplates || []).includes(t.id)), ...settings.punishments];
+            const allPunishments = useMemo(() => [...punishTemplates.filter(t => !(settings.hiddenTemplates || []).includes(t.id)), ...settings.punishments], [punishTemplates, settings.hiddenTemplates, settings.punishments]);
             const [ptEdit, setPtEdit] = useState(null); const [ptText, setPtText] = useState(''); const [ptIcon, setPtIcon] = useState(''); const [ptLevel, setPtLevel] = useState('any');
             const [ptErr, setPtErr] = useState(''); const [ptBusy, setPtBusy] = useState(false); const [ptConfirmId, setPtConfirmId] = useState('');
             const [analyticsOn, setAnalyticsOn] = useState(() => { try { return localStorage.getItem('askme_analytics_v1') !== '0'; } catch (e) { return true; } });
@@ -959,7 +1074,7 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
             const [selectedCats, setSelectedCats] = useState(CATEGORIES.map(c => c.id)); const [selectedDiffs, setSelectedDiffs] = useState(DIFFICULTIES.map(d => d.id)); const [isMuted, setIsMuted] = useState(false);
             const [gameMode, setGameMode] = useState('normal'); const [gameQuestions, setGameQuestions] = useState([]); const [currentIndex, setCurrentIndex] = useState(0); const [maxReachedIndex, setMaxReachedIndex] = useState(0); const [turnHistory, setTurnHistory] = useState({}); const [answeredCount, setAnsweredCount] = useState(0); const [completedAllFlag, setCompletedAllFlag] = useState(false); const [showEndGameConfirm, setShowEndGameConfirm] = useState(false);
             const [turnPopup, setTurnPopup] = useState({ open: false, spinning: false, highlight: 'guy', winner: null, candidates: [] }); const rouletteTimeoutsRef = useRef([]);
-            const [aiType, setAiType] = useState('situation'); const [aiContent, setAiContent] = useState(''); const [isAiTyping, setIsAiTyping] = useState(false); const typingIntervalRef = useRef(null);
+            const [aiType, setAiType] = useState('situation'); const [aiContent, setAiContent] = useState(''); const [isAiTyping, setIsAiTyping] = useState(false); const typingIntervalRef = useRef(null); const aiRequestRef = useRef({ id: 0, controller: null });
             const [viewCategory, setViewCategory] = useState(null); const [qLevel, setQLevel] = useState('all'); const [startErrTick, setStartErrTick] = useState(0); const [newGameConfirm, setNewGameConfirm] = useState(false); const [visibleLimit, setVisibleLimit] = useState(60);
             // страница «Пригласить игроков» открывается из меню и с экранов начала игры: «Назад» возвращает туда, откуда пришли
             const [inviteFrom, setInviteFrom] = useState('app_menu');
@@ -967,39 +1082,108 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
             const [addForm, setAddForm] = useState({ text: '', cat: 'family', diff: 'Простые', targetId: '' }); const [addStatus, setAddStatus] = useState(null); const [isSaving, setIsSaving] = useState(false); const [isGeneratingQuestion, setIsGeneratingQuestion] = useState(false);
             const [editingQuestion, setEditingQuestion] = useState(null); const [editForm, setEditForm] = useState({ text: '', cat: 'family', diff: 'Простые', targetId: '' }); const [returnScreen, setReturnScreen] = useState('menu'); const [confirmModal, setConfirmModal] = useState(null); const [resultModal, setResultModal] = useState(null);
 
+            const hydratedKeyRef = useRef('');
+            const [hydrationTick, setHydrationTick] = useState(0);
+            const [hydrationAttempt, setHydrationAttempt] = useState(0);
+            const profileRef = useRef(profile); profileRef.current = profile;
             const syncSessionToCloud = async (profData) => {
-                if (!profData || !profData.sessionId) return;
-                try { localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profData)); localStorage.setItem(`askme_sess_${profData.sessionId}`, JSON.stringify(profData)); } catch (e) {}
-                if (!isValidAESKey(profData.sessionKey)) return;
+                if (!profData?.sessionId || sessionTasks.blocked(profData.sessionId)) return false;
                 try {
-                    const updatedAt = profData.updatedAt || Date.now();
-                    const pack = (withGame) => encryptSessionAES({ players: profData.players, archivedIds: profData.archivedIds || [], disabledIds: profData.disabledIds || [], savedGame: withGame ? (profData.savedGame || null) : null, updatedAt }, profData.sessionKey);
-                    let encrypted = await pack(true); if (!encrypted) throw new Error("encrypt");
-                    // правило базы: payload короче 60000 знаков (предел задаётся в консоли Firebase). Незавершённая партия со всей колодой может его превысить, и тогда база молча отклоняла бы и имена, и архив:
-                    // в таком случае в облако уходит сессия без сохранённой партии (на самом устройстве партия остаётся)
-                    if (encrypted.length >= SESSION_PAYLOAD_MAX) { const lite = await pack(false); if (lite) encrypted = lite; }
-                    if (encrypted.length >= SESSION_PAYLOAD_MAX) throw new Error("too-big");
-                    const res = await fetchWithTimeout(`${FIREBASE_BASE_URL}/sessions/${await sessionDbKey(profData.sessionKey)}.json`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ payload: encrypted, updatedAt }) });
-                    if (!res.ok) throw new Error("HTTP " + res.status);
-                } catch (e) { if (Date.now() - lastSyncToastAt > 60000) { lastSyncToastAt = Date.now(); showToast(String(e && e.message) === "too-big" ? "Сессия стала слишком большой для облака — прогресс сохранён только на этом устройстве" : "Нет связи с облаком — прогресс сохранён на устройстве", 5000, 'warn'); } }
+                    localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profData));
+                    localStorage.setItem(`askme_sess_${profData.sessionId}`, JSON.stringify(profData));
+                } catch (e) { showToast('Хранилище устройства заполнено — сохранение может быть недоступно', 5000, 'warn'); }
+                if (!isValidAESKey(profData.sessionKey)) return false;
+                return sessionTasks.run(profData.sessionId, async () => {
+                    try {
+                        const cloud = await sessionStore.hydrate(profData);
+                        if (Number(cloud?.updatedAt) > Number(profData.updatedAt)) throw new Error('cloud-conflict');
+                        if (sessionTasks.blocked(profData.sessionId)) return false;
+                        await sessionStore.save(profData);
+                        if (profData.legacyPath && !sessionTasks.blocked(profData.sessionId)) {
+                            if (!await publishJoinCode(profData.sessionId, profData.sessionKey)) return false;
+                            const removed = await fetchWithTimeout(`${FIREBASE_BASE_URL}/sessions/${profData.legacyPath}.json`, { method: 'DELETE' });
+                            if (!removed.ok) return false;
+                            try { if (JSON.parse(localStorage.getItem('askme_device_profile_v3') || 'null')?.sessionId === profData.sessionId) localStorage.removeItem('askme_device_profile_v3'); } catch (e) {}
+                            setProfile(p => p?.sessionKey === profData.sessionKey ? { ...p, legacyPath: undefined, joinAt: Date.now() } : p);
+                        }
+                        return true;
+                    } catch (e) {
+                        if (e.message === 'cloud-conflict') setProfile(p => p?.sessionKey === profData.sessionKey && !p.syncConflict ? { ...p, syncConflict: true } : p);
+                        if (Date.now() - lastSyncToastAt > 60000) {
+                            lastSyncToastAt = Date.now();
+                            const messages = { 'too-big': 'Сессия стала слишком большой для облака — прогресс сохранён только на этом устройстве', 'cloud-conflict': 'Сессия изменена на другом устройстве. Локальный прогресс сохранён; откройте «Игроки и сессия» для выбора облачной копии', 'session-deleted': 'Эта сессия удалена. Создайте новую сессию' };
+                            showToast(messages[e.message] || 'Нет связи с облаком — прогресс сохранён на устройстве', 6000, 'warn');
+                        }
+                        return false;
+                    }
+                });
             };
-
-            useEffect(() => { if (!profile || isLoading) return; try { localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profile)); } catch (e) {} const timer = setTimeout(() => { syncSessionToCloud(profile); }, 350); return () => clearTimeout(timer); }, [profile, isLoading]);
             useEffect(() => {
-                if (!isValidAESKey(profile?.sessionKey) || isLoading) return;
-                (async () => {
-                    try { const res = await fetchWithTimeout(`${FIREBASE_BASE_URL}/sessions/${await sessionDbKey(profile.sessionKey)}.json?t=${Date.now()}`); if (!res.ok) return; const data = await res.json(); const dec = data && data.payload ? await decryptSessionAES(data.payload, profile.sessionKey) : null; const cloudPlayers = dec ? cleanPlayers(dec.players) : []; if (cloudPlayers.length && (Number(dec.updatedAt) || 0) > (profile.updatedAt || 0)) { setProfile({ ...profile, players: cloudPlayers, archivedIds: cleanIdList(dec.archivedIds), disabledIds: cleanIdList(dec.disabledIds), savedGame: cleanSavedGame(dec.savedGame), updatedAt: Number(dec.updatedAt) }); } } catch (e) {}
-                })();
-            }, [isLoading, profile?.sessionKey]);
+                const retry = () => { if (profileRef.current?.sessionKey) sessionStore.forget(profileRef.current.sessionKey); hydratedKeyRef.current = ''; setHydrationAttempt(t => t + 1); };
+                window.addEventListener('online', retry);
+                return () => window.removeEventListener('online', retry);
+            }, []);
+            useEffect(() => {
+                if (!isValidAESKey(profile?.sessionKey) || isLoading || sessionTasks.blocked(profile.sessionId)) return;
+                let active = true; const started = profile;
+                hydratedKeyRef.current = '';
+                sessionStore.hydrate(started).then(cloud => {
+                    if (!active || sessionTasks.blocked(started.sessionId)) return;
+                    const players = cleanPlayers(cloud?.players);
+                    const canAdoptCloud = players.length && Number(cloud.updatedAt) > Number(started.updatedAt) && profileRef.current?.updatedAt === started.updatedAt;
+                    if (started.syncConflict || (sessionStore.requiresResolution(started.sessionKey) && !canAdoptCloud)) {
+                        showToast('Версии сессии различаются. Откройте «Игроки и сессия», чтобы выбрать облачную копию. Локальный прогресс сохранён', 6500, 'warn');
+                        setProfile(p => p?.sessionKey === started.sessionKey && !p.syncConflict ? { ...p, syncConflict: true } : p);
+                        return; // store также запрещает обход этого конфликта прямым save.
+                    }
+                    setProfile(current => {
+                        if (current?.sessionKey !== started.sessionKey) return current;
+                        if (players.length && Number(cloud.updatedAt) > Number(started.updatedAt)) {
+                            return { ...current, players, archivedIds: cleanIdList(cloud.archivedIds), disabledIds: cleanIdList(cloud.disabledIds), savedGame: cleanSavedGame(cloud.savedGame), updatedAt: Number(cloud.updatedAt) };
+                        }
+                        return current;
+                    });
+                    sessionStore.acceptHydration(started.sessionKey);
+                    hydratedKeyRef.current = started.sessionKey;
+                    setHydrationTick(t => t + 1);
+                }).catch(error => {
+                    if (!active) return;
+                    if (error.message === 'session-deleted') {
+                        sessionTasks.stop(started.sessionId).catch(() => {});
+                        try {
+                            localStorage.setItem('askme_deleted_' + started.sessionId, '1');
+                            for (const key of [PROFILE_STORAGE_KEY, 'askme_device_profile_v3', 'askme_sess_' + started.sessionId]) {
+                                const saved = JSON.parse(localStorage.getItem(key) || 'null');
+                                if (saved?.sessionId === started.sessionId) localStorage.removeItem(key);
+                            }
+                        } catch (e) {}
+                        setProfile(null); setPlayersForm([{ id: 'p1', name: '', gender: 'guy' }, { id: 'p2', name: '', gender: 'girl' }]);
+                        navigate('onboarding'); showToast('Эта сессия удалена на другом устройстве', 5000, 'warn');
+                    } else showToast('Облачная копия недоступна — игра и прогресс остаются на устройстве', 5000, 'warn');
+                });
+                return () => { active = false; };
+            }, [isLoading, profile?.sessionKey, hydrationAttempt]);
+            useEffect(() => {
+                if (!profile || isLoading || sessionTasks.blocked(profile.sessionId)) return;
+                try { localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profile)); } catch (e) {}
+                if (hydratedKeyRef.current !== profile.sessionKey) return;
+                const timer = setTimeout(() => { syncSessionToCloud(profile); }, 350);
+                return () => clearTimeout(timer);
+            }, [profile, isLoading, hydrationTick]);
             // «замок» для входа по ID (см. publishJoinCode): кладём в облако при первом запуске сессии на устройстве и обновляем раз в неделю, чтобы он не устарел
             useEffect(() => {
-                if (!profile || isLoading || !isValidAESKey(profile.sessionKey) || !isValidSessionIdFormat(profile.sessionId) || Date.now() - (profile.joinAt || 0) < JOIN_REFRESH_MS) return;
+                if (!profile || sessionTasks.blocked(profile.sessionId) || isLoading || !isValidAESKey(profile.sessionKey) || !isValidSessionIdFormat(profile.sessionId) || Date.now() - (profile.joinAt || 0) < JOIN_REFRESH_MS) return;
                 let on = true; const sid = profile.sessionId, key = profile.sessionKey;
-                publishJoinCode(sid, key).then(ok => { if (ok && on) setProfile(p => (p && p.sessionId === sid && p.sessionKey === key) ? { ...p, joinAt: Date.now() } : p); });
+                sessionTasks.run(sid, () => publishJoinCode(sid, key)).then(ok => { if (ok && on) setProfile(p => (p && p.sessionId === sid && p.sessionKey === key) ? { ...p, joinAt: Date.now() } : p); });
                 return () => { on = false; };
             }, [isLoading, profile && profile.sessionId, profile && profile.sessionKey, profile && profile.joinAt]);
             useEffect(() => {
-                if (!profile || profile.sessionKey || isLoading) return; let alive = true; generateAESKey().then(k => { if (!alive) return; fetchWithTimeout(`${FIREBASE_BASE_URL}/sessions/sess_${hashSessionIdForDb(profile.sessionId)}.json`, { method: "DELETE" }).catch(() => {}); setProfile(pr => (pr && !pr.sessionKey) ? { ...pr, sessionKey: k, updatedAt: Date.now() } : pr); }); return () => { alive = false; };
+                if (!profile || profile.sessionKey || isLoading || sessionTasks.blocked(profile.sessionId)) return;
+                let active = true; const sid = profile.sessionId;
+                generateAESKey().then(key => {
+                    if (active && profileRef.current?.sessionId === sid && !sessionTasks.blocked(sid)) setProfile(current => current?.sessionId === sid && !current.sessionKey ? { ...current, sessionKey: key, legacyPath: 'sess_' + hashSessionIdForDb(sid), updatedAt: Date.now() } : current);
+                }).catch(() => { if (active) showToast('Не удалось подготовить защищённое сохранение', 4000, 'warn'); });
+                return () => { active = false; };
             }, [profile, isLoading]);
 
             const cleanupOldSessions = async (token) => {
@@ -1026,7 +1210,7 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
                 try {
                     let restored = null, legacyPath = null, offline = false;
                     try { const found = key || await lookupJoinCode(sid); if (found === null) offline = true; const useKey = found || ""; if (useKey) { const res = await fetchWithTimeout(`${FIREBASE_BASE_URL}/sessions/${await sessionDbKey(useKey)}.json?t=${Date.now()}`); const data = res.ok ? await res.json() : null; const dec = data && data.payload ? await decryptSessionAES(data.payload, useKey) : null; if (dec && (dec.players || dec.guyName)) restored = toProfile(dec, isValidSessionIdFormat(sid) ? sid : generateSessionId(), useKey); } if (!restored && !key) { const lp = "sess_" + hashSessionIdForDb(sid); const res = await fetchWithTimeout(`${FIREBASE_BASE_URL}/sessions/${lp}.json?t=${Date.now()}`); const data = res.ok ? await res.json() : null; const dec = data && data.payload ? decryptSessionPayload(data.payload, sid) : null; if (dec && (dec.players || dec.guyName)) { restored = toProfile(dec, sid, await generateAESKey()); legacyPath = lp; } } } catch (err) { offline = true; }
-                    if (restored) { SoundFX.success(); if (legacyPath) fetchWithTimeout(`${FIREBASE_BASE_URL}/sessions/${legacyPath}.json`, { method: "DELETE" }).catch(() => {}); try { window.history.replaceState(null, "", window.location.pathname + window.location.search + "#/welcome"); } catch (err) {} setProfile(restored); setPlayersForm(restored.players); setRestoreIdInput(""); setIsPreviewMode(false); showToast(`Сессия ${restored.sessionId} успешно восстановлена!`); okRestore = true; navigate('menu'); } else { SoundFX.warn(); setErr(offline ? "Нет связи с облаком. Проверьте интернет и попробуйте ещё раз." : key ? "Сессия не найдена. Ссылка устарела или сессию удалили." : "Сессия с таким ID не найдена. Проверьте ID. Если сессия создана давно — один раз откройте игру на старом устройстве: вход по ID включится сам."); }
+                    if (restored) { if (sessionTasks.blocked(restored.sessionId)) throw new Error("session-deleted"); if (legacyPath) restored.legacyPath = legacyPath; SoundFX.success(); try { window.history.replaceState(null, "", window.location.pathname + window.location.search + "#/welcome"); } catch (err) {} setProfile(restored); setPlayersForm(restored.players); setRestoreIdInput(""); setIsPreviewMode(false); showToast(`Сессия ${restored.sessionId} успешно восстановлена!`); okRestore = true; navigate('menu'); } else { SoundFX.warn(); setErr(offline ? "Нет связи с облаком. Проверьте интернет и попробуйте ещё раз." : key ? "Сессия не найдена. Ссылка устарела или сессию удалили." : "Сессия с таким ID не найдена. Проверьте ID. Если сессия создана давно — один раз откройте игру на старом устройстве: вход по ID включится сам."); }
                 } catch (err) { SoundFX.warn(); setErr("Ошибка соединения."); } finally { setIsRestoringSession(false); }
                 return okRestore;
             };
@@ -1049,32 +1233,87 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
             // ---- удаление всех данных пользователя: облако (сессия, общая комната, записи статистики этого устройства) и локальное хранилище ----
             const [delDataOpen, setDelDataOpen] = useState(false); const [delDataBusy, setDelDataBusy] = useState(false);
             const handleDeleteMyData = async () => {
-                if (!profile || delDataBusy) return; setDelDataBusy(true);
-                const sid = profile.sessionId, key = profile.sessionKey; let aid = null; try { aid = localStorage.getItem('askme_aid_' + sid); } catch (e) {}
-                const del = (url) => fetchWithTimeout(url, { method: 'DELETE' }, 10000).then(r => r.ok).catch(() => false);
-                const jobs = [isValidAESKey(key) ? sessionDbKey(key).then(k => del(`${FIREBASE_BASE_URL}/sessions/${k}.json`)) : del(`${FIREBASE_BASE_URL}/sessions/sess_${hashSessionIdForDb(sid)}.json`)];
-                jobs.push(removeJoinCode(sid));
-                const room = liveRoomIdRef.current; if (room) { jobs.push(del(roomUrl(room))); jobs.push(del(roomUrl(room + '_d'))); }
-                if (aid) ['anon', 'full'].forEach(k => jobs.push(del(`${FIREBASE_BASE_URL}/analytics/${k}/${aid}.json`)));
-                const results = await Promise.all(jobs);
-                if (results.some(ok => !ok)) { setDelDataBusy(false); SoundFX.warn(); showToast('Не удалось удалить данные из облака. Проверьте интернет и повторите — ничего не потеряно', 6000, 'warn'); return; }
-                try { const rm = []; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && (k === PROFILE_STORAGE_KEY || k.startsWith('askme_sess_') || k.startsWith('askme_aid_') || [SETTINGS_KEY, 'askme_hard_mode_v1', 'askme_analytics_v1', 'askme_seen_topics_v1', AN_MIN_KEY].includes(k))) rm.push(k); } rm.forEach(k => localStorage.removeItem(k)); } catch (e) {}
-                setDelDataOpen(false); setDelDataBusy(false); setProfile(null); setIsPreviewMode(false);
-                setPlayersForm([{ id: 'p1', name: '', gender: 'guy' }, { id: 'p2', name: '', gender: 'girl' }]); setPlayersError(''); setRestoreIdInput(''); setRestoreError('');
-                SoundFX.success(); navigate('onboarding'); showToast('Все ваши данные удалены', 4000);
+                if (!profile || delDataBusy) return;
+                setDelDataBusy(true);
+                const sid = profile.sessionId, key = profile.sessionKey;
+                await sessionTasks.stop(sid);
+                hydratedKeyRef.current = '';
+                let aid = null; try { aid = localStorage.getItem('askme_aid_' + sid); } catch (e) {}
+                const del = url => fetchWithTimeout(url, { method: 'DELETE' }, 10000).then(r => r.ok).catch(() => false);
+                try {
+                    const retire = url => retireSessionUrl(url).catch(() => false);
+                    const jobs = [isValidAESKey(key) ? sessionDbKey(key).then(k => retire(`${FIREBASE_BASE_URL}/sessions/${k}.json`)) : Promise.resolve(true)];
+                    jobs.push(retire(`${FIREBASE_BASE_URL}/sessions/sess_${hashSessionIdForDb(sid)}.json`));
+                    jobs.push(removeJoinCode(sid));
+                    const room = liveRoomIdRef.current;
+                    if (room) {
+                        const marker = { ver: liveVerStart(deviceIdRef.current), by: deviceIdRef.current, t: Date.now(), status: 'ended', deleted: true };
+                        for (const id of [room, room + '_d']) jobs.push(fetchWithTimeout(roomUrl(id), { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(marker) }, 10000).then(r => r.ok).catch(() => false));
+                    }
+                    if (aid) {
+                        const ownerUid = await Auth.uid();
+                        const sessionRef = isValidAESKey(key) ? await sessionDbKey(key) : undefined;
+                        for (const kind of ['anon', 'full']) jobs.push(fetchWithTimeout(`${FIREBASE_BASE_URL}/analytics/${kind}/${aid}.json`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ownerUid, sessionRef, updatedAt: Date.now(), deleted: true, ...(kind === 'full' ? { sid: '', names: '' } : {}) }) }, 10000).then(r => r.ok).catch(() => false));
+                    }
+                    const results = await Promise.all(jobs);
+                    if (results.some(ok => !ok)) {
+                        showToast('Не удалось удалить данные из облака полностью. Часть данных могла быть удалена; повторите попытку. Локальная копия сохранена', 6500, 'warn');
+                        return;
+                    }
+                    for (const storageKey of [PROFILE_STORAGE_KEY, 'askme_device_profile_v3']) {
+                        const value = JSON.parse(localStorage.getItem(storageKey) || 'null');
+                        if (value?.sessionId === sid) localStorage.removeItem(storageKey);
+                    }
+                    localStorage.removeItem('askme_sess_' + sid);
+                    localStorage.removeItem('askme_aid_' + sid);
+                    localStorage.setItem('askme_deleted_' + sid, '1');
+                    if (key) sessionStore.forget(key);
+                    liveLeave();
+                    setDelDataOpen(false); setProfile(null); setIsPreviewMode(false);
+                    setPlayersForm([{ id: 'p1', name: '', gender: 'guy' }, { id: 'p2', name: '', gender: 'girl' }]);
+                    setPlayersError(''); setRestoreIdInput(''); setRestoreError('');
+                    SoundFX.success(); navigate('onboarding'); showToast('Данные этой сессии удалены', 4000);
+                } catch (error) { showToast('Не удалось завершить удаление. Повторите попытку', 5000, 'warn'); }
+                finally { setDelDataBusy(false); }
             };
+
+            useEffect(() => {
+                const onStorage = event => {
+                    const current = profileRef.current;
+                    if (!current || event.key !== 'askme_deleted_' + current.sessionId || event.newValue !== '1') return;
+                    sessionTasks.stop(current.sessionId).catch(() => {}); liveLeave();
+                    setProfile(null); setIsPreviewMode(false); setPlayersForm([{ id: 'p1', name: '', gender: 'guy' }, { id: 'p2', name: '', gender: 'girl' }]); setRestoreIdInput(''); navigate('onboarding');
+                    showToast('Эта сессия удалена в другой вкладке', 5000, 'warn');
+                };
+                window.addEventListener('storage', onStorage);
+                return () => window.removeEventListener('storage', onStorage);
+            }, []);
 
             const handleShareGame = async () => { SoundFX.click(); const shareUrl = `${window.location.origin}${window.location.pathname}#/welcome`; if (navigator.share) { try { await navigator.share({ title: "ASK ME — Игра", text: "Откровенные разговоры ❤️", url: shareUrl }); return; } catch (e) { if (e.name === 'AbortError') return; } } await copyTextToClipboard(shareUrl); showToast("Ссылка на игру скопирована!"); };
             const toggleMute = () => { const nextState = !isMuted; setIsMuted(nextState); SoundFX.muted = nextState; if (!nextState) SoundFX.click(); };
             const handleLogoSecretTap = () => { const nextCount = logoTapCount + 1; setLogoTapCount(nextCount); if (nextCount >= 5) { SoundFX.magic(); setLogoTapCount(0); setAdminPinError(''); navigate('admin_login'); } };
+
+            const useCloudProfile = async () => {
+                const current = profileRef.current; if (!current?.sessionKey || isRestoringSession) return;
+                setIsRestoringSession(true);
+                try {
+                    sessionStore.forget(current.sessionKey);
+                    const cloud = await sessionStore.hydrate(current), players = cleanPlayers(cloud?.players);
+                    if (!players.length || profileRef.current?.sessionKey !== current.sessionKey || sessionTasks.blocked(current.sessionId)) throw new Error('cloud-unavailable');
+                    sessionStore.acceptHydration(current.sessionKey); hydratedKeyRef.current = current.sessionKey;
+                    const updated = { ...current, players, archivedIds: cleanIdList(cloud.archivedIds), disabledIds: cleanIdList(cloud.disabledIds), savedGame: cleanSavedGame(cloud.savedGame), updatedAt: Number(cloud.updatedAt) || Date.now(), syncConflict: false };
+                    setProfile(updated); setPlayersForm(players); showToast('Загружена облачная копия сессии');
+                } catch (error) { showToast('Облачная копия недоступна. Локальный прогресс сохранён', 5000, 'warn'); }
+                finally { setIsRestoringSession(false); }
+            };
 
             const handleSaveProfileNames = async (e) => {
                 e.preventDefault(); const validPlayers = playersForm.filter(p => p.name.trim().length > 0);
                 if (validPlayers.length < 2) { SoundFX.warn(); setPlayersError("Введите минимум два имени, чтобы начать игру"); return; }
                 SoundFX.success(); setPlayersError('');
                 const isNewSession = (!profile?.sessionId || isPreviewMode); const newSid = isNewSession ? generateSessionId() : profile.sessionId; const newKey = (!isNewSession && isValidAESKey(profile?.sessionKey)) ? profile.sessionKey : await generateAESKey();
-                const updatedProfile = { sessionId: newSid, sessionKey: newKey, players: validPlayers, archivedIds: isNewSession ? [] : (profile?.archivedIds || []), disabledIds: isNewSession ? [] : (profile?.disabledIds || []), savedGame: isNewSession ? null : (profile?.savedGame || null), joinAt: isNewSession ? 0 : (profile?.joinAt || 0), updatedAt: Date.now() };
-                setProfile(updatedProfile); syncSessionToCloud(updatedProfile); setIsPreviewMode(false); if (isNewSession) navigate('session_created'); else { showToast("Имена сохранены"); navigate('menu'); }
+                const updatedProfile = { sessionId: newSid, sessionKey: newKey, players: validPlayers, archivedIds: isNewSession ? [] : (profile?.archivedIds || []), disabledIds: isNewSession ? [] : (profile?.disabledIds || []), savedGame: isNewSession ? null : (profile?.savedGame || null), syncConflict: !isNewSession && !!profile?.syncConflict, joinAt: isNewSession ? 0 : (profile?.joinAt || 0), updatedAt: Date.now() };
+                setProfile(updatedProfile); setIsPreviewMode(false); if (isNewSession) navigate('session_created'); else { showToast("Имена сохранены"); navigate('menu'); }
             };
             const handleExitSession = () => {
                 try { localStorage.removeItem(PROFILE_STORAGE_KEY); } catch (e) {}
@@ -1109,16 +1348,38 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
             };
 
             useEffect(() => {
+                let active = true;
                 const initDatabase = async () => {
-                    try { const cachedRaw = localStorage.getItem(OFFLINE_DB_CACHE_KEY); if (cachedRaw) { const cachedParsed = JSON.parse(cachedRaw); if (Array.isArray(cachedParsed) && cachedParsed.length > 0) { setDb(cachedParsed); setIsLoading(false); } } } catch (e) {}
-                    try { const res = await fetchWithTimeout(`${FIREBASE_BASE_URL}/questions.json?t=${Date.now()}`); if (!res.ok) throw new Error(`HTTP ${res.status}`); const data = await res.json(); if (data) { setDbSubPath("/questions"); const parsedDb = parseDatabaseObject(data); setDb(parsedDb); try { localStorage.setItem(OFFLINE_DB_CACHE_KEY, JSON.stringify(parsedDb)); } catch (e) {} setIsLoading(false); } } catch (err) {}
-                }; initDatabase();
-            }, []);
+                    setLoadError('');
+                    try {
+                        const cached = JSON.parse(localStorage.getItem(OFFLINE_DB_CACHE_KEY) || 'null');
+                        if (active && Array.isArray(cached) && cached.length) { setDb(cached); setIsLoading(false); }
+                    } catch (e) {}
+                    try {
+                        const response = await fetchWithTimeout(`${FIREBASE_BASE_URL}/questions.json?t=${Date.now()}`);
+                        if (!response.ok) throw new Error('HTTP ' + response.status);
+                        const parsed = parseDatabaseObject((await response.json()) || {});
+                        if (!active) return;
+                        setDb(parsed); setDbSubPath('/questions');
+                        if (!parsed.length) setLoadError('В базе пока нет вопросов');
+                        try { localStorage.setItem(OFFLINE_DB_CACHE_KEY, JSON.stringify(parsed)); } catch (e) {}
+                    } catch (error) { if (active) setLoadError('Не удалось загрузить вопросы. Проверьте интернет'); }
+                    finally { if (active) setIsLoading(false); }
+                };
+                initDatabase();
+                return () => { active = false; };
+            }, [dbLoadAttempt]);
 
+            const [questionAudience, setQuestionAudience] = useState('');
+            useEffect(() => {
+                let active = true; setQuestionAudience('');
+                if (isValidAESKey(profile?.sessionKey)) questionAudienceKey(profile.sessionKey).then(value => { if (active) setQuestionAudience(value); }).catch(() => {});
+                return () => { active = false; };
+            }, [profile?.sessionKey]);
             const profileDb = useMemo(() => {
                 const archSet = new Set(profile?.archivedIds || []); const disSet = new Set(profile?.disabledIds || []); const mySid = profile?.sessionId;
-                return db.filter(q => (!q.hidden || isAdmin) && (!q.targetId || String(q.targetId).trim() === '' || q.targetId === mySid)).map(q => ({ ...q, archived: archSet.has(q.id) || archSet.has(q.dbKey), disabled: disSet.has(q.id) || disSet.has(q.dbKey) }));
-            }, [db, profile, isAdmin]);
+                return db.filter(q => (!q.hidden || isAdmin) && (!q.targetId || String(q.targetId).trim() === '' || q.targetId === mySid || q.targetId === questionAudience)).map(q => ({ ...q, archived: archSet.has(q.id) || archSet.has(q.dbKey), disabled: disSet.has(q.id) || disSet.has(q.dbKey) }));
+            }, [db, profile, isAdmin, questionAudience]);
 
             const stats = useMemo(() => {
                 const activeByCat = {}; const totalByCat = {}; const archivedByCat = {}; CATEGORIES.forEach(c => { activeByCat[c.id] = 0; totalByCat[c.id] = 0; archivedByCat[c.id] = 0; });
@@ -1134,11 +1395,12 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
                 setProfile(prev => { if (!prev) return prev; const qIds = questionsArr.map(q => q.id || q.dbKey); const nextArchived = extraArchivedKey ? Array.from(new Set([...(prev.archivedIds || []), extraArchivedKey])) : (prev.archivedIds || []); return { ...prev, archivedIds: nextArchived, savedGame: { questionIds: qIds, currentIndex: cIdx, maxReachedIndex: mIdx, turnHistory: tHist }, updatedAt: Date.now() }; });
             };
 
-            const pendingTurnRef = useRef(null);
+            const pendingTurnRef = useRef(null); const turnHistoryRef = useRef(turnHistory); turnHistoryRef.current = turnHistory;
             const commitTurn = (idx, entry, q) => {
                 if (entry && entry.cur && gameLogRef.current) gameLogRef.current.turnStart = Date.now();
                 const stamped = (entry && liveRoomRef.current) ? { ...entry, dev: deviceIdRef.current } : entry;
-                setTurnHistory(prev => { const upd = { ...prev, [idx]: stamped }; updateSavedGameProgress(q, idx, Math.max(maxReachedIndex, idx), upd); return upd; });
+                const next = { ...turnHistoryRef.current, [idx]: stamped }; turnHistoryRef.current = next;
+                setTurnHistory(next); updateSavedGameProgress(q, idx, Math.max(maxReachedIndex, idx), next);
             };
             const startSpin = (idx, candidates, answered, q, skippedBy = []) => {
                 rouletteTimeoutsRef.current.forEach(t => clearTimeout(t)); rouletteTimeoutsRef.current = [];
@@ -1519,7 +1781,13 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
                     const key = 'askme_aid_' + profile.sessionId; let aid = localStorage.getItem(key); let fresh = false;
                     if (!aid) { aid = 'a' + Array.from(crypto.getRandomValues(new Uint8Array(8))).map(b => b.toString(16).padStart(2, '0')).join(''); localStorage.setItem(key, aid); fresh = true; }
                     const gid = 'g' + g.startedAt.toString(36), now = Date.now(); const base = { updatedAt: now }; if (fresh) base.createdAt = now;
-                    const send = (kind, body) => fetchWithTimeout(`${FIREBASE_BASE_URL}/analytics/${kind}/${aid}.json`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).catch(() => {});
+                    const send = (kind, body) => sessionTasks.run(profile.sessionId, async () => {
+                        const ownerUid = await Auth.uid();
+                        if (!isValidAESKey(profile.sessionKey)) return false;
+                        const sessionRef = await sessionDbKey(profile.sessionKey);
+                        if (sessionTasks.blocked(profile.sessionId)) return false;
+                        return fetchWithTimeout(`${FIREBASE_BASE_URL}/analytics/${kind}/${aid}.json`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...body, ownerUid, sessionRef }) });
+                    }).catch(() => {});
                     send('anon', { ...base, ['games/' + gid]: anonGame });
                     // правило базы analytics/full требует поле sid (строка ≤16), поэтому вместо ID шлём пустую строку: она же затирает ID, записанный прежними версиями (копия правила: tests/fixtures/analytics-rules.json)
                     send('full', { ...base, sid: '', names: profile.players.map(p => String(p.name).slice(0, 25)), ['games/' + gid]: fullGame });
@@ -1539,14 +1807,15 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
             const lastProgressRef = useRef('');
             useEffect(() => {
                 if (screen !== 'game' || gameMode !== 'normal') return;
-                const passed = maxReachedIndex, log = gameLogRef.current, tag = log ? log.startedAt + ':' + passed : '';
-                if (log && passed >= AN_FLOOR && passed % 5 === 0 && lastProgressRef.current !== tag) { lastProgressRef.current = tag; reportGame(passed, { partial: true }); }
-                const onHide = () => { if (document.visibilityState === 'hidden' && passed >= AN_FLOOR) reportGame(passed, { partial: true }); };
+                const completed = gameQuestions.filter((q, index) => { const entry = normTurn(turnHistory[index]); return entry && !entry.cur && profile?.players?.length && profile.players.every(p => entry.answered.includes(p.id)); }).length;
+                const log = gameLogRef.current, tag = log ? log.startedAt + ':' + completed : '';
+                if (log && completed >= AN_FLOOR && completed % 5 === 0 && lastProgressRef.current !== tag) { lastProgressRef.current = tag; reportGame(maxReachedIndex + 1, { partial: true }); }
+                const onHide = () => { if (document.visibilityState === 'hidden' && completed >= AN_FLOOR) reportGame(maxReachedIndex + 1, { partial: true }); };
                 document.addEventListener('visibilitychange', onHide);
                 return () => document.removeEventListener('visibilitychange', onHide);
             }, [screen, gameMode, maxReachedIndex, turnHistory]);
             const setAnMin = (n) => { SoundFX.click(); setAnMinState(n); try { localStorage.setItem(AN_MIN_KEY, String(n)); } catch (e) {} };
-            const anFiltered = anData ? { anon: filterAnalytics(anData.anon, anMin), full: filterAnalytics(anData.full, anMin) } : null;
+            const anFiltered = useMemo(() => anData ? { anon: filterAnalytics(anData.anon, anMin), full: filterAnalytics(anData.full, anMin) } : null, [anData, anMin]);
             const anHiddenGames = anData && anFiltered ? Math.max(0, countAnalyticsGames(anData.anon) - countAnalyticsGames(anFiltered.anon)) : 0;
             const anMinControl = (
                 <section className="rounded-[20px] border border-white/10 bg-white/[0.04] p-4 flex flex-col gap-3">
@@ -1561,7 +1830,8 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
                 if (anConfirm !== aid) { SoundFX.warn(); setAnConfirm(aid); return; }
                 setAnBusy(true);
                 try {
-                    const rs = await Promise.all(['anon', 'full'].map(k => fetchWithTimeout(`${FIREBASE_BASE_URL}/analytics/${k}/${aid}.json`, { method: "DELETE" })));
+                    const ownerUid = anData?.full?.[aid]?.ownerUid || anData?.anon?.[aid]?.ownerUid || await Auth.uid();
+                    const rs = await Promise.all(['anon', 'full'].map(k => fetchWithTimeout(`${FIREBASE_BASE_URL}/analytics/${k}/${aid}.json`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ownerUid, updatedAt: Date.now(), deleted: true, ...(k === 'full' ? { sid: '', names: '' } : {}) }) })));
                     if (rs.some(r => !r.ok)) throw new Error('HTTP');
                     setAnData(d => { const n = { anon: { ...d.anon }, full: { ...d.full } }; delete n.anon[aid]; delete n.full[aid]; return n; });
                     setAnSel(null); SoundFX.success(); showToast('Сессия удалена');
@@ -1605,12 +1875,24 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
             const liveStateRef = useRef({ idx: 0, max: 0, hist: {} }); liveStateRef.current = { idx: currentIndex, max: maxReachedIndex, hist: turnHistory };
             const livePunRef = useRef({ key: '', punish: null }); livePunRef.current = { key: punDoneKey, punish };
             const roomUrl = (room, sub = '') => `${FIREBASE_BASE_URL}/live/${room}${sub}.json`;
+            const liveWriterRef = useRef(null);
+            if (!liveWriterRef.current) liveWriterRef.current = createLiveWriter({ request: fetchWithTimeout, mergeHistory: (left, right) => liveHistStr(mergeTurnHistories(cleanTurnHistory(JSON.parse(left)), cleanTurnHistory(JSON.parse(right)))) });
             // общая «комната» сессии: её имя — хеш секретного ключа сессии, поэтому зайти могут только участники
             useEffect(() => { let on = true; if (profile && isValidAESKey(profile.sessionKey)) liveRoomKey(profile.sessionKey).then(r => { if (on) setLiveRoomId(r); }); else setLiveRoomId(''); return () => { on = false; }; }, [profile && profile.sessionKey]);
             const liveSend = (method, body, sub = '', suffix = '') => {
                 const room = liveRoomRef.current; if (!room) return Promise.resolve(false);
                 livePendingRef.current++;
-                const p = liveChainRef.current.then(() => fetchWithTimeout(roomUrl(room + suffix, sub), { method, headers: { "Content-Type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body) }).then(r => r.ok).catch(() => false)).then(ok => { livePendingRef.current--; return ok; });
+                const sid = profileRef.current?.sessionId, previous = liveChainRef.current;
+                const context = { gid: liveRef.current.gid };
+                const p = sessionTasks.run(sid, () => previous.then(async () => {
+                    if (sessionTasks.blocked(sid)) return false;
+                    try {
+                        const result = await liveWriterRef.current(roomUrl(room + suffix, sub), method, body, context);
+                        if (result.snapshot && liveRoomRef.current === room && !sessionTasks.blocked(sid)) applyLiveRef.current({ ...result.snapshot, by: 'merged-state' });
+                        if (!result.ok && method !== 'DELETE') showToast('Не удалось синхронизировать ход — проверьте соединение', 4000, 'warn');
+                        return result.ok;
+                    } catch (error) { return false; }
+                })).then(ok => { livePendingRef.current--; return ok; });
                 liveChainRef.current = p; return p;
             };
             // пока в игре одно устройство, состояние в базу не отправляется (force — только для итога игры)
@@ -1635,6 +1917,7 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
                 const lr = liveRef.current, me = deviceIdRef.current, t = Date.now();
                 setLive(l => ({ ...l, sync: true }));
                 liveSend('PUT', { ver: 1, by: me, t, g: lr.gid, d: liveDeckRef.current }, '', '_d').then(ok => {
+                    if (liveRef.current !== lr || !liveRoomRef.current) return;
                     if (!ok) { liveSyncRef.current = false; setLive(l => ({ ...l, sync: false })); if (Date.now() - (lr.deckFailAt || 0) > 20000) { lr.deckFailAt = Date.now(); showToast('Не удалось передать вопросы второму устройству — пробуем ещё раз', 4000, 'warn'); } return; }
                     const st = liveStateRef.current, hs = liveHistStr(st.hist), ver = liveVerNext(lr.ver, me); lr.ver = ver; lr.t = Date.now(); lr.hash = liveHash(st.idx, st.max, hs);
                     // если у хозяина уже выпало наказание за этот ход, гости должны знать об этом: иначе по своему таймеру выдадут второе
@@ -1648,14 +1931,15 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
             // итог партии: статус «закончена»; имена игроков и список вопросов из общей комнаты убираем — они больше не нужны
             const liveSendEnd = () => { if (!liveRoomRef.current || liveRef.current.endedSent) return; liveRef.current.endedSent = true; livePublish({ status: 'ended', pl: null }, true); liveSend('DELETE', undefined, '', '_d'); };
             const liveShowSpin = (spin) => {
+                if (!cleanPlayers(spin?.cands).length || typeof spin.winner !== 'string') return;
                 rouletteTimeoutsRef.current.forEach(t => clearTimeout(t)); rouletteTimeoutsRef.current = []; pendingTurnRef.current = null;
-                setTurnPopup({ open: true, spinning: true, winner: spin.winner, spinId: spin.id, candidates: spin.cands || [] });
+                setTurnPopup({ open: true, spinning: true, winner: spin.winner, spinId: spin.id, candidates: cleanPlayers(spin.cands) });
                 const delays = [140, 155, 170, 190, 210, 235, 260, 290, 320, 350]; let acc = 0;
                 delays.forEach((d, i) => { acc += d; rouletteTimeoutsRef.current.push(setTimeout(() => { if (i < delays.length - 1) { SoundFX.rouletteTick(); return; } SoundFX.rouletteWin(); setTurnPopup(st => ({ ...st, spinning: false })); }, acc)); });
                 // у остальных устройств окно рулетки закрывается само: имя отвечающего уже видно на карточке
                 rouletteTimeoutsRef.current.push(setTimeout(() => setTurnPopup(st => (st.spinId === spin.id && !st.spinning ? { ...st, open: false } : st)), acc + 2800));
             };
-            const liveShowPun = (pn) => { SoundFX.warn(); if (pn.key) setPunDoneKey(pn.key); setPunish({ open: true, remote: true, reason: pn.reason, player: pn.player || '', text: pn.text || '', icon: pn.icon || '🎭' }); };
+            const liveShowPun = (pn) => { if (!pn || typeof pn.text !== 'string' || (pn.player != null && typeof pn.player !== 'string') || (pn.icon != null && typeof pn.icon !== 'string')) return; SoundFX.warn(); if (pn.key) setPunDoneKey(pn.key); setPunish({ open: true, remote: true, reason: pn.reason, player: pn.player || '', text: pn.text || '', icon: pn.icon || '🎭' }); };
             // колода партии лежит отдельным узлом рядом с комнатой (её длина не ограничена лимитом одной записи)
             const liveFetchDeck = async (room, snap) => {
                 for (let i = 0; i < 3; i++) {
@@ -1673,8 +1957,8 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
                 const ids = await liveFetchDeck(room, snap); const map = new Map(profileDb.map(q => [String(q.id || q.dbKey), q])); const deck = ids ? ids.map(id => map.get(id)).filter(Boolean) : [];
                 if (!ids || !ids.length) { showToast('Не удалось получить вопросы игры. Проверьте интернет и попробуйте ещё раз', 5000, 'warn'); return false; }
                 if (deck.length !== ids.length) { showToast('Не удалось присоединиться: не все вопросы загружены. Обновите страницу и попробуйте снова', 5000, 'warn'); return false; }
-                let hist = {}; try { hist = JSON.parse(snap.hist || '{}') || {}; } catch (e) {}
-                let pl = null; try { pl = JSON.parse(snap.pl || 'null'); } catch (e) {}
+                let hist = {}; try { hist = cleanTurnHistory(JSON.parse(snap.hist || '{}')); } catch (e) {}
+                let pl = null; try { pl = cleanPlayers(JSON.parse(snap.pl || 'null')); } catch (e) {}
                 if (Array.isArray(pl) && pl.length) { const key = (a) => a.map(p => p.id + '|' + p.name + '|' + p.gender).join(','); if (key(pl) !== key(profile.players || [])) setProfile(prev => prev ? { ...prev, players: pl.slice(0, MAX_PLAYERS).map(p => ({ id: String(p.id), name: String(p.name || '').slice(0, 25), gender: p.gender === 'girl' ? 'girl' : 'guy' })), updatedAt: Date.now() } : prev); }
                 const idx = clampIdx(snap.idx, deck.length), max = Math.max(idx, clampIdx(snap.max, deck.length));
                 liveRoomRef.current = room; liveRoleRef.current = role; liveSyncRef.current = true; rouletteTimeoutsRef.current.forEach(t => clearTimeout(t)); rouletteTimeoutsRef.current = []; pendingTurnRef.current = null;
@@ -1704,7 +1988,7 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
                 if (snap.ver === lr.ver) return;
                 lr.ver = snap.ver; lr.t = snap.t || 0;
                 if (snap.by === me) return;
-                let hist = {}; try { hist = JSON.parse(snap.hist || '{}') || {}; } catch (e) {}
+                let hist = {}; try { hist = cleanTurnHistory(JSON.parse(snap.hist || '{}')); } catch (e) {}
                 const idx = clampIdx(snap.idx, gameQuestions.length), max = Math.max(idx, clampIdx(snap.max, gameQuestions.length));
                 lr.hash = liveHash(idx, max, liveHistStr(hist)); lr.appliedAt = Date.now();
                 setCurrentIndex(idx); setMaxReachedIndex(max); setTurnHistory(hist);
@@ -1743,16 +2027,16 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
             // «я здесь»: раз в 8 с отмечаемся в комнате и узнаём, сколько устройств сейчас в игре
             useEffect(() => {
                 if (!live.room || !['game', 'ai_response'].includes(screen)) return;
-                let stop = false;
+                let stop = false, busy = false;
                 const beat = async () => {
-                    if (stop || document.hidden) return; const me = deviceIdRef.current;
+                    if (busy || stop || document.hidden) return; busy = true; const me = deviceIdRef.current;
                     try {
                         await liveSend('PATCH', { [me]: Date.now() }, '/p');
                         const r = await fetchWithTimeout(roomUrl(live.room, '/p') + '?t=' + Date.now(), {}, 6000); const p = r.ok ? await r.json() : null;
                         const { alive, stale } = liveAlive(p, Date.now(), me);
                         if (!stop) { liveIdsRef.current = alive; setLiveCount(Math.max(1, alive.length)); }
                         if (!stop && stale.length) liveSend('PATCH', Object.fromEntries(stale.map(id => [id, null])), '/p');
-                    } catch (e) {}
+                    } catch (e) {} finally { busy = false; }
                 };
                 beat(); const id = setInterval(beat, LIVE_BEAT_MS); const vis = () => { if (!document.hidden) beat(); }; document.addEventListener('visibilitychange', vis);
                 return () => { stop = true; clearInterval(id); document.removeEventListener('visibilitychange', vis); };
@@ -1766,16 +2050,16 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
             // приглашение: на главной и экранах выбора режима смотрим, идёт ли в сессии игра, в которой уже есть другие устройства
             useEffect(() => {
                 if (!['menu', 'mode_select', 'game_setup'].includes(screen) || !liveRoomId || live.room) { setLiveInvite(null); return; }
-                let stop = false;
+                let stop = false, busy = false;
                 const check = async () => {
-                    if (document.hidden) return;
+                    if (busy || stop || document.hidden) return; busy = true;
                     try {
                         const sr = await fetchWithTimeout(roomUrl(liveRoomId, '/status') + '?t=' + Date.now(), {}, 6000); const status = sr.ok ? await sr.json() : null;
                         if (stop) return; if (status !== 'active') { setLiveInvite(null); return; }
                         const pr = await fetchWithTimeout(roomUrl(liveRoomId, '/p') + '?t=' + Date.now(), {}, 6000); const p = pr.ok ? await pr.json() : null;
                         const n = liveAlive(p, Date.now(), deviceIdRef.current).others.length;
                         if (!stop) setLiveInvite(n > 0 ? (cur => (cur && cur.count === n ? cur : { count: n })) : null);
-                    } catch (e) {}
+                    } catch (e) {} finally { busy = false; }
                 };
                 check(); const id = setInterval(check, LIVE_INVITE_MS); return () => { stop = true; clearInterval(id); };
             }, [screen, liveRoomId, live.room]);
@@ -1797,7 +2081,7 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
                     let snap = snap0;
                     if (snap.solo) {
                         announced = true;
-                        await fetchWithTimeout(roomUrl(room, '/p'), { method: 'PATCH', headers: { "Content-Type": "application/json" }, body: JSON.stringify({ [me]: Date.now() }) }, 6000).catch(() => {});
+                        await sessionTasks.run(profile.sessionId, () => fetchWithTimeout(roomUrl(room, '/p'), { method: 'PATCH', headers: { "Content-Type": "application/json" }, body: JSON.stringify({ [me]: Date.now() }) }, 6000)).catch(() => {});
                         if (!quiet) showToast('Подключаемся к игре…', 4000, 'info');
                         const t0 = Date.now(); snap = null;
                         while (Date.now() - t0 < LIVE_JOIN_WAIT_MS) {
@@ -1888,22 +2172,60 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
                 }
             };
 
-            const handleNextQuestion = () => { if (liveRoomRef.current && Date.now() - liveRef.current.appliedAt < LIVE_TAP_GUARD_MS) return; if (advanceTurn()) return; if (currentIndex < gameQuestions.length - 1) { const currentQ = gameQuestions[currentIndex]; const currentQKey = currentQ ? (currentQ.id || currentQ.dbKey) : null; const nextIdx = currentIndex + 1; const nextMax = Math.max(maxReachedIndex, nextIdx); SoundFX.flip('right'); setCurrentIndex(nextIdx); setMaxReachedIndex(nextMax); if (gameMode === 'normal') { updateSavedGameProgress(gameQuestions, nextIdx, nextMax, turnHistory, currentQKey); if (!turnHistory[nextIdx]) triggerRouletteForIndex(nextIdx, turnHistory, gameQuestions); } } else { SoundFX.click(); handleFinishGame(true); } };
-            const handlePrevQuestion = () => { if (currentIndex <= 0) return; if (liveRoomRef.current && Date.now() - liveRef.current.appliedAt < LIVE_TAP_GUARD_MS) return; SoundFX.flip('left'); const prevIdx = currentIndex - 1; setCurrentIndex(prevIdx); if (gameMode === 'normal') { updateSavedGameProgress(gameQuestions, prevIdx, maxReachedIndex, turnHistory); } };
+            const handleNextQuestion = () => { if (turnPopup.open || punish.open || showEndGameConfirm) return; if (gameMode === 'normal' && !turnHistory[currentIndex]) { triggerRouletteForIndex(currentIndex, turnHistory); return; } if (liveRoomRef.current && Date.now() - liveRef.current.appliedAt < LIVE_TAP_GUARD_MS) return; if (advanceTurn()) return; if (currentIndex < gameQuestions.length - 1) { const currentQ = gameQuestions[currentIndex]; const currentQKey = currentQ ? (currentQ.id || currentQ.dbKey) : null; const nextIdx = currentIndex + 1; const nextMax = Math.max(maxReachedIndex, nextIdx); SoundFX.flip('right'); setCurrentIndex(nextIdx); setMaxReachedIndex(nextMax); if (gameMode === 'normal') { updateSavedGameProgress(gameQuestions, nextIdx, nextMax, turnHistory, currentQKey); if (!turnHistory[nextIdx]) triggerRouletteForIndex(nextIdx, turnHistory, gameQuestions); } } else { SoundFX.click(); handleFinishGame(true); } };
+            const handlePrevQuestion = () => { if (turnPopup.open || punish.open || showEndGameConfirm) return; if (currentIndex <= 0) return; if (liveRoomRef.current && Date.now() - liveRef.current.appliedAt < LIVE_TAP_GUARD_MS) return; SoundFX.flip('left'); const prevIdx = currentIndex - 1; setCurrentIndex(prevIdx); if (gameMode === 'normal') { updateSavedGameProgress(gameQuestions, prevIdx, maxReachedIndex, turnHistory); } };
             const archiveAnsweredQuestions = (questionsToArchive) => { if (!questionsToArchive || questionsToArchive.length === 0 || !profile) return; const newArchKeys = questionsToArchive.map(q => q.id || q.dbKey); setProfile(prev => { const merged = Array.from(new Set([...(prev.archivedIds || []), ...newArchKeys])); return { ...prev, archivedIds: merged, savedGame: null, updatedAt: Date.now() }; }); };
             const handleRestoreSingleFromArchive = (qObj) => { SoundFX.success(); setProfile(prev => ({ ...prev, archivedIds: (prev.archivedIds || []).filter(k => k !== qObj.id && k !== qObj.dbKey), updatedAt: Date.now() })); };
             const handleRestoreBatchFromArchive = (listToRestore) => { if (!listToRestore || listToRestore.length === 0) return; SoundFX.success(); const keysToRemove = new Set(); listToRestore.forEach(q => { keysToRemove.add(q.id); keysToRemove.add(q.dbKey); }); setProfile(prev => ({ ...prev, archivedIds: (prev.archivedIds || []).filter(k => !keysToRemove.has(k)), updatedAt: Date.now() })); };
-            const handleFinishGame = (reachedVeryEnd = false) => { SoundFX.click(); liveSendEnd(); setShowEndGameConfirm(false); if (gameMode === 'test') { navigate('menu'); return; } const totalAnswered = maxReachedIndex + 1; const answeredSlice = gameQuestions.slice(0, totalAnswered); const isAllCleared = reachedVeryEnd || (totalAnswered >= gameQuestions.length && gameQuestions.length > 0); setAnsweredCount(totalAnswered); setCompletedAllFlag(isAllCleared); if (isAllCleared) SoundFX.romanticFinale(); else SoundFX.success(); archiveAnsweredQuestions(answeredSlice); reportGame(totalAnswered, { complete: isAllCleared }); navigate('summary'); };
+            const handleFinishGame = (reachedVeryEnd = false) => {
+                rouletteTimeoutsRef.current.forEach(clearTimeout); rouletteTimeoutsRef.current = []; pendingTurnRef.current = null;
+                SoundFX.click(); liveSendEnd(); setShowEndGameConfirm(false);
+                if (gameMode === 'test') { navigate('menu'); return; }
+                const completed = gameQuestions.filter((q, index) => {
+                    const entry = normTurn(turnHistory[index]);
+                    return entry && !entry.cur && profile?.players?.length && profile.players.every(p => entry.answered.includes(p.id));
+                });
+                const isAllCleared = gameQuestions.length > 0 && completed.length === gameQuestions.length;
+                setAnsweredCount(completed.length); setCompletedAllFlag(isAllCleared);
+                if (isAllCleared) SoundFX.romanticFinale(); else SoundFX.success();
+                archiveAnsweredQuestions(completed);
+                if (!completed.length) setProfile(p => p ? { ...p, savedGame: null, updatedAt: Date.now() } : p);
+                reportGame(maxReachedIndex + 1, { complete: isAllCleared }); navigate('summary');
+            };
 
-            const triggerAI = async (type) => { if (!ActionGuard.canProceed(600)) return; SoundFX.magic(); setAiType(type); setAiContent(type === 'situation' ? "Моделирую ситуацию..." : "Готовлю разбор психолога..."); setIsAiTyping(true); navigate('ai_response'); const q = gameQuestions[currentIndex]; const pNames = profile?.players?.map(p=>p.name).join(' и ') || "Пара"; const response = await fetchFromAI(type, q.cleanText || q.text, q.categoryId, pNames); if (typingIntervalRef.current) clearInterval(typingIntervalRef.current); setAiContent(""); let i = 0; typingIntervalRef.current = setInterval(() => { setAiContent(response.substring(0, i + 1)); i += 8; if (i >= response.length) { setAiContent(response); clearInterval(typingIntervalRef.current); setIsAiTyping(false); } }, 40); };
-            const handleGenerateQuestionAI = async () => { if (!isAdmin || isGeneratingQuestion || !ActionGuard.canProceed(800)) return; SoundFX.magic(); setIsGeneratingQuestion(true); try { const randomCat = CATEGORIES[Math.floor(Math.random() * CATEGORIES.length)]; const randomDiff = DIFFICULTIES[Math.floor(Math.random() * DIFFICULTIES.length)]; const pNames = profile?.players?.map(p=>p.name).join(' и ') || "Пара"; const generatedText = await generateUniqueQuestionAI(randomCat, randomDiff, db, pNames); if (generatedText) { SoundFX.success(); setAddForm({ text: generatedText, cat: randomCat.id, diff: randomDiff.id, targetId: '' }); } } catch (err) {} finally { setIsGeneratingQuestion(false); } };
-            const openEditScreen = (questionObj, fromScreen) => { if (!isAdmin) return; SoundFX.click(); setEditingQuestion(questionObj); setEditForm({ text: questionObj.cleanText || questionObj.text.replace(/^№\s*\d+\.\s*/, ''), cat: questionObj.categoryId, diff: questionObj.level, targetId: questionObj.targetId || '' }); setReturnScreen(fromScreen); setConfirmModal(null); setResultModal(null); navigate('edit_q'); };
+            useEffect(() => {
+                if (screen !== 'ai_response') {
+                    aiRequestRef.current.id++; aiRequestRef.current.controller?.abort();
+                    clearInterval(typingIntervalRef.current); setIsAiTyping(false);
+                    return;
+                }
+                return () => { aiRequestRef.current.id++; aiRequestRef.current.controller?.abort(); clearInterval(typingIntervalRef.current); };
+            }, [screen]);
+            const triggerAI = async (type) => {
+                if (!ActionGuard.canProceed(600)) return;
+                const q = gameQuestions[currentIndex]; if (!q) return;
+                aiRequestRef.current.controller?.abort(); clearInterval(typingIntervalRef.current);
+                const controller = new AbortController(), id = ++aiRequestRef.current.id;
+                aiRequestRef.current.controller = controller;
+                SoundFX.magic(); setAiType(type); setAiContent('Готовлю подсказку…'); setIsAiTyping(true); navigate('ai_response');
+                // Начало эффекта нового экрана не меняет id; cleanup старого экрана отменяет только свою работу.
+                try {
+                    const names = (profile?.players || []).map((p, i) => 'Игрок ' + (i + 1)).join(' и ');
+                    const response = await fetchFromAI(type, q.cleanText || q.text, q.categoryId, names, controller.signal);
+                    if (controller.signal.aborted || aiRequestRef.current.id !== id) return;
+                    setAiContent(String(response).slice(0, 12000));
+                } catch (error) { if (!controller.signal.aborted && aiRequestRef.current.id === id) setAiContent('Подсказка недоступна. Попробуйте ещё раз'); }
+                finally { if (aiRequestRef.current.id === id) setIsAiTyping(false); }
+            };
+
+            const handleGenerateQuestionAI = async () => { if (!isAdmin || isGeneratingQuestion || !ActionGuard.canProceed(800)) return; SoundFX.magic(); setIsGeneratingQuestion(true); try { const randomCat = CATEGORIES[Math.floor(Math.random() * CATEGORIES.length)]; const randomDiff = DIFFICULTIES[Math.floor(Math.random() * DIFFICULTIES.length)]; const pNames = (profile?.players || []).map((p, i) => "Игрок " + (i + 1)).join(" и ") || "Пара"; const generatedText = await generateUniqueQuestionAI(randomCat, randomDiff, db, pNames); if (generatedText) { SoundFX.success(); setAddForm({ text: generatedText, cat: randomCat.id, diff: randomDiff.id, targetId: '' }); } } catch (err) {} finally { setIsGeneratingQuestion(false); } };
+            const openEditScreen = (questionObj, fromScreen) => { if (!isAdmin) return; SoundFX.click(); setEditingQuestion(questionObj); setEditForm({ text: questionObj.cleanText || questionObj.text.replace(/^№\s*\d+\.\s*/, ''), cat: questionObj.categoryId, diff: questionObj.level, targetId: String(questionObj.targetId || '').startsWith('aud_') ? '' : questionObj.targetId || '', savedTarget: String(questionObj.targetId || '').startsWith('aud_') ? questionObj.targetId : '' }); setReturnScreen(fromScreen); setConfirmModal(null); setResultModal(null); navigate('edit_q'); };
 
             const handleAddQuestion = async (e) => {
                 e.preventDefault(); if (!isAdmin || isSaving) return; if (addForm.text.trim().length < 3) { SoundFX.warn(); setQFormError('Введите текст вопроса — минимум 3 символа'); return; } setQFormError(''); if (!ActionGuard.canProceed(1000)) return; SoundFX.click(); setIsSaving(true);
                 try {
-                    const cleanInput = sanitizeInput(addForm.text.replace(/^№\s*\d+\.\s*/, ''), 500); if (!cleanInput) throw new Error("Пустой текст"); const nextNum = db.length + 1; const numericKeys = db.map(item => Number(item.dbKey)).filter(n => !isNaN(n)); const nextDbKey = numericKeys.length > 0 ? String(Math.max(...numericKeys) + 1) : String(db.length); const newId = `v_db_${nextNum}_${Math.random().toString(36).substring(2, 6)}`;
-                    const payload = { id: newId, num: nextNum, categoryId: addForm.cat, level: addForm.diff, text: cleanInput, targetId: sanitizeInput(addForm.targetId, 8) };
+                    const cleanInput = sanitizeInput(addForm.text.replace(/^№\s*\d+\.\s*/, ''), 500); if (!cleanInput) throw new Error("Пустой текст"); const nextNum = db.length + 1; const numericKeys = db.map(item => Number(item.dbKey)).filter(n => !isNaN(n)); const nextDbKey = "q_" + Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b => b.toString(16).padStart(2, "0")).join(""); const newId = `v_db_${nextNum}_${Math.random().toString(36).substring(2, 6)}`;
+                    const payload = { id: newId, num: nextNum, categoryId: addForm.cat, level: addForm.diff, text: cleanInput, targetId: await questionTarget(addForm.targetId, profile) };
                     const res = await fetchWithTimeout(`${FIREBASE_BASE_URL}${dbSubPath}/${nextDbKey}.json`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
                     if (!res.ok) throw new Error(`Код: ${res.status}`);
                     const createdQuestion = { ...payload, dbKey: nextDbKey, cleanText: cleanInput, text: `№ ${nextNum}. ${cleanInput}` };
@@ -1914,8 +2236,8 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
             const executeSaveEdit = async () => {
                 if (!isAdmin || !editingQuestion || isSaving) return; SoundFX.click(); setIsSaving(true); setConfirmModal(null);
                 const cleanUpdatedText = sanitizeInput(editForm.text.replace(/^№\s*\d+\.\s*/, ''), 500);
-                const updatedPayload = { id: editingQuestion.id, num: editingQuestion.num, categoryId: editForm.cat, level: editForm.diff, text: cleanUpdatedText, targetId: sanitizeInput(editForm.targetId, 8) };
                 try {
+                    const updatedPayload = { id: editingQuestion.id, num: editingQuestion.num, categoryId: editForm.cat, level: editForm.diff, text: cleanUpdatedText, targetId: await questionTarget(editForm.targetId, profile, editForm.savedTarget) };
                     const res = await fetchWithTimeout(`${FIREBASE_BASE_URL}${dbSubPath}/${editingQuestion.dbKey}.json`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(updatedPayload) });
                     if (!res.ok) throw new Error(`Код ${res.status}`);
                     const updatedObj = { ...editingQuestion, categoryId: editForm.cat, level: editForm.diff, cleanText: cleanUpdatedText, text: `№ ${editingQuestion.num}. ${cleanUpdatedText}`, targetId: updatedPayload.targetId };
@@ -1931,7 +2253,8 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
                 } catch (err) { SoundFX.warn(); setResultModal({ ok: false, msg: `Ошибка: ${err.message}` }); } finally { setIsSaving(false); }
             };
 
-            const PwaInstallModal = () => ( <PopupModal isOpen={showPwaModal} onClose={() => setShowPwaModal(false)}> <div className="flex flex-col gap-4 pt-1"> <div className="pr-8"><AskMeLogo size="xs" /></div> <div className="space-y-1 text-left"> <h3 className="text-xl font-bold text-white">Скачать на устройство</h3> <p className="text-xs text-zinc-400 leading-relaxed"> Установите <b className="text-white">ASK ME</b> на домашний экран. </p> </div> {isInAppWebView && ( <div className="p-3.5 rounded-[20px] bg-rose-500/15 border border-rose-500/40 text-xs text-rose-200 leading-relaxed text-left"> ⚠️ Вы открыли сайт во встроенном браузере. Нажмите на иконку <b>Safari/Браузера</b>, чтобы появилась установка. </div> )} <div className="seg"> <button type="button" onClick={() => { SoundFX.click(); setPwaPlatformTab('ios'); }} className={`seg-btn ${ pwaPlatformTab === 'ios' ? 'is-active' : '' }`} >  iPhone </button> <button type="button" onClick={() => { SoundFX.click(); setPwaPlatformTab('android'); }} className={`seg-btn ${ pwaPlatformTab === 'android' ? 'is-active' : '' }`} > 🤖 Android </button> </div> {pwaPlatformTab === 'ios' ? ( <div className="flex flex-col gap-3 text-left text-xs text-zinc-200 bg-white/[0.04] p-4 rounded-[20px] border border-white/10"> <div className="flex items-start gap-3"> <span className="w-6 h-6 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold flex items-center justify-center flex-shrink-0">1</span> <p className="leading-relaxed"> Нажмите кнопку <b className="text-white">«Поделиться»</b> в браузере Safari. </p> </div> <div className="hairline-divider"></div> <div className="flex items-start gap-3"> <span className="w-6 h-6 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold flex items-center justify-center flex-shrink-0">2</span> <p className="leading-relaxed"> Нажмите <b className="text-white">«На экран "Домой"»</b>. </p> </div> <button type="button" onClick={triggerIosNativeShareMenu} className="btn-accent w-full mt-1 flex items-center justify-center gap-2" > <Icons.IosShare /> Открыть меню iOS </button> </div> ) : ( <div className="flex flex-col gap-3 text-left text-xs text-zinc-200 bg-white/[0.04] p-4 rounded-[20px] border border-white/10"> <div className="flex items-start gap-3"> <span className="w-6 h-6 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold flex items-center justify-center flex-shrink-0">1</span> <p className="leading-relaxed"> Нажмите на меню браузера <b className="text-white">«⋮»</b>. </p> </div> <div className="hairline-divider"></div> <div className="flex items-start gap-3"> <span className="w-6 h-6 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold flex items-center justify-center flex-shrink-0">2</span> <p className="leading-relaxed"> Выберите <b className="text-white">«Установить приложение»</b>. </p> </div> </div> )} <button type="button" onClick={() => { SoundFX.click(); setShowPwaModal(false); }} className="btn-primary w-full" > Понятно </button> </div> </PopupModal> );
+            const conflictNotice = profile?.syncConflict && <section role="alert" className="rounded-xl border border-amber-500/40 p-4 flex flex-col gap-3 text-sm"><p>Версии сессии различаются. Облачные записи приостановлены, ваш локальный прогресс сохранён. Кнопка ниже заменит локальные имена и прогресс облачной копией.</p><button type="button" className="btn-secondary" disabled={isRestoringSession} onClick={useCloudProfile}>Использовать облачную копию</button></section>;
+            const pwaModalProps = { showPwaModal, setShowPwaModal, isInAppWebView, pwaPlatformTab, setPwaPlatformTab, triggerIosNativeShareMenu };
 
             // страницы без сессии: «Об игре», документы, быстрое подключение. Показываем сразу, не дожидаясь загрузки вопросов
             const pageBack = () => navigate(profile ? 'app_menu' : 'onboarding');
@@ -1952,6 +2275,8 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
                     </div>
                 );
             }
+
+            if (!isLoading && loadError && !db.length) return <main className="safe-screen flex flex-col items-center justify-center gap-5"><AskMeLogo size="lg" /><p role="alert">{loadError}</p><button className="btn-primary" onClick={() => { setIsLoading(true); setDbLoadAttempt(n => n + 1); }}>Повторить загрузку</button></main>;
 
             if (isLoading) return <div className="safe-screen w-full flex flex-col items-center justify-center fade-in relative z-10"><AskMeLogo size="lg" /><p className="text-zinc-500 font-semibold text-xs mt-5">Синхронизация...</p></div>;
 
@@ -1989,7 +2314,7 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
             if (screen === 'session_created' && profile) {
                 return (
                     <div className="safe-screen w-full flex flex-col items-center justify-between slide-up relative z-10">
-                        <PwaInstallModal />
+                        <PwaInstallModal {...pwaModalProps} />
                         <div className="flex-1 flex items-center justify-center w-full py-6">
                             <div className="w-full max-w-sm flex flex-col items-center text-center gap-6">
                                 <AskMeLogo size="md" />
@@ -2006,7 +2331,7 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
             if (screen === 'onboarding' || (!profile && isPreviewMode === false)) {
                 return (
                     <div className="safe-screen w-full flex flex-col items-center justify-between slide-up relative z-10">
-                        <PwaInstallModal />
+                        <PwaInstallModal {...pwaModalProps} />
                         <button onClick={()=>{ SoundFX.click(); setIsPreviewMode(true); navigate('menu'); }} className="btn-icon absolute top-4 right-4"><Icons.Close /></button>
                         <div className="flex-1 flex items-center justify-center w-full py-6">
                             <div className="w-full max-w-sm flex flex-col items-center text-center gap-7">
@@ -2014,7 +2339,7 @@ const ReactDOM = { ...ReactDOMAll, createRoot };
                                 <div className="space-y-1.5"><h1 className="font-display text-2xl md:text-3xl font-bold text-white tracking-tight">Добро пожаловать</h1><p className="text-xs text-zinc-400 leading-relaxed">Создайте новую сессию или введите 8-значный ID, чтобы продолжить сохранённую игру.</p></div>
                                 <div className="seg w-full"> <button type="button" onClick={() => { SoundFX.click(); setAuthTab('create'); setRestoreError(''); }} className={`seg-btn ${ authTab === 'create' ? 'is-active' : '' }`} > Новая игра </button> <button type="button" onClick={() => { SoundFX.click(); setAuthTab('restore'); setRestoreError(''); }} className={`seg-btn ${ authTab === 'restore' ? 'is-active' : '' }`} > Войти по ID </button> </div>
                                 {authTab === 'create' ? (
-                                    <form noValidate onSubmit={handleSaveProfileNames} className="w-full flex flex-col gap-3 text-left fade-in">
+                                    <form noValidate onSubmit={handleSaveProfileNames} className="w-full flex flex-col gap-3 text-left fade-in">{conflictNotice}
                                         {playersForm.map((p, idx) => (
                                             <div key={p.id} className="flex gap-2 relative">
                                                 <input type="text" placeholder={`Игрок ${idx+1}`} required value={p.name} onChange={e => { const v = sanitizeName(e.target.value); setPlayersForm(playersForm.map((pl, i) => i === idx ? {...pl, name: v} : pl)); setPlayersError(''); }} className="flex-1 h-[54px] px-5 rounded-2xl bg-white/[0.04] border border-white/[0.16] text-white outline-none focus:border-rose-500" />
@@ -2080,7 +2405,7 @@ if (screen === 'app_menu') {
                 });
                 return (
                     <div className="safe-screen w-full flex flex-col items-center slide-up relative z-10">
-                        <PwaInstallModal /> {exitConfirmPopup}
+                        <PwaInstallModal {...pwaModalProps} /> {exitConfirmPopup}
                         <header className="w-full max-w-md flex items-center gap-3 pt-2">
                             <button type="button" onClick={() => { SoundFX.click(); navigate('menu'); }} aria-label="Назад" className="btn-icon flex-shrink-0"><Icons.Back /></button>
                             <h1 className="flex-1 text-center pr-11 text-lg font-bold text-white">Меню</h1>
@@ -2366,7 +2691,7 @@ if (screen === 'app_menu') {
             if (screen === 'profile_page') {
                 return (
                     <div className="safe-screen w-full flex flex-col items-center justify-between slide-up relative z-10">
-                        <PwaInstallModal /> {exitConfirmPopup}
+                        <PwaInstallModal {...pwaModalProps} /> {exitConfirmPopup}
                         <header className="w-full max-w-md flex items-center justify-between pt-2">
                             <button aria-label="Назад" onClick={() => { SoundFX.click(); navigate('menu'); }} className="btn-icon flex-shrink-0"><Icons.Back /></button>
                             <h1 className="flex-1 text-center text-lg font-bold text-white">Игроки и сессия</h1>
@@ -2374,7 +2699,7 @@ if (screen === 'app_menu') {
                         </header>
                         <main className="w-full max-w-sm flex flex-col gap-6 my-auto py-6">
                             <SessionIdBadge sessionKey={profile?.sessionKey} sessionId={profile?.sessionId} onCopy={showToast} size="lg" />
-                            <form noValidate onSubmit={handleSaveProfileNames} className="flex flex-col gap-3">
+                            <form noValidate onSubmit={handleSaveProfileNames} className="flex flex-col gap-3">{conflictNotice}
                                 {playersForm.map((p, idx) => (
                                     <div key={p.id} className="flex gap-2 relative">
                                         <input type="text" placeholder={`Игрок ${idx+1}`} required value={p.name} onChange={e => { const v = sanitizeName(e.target.value); setPlayersForm(playersForm.map((pl, i) => i === idx ? {...pl, name: v} : pl)); setPlayersError(''); }} className="flex-1 h-[54px] px-5 rounded-2xl bg-white/[0.04] border border-white/[0.16] text-white outline-none focus:border-rose-500" />
@@ -2400,18 +2725,18 @@ if (screen === 'app_menu') {
                             <button type="button" onClick={() => { SoundFX.warn(); setShowExitConfirm(true); }} className="btn-danger w-full"><Icons.Logout /> Выйти из сессии</button>
                             <div className="flex flex-col items-center gap-1 text-center">
                                 <button type="button" onClick={() => { SoundFX.warn(); setDelDataOpen(true); }} className="btn-text text-zinc-400">Удалить мои данные</button>
-                                <span className="text-[13px] text-zinc-500 leading-snug">Сотрёт сессию из облака и всё, что игра хранит на этом устройстве</span>
+                                <span className="text-[13px] text-zinc-500 leading-snug">Удалит текущую сессию, её прогресс и статистику этого устройства</span>
                             </div>
                             {isAdmin && ( <><div className="hairline-divider"></div> <button onClick={() => { SoundFX.click(); navigate('admin_login'); }} className="btn-accent w-full"> 👑 Управление доступом владельца </button></> )}
                         </main>
                         <PopupModal isOpen={delDataOpen} onClose={() => { if (!delDataBusy) setDelDataOpen(false); }}>
                             <div className="flex flex-col gap-4 pt-1">
-                                <h3 className="text-lg font-bold text-white pr-8">Удалить все мои данные?</h3>
+                                <h3 className="text-lg font-bold text-white pr-8">Удалить данные этой сессии?</h3>
                                 <p className="text-sm text-zinc-300 leading-snug">Будет стёрто без возможности восстановления:</p>
                                 <ul className="text-sm text-zinc-400 leading-snug list-disc pl-5 flex flex-col gap-1">
                                     <li>облачная копия сессии и общая комната игры;</li>
-                                    <li>записи статистики этого устройства;</li>
-                                    <li>имена, архив, настройки и незавершённая партия на этом устройстве.</li>
+                                    <li>записи статистики этой сессии с этого устройства;</li>
+                                    <li>имена, архив и незавершённая партия этой сессии на этом устройстве.</li>
                                 </ul>
                                 <p className="text-sm text-zinc-400 leading-snug">Другие устройства, где открыта эта сессия, потеряют её. Если сессия может понадобиться — сначала скопируйте ссылку на неё.</p>
                                 <div className="grid grid-cols-2 gap-2">
@@ -2501,7 +2826,7 @@ if (screen === 'mode_select') {
 
                 return (
                     <div className="safe-screen w-full flex flex-col items-center justify-between slide-up relative z-10">
-                        {exitConfirmPopup} {newGameConfirmPopup} <PwaInstallModal />
+                        {exitConfirmPopup} {newGameConfirmPopup} <PwaInstallModal {...pwaModalProps} />
                         <div className="w-full max-w-md lg:max-w-4xl mx-auto flex flex-col gap-7 pt-1">
                             {liveInviteBanner}
                             <header className="w-full flex items-center justify-between gap-3">
@@ -2898,6 +3223,7 @@ if (screen === 'summary') {
                             <textarea value={editForm.text} onChange={e => { setEditForm({...editForm, text: e.target.value}); setQFormError(''); }} className="w-full p-4 rounded-2xl bg-white/[0.04] border border-white/[0.16] text-base text-white h-36 focus:border-rose-500"></textarea>
                             {qFormError && <span className="ui-error">{qFormError}</span>}
                             <input type="text" placeholder="ID сессии (оставьте пустым для всех)" value={editForm.targetId} onChange={e => setEditForm({...editForm, targetId: e.target.value})} className="w-full h-[54px] px-5 rounded-2xl bg-white/[0.04] border border-white/[0.16] text-white" />
+                            {editForm.savedTarget && <div className="flex items-center justify-between gap-3 text-xs text-zinc-400"><span>Вопрос закреплён за сессией. Пустое поле сохранит текущий доступ.</span><button type="button" className="btn-secondary btn-sm" onClick={() => setEditForm(f => ({ ...f, savedTarget: '', targetId: '' }))}>Сделать общим</button></div>}
                             <div className="grid grid-cols-2 gap-4"><CustomSelect value={editForm.cat} onChange={val => setEditForm({...editForm, cat: val})} options={CATEGORIES.map(c=>({value:c.id, label:c.name}))} /><CustomSelect value={editForm.diff} onChange={val => setEditForm({...editForm, diff: val})} options={DIFFICULTIES.map(d=>({value:d.id, label:d.name}))} /></div>
                             {(() => { const hid = !!(db.find(x => x.dbKey === editingQuestion.dbKey) || {}).hidden; return ( <div className="flex flex-col gap-2"> <button type="button" disabled={!!hqBusy} onClick={() => setQuestionHidden(editingQuestion, !hid)} className="btn-secondary w-full flex items-center justify-center gap-2">{hid ? <Icons.Eye /> : <Icons.EyeOff />} {hid ? 'Вернуть вопрос всем' : 'Скрыть для всех'}</button> <p className="text-xs text-zinc-500 leading-snug text-center">{hid ? 'Сейчас вопрос скрыт: игроки его не видят.' : 'Игроки перестанут видеть вопрос. Вернуть можно здесь или в разделе «Скрытые вопросы».'}</p> </div> ); })()}
                             <button onClick={() => setConfirmModal({ action: 'delete', title: 'Удалить вопрос?' })} className="btn-danger w-full flex items-center justify-center gap-2"><Icons.Trash /> Удалить</button>

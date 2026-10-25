@@ -11,6 +11,20 @@ concurrency:
   group: pages
   cancel-in-progress: true
 jobs:
+  rules:
+    name: Проверка Firebase Rules в эмуляторе
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 21 }
+      - run: npm ci
+      - name: Проверка доступа, валидации и удаления данных
+        run: npm run test:rules
   verify:
     name: Тесты, сборка, проверка веса
     runs-on: ubuntu-latest
@@ -29,7 +43,7 @@ jobs:
         with: { path: dist }
   deploy:
     name: Публикация на GitHub Pages
-    needs: verify
+    needs: [verify, rules]
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     environment:

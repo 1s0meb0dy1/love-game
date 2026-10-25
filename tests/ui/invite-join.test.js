@@ -16,7 +16,7 @@ const boot = async (hash, { profile, store = {}, failDeleteSessions = false, aid
   const A = makeEnv(); const { w, sleep, D } = A; const log = []; const base = w.fetch;
   w.fetch = async (url, init) => { url = String(url); const method = ((init && init.method) || 'GET').toUpperCase(); const m = url.match(/\/(sessions|analytics\/anon|analytics\/full|live)\/([^?]*?)\.json/); const ok = (o, good = true) => ({ ok: good, status: good ? 200 : 500, json: async () => o, text: async () => JSON.stringify(o) });
     if (!m) return base(url, init); log.push({ method, kind: m[1], path: m[2], body: init && init.body });
-    if (m[1] === 'sessions') { if (method === 'GET') { if (getDelay) await sleep(getDelay); return ok(store[m[2]] === undefined ? null : store[m[2]]); } if (method === 'DELETE') { if (failDeleteSessions) return ok(null, false); delete store[m[2]]; return ok(null); } store[m[2]] = JSON.parse(init.body); return ok(store[m[2]]); }
+    if (m[1] === 'sessions') { if (method === 'GET') { if (getDelay) await sleep(getDelay); return ok(store[m[2]] === undefined ? null : store[m[2]]); } if (method === 'DELETE') { if (failDeleteSessions) return ok(null, false); delete store[m[2]]; return ok(null); } if (failDeleteSessions && JSON.parse(init.body)?.deleted) return ok(null, false); store[m[2]] = JSON.parse(init.body); return ok(store[m[2]]); }
     return base(url, init); };
   if (profile) w.localStorage.setItem('askme_device_profile_v4', JSON.stringify(profile));
   if (aid) w.localStorage.setItem('askme_aid_' + profile.sessionId, aid);
@@ -109,15 +109,14 @@ const finish = (E) => { allErrors.push(...E.errors); E.w.close(); };
   A = await boot('#/profile', { profile: PROFILE(SID, KEY, ['Макс', 'Аня']), store: st3, aid: 'abc123' }); ({ w, D, sleep, c, btn } = A);
   w.localStorage.setItem('askme_game_settings_v1', '{"x":1}'); w.localStorage.setItem('askme_analytics_v1', '1'); w.localStorage.setItem('askme_seen_topics_v1', '[]'); w.localStorage.setItem('askme_sess_' + SID, '{}');
   await c(btn('Удалить мои данные'), 400); const pop = D.querySelector('.viewport-popup-box');
-  T('«Удалить мои данные» сначала спрашивает подтверждение и объясняет, что будет стёрто', !!pop && /Удалить все мои данные/.test(pop.textContent) && /без возможности восстановления/.test(pop.textContent) && !!btn('Отмена') && A.log.every(r => r.method !== 'DELETE'));
+  T('«Удалить мои данные» сначала спрашивает подтверждение и объясняет, что будет стёрто', !!pop && /Удалить данные этой сессии/.test(pop.textContent) && /без возможности восстановления/.test(pop.textContent) && !!btn('Отмена') && A.log.every(r => r.method !== 'DELETE'));
   await c(btn('Отмена'), 400); T('«Отмена» ничего не удаляет', !D.querySelector('.viewport-popup-box') && A.log.every(r => r.method !== 'DELETE') && !!A.prof() && !!st3[dbKey(KEY)]);
   await c(btn('Удалить мои данные'), 400); const nBefore = A.log.length; await c([...D.querySelectorAll('.viewport-popup-box button')].find(b => b.textContent.trim() === 'Удалить'), 1500);
-  const dels = A.log.filter(r => r.method === 'DELETE').map(r => r.kind + '/' + r.path);
-  T('удалены: облачная копия сессии и обе записи статистики этого устройства (' + dels.join(', ') + ')', dels.includes('sessions/' + dbKey(KEY)) && dels.includes('analytics/anon/abc123') && dels.includes('analytics/full/abc123') && !st3[dbKey(KEY)]);
-  const left = Object.keys(JSON.parse(JSON.stringify(Object.fromEntries([...Array(w.localStorage.length).keys()].map(i => [w.localStorage.key(i), 1]))))).filter(k => /^askme_(device_profile|sess_|aid_|game_settings|hard_mode|analytics_v1|seen_topics|an_min)/.test(k));
-  T('локальные данные стёрты (профиль, копии сессии, настройки, ID статистики); осталось: ' + (left.join(', ') || 'ничего лишнего'), left.length === 0);
-  T('подсказка об удалении — уведомление «ok» (зелёное, role="status")', !!D.querySelector('.toast.toast-ok[role="status"]') && /Все ваши данные удалены/.test(D.querySelector('.toast').textContent));
-  T('после удаления открыт экран создания сессии и показана подсказка «Все ваши данные удалены»', D.title === 'ASK ME — начните игру' && /Все ваши данные удалены/.test(D.body.textContent) && !A.prof());
+  const dels = A.log.filter(r => r.method === 'DELETE' || (r.body && JSON.parse(r.body).deleted === true)).map(r => r.kind + '/' + r.path);
+  T('удалены: облачная копия сессии и обе записи статистики этого устройства (' + dels.join(', ') + ')', dels.includes('sessions/' + dbKey(KEY)) && dels.includes('analytics/anon/abc123') && dels.includes('analytics/full/abc123') && st3[dbKey(KEY)]?.deleted === true && st3[dbKey(KEY)].payload === '');
+  T('данные текущей сессии стёрты, общие настройки устройства сохранены', !A.prof() && !w.localStorage.getItem('askme_sess_' + SID) && !w.localStorage.getItem('askme_aid_' + SID) && !!w.localStorage.getItem('askme_game_settings_v1'));
+  T('подсказка об удалении — уведомление «ok» (зелёное, role="status")', !!D.querySelector('.toast.toast-ok[role="status"]') && /Данные этой сессии удалены/.test(D.querySelector('.toast').textContent));
+  T('после удаления открыт экран создания сессии и показана подсказка «Данные этой сессии удалены»', D.title === 'ASK ME — начните игру' && /Данные этой сессии удалены/.test(D.body.textContent) && !A.prof());
   finish(A);
 
   // сбой облака: данные не теряются

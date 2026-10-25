@@ -29,9 +29,17 @@ const qnum = (A) => { const m = A.D.body.textContent.match(/Вопрос № (\d
   { const A = makeEnv({ bigDb: 2000 }); const { w, D, sleep, has, click, setVal, T, res } = A; const st = w.setTimeout.bind(w); w.setTimeout = (fn, ms, ...a) => st(fn, ms > 60 ? Math.round(ms / 15) : ms, ...a);
     w.eval(A.code); await sleep(2500); const inputs = [...D.querySelectorAll('input[type="text"]')]; setVal(inputs[0], 'Макс'); setVal(inputs[1], 'Аня'); await sleep(200);
     await click('Создать сессию', 1500); await click('Перейти к игре', 900); await click('Начать игру', 700); await click('Обычный режим', 1500); await click('К вопросу', 500);
-    let steps = 0, seen = new Set([qnum(A)]), left = null; for (; steps < 160; steps++) { if (!has('Вопрос №') || w.location.hash !== '#/play') { left = { steps, hash: w.location.hash }; break; } if (!(await click('К вопросу', 100))) await click('Далее', 100); seen.add(qnum(A)); }
-    T('160 шагов партии подряд (' + seen.size + ' разных вопросов): из игры не выкинуло ни разу' + (left ? ' — вышли на шаге ' + left.steps + ' (' + left.hash + ')' : ''), !left && seen.size > 60);
-    T('после длинной партии сохранение хранит прогресс, «Продолжить игру» будет доступно', JSON.parse(w.localStorage.getItem('askme_device_profile_v4')).savedGame.maxReachedIndex > 60);
+    let steps = 0, seen = new Set([qnum(A)]), left = null;
+    for (; steps < 160; steps++) {
+      if (!has('Вопрос №') || w.location.hash !== '#/play') { left = { steps, hash: w.location.hash }; break; }
+      // Ждём ускоренную рулетку, закрываем её, отвечаем обоими игроками и переходим дальше.
+      // Клик сквозь ещё открытую рулетку больше не должен пропускать вопрос.
+      await sleep(250); await click('К вопросу', 70);
+      await click('Далее', 70); await click('Далее', 70); await click('Далее', 70);
+      seen.add(qnum(A));
+    }
+    T('160 шагов партии подряд (' + seen.size + ' разных вопросов): из игры не выкинуло ни разу' + (left ? ' — вышли на шаге ' + left.steps + ' (' + left.hash + ')' : ''), !left && seen.size > 150);
+    T('после длинной партии сохранение хранит прогресс, «Продолжить игру» будет доступно', JSON.parse(w.localStorage.getItem('askme_device_profile_v4')).savedGame.maxReachedIndex >= 150);
     results.push(...res); errors.push(...A.errors); }
   console.log(results.join('\n')); console.log('--- captured runtime errors:', errors.length); errors.slice(0, 6).forEach(e => console.log(' ', e)); process.exit(0);
  } catch (err) { console.log(results.join('\n')); console.log('TEST CRASH:', err.stack.split('\n').slice(0, 3).join(' | ')); process.exit(1); } })();

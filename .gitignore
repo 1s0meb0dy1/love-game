@@ -3,3 +3,6 @@ dist
 .DS_Store
 # локальная копия правил Firebase (содержит идентификатор владельца) — не публиковать
 database.rules.json
+firebase/database.rules.json
+firebase-debug.log
+database-debug.log

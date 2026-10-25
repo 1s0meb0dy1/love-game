@@ -1,0 +1,520 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "questions": {
+      ".read": true,
+      ".write": "auth != null && auth.uid === 'OWNER_UID'",
+      "$qid": {
+        ".validate": "$qid === '_meta' || (newData.hasChildren(['id','categoryId','level','text']) && newData.child('id').isString() && newData.child('categoryId').isString() && newData.child('level').isString() && newData.child('text').isString() && newData.child('text').val().length > 0 && newData.child('text').val().length < 600)",
+        "id": {
+          ".validate": "newData.isString() && newData.val().length <= 160"
+        },
+        "categoryId": {
+          ".validate": "newData.isString() && newData.val().length <= 80"
+        },
+        "level": {
+          ".validate": "newData.isString() && newData.val().length <= 30"
+        },
+        "text": {
+          ".validate": "newData.isString() && newData.val().length <= 599"
+        },
+        "targetId": {
+          ".validate": "newData.isString() && (newData.val() === '' || newData.val().matches(/^aud_[a-f0-9]{64}$/))"
+        },
+        "num": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000000"
+        },
+        "hidden": {
+          ".validate": "newData.isBoolean()"
+        },
+        "hiddenAt": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 9999999999999"
+        },
+        "archived": {
+          ".validate": "newData.isBoolean()"
+        },
+        "schema": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "sessions": {
+      "$sid": {
+        ".read": "auth != null",
+        ".write": "auth != null && (!data.child('deleted').exists() || (newData.child('deleted').val() === true && newData.child('payload').val() === ''))",
+        ".validate": "newData.hasChildren(['payload','updatedAt']) && (!newData.child('deleted').exists() || (newData.child('deleted').val() === true && newData.child('payload').val() === ''))",
+        "payload": {
+          ".validate": "newData.isString() && newData.val().length <= 59999"
+        },
+        "updatedAt": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 9999999999999"
+        },
+        "deleted": {
+          ".validate": "newData.val() === true"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "live": {
+      "$room": {
+        ".read": "auth != null",
+        ".write": "auth != null && (!data.child('deleted').exists() || (newData.child('deleted').val() === true && newData.child('status').val() === 'ended'))",
+        ".validate": "newData.hasChildren(['ver','by','t']) && (!newData.child('deleted').exists() || (newData.child('deleted').val() === true && newData.child('status').val() === 'ended' && !newData.child('gid').exists() && !newData.child('g').exists() && !newData.child('solo').exists() && !newData.child('n').exists() && !newData.child('dk').exists() && !newData.child('ids').exists() && !newData.child('d').exists() && !newData.child('idx').exists() && !newData.child('max').exists() && !newData.child('hist').exists() && !newData.child('hard').exists() && !newData.child('pl').exists() && !newData.child('fx').exists() && !newData.child('spin').exists() && !newData.child('pun').exists() && !newData.child('p').exists()))",
+        "ver": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 9999999999999"
+        },
+        "by": {
+          ".validate": "newData.isString() && newData.val().length <= 40"
+        },
+        "t": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 9999999999999"
+        },
+        "gid": {
+          ".validate": "newData.isString() && newData.val().length <= 80"
+        },
+        "g": {
+          ".validate": "newData.isString() && newData.val().length <= 80"
+        },
+        "status": {
+          ".validate": "newData.val() === 'active' || newData.val() === 'ended'"
+        },
+        "solo": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1"
+        },
+        "n": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 5000"
+        },
+        "dk": {
+          ".validate": "newData.isString() && newData.val().length <= 80"
+        },
+        "ids": {
+          ".validate": "newData.isString() && newData.val().length <= 12000"
+        },
+        "d": {
+          ".validate": "newData.isString() && newData.val().length <= 200000"
+        },
+        "idx": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 5000"
+        },
+        "max": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 5000"
+        },
+        "hist": {
+          ".validate": "newData.isString() && newData.val().length <= 30000"
+        },
+        "hard": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1"
+        },
+        "pl": {
+          ".validate": "newData.isString() && newData.val().length <= 4000"
+        },
+        "fx": {
+          ".validate": "newData.hasChildren(['timerOn','timerSec','punishOn'])",
+          "timerOn": {
+            ".validate": "newData.isBoolean()"
+          },
+          "timerSec": {
+            ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 3600"
+          },
+          "punishOn": {
+            ".validate": "newData.isBoolean()"
+          },
+          "$other": {
+            ".validate": false
+          }
+        },
+        "spin": {
+          ".validate": "newData.hasChildren(['id','idx','winner','cands'])",
+          "id": {
+            ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 9999999999999"
+          },
+          "idx": {
+            ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000000"
+          },
+          "winner": {
+            ".validate": "newData.isString() && newData.val().length <= 40"
+          },
+          "cands": {
+            "$i": {
+              ".validate": "$i.matches(/^[0-9]$/) && (newData.hasChildren(['id','name','gender']))",
+              "id": {
+                ".validate": "newData.isString() && newData.val().length <= 40"
+              },
+              "name": {
+                ".validate": "newData.isString() && newData.val().length <= 25"
+              },
+              "gender": {
+                ".validate": "newData.val() === 'guy' || newData.val() === 'girl'"
+              },
+              "$other": {
+                ".validate": false
+              }
+            }
+          },
+          "$other": {
+            ".validate": false
+          }
+        },
+        "pun": {
+          ".validate": "newData.hasChildren(['id','reason','text'])",
+          "id": {
+            ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 9999999999999"
+          },
+          "reason": {
+            ".validate": "newData.isString() && newData.val().length <= 16"
+          },
+          "player": {
+            ".validate": "newData.isString() && newData.val().length <= 25"
+          },
+          "text": {
+            ".validate": "newData.isString() && newData.val().length <= 80"
+          },
+          "icon": {
+            ".validate": "newData.isString() && newData.val().length <= 16"
+          },
+          "key": {
+            ".validate": "newData.isString() && newData.val().length <= 160"
+          },
+          "$other": {
+            ".validate": false
+          }
+        },
+        "p": {
+          "$device": {
+            ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 9999999999999"
+          }
+        },
+        "deleted": {
+          ".validate": "newData.val() === true"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "analytics": {
+      ".read": "auth != null && auth.uid === 'OWNER_UID'",
+      ".write": "auth != null && auth.uid === 'OWNER_UID'",
+      "anon": {
+        "$aid": {
+          ".write": "auth != null && newData.exists() && newData.child('ownerUid').val() === auth.uid && (!data.exists() || data.child('ownerUid').val() === auth.uid) && (!data.child('deleted').exists() || newData.child('deleted').val() === true) && (!data.child('sessionRef').exists() || newData.child('sessionRef').val() === data.child('sessionRef').val()) && (newData.child('deleted').val() === true || (newData.child('sessionRef').isString() && root.child('sessions').child(newData.child('sessionRef').val()).exists() && !root.child('sessions').child(newData.child('sessionRef').val()).child('deleted').exists()))",
+          ".validate": "(newData.hasChildren(['updatedAt','ownerUid','sessionRef']) && !newData.child('deleted').exists()) || (newData.hasChildren(['updatedAt','ownerUid','deleted']) && newData.child('deleted').val() === true && !newData.child('games').exists() && !newData.child('createdAt').exists())",
+          "ownerUid": {
+            ".validate": "newData.isString() && (auth.uid === 'OWNER_UID' || newData.val() === auth.uid)"
+          },
+          "createdAt": {
+            ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 9999999999999"
+          },
+          "updatedAt": {
+            ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 9999999999999"
+          },
+          "games": {
+            "$gid": {
+              ".validate": "newData.hasChildren(['startedAt','endedAt','players','answered','skipped'])",
+              "startedAt": {
+                ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 9999999999999"
+              },
+              "endedAt": {
+                ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 9999999999999"
+              },
+              "players": {
+                ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 10"
+              },
+              "answered": {
+                ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 5000"
+              },
+              "skipped": {
+                ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 5000"
+              },
+              "durationSec": {
+                ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 31536000"
+              },
+              "avgAnswerSec": {
+                ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 31536000"
+              },
+              "timerSec": {
+                ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 3600"
+              },
+              "punishCount": {
+                ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 50"
+              },
+              "mode": {
+                ".validate": "newData.isString() && newData.val().length <= 16"
+              },
+              "punishOn": {
+                ".validate": "newData.isBoolean()"
+              },
+              "complete": {
+                ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1"
+              },
+              "partial": {
+                ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1"
+              },
+              "byCat": {
+                "$id": {
+                  ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 5000"
+                }
+              },
+              "byLevel": {
+                "$id": {
+                  ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 5000"
+                }
+              },
+              "answeredIds": {
+                "$i": {
+                  ".validate": "$i.matches(/^([0-9]|[1-9][0-9]|[1-3][0-9][0-9])$/) && (newData.isString() && newData.val().length <= 160)"
+                }
+              },
+              "skippedIds": {
+                "$i": {
+                  ".validate": "$i.matches(/^([0-9]|[1-9][0-9]|[1-3][0-9][0-9])$/) && (newData.isString() && newData.val().length <= 160)"
+                }
+              },
+              "punishTpl": {
+                "$i": {
+                  ".validate": "$i.matches(/^([0-9]|[1-4][0-9])$/) && (newData.isString() && newData.val().length <= 80)"
+                }
+              },
+              "punishAll": {
+                "$i": {
+                  ".validate": "$i.matches(/^([0-9]|[1-4][0-9])$/) && (newData.isString() && newData.val().length <= 80)"
+                }
+              },
+              "customPunishments": {
+                "$i": {
+                  ".validate": "$i.matches(/^([0-9]|[1-5][0-9])$/) && (newData.isString() && newData.val().length <= 80)"
+                }
+              },
+              "perPlayer": {
+                "$i": {
+                  ".validate": "$i.matches(/^[0-9]$/) && (newData.hasChildren(['name','answered','skipped']))",
+                  "name": {
+                    ".validate": "newData.isString() && newData.val().length <= 25"
+                  },
+                  "answered": {
+                    ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 5000"
+                  },
+                  "skipped": {
+                    ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 5000"
+                  },
+                  "$other": {
+                    ".validate": false
+                  }
+                }
+              },
+              "$other": {
+                ".validate": false
+              }
+            }
+          },
+          "$other": {
+            ".validate": false
+          },
+          "deleted": {
+            ".validate": "newData.val() === true"
+          },
+          "sessionRef": {
+            ".validate": "newData.isString() && newData.val().matches(/^s_[a-f0-9]{64}$/)"
+          }
+        }
+      },
+      "full": {
+        "$aid": {
+          ".write": "auth != null && newData.exists() && newData.child('ownerUid').val() === auth.uid && (!data.exists() || data.child('ownerUid').val() === auth.uid) && (!data.child('deleted').exists() || newData.child('deleted').val() === true) && (!data.child('sessionRef').exists() || newData.child('sessionRef').val() === data.child('sessionRef').val()) && (newData.child('deleted').val() === true || (newData.child('sessionRef').isString() && root.child('sessions').child(newData.child('sessionRef').val()).exists() && !root.child('sessions').child(newData.child('sessionRef').val()).child('deleted').exists()))",
+          ".validate": "(newData.hasChildren(['updatedAt','ownerUid','sessionRef']) && !newData.child('deleted').exists() && newData.hasChildren(['sid','names']) && newData.child('names').hasChildren()) || (newData.hasChildren(['updatedAt','ownerUid','deleted']) && newData.child('deleted').val() === true && !newData.child('games').exists() && !newData.child('createdAt').exists() && newData.child('names').val() === '' && newData.child('sid').val() === '')",
+          "ownerUid": {
+            ".validate": "newData.isString() && (auth.uid === 'OWNER_UID' || newData.val() === auth.uid)"
+          },
+          "createdAt": {
+            ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 9999999999999"
+          },
+          "updatedAt": {
+            ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 9999999999999"
+          },
+          "games": {
+            "$gid": {
+              ".validate": "newData.hasChildren(['startedAt','endedAt','players','answered','skipped'])",
+              "startedAt": {
+                ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 9999999999999"
+              },
+              "endedAt": {
+                ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 9999999999999"
+              },
+              "players": {
+                ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 10"
+              },
+              "answered": {
+                ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 5000"
+              },
+              "skipped": {
+                ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 5000"
+              },
+              "durationSec": {
+                ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 31536000"
+              },
+              "avgAnswerSec": {
+                ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 31536000"
+              },
+              "timerSec": {
+                ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 3600"
+              },
+              "punishCount": {
+                ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 50"
+              },
+              "mode": {
+                ".validate": "newData.isString() && newData.val().length <= 16"
+              },
+              "punishOn": {
+                ".validate": "newData.isBoolean()"
+              },
+              "complete": {
+                ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1"
+              },
+              "partial": {
+                ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1"
+              },
+              "byCat": {
+                "$id": {
+                  ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 5000"
+                }
+              },
+              "byLevel": {
+                "$id": {
+                  ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 5000"
+                }
+              },
+              "answeredIds": {
+                "$i": {
+                  ".validate": "$i.matches(/^([0-9]|[1-9][0-9]|[1-3][0-9][0-9])$/) && (newData.isString() && newData.val().length <= 160)"
+                }
+              },
+              "skippedIds": {
+                "$i": {
+                  ".validate": "$i.matches(/^([0-9]|[1-9][0-9]|[1-3][0-9][0-9])$/) && (newData.isString() && newData.val().length <= 160)"
+                }
+              },
+              "punishTpl": {
+                "$i": {
+                  ".validate": "$i.matches(/^([0-9]|[1-4][0-9])$/) && (newData.isString() && newData.val().length <= 80)"
+                }
+              },
+              "punishAll": {
+                "$i": {
+                  ".validate": "$i.matches(/^([0-9]|[1-4][0-9])$/) && (newData.isString() && newData.val().length <= 80)"
+                }
+              },
+              "customPunishments": {
+                "$i": {
+                  ".validate": "$i.matches(/^([0-9]|[1-5][0-9])$/) && (newData.isString() && newData.val().length <= 80)"
+                }
+              },
+              "perPlayer": {
+                "$i": {
+                  ".validate": "$i.matches(/^[0-9]$/) && (newData.hasChildren(['name','answered','skipped']))",
+                  "name": {
+                    ".validate": "newData.isString() && newData.val().length <= 25"
+                  },
+                  "answered": {
+                    ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 5000"
+                  },
+                  "skipped": {
+                    ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 5000"
+                  },
+                  "$other": {
+                    ".validate": false
+                  }
+                }
+              },
+              "$other": {
+                ".validate": false
+              }
+            }
+          },
+          "$other": {
+            ".validate": false
+          },
+          "sid": {
+            ".validate": "newData.val() === ''"
+          },
+          "names": {
+            "$i": {
+              ".validate": "$i.matches(/^[0-9]$/) && (newData.isString() && newData.val().length <= 25)"
+            },
+            ".validate": "newData.val() === '' || newData.hasChildren()"
+          },
+          "deleted": {
+            ".validate": "newData.val() === true"
+          },
+          "sessionRef": {
+            ".validate": "newData.isString() && newData.val().matches(/^s_[a-f0-9]{64}$/)"
+          }
+        }
+      }
+    },
+    "topics": {
+      ".read": true,
+      ".write": "auth != null && auth.uid === 'OWNER_UID'",
+      "custom": {
+        "$cid": {
+          ".validate": "newData.hasChildren(['id','name','icon'])",
+          "id": {
+            ".validate": "newData.isString() && newData.val().length <= 80"
+          },
+          "name": {
+            ".validate": "newData.isString() && newData.val().length <= 30"
+          },
+          "icon": {
+            ".validate": "newData.isString() && newData.val().length <= 16"
+          },
+          "$other": {
+            ".validate": false
+          }
+        }
+      },
+      "order": {
+        "$i": {
+          ".validate": "newData.isString() && newData.val().length <= 80"
+        }
+      },
+      "disabled": {
+        "$i": {
+          ".validate": "newData.isString() && newData.val().length <= 80"
+        }
+      },
+      "$other": {
+        ".validate": false
+      }
+    },
+    "punishments": {
+      ".read": true,
+      ".write": "auth != null && auth.uid === 'OWNER_UID'",
+      "$pid": {
+        ".validate": "newData.hasChildren(['id','text','level','icon'])",
+        "id": {
+          ".validate": "newData.isString() && newData.val().length <= 80"
+        },
+        "text": {
+          ".validate": "newData.isString() && newData.val().length <= 80"
+        },
+        "level": {
+          ".validate": "newData.val() === 'any' || newData.val() === 'Простые' || newData.val() === 'Средние' || newData.val() === 'Глубокие'"
+        },
+        "icon": {
+          ".validate": "newData.isString() && newData.val().length <= 16"
+        },
+        "n": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    }
+  }
+}

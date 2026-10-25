@@ -5,7 +5,8 @@ module.exports = (opts = {}) => {
   const appSrc = fs.readFileSync(process.env.APP_JSX || path.join(root, 'src/app.jsx'), 'utf8'); // APP_JSX — запасной путь к другой версии кода (чтобы сравнить «до» и «после» правки)
   // тексты страниц лежат в src/content/*.js — в сборке это обычные модули, в тесте вставляем их прямо в код (без `export`)
   const inlined = appSrc.replace(/^import \{[^}]*\} from '\.\/content\/([\w-]+)\.js';[ \t]*$/gm, (m, name) => fs.readFileSync(path.join(root, 'src/content', name + '.js'), 'utf8').replace(/^export /gm, ''));
-  const jsx = inlined.replace(/^import .*$/gm, '').replace(/^const ReactDOM = \{ \.\.\.ReactDOMAll, createRoot \};$/m, '');
+  const helpers = fs.readFileSync(path.join(root, 'src/session-io.js'), 'utf8').replace(/^export /gm, '');
+  const jsx = helpers + '\n' + inlined.replace(/^import .*$/gm, '').replace(/^const ReactDOM = \{ \.\.\.ReactDOMAll, createRoot \};$/m, '');
   const code = (module.exports.__cache = module.exports.__cache && module.exports.__cache.jsx === jsx ? module.exports.__cache : { jsx, code: babel.transformSync(jsx, { presets: [['@babel/preset-react', { runtime: 'classic' }]] }).code }).code;
   const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8') + '\n<style>' + fs.readFileSync(path.join(root, 'src/styles.css'), 'utf8') + '</style>';
   const exp = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures/questions.json'), 'utf8'));
@@ -19,7 +20,7 @@ module.exports = (opts = {}) => {
   Object.defineProperty(w, 'crypto', { value: require('crypto').webcrypto }); w.TextEncoder = TextEncoder; w.TextDecoder = TextDecoder;
   w.matchMedia = w.matchMedia || (() => ({ matches: false, addListener() {}, removeListener() {}, addEventListener() {}, removeEventListener() {} }));
   w.fetch = async (url, init) => { url = String(url); const j = (o, ok = true) => ({ ok, status: ok ? 200 : 404, json: async () => o, text: async () => JSON.stringify(o) });
-    if (url.includes('questions')) return j(qs); if (url.includes('identitytoolkit') || url.includes('securetoken')) return j({ idToken: 't', refreshToken: 'r', expiresIn: '3600' });
+    if (url.includes('questions')) return j(qs); if (url.includes('identitytoolkit') || url.includes('securetoken')) return j({ idToken: 't', refreshToken: 'r', expiresIn: '3600', localId: 'test-user', users: [{ localId: 'test-user' }] });
     if (init && /^(PUT|PATCH|DELETE|POST)$/i.test(init.method || '')) return j(null, true); // записи в «базу» по умолчанию принимаются (как у настоящей базы при верных данных)
     return j(null, false); };
   w.eval(fs.readFileSync(path.join(root, 'node_modules/react/umd/react.development.js'), 'utf8')); w.eval(fs.readFileSync(path.join(root, 'node_modules/react-dom/umd/react-dom.development.js'), 'utf8'));
