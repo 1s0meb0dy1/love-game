@@ -29,6 +29,8 @@
   --rose: #ff4d6d; --rose-fill-a: #dc2a52; --rose-fill-b: #b8173f; --ember: #ffb061; --orchid: #c98bff; --ok: #4ade9b; --danger: #ff7a8a; --focus: #ffc4d0;
   /* сложность вопроса — «температура»: тёплый → розовый → орхидея */
   --lvl-1-rgb: 255 176 97; --lvl-2-rgb: 255 95 126; --lvl-3-rgb: 201 139 255;
+  /* режим «Правда или действие»: уровень карточки — зелёный / жёлтый / красный (контраст с фоном ночи 11.6 / 14.3 / 6.9 : 1); цвет всегда идёт со значком-точками и подписью */
+  --tod-easy-rgb: 74 222 155; --tod-medium-rgb: 255 214 79; --tod-hard-rgb: 255 99 99;
   /* размеры */
   --btn-h: 54px; --ui-btn-h: 54px; --ui-field-h: 54px; --ctl-h: 44px; --ui-chip-h: 44px;
   --r-control: 14px; --ui-radius: 14px; --r-surface: 20px; --r-hero: 28px;
@@ -145,6 +147,13 @@ html[data-screen='game'] .bg-room .motifs { opacity: 0.55; }
 :root .tag-warn { color: #ffe0b8; background: rgb(255 176 97 / 0.12); border-color: rgb(255 176 97 / 0.5); }
 :root .tag-ok { color: #c4f5de; background: rgb(74 222 155 / 0.12); border-color: rgb(74 222 155 / 0.45); }
 :root .tag-rose { color: #ffd1da; background: rgb(255 77 109 / 0.13); border-color: rgb(255 77 109 / 0.5); }
+/* метка уровня карточки «Правда или действие»: значок из трёх точек (закрашено 1 / 2 / 3), подпись и число; цвет метки — класс tod-lvl-<уровень> */
+:root .tod-lvl { display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; font-weight: 700; line-height: 1.3; color: rgb(var(--tod-c, 255 255 255)); }
+:root .tod-lvl-easy { --tod-c: var(--tod-easy-rgb); } :root .tod-lvl-medium { --tod-c: var(--tod-medium-rgb); } :root .tod-lvl-hard { --tod-c: var(--tod-hard-rgb); }
+:root .tod-lvl-n { font-weight: 600; color: var(--text-3); }
+:root .tod-lvl-dots { display: inline-flex; align-items: center; gap: 3px; flex: 0 0 auto; }
+:root .tod-lvl-dots i { display: block; width: 8px; height: 8px; border-radius: 999px; border: 1.5px solid currentColor; box-sizing: border-box; }
+:root .tod-lvl-dots i.on { background: currentColor; }
 /* строка списка, карточка-кнопка, карточки режимов, плитка темы */
 :root .row { display: flex; align-items: center; gap: 0.875rem; width: 100%; min-height: 64px; padding: 0.75rem 1rem; text-align: left; background: transparent; cursor: pointer; transition: background-color 0.2s ease; }
 @media (hover: hover) { :root .row:hover { background: rgb(255 255 255 / 0.045); } } :root .row:active { background: rgb(255 255 255 / 0.07); }

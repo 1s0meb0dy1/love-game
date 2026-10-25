@@ -9,6 +9,7 @@ import { t as tr, setLang as i18nSetLang, getLang, catName as catLabel, diffName
 import { TOD_STARTER } from './content/tod-cards.js';
 import { todCleanList } from './tod/model.js';
 import { todLoadCards, todSaveCard, todSeedStarter, todActive, todReadCache, todWriteCache } from './tod/cards.js';
+import { TodArchive, TodAdmin } from './tod/screens.jsx';
 const ReactDOM = { ...ReactDOMAll, createRoot };
 
 // Рання ініціалізація мови з localStorage (щоб t() працювала ще до монтування React).
@@ -254,8 +255,8 @@ i18nSetLang(readStoredLang());
             { id: "Глубокие", name: "Глубокие", classText: "diff-text-3", classBg: "diff-pill-3" }
         ];
 
-        const SCREEN_TO_HASH = { onboarding: '#/welcome', session_created: '#/session-ready', menu: '#/', app_menu: '#/more', game_setup: '#/setup', topics_admin: '#/topics/manage', punish_admin: '#/punishments/manage', analytics: '#/analytics', analytics_sessions: '#/analytics/sessions', hidden_q: '#/questions/hidden', profile_page: '#/profile', admin_login: '#/admin', mode_select: '#/mode', game: '#/play', ai_response: '#/ai', summary: '#/summary', cat_list: '#/topics', q_list: '#/questions', archive_page: '#/archive', add_q: '#/add', edit_q: '#/edit', invite: '#/invite', join: '#/join', about: '#/about', privacy: '#/privacy', terms: '#/terms', cookies: '#/cookies', age: '#/age' };
-        const HASH_TO_SCREEN = { '#/welcome': 'onboarding', '#/session-ready': 'session_created', '#/': 'menu', '#/menu': 'menu', '#/profile': 'profile_page', '#/more': 'app_menu', '#/setup': 'game_setup', '#/topics/manage': 'topics_admin', '#/punishments/manage': 'punish_admin', '#/analytics': 'analytics', '#/analytics/sessions': 'analytics_sessions', '#/questions/hidden': 'hidden_q', '#/admin': 'admin_login', '#/mode': 'mode_select', '#/play': 'game', '#/ai': 'ai_response', '#/summary': 'summary', '#/topics': 'cat_list', '#/questions': 'q_list', '#/archive': 'archive_page', '#/add': 'add_q', '#/edit': 'edit_q', '#/invite': 'invite', '#/join': 'join', '#/about': 'about', '#/privacy': 'privacy', '#/terms': 'terms', '#/cookies': 'cookies', '#/age': 'age' };
+        const SCREEN_TO_HASH = { onboarding: '#/welcome', session_created: '#/session-ready', menu: '#/', app_menu: '#/more', game_setup: '#/setup', topics_admin: '#/topics/manage', punish_admin: '#/punishments/manage', tod_admin: '#/tod/manage', analytics: '#/analytics', analytics_sessions: '#/analytics/sessions', hidden_q: '#/questions/hidden', profile_page: '#/profile', admin_login: '#/admin', mode_select: '#/mode', game: '#/play', ai_response: '#/ai', summary: '#/summary', cat_list: '#/topics', q_list: '#/questions', archive_page: '#/archive', add_q: '#/add', edit_q: '#/edit', invite: '#/invite', join: '#/join', about: '#/about', privacy: '#/privacy', terms: '#/terms', cookies: '#/cookies', age: '#/age' };
+        const HASH_TO_SCREEN = { '#/welcome': 'onboarding', '#/session-ready': 'session_created', '#/': 'menu', '#/menu': 'menu', '#/profile': 'profile_page', '#/more': 'app_menu', '#/setup': 'game_setup', '#/topics/manage': 'topics_admin', '#/punishments/manage': 'punish_admin', '#/tod/manage': 'tod_admin', '#/analytics': 'analytics', '#/analytics/sessions': 'analytics_sessions', '#/questions/hidden': 'hidden_q', '#/admin': 'admin_login', '#/mode': 'mode_select', '#/play': 'game', '#/ai': 'ai_response', '#/summary': 'summary', '#/topics': 'cat_list', '#/questions': 'q_list', '#/archive': 'archive_page', '#/add': 'add_q', '#/edit': 'edit_q', '#/invite': 'invite', '#/join': 'join', '#/about': 'about', '#/privacy': 'privacy', '#/terms': 'terms', '#/cookies': 'cookies', '#/age': 'age' };
         // страницы, которые открываются без сессии (по общей ссылке): «Об игре», юридические, быстрое подключение
         const PUBLIC_SCREENS = ['about', 'privacy', 'terms', 'cookies', 'age', 'join'];
         // экраны, которые после перезагрузки страницы нечем наполнить (итоги и разбор опираются на данные партии в памяти): открываем меню
@@ -624,7 +625,7 @@ i18nSetLang(readStoredLang());
             }
             return deck;
         };
-        const SCREEN_TITLES = { hidden_q: 'Скрытые вопросы — ASK ME', analytics: 'Аналитика — ASK ME', analytics_sessions: 'Сессии — Аналитика — ASK ME', app_menu: 'Меню — ASK ME', game_setup: 'Усложнённый режим — ASK ME', topics_admin: 'Управление темами — ASK ME', punish_admin: 'Шаблоны наказаний — ASK ME', onboarding: 'ASK ME — начните игру', session_created: 'Сессия создана — ASK ME', menu: 'ASK ME — откровенные разговоры для двоих и компании', profile_page: 'Игроки и сессия — ASK ME', admin_login: 'Вход для владельца — ASK ME', mode_select: 'Режим игры — ASK ME', game: 'Игра — ASK ME', ai_response: 'Совет и ситуация — ASK ME', summary: 'Итоги игры — ASK ME', cat_list: 'Все темы — ASK ME', q_list: 'Вопросы — ASK ME', archive_page: 'Архив вопросов — ASK ME', add_q: 'Новый вопрос — ASK ME', edit_q: 'Редактирование вопроса — ASK ME', invite: 'Пригласить игроков — ASK ME', join: 'Присоединиться к игре — ASK ME', about: 'Об игре — ASK ME', privacy: 'Политика конфиденциальности — ASK ME', terms: 'Пользовательское соглашение — ASK ME', cookies: 'Cookies и локальное хранилище — ASK ME', age: 'Возраст и откровенный контент — ASK ME' };
+        const SCREEN_TITLES = { hidden_q: 'Скрытые вопросы — ASK ME', analytics: 'Аналитика — ASK ME', analytics_sessions: 'Сессии — Аналитика — ASK ME', app_menu: 'Меню — ASK ME', game_setup: 'Усложнённый режим — ASK ME', topics_admin: 'Управление темами — ASK ME', punish_admin: 'Шаблоны наказаний — ASK ME', tod_admin: 'Карточки — Правда или действие — ASK ME', onboarding: 'ASK ME — начните игру', session_created: 'Сессия создана — ASK ME', menu: 'ASK ME — откровенные разговоры для двоих и компании', profile_page: 'Игроки и сессия — ASK ME', admin_login: 'Вход для владельца — ASK ME', mode_select: 'Режим игры — ASK ME', game: 'Игра — ASK ME', ai_response: 'Совет и ситуация — ASK ME', summary: 'Итоги игры — ASK ME', cat_list: 'Все темы — ASK ME', q_list: 'Вопросы — ASK ME', archive_page: 'Архив вопросов — ASK ME', add_q: 'Новый вопрос — ASK ME', edit_q: 'Редактирование вопроса — ASK ME', invite: 'Пригласить игроков — ASK ME', join: 'Присоединиться к игре — ASK ME', about: 'Об игре — ASK ME', privacy: 'Политика конфиденциальности — ASK ME', terms: 'Пользовательское соглашение — ASK ME', cookies: 'Cookies и локальное хранилище — ASK ME', age: 'Возраст и откровенный контент — ASK ME' };
         const GROUP_EMOJIS = ['😈', '🤫', '😋', '🤔', '🤪', '😏', '😱', '🫣'];
         const MAX_PLAYERS = 10;
         const LIVE_POLL_MS = 1000, LIVE_INVITE_MS = 3000, LIVE_BEAT_MS = 8000, LIVE_ALIVE_MS = 30000, LIVE_STALE_MS = 120000, LIVE_TAKEOVER_S = 6, LIVE_TAKEOVER_STEP_S = 4, LIVE_TAP_GUARD_MS = 500, LIVE_SOLO_MS = 2000, LIVE_JOIN_WAIT_MS = 15000, LIVE_MAX_DEVICES = MAX_PLAYERS;
@@ -1087,6 +1088,9 @@ i18nSetLang(readStoredLang());
             // карточки режима «Правда или действие»: сначала кэш устройства (или стартовый набор), затем эффект ниже подменяет их данными из базы; source — откуда сейчас список: 'db' | 'cache' | 'starter'
             const [todBoot] = useState(() => { const cached = todReadCache(todCardsEnv.storage); return cached.length ? { list: cached, source: 'cache' } : { list: todCleanList(TOD_STARTER), source: 'starter' }; });
             const [todCards, setTodCards] = useState(todBoot.list); const [todSource, setTodSource] = useState(todBoot.source);
+            const todCardsRef = useRef(todBoot.list); // всегда последний список: обработчики записи не должны работать с устаревшим
+            const [todTab, setTodTab] = useState('classic'); // вкладка «Все вопросы»: classic | truth | dare
+            const [todBackTo, setTodBackTo] = useState('app_menu'); // откуда открыта админка карточек (туда ведёт «Назад»)
             const [ptEdit, setPtEdit] = useState(null); const [ptText, setPtText] = useState(''); const [ptIcon, setPtIcon] = useState(''); const [ptLevel, setPtLevel] = useState('any');
             const [ptErr, setPtErr] = useState(''); const [ptBusy, setPtBusy] = useState(false); const [ptConfirmId, setPtConfirmId] = useState('');
             const [analyticsOn, setAnalyticsOn] = useState(() => { try { return localStorage.getItem('askme_analytics_v1') !== '0'; } catch (e) { return true; } });
@@ -1822,7 +1826,7 @@ i18nSetLang(readStoredLang());
             }, []);
             useEffect(() => {
                 let off = false;
-                todLoadCards(todCardsEnv).then(r => { if (!off) { setTodCards(r.list); setTodSource(r.source); } }).catch(() => {});
+                todLoadCards(todCardsEnv).then(r => { if (!off) { todCardsRef.current = r.list; setTodCards(r.list); setTodSource(r.source); } }).catch(() => {});
                 return () => { off = true; };
             }, []);
             const writePunishTemplates = async (list) => {
@@ -1852,6 +1856,41 @@ i18nSetLang(readStoredLang());
                 try { await writePunishTemplates(punishTemplates.filter(t => t.id !== id)); SoundFX.success(); showToast(tr('Шаблон удалён')); }
                 catch (e) { showErrorPopup(tr('Шаблон не удалился'), 'Проверьте интернет и вход владельца, затем попробуйте ещё раз.'); }
                 setPtConfirmId(''); setPtBusy(false);
+            };
+            // ---- режим «Правда или действие»: запись карточек из админки ----
+            const todApply = (list, source, writeCache) => { todCardsRef.current = list; setTodCards(list); setTodSource(source); if (writeCache) todWriteCache(todCardsEnv.storage, list); };
+            const todUi = { Icons, SoundFX, AppFooter, showToast, showError: showErrorPopup, navigate, SettingSwitch, PopupModal };
+            // одна карточка (новая, правка, скрыть/показать): список в памяти и кэш устройства обновляются сразу
+            const todSave = async (card) => {
+                const saved = await todSaveCard(todCardsEnv, { ...card, text: sanitizeInput(card && card.text, 300) });
+                const merged = todCleanList([...todCardsRef.current.filter(c => c.id !== saved.id), saved]);
+                if (todSource === 'db') { todApply(merged, 'db', true); return saved; }
+                // список был не из базы (встроенный набор или копия): после записи правду знает только база, поэтому читаем её заново
+                const fresh = await todLoadCards(todCardsEnv);
+                if (fresh.source === 'db') todApply(fresh.list, 'db', false); // кэш при чтении из базы записан самой загрузкой
+                else todApply(merged, todSource, false);
+                return saved;
+            };
+            // разовая загрузка стартового набора. Список в памяти не берём на веру: запись карточки целиком заменяет её в базе, и устаревший список
+            // затёр бы правки владельца и вернул скрытые карточки. Поэтому перед записью база читается заново, а пропускаются все id, которые в ней есть.
+            const todSeed = async () => {
+                const readFail = () => Object.assign(new Error('TOD_READ'), { todRead: true });
+                let ids;
+                try {
+                    const r = await fetchWithTimeout(`${FIREBASE_BASE_URL}/tod.json?t=${Date.now()}`, {}, 10000);
+                    if (!r || !r.ok) throw readFail();
+                    const data = await r.json();
+                    if (data !== null && typeof data !== 'object') throw readFail();
+                    ids = !data ? [] : Array.isArray(data) ? todCleanList(data).map(c => c.id) : Object.keys(data);
+                } catch (e) { throw readFail(); } // ничего не записано
+                let result = null, failure = null;
+                try { result = await todSeedStarter(todCardsEnv, ids); } catch (e) { failure = e; }
+                // что бы ни случилось при записи, список в памяти приводим в соответствие с базой
+                const fresh = await todLoadCards(todCardsEnv);
+                if (fresh.source === 'db') todApply(fresh.list, 'db', false);
+                else if (!failure) todApply(todCleanList([...todCardsRef.current, ...TOD_STARTER.filter(c => !ids.includes(c.id))]), todSource, false);
+                if (failure) throw failure;
+                return result;
             };
             const logTurnEnd = (kind) => { const g = gameLogRef.current; if (!g || !g.turnStart) return; if (kind === 'answer' && g.durations.length < 500) g.durations.push(Math.round((Date.now() - g.turnStart) / 1000)); g.turnStart = 0; };
             const logPunish = (text) => { const g = gameLogRef.current; if (!g || !text || g.punishments.length >= 50) return; g.punishments.push({ t: String(text).slice(0, 80), tpl: punishTemplates.some(t => t.text === text) }); };
@@ -2493,6 +2532,7 @@ if (screen === 'app_menu') {
                 const ownerItems = isAdmin ? [
                     { id: 'topics', icon: '⚙️', title: tr('Управление темами'), desc: tr('Добавление тем и порядок'), onClick: () => { setTopicDraft(CATEGORIES.map(c => c.id)); setTopicErr(''); navigate('topics_admin'); } },
                     { id: 'punish', icon: '🎭', title: tr('Шаблоны наказаний'), desc: tr('Список для всех игроков'), onClick: () => { setPtEdit(null); setPtErr(''); setPtConfirmId(''); navigate('punish_admin'); } },
+                    { id: 'tod', icon: '🎲', title: tr('Правда или действие'), desc: tr('Карточки: добавить, изменить, скрыть'), onClick: () => { setTodBackTo('app_menu'); navigate('tod_admin'); } },
                     { id: 'analytics', icon: '📊', title: tr('Аналитика'), desc: tr('Сессии, вопросы, наказания'), onClick: () => { setAnSel(null); setAnConfirm(''); navigate('analytics'); } },
                     { id: 'hidden', icon: '🙈', title: tr('Скрытые вопросы'), desc: `${tr('Сейчас скрыто:')} ${stats.hiddenCount}`, onClick: () => { setHqConfirmAll(false); navigate('hidden_q'); } },
                     { id: 'datasync', icon: '⬆️', title: tr('Залити нові питання'), desc: tr('Нові питання + аудиторія в базу'), onClick: handleSeedUpload },
@@ -2661,6 +2701,9 @@ if (screen === 'app_menu') {
                         <AppFooter />
                     </div>
                 );
+            }
+            if (screen === 'tod_admin') {
+                return <TodAdmin ui={todUi} cards={todCards} source={todSource} isAdmin={isAdmin} onSave={todSave} onSeed={todSeed} onBack={() => navigate(todBackTo)} />;
             }
             if (screen === 'analytics') {
                 const ag = anFiltered ? aggregateAnalytics(anFiltered.anon) : null;
@@ -3278,8 +3321,16 @@ if (screen === 'summary') {
                 return (
                     <div className="safe-screen w-full flex flex-col fade-in max-w-md lg:max-w-3xl mx-auto relative z-10">
                         <header className="flex items-center justify-between gap-4 mb-6 pt-2">
-                            <div className="flex items-center gap-3.5"><button aria-label={tr("Назад")} onClick={() => { SoundFX.click(); navigate('menu'); }} className="btn-icon flex-shrink-0"><Icons.Back /></button><div><h2 className="text-2xl font-bold text-white">{tr("Все вопросы")}</h2><p className="text-xs text-zinc-500 mt-0.5">Активно: {db.length - stats.archivedList.length - stats.disabledCount} из {db.length}</p></div></div>
+                            <div className="flex items-center gap-3.5"><button aria-label={tr("Назад")} onClick={() => { SoundFX.click(); navigate('menu'); }} className="btn-icon flex-shrink-0"><Icons.Back /></button><div><h2 className="text-2xl font-bold text-white">{tr("Все вопросы")}</h2><p className="text-xs text-zinc-500 mt-0.5">{todTab === 'classic' ? `${tr('Активно:')} ${db.length - stats.archivedList.length - stats.disabledCount} ${tr('из')} ${db.length}` : tr('Правда или действие')}</p></div></div>
                         </header>
+                        <div className="seg mb-6" role="tablist" aria-label="Что показать">
+                            {[['classic', 'Классика'], ['truth', 'Правда'], ['dare', 'Действие']].map(([id, label]) => (
+                                <button key={id} type="button" role="tab" aria-selected={todTab === id} onClick={() => { SoundFX.click(); setTodTab(id); }} className={`seg-btn ${todTab === id ? 'is-active' : ''}`}>{label}</button>
+                            ))}
+                        </div>
+                        {todTab !== 'classic' ? (
+                            <div className="flex-1 pb-24"><TodArchive ui={todUi} cards={todCards} tab={todTab} isAdmin={isAdmin} onManage={() => { setTodBackTo('cat_list'); navigate('tod_admin'); }} /></div>
+                        ) : (<>
                         <div className="flex-1 flex flex-col gap-8 pb-24">
                             {isAdmin && ( <button type="button" onClick={() => { SoundFX.click(); setTopicDraft(CATEGORIES.map(c => c.id)); setTopicErr(''); navigate('topics_admin'); }} className="btn-secondary w-full flex items-center justify-center gap-2.5">{tr("⚙ Управление темами")}</button> )}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 divide-y md:divide-y-0 border-y border-white/10 divide-white/[0.08]">
@@ -3294,6 +3345,7 @@ if (screen === 'summary') {
                             </div>
                         </div>
                         {isAdmin && <div className="fixed bottom-5 left-5 right-5 max-w-md mx-auto pointer-events-none"> <button onClick={() => { SoundFX.click(); setAddStatus(null); setAddForm({ text: '', cat: 'family', diff: 'Простые', targetId: '', aud: 'both' }); navigate('add_q'); }} className="btn-primary w-full flex items-center justify-center gap-2 pointer-events-auto"><Icons.Plus /> {tr("Новый вопрос")}</button> </div>}
+                        </>)}
                     </div>
                 );
             }
