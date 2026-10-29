@@ -3,17 +3,26 @@ const fs = require('fs'); const path = require('path'); const { JSDOM } = requir
 module.exports = (opts = {}) => {
   const root = path.join(__dirname, '..');
   const appSrc = fs.readFileSync(process.env.APP_JSX || path.join(root, 'src/app.jsx'), 'utf8'); // APP_JSX — запасной путь к другой версии кода (чтобы сравнить «до» и «после» правки)
-  // тексты страниц лежат в src/content/*.js — в сборке это обычные модули, в тесте вставляем их прямо в код (без `export`)
-  const inlined = appSrc.replace(/^import \{[^}]*\} from '\.\/content\/([\w-]+)\.js';[ \t]*$/gm, (m, name) => fs.readFileSync(path.join(root, 'src/content', name + '.js'), 'utf8').replace(/^export /gm, ''));
   const helpers = fs.readFileSync(path.join(root, 'src/session-io.js'), 'utf8').replace(/^export /gm, '');
-  // модуль локалізації src/i18n.js — так само вставляємо прямо в код (без `export`) і відновлюємо псевдоніми з рядка імпорту
-  const withI18n = inlined.replace(/^import \{([^}]*)\} from '\.\/i18n\.js';[ \t]*$/gm, (m, names) => {
+  // модуль локалізації src/i18n.js — вставляємо прямо в код (без `export`) і відновлюємо псевдоніми з рядка імпорту
+  const withI18n = appSrc.replace(/^import \{([^}]*)\} from '\.\/i18n\.js';[ \t]*$/gm, (m, names) => {
     const body = fs.readFileSync(path.join(root, 'src/i18n.js'), 'utf8').replace(/^export /gm, '');
     const aliases = names.split(',').map(s => s.trim()).filter(Boolean).map(tok => { const mm = tok.match(/^(\w+)\s+as\s+(\w+)$/); return mm ? `const ${mm[2]} = ${mm[1]};` : ''; }).filter(Boolean).join(' ');
     return body + '\n' + aliases + '\n';
   });
-  const jsx = helpers + '\n' + withI18n.replace(/^import .*$/gm, '').replace(/^const ReactDOM = \{ \.\.\.ReactDOMAll, createRoot \};$/m, '');
-  const code = (module.exports.__cache = module.exports.__cache && module.exports.__cache.jsx === jsx ? module.exports.__cache : { jsx, code: babel.transformSync(jsx, { presets: [['@babel/preset-react', { runtime: 'classic' }]] }).code }).code;
+  // тексты страниц лежат в src/content/*.js, модули режима «Правда или действие» — в src/tod/*.js(x): в сборке это обычные модули,
+  // в тесте вставляем их прямо в код (без `export`) на месте однострочного импорта, в порядке импортов. Импорты внутри вставленного модуля
+  // раскрываются так же (каждый файл один раз, зависимость раньше зависимого), поэтому app.jsx не обязан импортировать то, что нужно только модулю.
+  const seen = new Set();
+  const inline = (src, dir) => src.replace(/^import \{[^}]*\} from '(\.{1,2}\/[\w\/-]+\.jsx?)';[ \t]*$/gm, (m, rel) => {
+    const file = path.resolve(dir, rel); if (!/[\\/]src[\\/](content|tod)[\\/][\w-]+\.jsx?$/.test(file)) return m; // остальные импорты убираются ниже
+    if (seen.has(file)) return ''; seen.add(file);
+    return inline(fs.readFileSync(file, 'utf8'), path.dirname(file)).replace(/^export /gm, '');
+  });
+  const inlined = inline(withI18n, path.join(root, 'src'));
+  const jsx = helpers + '\n' + inlined.replace(/^import .*$/gm, '').replace(/^const ReactDOM = \{ \.\.\.ReactDOMAll, createRoot \};$/m, '');
+  // compact: false — код больше 500 КБ Babel иначе сжимает в одну строку, и проверки, которые подменяют кусок кода по тексту, перестают его находить
+  const code = (module.exports.__cache = module.exports.__cache && module.exports.__cache.jsx === jsx ? module.exports.__cache : { jsx, code: babel.transformSync(jsx, { compact: false, presets: [['@babel/preset-react', { runtime: 'classic' }]] }).code }).code;
   const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8') + '\n<style>' + fs.readFileSync(path.join(root, 'src/styles.css'), 'utf8') + '</style>';
   const exp = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures/questions.json'), 'utf8'));
   // opts.bigDb = N — раздуть базу вопросов копиями до N штук (как настоящая база: ~1800 вопросов, чтобы проверить длинные колоды)

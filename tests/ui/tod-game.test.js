@@ -1,0 +1,72 @@
+// Режим «Правда или действие»: игровой экран #/tod/play на одном устройстве — выбор, уровни, карточка, пропуск с «🐔», передача хода,
+// защита от двойного нажатия, завершение и выход, отсутствующая карточка, имена со скобками и разметкой.
+const { boot, DEFAULT_DB } = require('../tod-ui.js');
+const res = []; const T = (n, c) => res.push((c ? 'PASS ' : 'FAIL ') + n); const errs = [];
+const done = (A) => { errs.push(...A.errors); A.close(); };
+const TEXTS = Object.values(DEFAULT_DB).map(c => c.text);
+// выбрать тон в лобби и начать
+const play = async (A, tone = 'Мягкий') => { await A.toLobby(); const b = A.btns().find(x => x.textContent.trim() === tone && x.hasAttribute('aria-pressed')); await A.tap(b); await A.startGame(); };
+
+(async () => {
+  try {
+    let A = await boot(); await play(A, 'Мягкий');
+    T('экран хода: «Ход игрока: Макс», две кнопки выбора', A.heading() === 'Ход игрока: Макс' && !!A.btn('Правда') && !!A.btn('Действие') && A.chickens().length === 2);
+    await A.press('Правда', 450);
+    T('«Правда» -> карточка с текстом из набора, видны «Ответил(а) — передать ход» и «Пропустить»', TEXTS.includes(A.cardBody()) && /^Правда/.test(A.cardBody()) && !!A.btn('Ответил(а) — передать ход') && !!A.btn('Пропустить'));
+    T('реплика под карточкой есть при «Мягкий»', !!A.banter() && A.banter().length >= 8 && !/[{}]/.test(A.banter()));
+    await A.sleep(550); await A.press('Пропустить', 450);
+    T('«Пропустить»: снова «Ход игрока: Макс», счётчик «🐔 1», фаза выбора', A.heading() === 'Ход игрока: Макс' && A.chickens()[0] === '🐔 1' && !!A.btn('Правда') && !A.btn('Пропустить'));
+    T('после пропуска видна подколка с именем', (A.banter() || '').includes('Макс'));
+    await A.sleep(550); await A.press('Правда', 450); await A.sleep(550); await A.press('Пропустить', 450);
+    const two = A.chickens()[0];
+    await A.sleep(550); await A.press('Правда', 450); await A.sleep(550); await A.press('Ответил(а) — передать ход', 450);
+    T('второй пропуск: «🐔 2»; затем выполнение -> «Ход игрока: Аня», счётчик Макса остался', two === '🐔 2' && A.heading() === 'Ход игрока: Аня' && A.chickens()[0] === '🐔 2' && A.chickens()[1] === '🐔 0');
+    const cur = [...A.D.querySelectorAll('.tod-chicken')].map(x => x.closest('li'));
+    T('игрок в очереди выделен', cur[1].className.includes('is-on') && cur[1].getAttribute('aria-current') === 'true' && !cur[0].className.includes('is-on'));
+    await A.sleep(550); await A.press('Действие', 450);
+    const lv = (t) => A.btns().find(b => b.textContent.includes(t) && b.className.includes('tod-lvl'));
+    T('«Действие» -> три уровня; при выключенных «Жёстких» «Жёстко» недоступно с подписью «пока пусто»', !!lv('Легко') && !!lv('Средне') && lv('Жёстко').disabled && lv('Жёстко').textContent.includes('пока пусто') && !lv('Легко').disabled);
+    await A.sleep(550); await A.tap(lv('Средне'), 450);
+    T('уровень «Средне» -> карточка «Действие», главная кнопка «Выполнено — передать ход»', /^Действие среднее/.test(A.cardBody()) && !!A.btn('Выполнено — передать ход'));
+    await A.sleep(550);
+    const main = A.btn('Выполнено — передать ход'); main.dispatchEvent(new A.w.MouseEvent('click', { bubbles: true })); await A.sleep(120);
+    const again = A.btn('Выполнено — передать ход') || A.btn('Ответил(а) — передать ход'); if (again) again.dispatchEvent(new A.w.MouseEvent('click', { bubbles: true }));
+    await A.sleep(400);
+    T('два быстрых нажатия «Ответил(а)» (в пределах 500 мс) -> ход передан один раз', A.heading() === 'Ход игрока: Макс' && !A.btn('Пропустить'));
+    T('кнопки хода — классы btn-* или opt-card (не меньше 44 px по дизайн-системе)', [A.btn('Правда'), A.btn('Действие'), A.btn('Завершить')].every(b => b && /\b(btn-[a-z]+|opt-card)\b/.test(b.className)));
+    await A.sleep(550); await A.press('Завершить', 350);
+    T('«Завершить» просит подтверждения', A.text().includes('Завершить игру?') && !!A.btn('Завершить для всех') && A.btn('Завершить для всех').className.includes('btn-danger'));
+    await A.press('Отмена', 350);
+    T('«Отмена» возвращает в игру', !A.text().includes('Завершить игру?') && A.hashNow() === '#/tod/play' && A.heading() === 'Ход игрока: Макс');
+    await A.press('Завершить', 350); await A.press('Завершить для всех', 500);
+    T('«Завершить для всех» открывает итоги (#/tod/results)', A.hashNow() === '#/tod/results' && A.D.title === 'Итоги — Правда или действие — ASK ME' && A.text().includes('Зал позора'));
+    done(A);
+
+    A = await boot(); await play(A, 'Выкл');
+    await A.press('Правда', 450);
+    T('реплики нет при тоне «Выкл»', A.banter() === null && !!A.cardBody());
+    await A.sleep(550); await A.press('Завершить', 350); await A.press('Выйти, остальные продолжат', 500);
+    T('«Выйти, остальные продолжат» ведёт на главную, партия остаётся незавершённой', A.hashNow() === '#/' && !A.text().includes('Ход игрока'));
+    done(A);
+
+    // карточки нет у устройства: игра началась по кэшу, а потом пришёл ответ базы без этих карточек — id в колоде есть, текста нет
+    const cache = [1, 2, 3].map(i => ({ id: 'td_c' + i, type: 'truth', difficulty: 'easy', text: 'Карточка из кэша ' + i, isActive: true })).concat([{ id: 'td_cd', type: 'dare', difficulty: 'easy', text: 'Действие из кэша', isActive: true }]);
+    A = await boot({ cache, todDelay: 4000 }); await play(A, 'Мягкий');
+    await A.press('Правда', 450);
+    const fromCache = /^Карточка из кэша/.test(A.cardBody() || '');
+    await A.sleep(4200);
+    T('карточка отсутствует у устройства: «Карточка недоступна», «Пропустить» работает, ошибок в консоли нет', fromCache && A.cardBody() === 'Карточка недоступна' && A.errors.length === 0);
+    await A.press('Пропустить', 450);
+    T('после пропуска недоступной карточки игра продолжается', A.chickens()[0] === '🐔 1' && !!A.btn('Правда'));
+    done(A);
+    const tricky = '{name}<b>Я</b>{a|b}';
+    const db2 = { ...DEFAULT_DB };
+    A = await boot({ names: [tricky, 'Аня'], seed: db2 }); await play(A, 'Мягкий');
+    T('имя игрока со скобками {name} и <b> показано как есть в заголовке', A.heading() === 'Ход игрока: ' + tricky.replace(/[<>]/g, '') || A.heading() === 'Ход игрока: ' + tricky);
+    await A.press('Правда', 450); await A.sleep(550); await A.press('Пропустить', 450);
+    T('имя со скобками в реплике выводится как есть, без повторной подстановки', (A.banter() || '').includes(tricky.replace(/[<>]/g, '')) && !A.D.querySelector('.tod-banter b'));
+    done(A);
+  } catch (e) { T('сценарий выполнился без исключений: ' + (e && e.stack), false); }
+  console.log(res.join('\n')); console.log('--- captured runtime errors: ' + errs.length); errs.slice(0, 5).forEach(e => console.log(e));
+  process.exit(res.some(l => l.startsWith('FAIL')) || errs.length ? 1 : 0);
+})();
