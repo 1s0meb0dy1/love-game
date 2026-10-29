@@ -5,10 +5,10 @@ const fs = require('fs'); const path = require('path');
 const { loadTod } = require('../tod-load.js'); const { makeRules } = require('../rules-eval.js');
 const res = []; const T = (n, c) => res.push((c ? 'PASS ' : 'FAIL ') + n);
 const finish = () => { console.log(res.join('\n')); console.log('--- captured runtime errors: 0'); process.exit(res.some(l => l.startsWith('FAIL')) ? 1 : 0); };
-const NAMES = ['TOD_TYPES', 'TOD_LEVELS', 'TOD_LEVEL_LABEL', 'TOD_TEXT_MAX', 'todCleanCard', 'todCleanList', 'todPoolOf', 'todGroupCards', 'todNewId'];
+const NAMES = ['TOD_TYPES', 'TOD_LEVELS', 'TOD_LEVEL_LABEL', 'TOD_TEXT_MAX', 'todCleanCard', 'todCleanList', 'todPoolOf', 'todGroupCards', 'todNewId', 'todCardText'];
 let M = null;
 try { M = loadTod(['tod/model.js'], NAMES); } catch (e) { T('модуль src/tod/model.js загружается: ' + (e && e.message), false); finish(); }
-const { TOD_TYPES, TOD_LEVELS, TOD_LEVEL_LABEL, TOD_TEXT_MAX, todCleanCard, todCleanList, todPoolOf, todGroupCards, todNewId } = M;
+const { TOD_TYPES, TOD_LEVELS, TOD_LEVEL_LABEL, TOD_TEXT_MAX, todCleanCard, todCleanList, todPoolOf, todGroupCards, todNewId, todCardText } = M;
 
 const rules = makeRules(JSON.parse(fs.readFileSync(path.join(__dirname, '../fixtures/tod-rules.json'), 'utf8')));
 const OWNER = { uid: 'OWNER_UID' };
@@ -112,4 +112,6 @@ T('todPoolOf: неверная карточка -> null', [null, undefined, {}, 
   T('todNewId: id позже по времени сортируется после раннего (ровная длина)', todNewId(NOW, () => 0.9) < todNewId(NOW + 1000, () => 0.1));
 }
 
+T('text_uk: сохраняется очищенным, пустой или не строка — отбрасывается', todCleanCard(card({ text_uk: '  <Питання?> ' })).text_uk === 'Питання?' && !('text_uk' in todCleanCard(card({ text_uk: '   ' }))) && !('text_uk' in todCleanCard(card({ text_uk: 7 }))));
+T('todCardText: uk берёт text_uk, без него и для ru — text', todCardText(card({ text_uk: 'Питання?' }), 'uk') === 'Питання?' && todCardText(card({ text_uk: 'Питання?' }), 'ru') === 'Вопрос?' && todCardText(card(), 'uk') === 'Вопрос?' && todCardText(null, 'uk') === '');
 finish();

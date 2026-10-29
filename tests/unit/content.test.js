@@ -3,7 +3,7 @@
 const fs = require('fs'); const path = require('path');
 const root = path.join(__dirname, '../..');
 const load = (n, exp) => new Function(fs.readFileSync(path.join(root, 'src/content', n + '.js'), 'utf8').replace(/^export /gm, '') + '; return ' + exp + ';')();
-const ABOUT = load('about', 'ABOUT'), LEGAL = load('legal', 'LEGAL');
+const ABOUT = load('about', 'ABOUT'), LEGAL = load('legal', 'LEGAL'), ABOUT_UK = load('about-uk', 'ABOUT_UK');
 const res = []; const T = (n, ok) => res.push((ok ? 'PASS ' : 'FAIL ') + n);
 const KNOWN = ['questions', 'topics', 'players', 'devices']; // что подставляет aboutFill в app.jsx
 const strings = (o, out = [], p = '') => { if (typeof o === 'string') out.push([p, o]); else if (Array.isArray(o)) o.forEach((v, i) => strings(v, out, p + '[' + i + ']')); else if (o && typeof o === 'object') Object.entries(o).forEach(([k, v]) => strings(v, out, p + '.' + k)); return out; };
@@ -128,4 +128,8 @@ const pii = [...aboutStr, ...legalStr].filter(([, s]) => EMAIL.test(s) || PHONE.
 T('в текстах нет адресов почты и номеров телефона' + (pii.length ? ' — найдено: ' + pii.map(x => x[0]).join(', ') : ''), pii.length === 0);
 T('в обоих файлах не светится адрес владельца аккаунта (gmail и подобные)', ![...aboutStr, ...legalStr].some(([, s]) => /gmail|yandex\.|mail\.ru|outlook|icloud/i.test(s)));
 
+const shape = (o) => Array.isArray(o) ? '[' + o.map(shape).join(',') + ']' : (o && typeof o === 'object') ? '{' + Object.keys(o).map(k => k + ':' + shape(o[k])).join(',') + '}' : typeof o;
+T('about-uk: структура совпадает с about.js (те же ключи, длины списков и типы)', shape(ABOUT) === shape(ABOUT_UK));
+T('about-uk: id, значки, группы и числа те же, что в about.js', JSON.stringify(ABOUT.features.map(f => [f.id, f.group, f.icon])) === JSON.stringify(ABOUT_UK.features.map(f => [f.id, f.group, f.icon])) && ABOUT.version === ABOUT_UK.version && ABOUT.updated === ABOUT_UK.updated);
+T('about-uk: в украинском тексте нет русских букв ы, э, ъ, ё', !strings(ABOUT_UK).some(([p, s]) => !/^demo\.examples$/.test(p) && /[ыэъёЫЭЪЁ]/.test(s)));
 console.log(res.join('\n')); console.log('--- captured runtime errors: 0'); process.exit(0);

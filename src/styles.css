@@ -186,6 +186,9 @@ html[data-screen='game'] .bg-room .motifs { opacity: 0.55; }
 :root .field-btn { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; box-sizing: border-box; width: 100%; min-height: var(--ui-field-h); padding: 0 1rem; text-align: left; border-radius: var(--r-control); border: 1px solid var(--line-field); background: rgb(255 255 255 / 0.045); color: var(--text); font-size: 1rem; line-height: 1.3; cursor: pointer; transition: border-color 0.2s ease, box-shadow 0.2s ease; }
 :root .field-btn.is-open { border-color: var(--rose); box-shadow: 0 0 0 4px rgb(255 77 109 / 0.20); }
 @media (hover: hover) { :root .field-btn:not(.is-open):hover { border-color: rgb(255 226 238 / 0.36); } }
+:root .menu-pop { position: absolute; top: 100%; margin-top: 0.5rem; z-index: 50; max-height: 15rem; overflow-y: auto; padding: 0.375rem; background: #14121d; border: 1px solid var(--line-strong); border-radius: var(--r-surface); box-shadow: 0 20px 50px rgba(0,0,0,0.85); scrollbar-width: none; }
+:root .menu-pop::-webkit-scrollbar { display: none; }
+:root .btn-icon.lang-btn { font-size: 0.8125rem; font-weight: 800; letter-spacing: 0.04em; color: var(--text); }
 :root .menu-opt { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; width: 100%; min-height: var(--ctl-h); padding: 0.5rem 0.875rem; border-radius: 10px; text-align: left; font-size: 0.9375rem; font-weight: 500; color: var(--text-2); cursor: pointer; transition: background-color 0.15s ease, color 0.15s ease; }
 :root .menu-opt.is-on { color: #ffd1da; font-weight: 600; background: rgb(255 77 109 / 0.15); }
 @media (hover: hover) { :root .menu-opt:not(.is-on):hover { background: rgb(255 255 255 / 0.07); color: var(--text); } }

@@ -25,7 +25,7 @@ const toast = () => D.querySelector('.toast-layer .toast');
 
   // ---------- названия тем ----------
   const names = [...D.querySelectorAll('.tile span.truncate')].map(s => s.className);
-  T('названия тем на главной — 13 px (text-[13px]), число вопросов и значок не сжимаются', names.length === 10 && names.every(c => c.includes('text-[13px]')) && [...D.querySelectorAll('.tile')].every(t => t.querySelector('span.flex-shrink-0')));
+  T('названия тем на главной — 13 px (text-[13px]), число вопросов и значок не сжимаются', names.length === 14 && names.every(c => c.includes('text-[13px]')) && [...D.querySelectorAll('.tile')].every(t => t.querySelector('span.flex-shrink-0')));
 
   // ---------- линия над подвалом: где есть, где нет ----------
   const pages = [['#/', true, 'главная'], ['#/profile', true, 'игроки и сессия'], ['#/about', true, 'об игре'], ['#/privacy', true, 'конфиденциальность'], ['#/invite', true, 'приглашение'],
