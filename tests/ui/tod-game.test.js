@@ -54,7 +54,7 @@ const play = async (A, tone = 'Мягкий') => { await A.toLobby(); const b = 
     A = await boot({ cache, todDelay: 4000 }); await play(A, 'Мягкий');
     await A.press('Правда', 450);
     const fromCache = /^Карточка из кэша/.test(A.cardBody() || '');
-    await A.sleep(4200);
+    await A.sleep(4200); for (let i = 0; i < 120 && A.cardBody() !== 'Карточка недоступна'; i++) await A.sleep(100); // после ответа базы карточку ещё раз ищут точечным запросом
     T('карточка отсутствует у устройства: «Карточка недоступна», «Пропустить» работает, ошибок в консоли нет', fromCache && A.cardBody() === 'Карточка недоступна' && A.errors.length === 0);
     await A.press('Пропустить', 450);
     T('после пропуска недоступной карточки игра продолжается', A.chickens()[0] === '🐔 1' && !!A.btn('Правда'));

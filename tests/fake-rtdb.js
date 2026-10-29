@@ -26,6 +26,7 @@ module.exports = function makeFakeRtdb(opts = {}) {
     if (val === null || val === undefined) { const parent = getAt(p.slice(0, -1)); if (parent && typeof parent === 'object') delete parent[p[p.length - 1]]; prune(p.slice(0, -1).concat([p[p.length - 1]])); return; }
     let n = root; for (let i = 0; i < p.length - 1; i++) { if (n[p[i]] === null || typeof n[p[i]] !== 'object') n[p[i]] = {}; n = n[p[i]]; } n[p[p.length - 1]] = clone(val);
   };
+  if (opts.tod) Object.entries(opts.tod).forEach(([id, c]) => setAt(['tod', id], c)); // карточки узла tod с самого начала (как seedTod)
   const patchAt = (p, obj) => { Object.entries(obj).forEach(([k, v]) => setAt(p.concat(String(k).split('/').filter(Boolean)), v)); };
   // правила узла live/$room (копия правил Firebase: fixtures/live-rules.json)
   const check = (room) => {

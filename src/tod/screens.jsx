@@ -238,20 +238,20 @@ const TOD_LEVEL_WORD = { easy: 'Легко', medium: 'Средне', hard: 'Жё
 const todTx = (ui, s) => (ui && typeof ui.tr === 'function' ? ui.tr(s) : s);
 const todIcon = (p) => (p && p.gender === 'girl' ? '👩' : '👨');
 
-// предупреждение 18+ (раздел 10 спеки): перед стартом с «Жёсткими» или тоном «Острый»
-const TodAdultModal = ({ ui, open, onOk, onCancel }) => (
+// предупреждение 18+ (раздел 10 спеки): перед стартом с «Жёсткими» или тоном «Острый»; okLabel — другая подпись кнопки (при входе в идущую игру — «Понятно»)
+export const TodAdultModal = ({ ui, open, onOk, onCancel, okLabel }) => (
   <ui.PopupModal isOpen={open} onClose={onCancel}>
     <div className="flex flex-col gap-4 pt-1 text-left">
       <h3 className="text-xl font-bold text-white pr-8">{todTx(ui, 'Только для взрослых 18+')}</h3>
       <p className="text-sm text-zinc-300 leading-relaxed">{todTx(ui, 'Игра для взрослых: откровенные карточки, вульгарность и чёрный юмор. Пропуск засчитывается в итогах как позор. Играйте только с теми, кому комфортно.')}</p>
-      <button type="button" onClick={onOk} className="btn-primary w-full">{todTx(ui, 'Нам есть 18, начать')}</button>
+      <button type="button" onClick={onOk} className="btn-primary w-full">{todTx(ui, okLabel || 'Нам есть 18, начать')}</button>
       <button type="button" onClick={onCancel} className="btn-secondary w-full">{todTx(ui, 'Назад')}</button>
     </div>
   </ui.PopupModal>
 );
 
 // лобби #/tod: игроки сессии, опции (Жёсткие 18+, тон), «Поделиться сессией», «Начать игру»; block — причина, по которой старт невозможен
-export const TodLobby = ({ ui, players, cfg, setCfg, deviceCount, block, onStart, onShare, onBack }) => {
+export const TodLobby = ({ ui, players, cfg, setCfg, deviceCount, block, onStart, onShare, onBack, banner }) => {
   const [warn, setWarn] = React.useState(false); const [busy, setBusy] = React.useState(false);
   const list = Array.isArray(players) ? players : [];
   const go = async () => { if (busy) return; setBusy(true); try { await onStart(); } finally { setBusy(false); } };
@@ -269,6 +269,7 @@ export const TodLobby = ({ ui, players, cfg, setCfg, deviceCount, block, onStart
         <button type="button" aria-label={todTx(ui, 'Поделиться сессией')} title={todTx(ui, 'Поделиться сессией')} onClick={onShare} className="btn-icon flex-shrink-0"><ui.Icons.Share /></button>
       </header>
       <main className="w-full max-w-md flex flex-col gap-6 pt-6 pb-8">
+        {banner}
         <section className="flex flex-col gap-3">
           <h2 className="text-sm font-bold text-zinc-300">{todTx(ui, 'Игроки')} · {list.length}</h2>
           <ul className="flex flex-wrap gap-2">
@@ -344,7 +345,7 @@ export const TodGame = ({ ui, state, banter, cardText, levelAvail, onAction, onE
             <div className="tod-flip">
               <div key={st.card.id + ':' + st.seq} className="tod-flip-in rounded-[24px] border border-white/10 bg-white/[0.05] p-6 min-h-[180px] flex flex-col gap-3">
                 <span className={`tod-lvl tod-lvl-${st.card.lv}`}><span aria-hidden="true">{TOD_LEVEL_ICON[st.card.lv]}</span> {todTx(ui, st.card.pool === 'truth' ? 'Правда' : 'Действие')} · {todTx(ui, TOD_LEVEL_WORD[st.card.lv])}</span>
-                <p className="text-xl leading-snug text-white break-words">{text === null ? todTx(ui, 'Карточка недоступна') : text}</p>
+                <p className="text-xl leading-snug text-white break-words">{text === null ? todTx(ui, 'Карточка недоступна') : text === undefined ? todTx(ui, 'Загружаем карточку…') : text}</p>
               </div>
             </div>
           </div>
@@ -371,7 +372,7 @@ export const TodGame = ({ ui, state, banter, cardText, levelAvail, onAction, onE
 };
 
 // итоги #/tod/results: «Зал позора» (крупнее и первым), добрые титулы, таблица игроков; titles — результат todTitles
-export const TodResults = ({ ui, state, titles, onAgain, onMenu }) => {
+export const TodResults = ({ ui, state, titles, onAgain, onMenu, banner }) => {
   const st = state; const t = titles || { shame: [], cheer: [], clean: true, rank: [] };
   const info = (id) => TOD_TITLES.find(x => x.id === id) || { icon: '', name: id, hint: '' };
   const nameOf = (p) => (st.pl[p] ? st.pl[p].name : '');
@@ -387,6 +388,7 @@ export const TodResults = ({ ui, state, titles, onAgain, onMenu }) => {
         <h1 className="flex-1 text-center text-lg font-bold text-white">{todTx(ui, 'Итоги')}</h1>
       </header>
       <main className="w-full max-w-md flex flex-col gap-6 pt-6 pb-8">
+        {banner}
         <section className="flex flex-col gap-3">
           <h2 className="text-2xl font-bold text-white">{todTx(ui, 'Зал позора')}</h2>
           {t.shame.length ? <ul className="flex flex-col gap-3">{t.shame.map((x, i) => <Item key={'s' + i} x={x} big />)}</ul>

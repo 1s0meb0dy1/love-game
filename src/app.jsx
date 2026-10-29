@@ -7,14 +7,15 @@ import { LEGAL } from './content/legal.js';
 import { createSessionTasks, createSessionStore, createLiveWriter, mergeTurnHistories } from './session-io.js';
 import { t as tr, setLang as i18nSetLang, getLang, catName as catLabel, diffName as diffLabel, audienceLabel, AUDIENCE_LABELS, CATEGORY_UK, DIFFICULTY_UK, SUPPORTED_LANGS, DEFAULT_LANG, LANG_STORAGE_KEY } from './i18n.js';
 import { TOD_STARTER } from './content/tod-cards.js';
-import { todCleanList } from './tod/model.js';
+import { todCleanList, todCleanCard } from './tod/model.js';
 import { todLoadCards, todSaveCard, todSeedStarter, todActive, todReadCache, todWriteCache } from './tod/cards.js';
 import { TOD_BANTER, TOD_TITLES } from './content/tod-banter.js';
 import { todBuildDeck, todNext } from './tod/deck.js';
 import { todStart, todApply } from './tod/engine.js';
 import { todPickBanter } from './tod/talk.js';
 import { todTitles } from './tod/titles.js';
-import { TodArchive, TodAdmin, TodLobby, TodGame, TodResults } from './tod/screens.jsx';
+import { TodArchive, TodAdmin, TodLobby, TodGame, TodResults, TodAdultModal } from './tod/screens.jsx';
+import { todChannel } from './tod/channel.js';
 const ReactDOM = { ...ReactDOMAll, createRoot };
 
 // Рання ініціалізація мови з localStorage (щоб t() працювала ще до монтування React).
@@ -1098,8 +1099,14 @@ i18nSetLang(readStoredLang());
             const [todBackTo, setTodBackTo] = useState('app_menu'); // откуда открыта админка карточек (туда ведёт «Назад»)
             // партия «Правда или действие» на этом устройстве: настройки лобби, состояние игры st (движок src/tod/engine.js) и колода; локально не сохраняется
             const [todCfg, setTodCfg] = useState({ hard: false, tone: 1 }); const [todGame, setTodGameState] = useState(null); const [todDeck, setTodDeck] = useState(null);
-            const todGameRef = useRef(null); const todTapRef = useRef(0);
+            const todGameRef = useRef(null); const todTapRef = useRef(0); const todDeckRef = useRef(null); todDeckRef.current = todDeck;
             const setTodGame = (st) => { todGameRef.current = st; setTodGameState(st); };
+            // синхронизация партии между устройствами: комната канала ('' — партия только на этом устройстве), последняя известная ver, наибольшая записанная ver,
+            // «принять состояние из базы как есть» (после неудачной отправки), число отправок в пути
+            const todRoomRef = useRef(''); const todVerRef = useRef(null); const todSentRef = useRef(0); const todForceRef = useRef(false); const todPendingRef = useRef(0);
+            const [todInvite, setTodInvite] = useState(null); const [todPeers, setTodPeers] = useState(0); const [todJoining, setTodJoining] = useState(false); const [todJoinWarn, setTodJoinWarn] = useState(null);
+            // карточки, которых нет в списке устройства, но которые выпали в общей партии: точечный запрос tod/<id>; { <id>: карточка | null (нет в базе) }
+            const [todExtra, setTodExtra] = useState({}); const todExtraRef = useRef({}); const todAskedRef = useRef({});
             const [ptEdit, setPtEdit] = useState(null); const [ptText, setPtText] = useState(''); const [ptIcon, setPtIcon] = useState(''); const [ptLevel, setPtLevel] = useState('any');
             const [ptErr, setPtErr] = useState(''); const [ptBusy, setPtBusy] = useState(false); const [ptConfirmId, setPtConfirmId] = useState('');
             const [analyticsOn, setAnalyticsOn] = useState(() => { try { return localStorage.getItem('askme_analytics_v1') !== '0'; } catch (e) { return true; } });
@@ -1872,8 +1879,10 @@ i18nSetLang(readStoredLang());
             const todSetList = (list, source, writeCache) => { todCardsRef.current = list; setTodCards(list); setTodSource(source); if (writeCache) todWriteCache(todCardsEnv.storage, list); };
             const todUi = { Icons, SoundFX, AppFooter, showToast, showError: showErrorPopup, navigate, SettingSwitch, PopupModal, tr };
             // ---- режим «Правда или действие»: партия на одном устройстве ----
-            const todLevelOf = (id) => { const c = todCardsRef.current.find(x => x.id === id); return c ? c.difficulty : null; };
-            const todTextOf = (id) => { const c = todCardsRef.current.find(x => x.id === id); return c ? c.text : null; };
+            const todCardOf = (id) => todCardsRef.current.find(x => x.id === id) || todExtraRef.current[id];
+            const todLevelOf = (id) => { const c = todCardOf(id); return c ? c.difficulty : null; };
+            // текст карточки: строка; undefined — ещё запрашиваем; null — карточки нет
+            const todTextOf = (id) => { const c = todCardOf(id); return c ? c.text : c; };
             // почему нельзя начать (текст под кнопкой); проверка по той же колоде, что соберёт todBegin
             const todBlock = (() => {
                 const n = profile && Array.isArray(profile.players) ? profile.players.length : 0;
@@ -1884,11 +1893,18 @@ i18nSetLang(readStoredLang());
                 return '';
             })();
             const todRandom = (n) => { const a = new Uint32Array(n); try { crypto.getRandomValues(a); } catch (e) { for (let i = 0; i < n; i++) a[i] = Math.floor(Math.random() * 4294967296); } return Array.from(a, x => x.toString(36)).join(''); };
-            const todBegin = () => {
+            const todBegin = async () => {
                 if (todBlock) return;
                 const deck = todBuildDeck(todCards, { hard: todCfg.hard, seed: todRandom(2).slice(0, 20) });
                 const gid = ('t' + Date.now().toString(36) + todRandom(1)).slice(0, 24);
-                setTodDeck(deck); setTodGame(todStart({ players: profile.players, opts: todCfg, gid })); todTapRef.current = 0;
+                const st = todStart({ players: profile.players, opts: todCfg, gid });
+                todRoomRef.current = ''; todVerRef.current = null; todSentRef.current = 0; todForceRef.current = false;
+                // партия открывается в канале сессии: остальные устройства увидят приглашение; без сети играем на этом устройстве
+                if (liveRoomId) {
+                    try { const r = await todChannelApi().start(liveRoomId, { deck, state: st }); todRoomRef.current = liveRoomId; todVerRef.current = r.ver; todSentRef.current = r.ver; }
+                    catch (e) { showToast(tr('Другие устройства не подключатся: нет связи с базой. Играем на этом устройстве'), 4000, 'warn'); }
+                }
+                setTodDeck(deck); setTodGame(st); todTapRef.current = 0;
                 navigate('tod_play');
             };
             // нажатие кнопки хода: повтор раньше LIVE_TAP_GUARD_MS после принятого гасится; seq берётся из текущего состояния
@@ -1897,7 +1913,24 @@ i18nSetLang(readStoredLang());
                 const now = Date.now(); if (now - todTapRef.current < LIVE_TAP_GUARD_MS) return false;
                 const r = todApply(st, { ...action, seq: st.seq }, { deck: todDeck, level: todLevelOf });
                 if (!r.ok) { if (r.reason === 'empty') showToast(tr('В этой колоде карточки закончились'), 3000, 'warn'); return false; }
-                todTapRef.current = now; setTodGame(r.state); return true;
+                todTapRef.current = now; setTodGame(r.state); todPush(r.state, action.t === 'end'); return true;
+            };
+            // отправка принятого хода в канал; ver берётся больше всех известных и записанных, чтобы две отправки подряд не совпали
+            const todPush = async (st, end) => {
+                const room = todRoomRef.current; if (!room) return;
+                const prev = Math.max(todVerRef.current || 0, todSentRef.current || 0); todPendingRef.current++;
+                try {
+                    const r = await (end ? todChannelApi().end(room, st, prev) : todChannelApi().send(room, st, prev));
+                    if (!r.ok) throw new Error('TOD_SEND');
+                    todSentRef.current = Math.max(todSentRef.current, r.ver);
+                    if (todGameRef.current === st) todVerRef.current = r.ver;
+                } catch (e) { if (todRoomRef.current === room) { showToast(tr('Не удалось отправить ход'), 3000, 'warn'); todForceRef.current = true; } }
+                finally { todPendingRef.current--; }
+            };
+            // уйти из партии на этом устройстве: своя отметка убирается, остальные продолжают
+            const todLeave = () => {
+                const room = todRoomRef.current; todRoomRef.current = ''; todVerRef.current = null;
+                if (room) todChannelApi().leave(room).catch(() => {});
             };
             // одна карточка (новая, правка, скрыть/показать): список в памяти и кэш устройства обновляются сразу
             const todSave = async (card) => {
@@ -2225,6 +2258,86 @@ i18nSetLang(readStoredLang());
                 };
                 check(); const id = setInterval(check, LIVE_INVITE_MS); return () => { stop = true; clearInterval(id); };
             }, [screen, liveRoomId, live.room]);
+            // ---- режим «Правда или действие»: партия на нескольких устройствах (канал live/<комната>_t, src/tod/channel.js) ----
+            const todChanRef = useRef(null);
+            const todChannelApi = () => todChanRef.current || (todChanRef.current = todChannel({ baseUrl: FIREBASE_BASE_URL, fetch: fetchWithTimeout, deviceId: deviceIdRef.current, now: () => Date.now(), verNext: liveVerNext, verStart: liveVerStart, alive: liveAlive }));
+            const TOD_SCREENS = ['tod_lobby', 'tod_play', 'tod_results'];
+            // опрос: раз в LIVE_POLL_MS читаем ver; при новой — состояние. Принимаем только свою партию (тот же gid): с большим seq, а при равном — то, что в базе
+            // (последняя запись побеждает). Если в базе ход старше нашего (другое устройство нажало по устаревшему экрану), отправляем своё заново
+            useEffect(() => {
+                if (!TOD_SCREENS.includes(screen)) return;
+                let stop = false, busy = false;
+                const tick = async () => {
+                    const room = todRoomRef.current;
+                    if (busy || stop || !room || !todGameRef.current || document.hidden) return; busy = true;
+                    try {
+                        const ch = todChannelApi(); const v = await ch.readVer(room);
+                        if (stop || v === null || (v === todVerRef.current && !todForceRef.current)) return;
+                        const r = await ch.read(room, { knownDeck: todDeckRef.current });
+                        const own = todGameRef.current;
+                        if (stop || room !== todRoomRef.current || !r || !r.state || !own || r.state.gid !== own.gid) return;
+                        const force = todForceRef.current;
+                        if (force || r.state.seq > own.seq || (r.state.seq === own.seq && r.ver !== todVerRef.current)) {
+                            todForceRef.current = false; todVerRef.current = r.ver; if (r.state.seq !== own.seq || JSON.stringify(r.state) !== JSON.stringify(own)) setTodGame(r.state);
+                            if (r.state.phase === 'ended' && screen === 'tod_play') { showToast(tr('Игра завершена на другом устройстве'), 2800, 'info'); navigate('tod_results'); }
+                        } else if (r.state.seq < own.seq && !todPendingRef.current) todPush(own, own.phase === 'ended');
+                    } catch (e) {} finally { busy = false; }
+                };
+                tick(); const id = setInterval(tick, LIVE_POLL_MS); return () => { stop = true; clearInterval(id); };
+            }, [screen]);
+            // присутствие: пока открыт экран игры, раз в LIVE_BEAT_MS обновляем свою отметку; при закрытии страницы — убираем
+            useEffect(() => {
+                if (screen !== 'tod_play') return;
+                const beat = () => { const room = todRoomRef.current; if (room && !document.hidden) todChannelApi().beat(room).catch(() => {}); };
+                beat(); const id = setInterval(beat, LIVE_BEAT_MS); const vis = () => { if (!document.hidden) beat(); }; document.addEventListener('visibilitychange', vis);
+                return () => { clearInterval(id); document.removeEventListener('visibilitychange', vis); };
+            }, [screen]);
+            useEffect(() => { const h = () => { if (todRoomRef.current) todChannelApi().leave(todRoomRef.current).catch(() => {}); }; window.addEventListener('pagehide', h); return () => window.removeEventListener('pagehide', h); }, []);
+            // приглашение: на главной, экране режимов, в лобби и итогах смотрим, идёт ли в сессии партия, в которой уже есть другие устройства
+            useEffect(() => {
+                if (!['menu', 'mode_select', 'tod_lobby', 'tod_results'].includes(screen) || !liveRoomId) { setTodInvite(null); return; }
+                let stop = false, busy = false;
+                const check = async () => {
+                    if (busy || stop || document.hidden) return; busy = true;
+                    try {
+                        const pk = await todChannelApi().peek(liveRoomId); if (stop) return;
+                        const mine = !!(todRoomRef.current && todGameRef.current && todGameRef.current.phase !== 'ended');
+                        setTodPeers(pk.others);
+                        setTodInvite(pk.status === 'active' && pk.others > 0 && !mine ? (cur => (cur && cur.count === pk.others ? cur : { count: pk.others })) : null);
+                    } catch (e) {} finally { busy = false; }
+                };
+                check(); const id = setInterval(check, LIVE_INVITE_MS); return () => { stop = true; clearInterval(id); };
+            }, [screen, liveRoomId]);
+            // вход в идущую партию: колода и состояние из канала, проверка числа устройств, при 18+ — предупреждение, затем экран игры
+            const todJoin = async () => {
+                const room = liveRoomIdRef.current; if (!room || !profile || todJoining) return;
+                setTodJoining(true);
+                try {
+                    const ch = todChannelApi(); const r = await ch.read(room, { deck: true });
+                    if (!r || r.status !== 'active' || !r.deck || !r.state) { setTodInvite(null); showToast(tr('Эта игра уже закончилась'), 3000, 'info'); return; }
+                    const cap = deviceCap(profile, { pl: JSON.stringify(r.state.pl) }); const pk = await ch.peek(room);
+                    if (pk.others >= cap) { showToast(tr('В игре уже ') + cap + ' ' + declOfNum(cap, ['устройство', 'устройства', 'устройств']) + ' — по числу игроков в сессии. Дождитесь, пока кто-нибудь выйдет, или добавьте игроков в «Игроки и сессия»', 6000, 'warn'); return; }
+                    const go = () => {
+                        todRoomRef.current = room; todVerRef.current = r.ver; todSentRef.current = 0; todForceRef.current = true; // при входе сразу перечитываем: состояние могло уйти вперёд
+                        setTodDeck(r.deck); todDeckRef.current = r.deck; setTodGame(r.state); todTapRef.current = Date.now(); setTodInvite(null);
+                        ch.beat(room).catch(() => {}); navigate('tod_play');
+                    };
+                    if (r.state.opts.hard || r.state.opts.tone === 2) setTodJoinWarn(() => go); else go();
+                } catch (e) { showToast(tr('Не удалось подключиться к игре. Проверьте интернет'), 3500, 'warn'); }
+                finally { setTodJoining(false); }
+            };
+            // точечная подгрузка карточки, которой нет у этого устройства
+            useEffect(() => {
+                const c = todGame && todGame.card; if (!c || screen !== 'tod_play') return;
+                const id = c.id; if (todCardsRef.current.some(x => x.id === id) || todExtraRef.current[id] !== undefined || todAskedRef.current[id]) return;
+                todAskedRef.current[id] = true;
+                (async () => {
+                    let card = null;
+                    try { const r = await fetchWithTimeout(`${FIREBASE_BASE_URL}/tod/${encodeURIComponent(id)}.json`, {}, 10000); if (r.ok) card = todCleanCard(await r.json()); } catch (e) {}
+                    if (card && card.id !== id) card = null;
+                    todExtraRef.current = { ...todExtraRef.current, [id]: card }; setTodExtra(todExtraRef.current);
+                })();
+            }, [screen, todCards, todGame && todGame.card && todGame.card.id]);
             // выход из игры одного устройства не завершает её для остальных: просто убираем свою отметку
             const liveLeave = () => {
                 const room = liveRoomRef.current, me = deviceIdRef.current;
@@ -2741,17 +2854,29 @@ if (screen === 'app_menu') {
                     </div>
                 );
             }
+            const todInviteBanner = (
+                <>
+                    {todInvite && (
+                        <div role="status" className="w-full flex items-center justify-between gap-3 rounded-[20px] border border-emerald-400/40 bg-emerald-400/10 px-4 py-3 fade-in">
+                            <span className="text-sm text-emerald-100 leading-snug">🎲 {tr('Идёт игра «Правда или действие»')}</span>
+                            <button type="button" onClick={() => { SoundFX.click(); todJoin(); }} disabled={todJoining} className="btn-primary btn-sm flex-shrink-0">{todJoining ? tr('Подключаемся…') : tr('Присоединиться')}</button>
+                        </div>
+                    )}
+                    <TodAdultModal ui={todUi} open={!!todJoinWarn} okLabel="Понятно" onOk={() => { const go = todJoinWarn; setTodJoinWarn(null); if (go) go(); }} onCancel={() => { SoundFX.click(); setTodJoinWarn(null); }} />
+                </>
+            );
+            const todAgain = () => { todLeave(); setTodGame(null); navigate('tod_lobby'); };
             if (screen === 'tod_lobby') {
-                return <TodLobby ui={todUi} players={profile ? profile.players : []} cfg={todCfg} setCfg={setTodCfg} deviceCount={1} block={todBlock} onStart={todBegin} onShare={() => openInvite('tod_lobby')} onBack={() => navigate('mode_select')} />;
+                return <TodLobby ui={todUi} players={profile ? profile.players : []} cfg={todCfg} setCfg={setTodCfg} deviceCount={1 + todPeers} block={todBlock} onStart={todBegin} onShare={() => openInvite('tod_lobby')} onBack={() => navigate('mode_select')} banner={todInviteBanner} />;
             }
             if (screen === 'tod_play' && todGame) {
                 const lvAvail = { easy: !!todNext(todDeck, todGame.cur, 'dare.easy'), medium: !!todNext(todDeck, todGame.cur, 'dare.medium'), hard: !!todNext(todDeck, todGame.cur, 'dare.hard') };
-                if (todGame.phase === 'ended') return <TodResults ui={todUi} state={todGame} titles={todTitles(todGame, TOD_TITLES)} onAgain={() => { setTodGame(null); navigate('tod_lobby'); }} onMenu={() => navigate('menu')} />;
+                if (todGame.phase === 'ended') return <TodResults ui={todUi} state={todGame} titles={todTitles(todGame, TOD_TITLES)} onAgain={todAgain} onMenu={() => navigate('menu')} banner={todInviteBanner} />;
                 return <TodGame ui={todUi} state={todGame} banter={todPickBanter(todGame, TOD_BANTER, tr)} cardText={todTextOf} levelAvail={lvAvail} onAction={todDispatch}
-                    onEnd={() => { todTapRef.current = 0; if (todDispatch({ t: 'end' })) navigate('tod_results'); }} onLeave={() => navigate('menu')} />;
+                    onEnd={() => { todTapRef.current = 0; if (todDispatch({ t: 'end' })) navigate('tod_results'); }} onLeave={() => { todLeave(); setTodGame(null); navigate('menu'); }} />;
             }
             if (screen === 'tod_results' && todGame) {
-                return <TodResults ui={todUi} state={todGame} titles={todTitles(todGame, TOD_TITLES)} onAgain={() => { setTodGame(null); navigate('tod_lobby'); }} onMenu={() => navigate('menu')} />;
+                return <TodResults ui={todUi} state={todGame} titles={todTitles(todGame, TOD_TITLES)} onAgain={todAgain} onMenu={() => navigate('menu')} banner={todInviteBanner} />;
             }
             if (screen === 'tod_admin') {
                 return <TodAdmin ui={todUi} cards={todCards} source={todSource} isAdmin={isAdmin} onSave={todSave} onSeed={todSeed} onBack={() => navigate(todBackTo)} />;
@@ -2967,6 +3092,7 @@ if (screen === 'mode_select') {
                         </header>
                         <main className="w-full max-w-md flex flex-col gap-4 pt-6 pb-8">
                             {liveInviteBanner}
+                            {todInviteBanner}
                             <button disabled={stats.availableActive === 0} onClick={() => { SoundFX.click(); setHardMode(false); startWithMode('normal', { hard: false }); }} className="opt-card opt-brand">
                                 <span aria-hidden="true" className="w-12 h-12 rounded-xl bg-rose-500/20 flex items-center justify-center text-2xl flex-shrink-0">💬</span>
                                 <span className="flex-1 min-w-0 flex flex-col gap-1.5">
@@ -3037,6 +3163,7 @@ if (screen === 'mode_select') {
                         {exitConfirmPopup} {newGameConfirmPopup} <PwaInstallModal {...pwaModalProps} />
                         <div className="w-full max-w-md lg:max-w-4xl mx-auto flex flex-col gap-7 pt-1">
                             {liveInviteBanner}
+                            {todInviteBanner}
                             <header className="w-full flex items-center justify-between gap-3">
                                 <button onClick={() => { if(profile) { SoundFX.click(); setPlayersForm(profile.players); navigate('profile_page'); } else navigate('onboarding'); }} className="btn-secondary btn-sm min-w-0">
                                     <Icons.User /> <span className="truncate max-w-[120px] sm:max-w-[200px]">{pNamesStr}</span> {isAdmin && <span className="text-rose-400 text-xs">●</span>}
