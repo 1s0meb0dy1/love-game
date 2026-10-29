@@ -1,5 +1,5 @@
 // Живая игра по умолчанию: три «телефона» (три независимых окна) одной сессии играют одну партию через общую «базу» в памяти.
-// База проверяет записи теми же правилами, что в консоли Firebase (копия: fixtures/live-rules.json), поэтому отклонённая запись видна в db.stats.denied.
+// База проверяет записи теми же правилами, что в консоли Firebase (шаблон: firebase/database.rules.template.json), поэтому отклонённая запись видна в db.stats.denied.
 const { joinGame, boot, sleep, txt, qn, pos, who, inGame, devId, tap, chip, closeRoulette, openGameMenu } = require('../live-helpers.js');
 (async () => { const S = await boot(3, {}, { players: 3 }); const { devs, db, T } = S; const [A, B, C] = devs;
  try {
