@@ -25,5 +25,8 @@ const req = (body, origin = 'https://1s0meb0dy1.github.io', method = 'POST') => 
   T('усі моделі недоступні → відповідь із кешу', r.status === 200 && (await r.text()) === 'Перша частина відповіді, і друга частина' && r.headers.get('X-AI-Source') === 'cache');
   r = await W.fetch(req({ type: 'situation', lang: 'uk', question: 'Інше питання' }), env, ctx);
   T('кешу немає → 503 (браузер перейде до запасного шляху)', r.status === 503);
+  plan = [() => new Response('', { status: 400 }), () => new Response('', { status: 400 }), () => new Response('', { status: 400 }), () => new Response(JSON.stringify([{ error: { code: 400, message: 'API key not valid. Please pass a valid API key.', status: 'INVALID_ARGUMENT' } }]), { status: 400 })];
+  r = await W.fetch(req({ type: 'advice', lang: 'uk', question: 'Ще одне питання' }), { ...env, GEMINI_API_KEY: 'AIzaSECRETSECRETSECRETSECRETSECRET12345' }, ctx); const fail = r.headers.get('X-AI-Fail') || '';
+  T('503 пояснює причину в X-AI-Fail (текст помилки Google, формат ключа), але не сам ключ', r.status === 503 && /m1:gemini 400/.test(fail) && /API key not valid/.test(fail) && /format/.test(fail) && !/SECRET/.test(fail) && /X-AI-Fail/.test(r.headers.get('Access-Control-Expose-Headers') || ''));
   console.log(res.join('\n')); console.log('--- captured runtime errors: 0'); process.exit(res.some(l => l.startsWith('FAIL')) ? 1 : 0);
 })().catch(e => { console.log(res.join('\n')); console.log('TEST CRASH:', e && e.stack); process.exit(1); });

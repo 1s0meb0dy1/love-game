@@ -22,10 +22,10 @@ const cacheUrl = (key, slot) => `https://askme-ai-cache.invalid/${key}/${slot}`;
 const geminiStream = async (env, model, p, signal) => {
   const body = { systemInstruction: { parts: [{ text: p.system }] }, contents: [{ role: 'user', parts: [{ text: p.user }] }], generationConfig: { maxOutputTokens: p.maxTokens, thinkingConfig: { thinkingLevel: 'low' } },
     safetySettings: ['HARM_CATEGORY_HARASSMENT', 'HARM_CATEGORY_HATE_SPEECH', 'HARM_CATEGORY_SEXUALLY_EXPLICIT', 'HARM_CATEGORY_DANGEROUS_CONTENT'].map(category => ({ category, threshold: 'BLOCK_ONLY_HIGH' })) };
-  const call = (b) => fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': env.GEMINI_API_KEY }, body: JSON.stringify(b), signal });
+  const call = (b) => fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': String(env.GEMINI_API_KEY).trim() }, body: JSON.stringify(b), signal });
   let res = await call(body);
   if (res.status === 400) { delete body.generationConfig.thinkingConfig; res = await call(body); } // модель без thinkingLevel
-  if (!res.ok || !res.body) throw new Error('gemini ' + res.status);
+  if (!res.ok || !res.body) { let why = ''; try { const t = await res.text(); const m = t.match(/"message"\s*:\s*"([^"]{0,120})/); why = ' ' + (m ? m[1] : t.slice(0, 80)); } catch (e) {} if (!why.trim()) { const k = String(env.GEMINI_API_KEY || '').trim(); why = ' empty body; key ' + (/^AIza[0-9A-Za-z_-]{35}$/.test(k) ? 'format ok' : 'format bad len ' + k.length); } throw new Error('gemini ' + res.status + why.slice(0, 90)); }
   return sseToText(res.body, (j) => (j && j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts || []).filter(x => !x.thought).map(x => x.text || '').join(''));
 };
 
@@ -72,7 +72,9 @@ export default {
 
     const models = String(env.GEMINI_MODELS || DEFAULT_MODELS).split(',').map(s => s.trim()).filter(Boolean);
     const attempts = [...(env.GEMINI_API_KEY ? models.map(m => (signal) => geminiStream(env, m, p, signal)) : []), (signal) => pollinationsStream(env, p, signal)];
-    for (const attempt of attempts) {
+    const labels = [...(env.GEMINI_API_KEY ? models : []), 'pollinations'];
+    const fails = []; // коди помилок без вмісту запиту — для заголовка X-AI-Fail (діагностика)
+    for (const [i, attempt] of attempts.entries()) {
       const ac = new AbortController(); const kill = setTimeout(() => ac.abort(), TOTAL_MS);
       try {
         const stream = await withFirstChunk(await attempt(ac.signal), FIRST_BYTE_MS);
@@ -80,9 +82,9 @@ export default {
         // повну відповідь кладемо в кеш (випадковий слот) — запас на випадок, коли всі моделі недоступні
         ctx.waitUntil(new Response(toCache).text().then(t => { clearTimeout(kill); if (t.trim().length > 20) return caches.default.put(cacheUrl(key, Math.floor(Math.random() * CACHE_SLOTS)), new Response(t, { headers: { 'Cache-Control': 'max-age=2592000' } })); }).catch(() => {}));
         return new Response(toClient, { headers: { ...headers, 'X-AI-Source': 'live' } });
-      } catch (e) { clearTimeout(kill); ac.abort(); }
+      } catch (e) { clearTimeout(kill); ac.abort(); fails.push(labels[i] + ':' + String(e && e.message || e).replace(/[^\w .:-]/g, '').slice(0, 110)); }
     }
     for (let i = 0; i < CACHE_SLOTS; i++) { const hit = await caches.default.match(cacheUrl(key, (i + Math.floor(Math.random() * CACHE_SLOTS)) % CACHE_SLOTS)); if (hit) return new Response(hit.body, { headers: { ...headers, 'X-AI-Source': 'cache' } }); }
-    return new Response('unavailable', { status: 503, headers: cors });
+    return new Response('unavailable', { status: 503, headers: { ...cors, 'X-AI-Fail': fails.join('; ').slice(0, 700), 'Access-Control-Expose-Headers': 'X-AI-Fail' } });
   },
 };
