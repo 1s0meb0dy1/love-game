@@ -1,0 +1,422 @@
+<title>ASK ME Heat</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/*APP_CSS*/
+/* ── довідник: розкладка поверх справжніх стилів застосунку ── */
+/* Розкладка: ліве меню розділів на широкому екрані, одна колонка з живими прикладами на телефоні */
+:root { --ds-col: 68rem; --ds-nav: 13rem; }
+html, body { user-select: text; -webkit-user-select: text; background: var(--night); color: var(--text); }
+body { font-family: var(--font-ui); font-size: 15px; line-height: 1.55; }
+.ds-shell { max-width: var(--ds-col); margin: 0 auto; padding-block: 2rem 5rem; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; grid-template-columns: var(--ds-nav) minmax(0, 1fr); gap: 2.5rem; position: relative; z-index: 1; }
+.ds-nav { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 1.5rem); align-self: start; display: flex; flex-direction: column; gap: 2px; }
+.ds-nav a { display: flex; align-items: center; min-height: 36px; padding: 0 0.75rem; border-radius: var(--r-inner); color: var(--text-3); text-decoration: none; font-size: 0.875rem; font-weight: 500; }
+.ds-nav a:hover { color: var(--text); background: rgb(255 255 255 / 0.05); }
+.ds-nav .ds-nav-h { margin: 0 0 0.75rem 0.75rem; }
+main.ds-main { min-width: 0; display: flex; flex-direction: column; gap: 3.5rem; }
+.ds-sec { display: flex; flex-direction: column; gap: 1.25rem; scroll-margin-top: 1.5rem; }
+.ds-sec > h2 { font-family: var(--font-display); font-size: 1.375rem; line-height: 1.2; font-weight: 700; color: #fff; text-wrap: balance; }
+.ds-sec h3 { font-size: 1rem; font-weight: 700; color: #fff; line-height: 1.3; }
+.ds-lead { color: var(--text-2); max-width: 62ch; }
+.ds-hero { display: flex; flex-direction: column; gap: 1.25rem; padding: 2rem 1.5rem; border-radius: var(--r-hero); border: 1px solid var(--line-strong); background: radial-gradient(110% 120% at 0% 0%, rgb(255 77 109 / 0.20), transparent 60%), radial-gradient(90% 90% at 100% 100%, rgb(201 139 255 / 0.13), transparent 60%), rgb(255 255 255 / 0.02); }
+.ds-hero h1 { font-family: var(--font-display); font-size: clamp(1.6rem, 4vw, 2.4rem); line-height: 1.1; font-weight: 800; color: #fff; text-wrap: balance; }
+.ds-meta { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.ds-board { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; padding: 1.25rem; border-radius: var(--r-surface); border: 1px solid var(--line); background: rgb(255 255 255 / 0.02); }
+.ds-board.col { flex-direction: column; align-items: stretch; }
+.ds-board.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); align-items: start; }
+.ds-spec { font-size: 0.8125rem; color: var(--text-3); line-height: 1.45; }
+.ds-spec code, .ds-table code, .ds-rules code, .ds-lead code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.8125rem; color: var(--rose-ink); background: rgb(255 77 109 / 0.08); padding: 0 0.3em; border-radius: 6px; }
+.ds-item { display: flex; flex-direction: column; gap: 0.5rem; min-width: 0; }
+.ds-table-wrap { overflow-x: auto; border-radius: var(--r-surface); border: 1px solid var(--line); }
+.ds-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+.ds-table th { text-align: left; font-size: 0.8125rem; font-weight: 700; color: var(--text-3); padding: 0.625rem 0.875rem; border-bottom: 1px solid var(--line); background: rgb(255 255 255 / 0.03); }
+.ds-table td { padding: 0.625rem 0.875rem; border-bottom: 1px solid var(--line); color: var(--text-2); vertical-align: top; }
+.ds-table tr:last-child td { border-bottom: 0; }
+/* кольори */
+.ds-swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr)); gap: 0.75rem; }
+.ds-sw { display: flex; flex-direction: column; border-radius: var(--r-control); overflow: hidden; border: 1px solid var(--line); background: var(--plum-1); }
+.ds-sw i { display: block; height: 4.25rem; border-bottom: 1px solid var(--line); }
+.ds-sw b { padding: 0.5rem 0.75rem 0; font-size: 0.8125rem; color: #fff; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 600; }
+.ds-sw span { padding: 0 0.75rem 0.625rem; font-size: 0.8125rem; color: var(--text-3); line-height: 1.35; }
+.ds-heat { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.75rem; }
+.ds-heat div { min-height: 5.5rem; border-radius: var(--r-surface); padding: 0.875rem; display: flex; flex-direction: column; justify-content: flex-end; font-size: 0.8125rem; color: #fff; font-weight: 600; }
+/* шрифти */
+.ds-type-row { display: grid; grid-template-columns: 6.5rem minmax(0, 1fr); gap: 1rem; align-items: baseline; padding: 0.75rem 0; border-bottom: 1px solid var(--line); }
+.ds-type-row:last-child { border-bottom: 0; }
+/* радіуси */
+.ds-radii { display: flex; flex-wrap: wrap; gap: 1rem; }
+.ds-radii div { width: 6rem; height: 4.5rem; border: 1px solid rgb(255 77 109 / 0.5); background: rgb(255 77 109 / 0.08); display: flex; align-items: flex-end; padding: 0.5rem; font-size: 0.8125rem; color: var(--rose-ink); }
+/* іконки */
+.ds-icons { display: grid; grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr)); gap: 0.5rem; }
+.ds-icon-cell { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 1rem 0.5rem 0.75rem; border-radius: var(--r-control); border: 1px solid var(--line); background: rgb(255 255 255 / 0.02); color: var(--text); }
+.ds-icon-cell figcaption code { font-size: 0.75rem; color: var(--text-3); background: none; padding: 0; }
+.ds-ico { width: 24px; height: 24px; }
+.ds-motifs { display: grid; grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr)); gap: 0.5rem; }
+.ds-motif-cell { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 1rem 0.5rem 0.75rem; border-radius: var(--r-control); border: 1px solid var(--line); background: radial-gradient(80% 80% at 50% 30%, rgb(255 77 109 / 0.10), transparent 70%), var(--plum-1); }
+.ds-motif-cell figcaption { display: flex; flex-direction: column; align-items: center; font-size: 0.8125rem; color: var(--text-2); }
+.ds-motif-cell figcaption span { font-size: 0.75rem; color: var(--text-3); }
+.ds-motif { width: 64px; height: 64px; }
+.ds-motif.m-glass { fill: url(#motif-glass); }
+.ds-motif.m-far { filter: blur(0.6px); opacity: 0.8; }
+.ds-defs { position: absolute; width: 0; height: 0; }
+.ds-defs .stop-heat { stop-color: var(--heat-a); }
+/* жива «кімната» */
+.ds-room { position: relative; height: 22rem; border-radius: var(--r-hero); overflow: hidden; border: 1px solid var(--line-strong); isolation: isolate; }
+.ds-room .bg-room { position: absolute; }
+.ds-room .bg-room .motif { bottom: -40%; }
+.ds-room .bg-room .motif { opacity: 0.5; }
+.ds-room-ui { position: absolute; left: 1rem; right: 1rem; bottom: 1rem; display: flex; flex-wrap: wrap; gap: 0.5rem; z-index: 2; }
+/* зразки компонентів у статичному вигляді */
+.ds-toasts { display: flex; flex-direction: column; gap: 0.75rem; align-items: flex-start; }
+.ds-toasts .toast { animation: none; }
+.ds-toasts .toast::after { animation: none; transform: scaleX(0.6); }
+.ds-modal { position: relative; max-width: 23rem; }
+.ds-modal .viewport-popup-box { position: relative; }
+.ds-swipe { position: relative; display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: 1rem; }
+.ds-card { position: relative; min-height: 11rem; border-radius: var(--r-hero); border: 1px solid var(--line-strong); background: linear-gradient(180deg, rgb(255 255 255 / 0.06), rgb(255 255 255 / 0.02)); padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; }
+.ds-card .tag { align-self: flex-start; }
+.ds-card p { font-size: 1.0625rem; font-weight: 600; color: #fff; line-height: 1.4; }
+.ds-card .swipe-glow { opacity: 1; }
+.ds-pop-wrap { position: relative; width: 100%; max-width: 20rem; min-height: 13rem; }
+.ds-pop-wrap .menu-pop { left: 0; right: 0; }
+.ds-rules { display: flex; flex-direction: column; gap: 0.75rem; padding-left: 1.4rem; color: var(--text-2); max-width: 70ch; }
+.ds-rules li::marker { color: var(--rose); font-weight: 700; }
+.ds-rules b { color: #fff; }
+.ds-do { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 0.75rem; }
+.ds-do div { padding: 1rem; border-radius: var(--r-surface); border: 1px solid; font-size: 0.875rem; color: var(--text-2); }
+.ds-do .yes { border-color: rgb(74 222 155 / 0.4); background: rgb(74 222 155 / 0.05); }
+.ds-do .no { border-color: rgb(255 122 138 / 0.4); background: rgb(255 122 138 / 0.05); }
+.ds-do b { display: block; margin-bottom: 0.25rem; color: #fff; }
+@media (max-width: 860px) {
+  .ds-shell { grid-template-columns: minmax(0, 1fr); gap: 1.5rem; padding-block: 1rem 4rem; }
+  .ds-nav { position: static; flex-direction: row; overflow-x: auto; gap: 0.25rem; scrollbar-width: none; margin: 0 -16px; padding: 0 16px; }
+  .ds-nav .ds-nav-h { display: none; }
+  .ds-nav a { white-space: nowrap; border: 1px solid var(--line); border-radius: 999px; }
+  .ds-heat { grid-template-columns: minmax(0, 1fr); }
+  .ds-type-row { grid-template-columns: minmax(0, 1fr); gap: 0.25rem; }
+}
+</style>
+
+<!--MOTIF_DEFS-->
+<div class="ds-shell">
+  <nav class="ds-nav" aria-label="Разделы">
+    <span class="ds-nav-h"><!--LOGO_XS--></span>
+    <a href="#principles">Принципы</a>
+    <a href="#color">Цвет</a>
+    <a href="#type">Шрифты</a>
+    <a href="#size">Размеры и радиусы</a>
+    <a href="#buttons">Кнопки</a>
+    <a href="#inputs">Выбор и ввод</a>
+    <a href="#labels">Метки</a>
+    <a href="#surfaces">Поверхности</a>
+    <a href="#feedback">Уведомления и окна</a>
+    <a href="#motion">Движение</a>
+    <a href="#room">Фон «комната»</a>
+    <a href="#icons">Иконки</a>
+    <a href="#motifs">Мотивы и логотип</a>
+    <a href="#rules">Правила</a>
+    <a href="#changes">Что изменилось</a>
+  </nav>
+
+  <main class="ds-main">
+    <header class="ds-hero">
+      <!--LOGO_LG-->
+      <h1>Дизайн-система «Heat»</h1>
+      <p class="ds-lead">Тёмная сливовая комната, свечение которой теплеет вместе с глубиной вопроса. Все примеры ниже нарисованы настоящими стилями приложения: что видите здесь, то и в игре.</p>
+      <div class="ds-meta"><span class="tag lg">Источник: <code>src/styles.css</code></span><span class="tag lg">Ревизия 29.10.2026</span><span class="tag tag-ok lg">WCAG AA по тексту</span></div>
+    </header>
+
+    <section class="ds-sec" id="principles">
+      <h2>Принципы</h2>
+      <div class="ds-do">
+        <div class="yes"><b>Один главный шаг</b>На экране одна кнопка <code>btn-primary</code>. Остальное тише.</div>
+        <div class="yes"><b>Одно действие — один вид</b>«Назад», «Поделиться», «Удалить» выглядят одинаково на всех экранах.</div>
+        <div class="yes"><b>Касание от 44 px</b>Маленький текст получает невидимую зону нажатия.</div>
+        <div class="yes"><b>Цвет — не единственный признак</b>Уровень показан ещё и точками, подписью или числом.</div>
+        <div class="yes"><b>Анимируем только transform и opacity</b>Фон и эффекты не нагружают слабые телефоны.</div>
+        <div class="no"><b>Не писать КАПСОМ</b>Регистр как в предложении; разрядка только в логотипе.</div>
+      </div>
+    </section>
+
+    <section class="ds-sec" id="color">
+      <h2>Цвет</h2>
+      <p class="ds-lead">Поверхности — сливовые, текст — тёплый белый в трёх ступенях, бренд — роза. Цвет текста на розовой подложке теперь один токен <code>--rose-ink</code>.</p>
+      <h3>Поверхности и линии</h3>
+      <div class="ds-swatches">
+        <div class="ds-sw"><i style="background:var(--night)"></i><b>--night</b><span>#0a0710 · фон</span></div>
+        <div class="ds-sw"><i style="background:var(--plum-1)"></i><b>--plum-1</b><span>#130d1a · окна</span></div>
+        <div class="ds-sw"><i style="background:var(--plum-2)"></i><b>--plum-2</b><span>#1c1325 · пункты select</span></div>
+        <div class="ds-sw"><i style="background:var(--pop)"></i><b>--pop</b><span>#14121d · выпадающие меню</span></div>
+        <div class="ds-sw"><i style="background:var(--night);box-shadow:inset 0 0 0 1px var(--line)"></i><b>--line</b><span>10 % · разделители</span></div>
+        <div class="ds-sw"><i style="background:var(--night);box-shadow:inset 0 0 0 1px var(--line-strong)"></i><b>--line-strong</b><span>20 % · рамки кнопок</span></div>
+        <div class="ds-sw"><i style="background:var(--night);box-shadow:inset 0 0 0 1px var(--line-field)"></i><b>--line-field</b><span>26 % · поля ввода</span></div>
+      </div>
+      <h3>Текст</h3>
+      <div class="ds-swatches">
+        <div class="ds-sw"><i style="background:var(--text)"></i><b>--text</b><span>#fbf4f2 · основной</span></div>
+        <div class="ds-sw"><i style="background:var(--text-2)"></i><b>--text-2</b><span>#d0c2cd · вторичный</span></div>
+        <div class="ds-sw"><i style="background:var(--text-3)"></i><b>--text-3</b><span>#9a8a9c · подсказки, от 13 px</span></div>
+      </div>
+      <h3>Бренд и состояния</h3>
+      <div class="ds-swatches">
+        <div class="ds-sw"><i style="background:var(--rose)"></i><b>--rose</b><span>#ff4d6d · акцент, фокус полей</span></div>
+        <div class="ds-sw"><i style="background:linear-gradient(180deg,var(--rose-fill-a),var(--rose-fill-b))"></i><b>--rose-fill-a/b</b><span>заливка главной кнопки</span></div>
+        <div class="ds-sw"><i style="background:var(--rose-300)"></i><b>--rose-300</b><span>#ff9fb3 · наведение на ссылку</span></div>
+        <div class="ds-sw"><i style="background:var(--rose-ink)"></i><b>--rose-ink</b><span>#ffd1da · текст на розовом</span></div>
+        <div class="ds-sw"><i style="background:var(--ember)"></i><b>--ember</b><span>#ffb061 · предупреждение, владелец</span></div>
+        <div class="ds-sw"><i style="background:var(--orchid)"></i><b>--orchid</b><span>#c98bff · «к сведению»</span></div>
+        <div class="ds-sw"><i style="background:var(--ok)"></i><b>--ok</b><span>#4ade9b · готово</span></div>
+        <div class="ds-sw"><i style="background:var(--danger)"></i><b>--danger</b><span>#ff7a8a · ошибка</span></div>
+        <div class="ds-sw"><i style="background:var(--focus)"></i><b>--focus</b><span>#ffc4d0 · кольцо фокуса</span></div>
+      </div>
+      <h3>Глубина вопроса и уровни «Правды или действия»</h3>
+      <div class="ds-swatches">
+        <div class="ds-sw"><i style="background:rgb(var(--lvl-1-rgb))"></i><b>--lvl-1</b><span>лёгкие · тёплый</span></div>
+        <div class="ds-sw"><i style="background:rgb(var(--lvl-2-rgb))"></i><b>--lvl-2</b><span>средние · роза</span></div>
+        <div class="ds-sw"><i style="background:rgb(var(--lvl-3-rgb))"></i><b>--lvl-3</b><span>глубокие · орхидея</span></div>
+        <div class="ds-sw"><i style="background:rgb(var(--tod-easy-rgb))"></i><b>--tod-easy</b><span>«Легко» · 11.6 : 1</span></div>
+        <div class="ds-sw"><i style="background:rgb(var(--tod-medium-rgb))"></i><b>--tod-medium</b><span>«Средне» · 14.3 : 1</span></div>
+        <div class="ds-sw"><i style="background:rgb(var(--tod-hard-rgb))"></i><b>--tod-hard</b><span>«Жёстко» · 6.9 : 1</span></div>
+      </div>
+      <h3>Жар комнаты (свечение фона)</h3>
+      <div class="ds-heat">
+        <div style="background:radial-gradient(90% 90% at 20% 10%, #ff7a90, transparent 70%), radial-gradient(90% 90% at 90% 100%, #ffb061, transparent 70%), var(--night)">easy · #ff7a90 / #ffb061</div>
+        <div style="background:radial-gradient(90% 90% at 20% 10%, #ff2d63, transparent 70%), radial-gradient(90% 90% at 90% 100%, #d02a8f, transparent 70%), var(--night)">mid · #ff2d63 / #d02a8f</div>
+        <div style="background:radial-gradient(90% 90% at 20% 10%, #a24bff, transparent 70%), radial-gradient(90% 90% at 90% 100%, #ff3d7a, transparent 70%), var(--night)">deep · #a24bff / #ff3d7a</div>
+      </div>
+    </section>
+
+    <section class="ds-sec" id="type">
+      <h2>Шрифты</h2>
+      <p class="ds-lead">Onest — весь интерфейс. Unbounded — только логотип, крупные заголовки, цифры, таймер и ID сессии. Шрифты лежат в проекте, без Google Fonts. Минимум 13 px.</p>
+      <div class="ds-board col">
+        <div class="ds-type-row"><span class="ds-spec">Unbounded 800</span><span class="font-display" style="font-size:2rem;font-weight:800;color:#fff">K7M2 Q9XA</span></div>
+        <div class="ds-type-row"><span class="ds-spec">Unbounded 700 · 24</span><span class="font-display" style="font-size:1.5rem;font-weight:700;color:#fff">Відверті розмови для двох</span></div>
+        <div class="ds-type-row"><span class="ds-spec">Onest 700 · 18 · h1 экрана</span><span style="font-size:1.125rem;font-weight:700;color:#fff">Гравці та сесія</span></div>
+        <div class="ds-type-row"><span class="ds-spec">Onest 600 · 19 · вопрос</span><span style="font-size:1.1875rem;font-weight:600;color:#fff">Що ти хотів би почути від мене частіше?</span></div>
+        <div class="ds-type-row"><span class="ds-spec">Onest 400 · 15 · текст</span><span style="color:var(--text-2)">Пропустити питання можна завжди — це нормально, і ніхто не зобовʼязаний пояснювати чому.</span></div>
+        <div class="ds-type-row"><span class="ds-spec">Onest 600 · 13 · раздел</span><span class="ui-title-section">Для кого</span></div>
+        <div class="ds-type-row"><span class="ds-spec">Onest 400 · 13 · подсказка</span><span class="ui-hint">Текст створив штучний інтелект. Він може помилятися.</span></div>
+      </div>
+    </section>
+
+    <section class="ds-sec" id="size">
+      <h2>Размеры и радиусы</h2>
+      <div class="ds-table-wrap"><table class="ds-table">
+        <thead><tr><th>Токен</th><th>Значение</th><th>Где</th></tr></thead>
+        <tbody>
+          <tr><td><code>--btn-h</code></td><td>54 px</td><td>кнопки, плитки, поля</td></tr>
+          <tr><td><code>--ctl-h</code></td><td>44 px</td><td>иконки, чипы, сегменты, пункты меню — минимальная цель касания</td></tr>
+          <tr><td><code>--ui-field-h</code></td><td>54 px</td><td>поля ввода и кнопка-поле</td></tr>
+          <tr><td><code>--r-inner</code></td><td>10 px</td><td>пункт внутри меню, маленькие значки</td></tr>
+          <tr><td><code>--r-control</code></td><td>14 px</td><td>кнопки, поля, плитки</td></tr>
+          <tr><td><code>--r-surface</code></td><td>20 px</td><td>карточки, списки, меню</td></tr>
+          <tr><td><code>--r-hero</code></td><td>28 px</td><td>герой, окна, карточка вопроса</td></tr>
+          <tr><td>999 px</td><td>таблетка</td><td>чипы, метки, переключатель, тосты</td></tr>
+        </tbody>
+      </table></div>
+      <div class="ds-radii"><div style="border-radius:var(--r-inner)">10</div><div style="border-radius:var(--r-control)">14</div><div style="border-radius:var(--r-surface)">20</div><div style="border-radius:var(--r-hero)">28</div><div style="border-radius:999px;justify-content:center;align-items:center">pill</div></div>
+      <p class="ds-spec">Вложенный радиус = внешний − отступ: сегменты 18 снаружи, 14 внутри при отступе 4.</p>
+    </section>
+
+    <section class="ds-sec" id="buttons">
+      <h2>Кнопки</h2>
+      <div class="ds-board grid2">
+        <div class="ds-item"><button class="btn-primary w-full">Почати гру</button><span class="ds-spec"><code>btn-primary</code> — одно главное действие</span></div>
+        <div class="ds-item"><button class="btn-secondary w-full">Запросити гравців</button><span class="ds-spec"><code>btn-secondary</code> — важное второе</span></div>
+        <div class="ds-item"><button class="btn-ghost w-full">Продовжити гру</button><span class="ds-spec"><code>btn-ghost</code> — тихое альтернативное</span></div>
+        <div class="ds-item"><button class="btn-accent w-full">Згенерувати питання</button><span class="ds-spec"><code>btn-accent</code> — тонированное</span></div>
+        <div class="ds-item"><button class="btn-danger w-full">Видалити мої дані</button><span class="ds-spec"><code>btn-danger</code> — необратимое, с подтверждением</span></div>
+        <div class="ds-item"><button class="btn-dashed w-full">+ Додати покарання</button><span class="ds-spec"><code>btn-dashed</code> — добавить элемент</span></div>
+        <div class="ds-item"><button class="btn-primary w-full" disabled>Почати гру</button><span class="ds-spec">Выключенная: 42 % и без тени</span></div>
+        <div class="ds-item"><div style="display:flex;gap:.5rem"><button class="btn-tile flex-1">Для двох</button><button class="btn-tile is-on flex-1" aria-pressed="true">Компанія</button></div><span class="ds-spec"><code>btn-tile</code> и <code>is-on</code> — выбор варианта («Для кого»)</span></div>
+      </div>
+      <h3>Иконки-кнопки и текстовые</h3>
+      <div class="ds-board">
+        <button class="btn-icon" aria-label="Назад"><svg class="ds-ico" style="width:20px;height:20px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg></button>
+        <button class="btn-icon lang-btn">UA</button>
+        <button class="btn-icon lang-btn is-on">RU</button>
+        <button class="btn-icon plain" aria-label="Изменить">✎</button>
+        <button class="btn-icon lg" aria-label="Звук">🔊</button>
+        <button class="btn-primary btn-sm">Готово</button>
+        <button class="btn-text">Зняти всі</button>
+        <button class="btn-text muted">Скасувати</button>
+        <span class="btn-badge">3</span>
+      </div>
+      <p class="ds-spec"><code>btn-icon</code> 44×44: <code>plain</code> без рамки, <code>lg</code> 54×54, <code>fluid</code> на всю ширину, <code>is-on</code> включена, <code>lang-btn</code> — код языка в шапке справа. <code>btn-text</code> — ссылка-действие с зоной касания 44 px.</p>
+    </section>
+
+    <section class="ds-sec" id="inputs">
+      <h2>Выбор и ввод</h2>
+      <div class="ds-board grid2">
+        <div class="ds-item"><label class="ui-title-section" for="ds-name">Імʼя гравця</label><input id="ds-name" type="text" value="Макс"><span class="ds-spec">Поле 54 px, фокус — кольцо розы 4 px</span></div>
+        <div class="ds-item"><label class="ui-title-section" for="ds-bad">З помилкою</label><input id="ds-bad" type="text" aria-invalid="true" value=""><span class="ui-error">Введіть імʼя</span></div>
+        <div class="ds-item"><label class="ui-title-section" for="ds-ta">Своє питання</label><textarea id="ds-ta" placeholder="Напишіть питання…"></textarea></div>
+        <div class="ds-item"><span class="ui-title-section">Кнопка-поле с меню</span>
+          <div class="ds-pop-wrap"><button type="button" class="field-btn is-open"><span>💬 Розмови</span><span class="ds-spec">▾</span></button>
+            <div class="menu-pop" role="menu"><button class="menu-opt is-on"><span>Українська</span><span class="text-xs font-bold text-zinc-500">UA</span></button><button class="menu-opt"><span>Русский</span><span class="text-xs font-bold text-zinc-500">RU</span></button></div></div>
+          <span class="ds-spec"><code>field-btn</code> + <code>menu-pop</code> / <code>menu-opt</code> — тот же вид у выбора языка</span></div>
+      </div>
+      <div class="ds-board col">
+        <div class="seg" role="tablist"><button class="seg-btn is-active" role="tab" aria-selected="true">Теми</button><button class="seg-btn" role="tab">Питання</button><button class="seg-btn" role="tab">Архів</button></div>
+        <div class="seg level-seg"><button class="seg-btn level-seg-btn is-active"><span>Усі</span><span class="level-seg-n">120</span></button><button class="seg-btn level-seg-btn"><span class="flex items-center gap-1"><i class="level-dot" style="background:rgb(var(--lvl-1-rgb))"></i>Легкі</span><span class="level-seg-n">48</span></button><button class="seg-btn level-seg-btn"><span class="flex items-center gap-1"><i class="level-dot" style="background:rgb(var(--lvl-2-rgb))"></i>Середні</span><span class="level-seg-n">41</span></button><button class="seg-btn level-seg-btn"><span class="flex items-center gap-1"><i class="level-dot" style="background:rgb(var(--lvl-3-rgb))"></i>Глибокі</span><span class="level-seg-n">31</span></button></div>
+        <div style="display:flex;flex-wrap:wrap;gap:.5rem"><button class="chip is-on">Усі</button><button class="chip">Для пар</button><button class="chip">Для компанії</button><button class="chip">Офлайн</button></div>
+        <div style="display:flex;align-items:center;gap:1rem"><button class="switch is-on" role="switch" aria-checked="true" aria-label="Звук"><span class="switch-knob"></span></button><button class="switch" role="switch" aria-checked="false" aria-label="Статистика"><span class="switch-knob"></span></button><span class="ds-spec"><code>switch</code> 52×32, зона касания ≈ 48</span></div>
+        <div class="timer-presets"><button class="chip">30</button><button class="chip is-on">45</button><button class="chip">60</button><button class="chip">90</button><button class="chip">120</button></div>
+      </div>
+      <p class="ds-spec"><code>seg</code> — вкладки, <code>level-seg</code> — фильтр по глубине с числом, <code>chip</code> — фильтры, <code>timer-presets</code> — пять значений в один ряд.</p>
+    </section>
+
+    <section class="ds-sec" id="labels">
+      <h2>Метки</h2>
+      <div class="ds-board">
+        <span class="tag">Гість</span><span class="tag tag-rose">18+</span><span class="tag tag-warn">Немає мережі</span><span class="tag tag-ok">Збережено</span><span class="tag lg">Велика мітка</span>
+      </div>
+      <div class="ds-board">
+        <span class="tag diff-pill-1">Легкі</span><span class="tag diff-pill-2">Середні</span><span class="tag diff-pill-3">Глибокі</span>
+        <span class="tag turn-tag tag-rose"><i class="turn-dot"></i>Відповідає: <span class="turn-name">Аня</span></span>
+        <span class="owner-zone-note" style="margin-left:0">бачите лише ви</span>
+      </div>
+      <div class="ds-board">
+        <span class="tod-lvl tod-lvl-easy"><span class="tod-lvl-dots"><i class="on"></i><i></i><i></i></span>Легко <span class="tod-lvl-n">40</span></span>
+        <span class="tod-lvl tod-lvl-medium"><span class="tod-lvl-dots"><i class="on"></i><i class="on"></i><i></i></span>Середньо <span class="tod-lvl-n">40</span></span>
+        <span class="tod-lvl tod-lvl-hard"><span class="tod-lvl-dots"><i class="on"></i><i class="on"></i><i class="on"></i></span>Жорстко <span class="tod-lvl-n">40</span></span>
+        <span class="chip tod-chicken">🐔 2</span>
+      </div>
+      <p class="ds-spec">Метки не нажимаются (28 / 36 px). Уровень всегда показан и цветом, и точками или подписью.</p>
+    </section>
+
+    <section class="ds-sec" id="surfaces">
+      <h2>Поверхности</h2>
+      <div class="about-acc">
+        <div class="about-acc-item"><button class="row"><span class="fx-ico">👥</span><span class="flex-1"><b style="color:#fff">Гравці та сесія</b><br><span class="ui-hint">Імена, ID, видалення даних</span></span><span class="about-chev">›</span></button></div>
+        <div class="about-acc-item"><button class="row"><span class="fx-ico">📊</span><span class="flex-1"><b style="color:#fff">Статистика гри</b></span><span class="switch is-on" role="presentation"><span class="switch-knob"></span></span></button></div>
+      </div>
+      <div class="ds-board grid2">
+        <button class="opt-card opt-brand"><span style="font-size:1.6rem">💬</span><span><b style="color:#fff">Звичайний режим</b><br><span class="ui-hint">Питання по черзі</span></span></button>
+        <button class="opt-card opt-ember"><span style="font-size:1.6rem">🎲</span><span><b style="color:#fff">Правда чи дія</b><br><span class="ui-hint">Картки трьох рівнів</span></span></button>
+        <button class="card-btn"><b style="color:#fff">Картка-кнопка</b><span class="ui-hint"><code>card-btn</code></span></button>
+        <button class="card-btn accent"><b style="color:#fff">Акцентна картка</b><span class="ui-hint"><code>card-btn accent</code></span></button>
+        <button class="tile topic-pill-active"><span>🤝 Довіра</span><span>24</span></button>
+        <button class="tile topic-pill-inactive"><span>🌿 Тіло</span><span>18</span></button>
+      </div>
+      <div class="ds-board grid2">
+        <div class="fx-card is-on"><div style="display:flex;gap:.75rem;align-items:center"><span class="fx-ico">⏱️</span><b style="color:#fff">Таймер</b></div><div class="fx-body"><span class="ui-hint"><code>fx-card is-on</code> — включённое усложнение</span></div></div>
+        <div class="about-card has-ico"><span class="about-card-ico">🛡️</span><div><h3>Без реєстрації</h3><p><code>about-card has-ico</code> — блок «Чем отличается»</p></div></div>
+        <div class="about-q lvl-1"><p>Яка пісня нагадує тобі про нас?</p></div>
+        <div class="about-q lvl-3"><p>Чого ти боїшся сказати мені вголос?</p></div>
+        <div class="invite-warn"><b>Посилання дає повний доступ.</b> Надсилайте лише тим, з ким граєте.</div>
+        <div class="inline-error" style="margin:0"><span class="inline-error-i">!</span>Оберіть хоча б одну тему</div>
+      </div>
+      <p class="ds-spec">Рамка и заливка выделяют объект по роли: строки списка — без рамок внутри общего блока, карточки — рамка 1 px, выбранное — розовая рамка и <code>--rose-ink</code>.</p>
+    </section>
+
+    <section class="ds-sec" id="feedback">
+      <h2>Уведомления и окна</h2>
+      <div class="ds-board grid2">
+        <div class="ds-toasts">
+          <div class="toast"><span class="toast-ico">✓</span><span class="toast-text">Сесію збережено</span></div>
+          <div class="toast toast-turn"><span class="toast-ico">●</span><span class="toast-text">Тепер відповідає Аня</span></div>
+          <div class="toast toast-info"><span class="toast-ico"><b>i</b></span><span class="toast-text">Додано нові теми</span></div>
+          <div class="toast toast-warn"><span class="toast-ico"><b>!</b></span><span class="toast-text">Не вдалося зʼєднатися</span></div>
+        </div>
+        <div class="ds-modal"><div class="viewport-popup-box"><h3 style="margin-bottom:.5rem">Почати нову гру?</h3><p class="ui-hint" style="margin-bottom:1rem">Поточна партія завершиться для всіх.</p><div style="display:flex;flex-direction:column;gap:.5rem"><button class="btn-primary w-full">Почати нову</button><button class="btn-ghost w-full">Скасувати</button></div></div></div>
+      </div>
+      <p class="ds-spec"><code>showToast(текст, мс, вид)</code>: ok — зелёный, turn — розовый, info — орхидея, warn — янтарь и <code>role="alert"</code>. Полоска снизу показывает оставшееся время. Окно — <code>viewport-popup-box</code>, Esc и ловушка фокуса.</p>
+    </section>
+
+    <section class="ds-sec" id="motion">
+      <h2>Движение</h2>
+      <div class="ds-swipe">
+        <div class="ds-card"><span class="tag diff-pill-2">Середні</span><p>Що ти хотів би почути від мене частіше?</p><span class="ui-hint">Тягнемо вправо — розовое свечение: «следующий»</span><div class="swipe-glow" data-side="right" data-ok="yes"><span class="swipe-shine"></span></div></div>
+        <div class="ds-card"><span class="tag diff-pill-1">Легкі</span><p>Яке твоє найсмішніше дитяче фото?</p><span class="ui-hint">Тягнемо вліво на першій картці — янтарь: «нельзя»</span><div class="swipe-glow" data-side="left" data-ok="no"><span class="swipe-shine"></span></div></div>
+      </div>
+      <div class="ds-table-wrap"><table class="ds-table">
+        <thead><tr><th>Эффект</th><th>Время</th><th>Что меняется</th></tr></thead>
+        <tbody>
+          <tr><td>Нажатие кнопки</td><td>160 мс, <code>--ease-out</code></td><td>scale 0.975 (иконка 0.94)</td></tr>
+          <tr><td>Появление экрана <code>slide-up</code> / <code>fade-in</code></td><td>320 / 220 мс</td><td>translate 14 px + opacity</td></tr>
+          <tr><td>Переворот карточки <code>tod-flip-in</code></td><td>450 мс</td><td>rotateY + opacity</td></tr>
+          <tr><td>Свечение свайпа <code>swipe-glow</code></td><td>за пальцем</td><td>opacity края, сдвиг блика</td></tr>
+          <tr><td>Смена жара фона</td><td>1.6 с</td><td>кроссфейд слоёв <code>.h</code> (только opacity)</td></tr>
+          <tr><td>Тост</td><td>400 мс вход, 250 мс выход</td><td>translate + scale + opacity</td></tr>
+        </tbody>
+      </table></div>
+      <p class="ds-spec">При <code>prefers-reduced-motion</code> анимации сокращаются до мгновенных, мотивы и искры фона скрываются, блик свайпа пропадает.</p>
+    </section>
+
+    <section class="ds-sec" id="room">
+      <h2>Фон «комната»</h2>
+      <p class="ds-lead">Три свечения, 12 мотивов, искры, зерно и виньетка. Нажмите уровень — так фон меняется вместе с глубиной вопроса.</p>
+      <div class="ds-room"><!--ROOM-->
+        <div class="ds-room-ui"><button class="chip is-on" data-heat="easy">Легкі</button><button class="chip" data-heat="mid">Середні</button><button class="chip" data-heat="deep">Глибокі</button></div>
+      </div>
+      <p class="ds-spec">Слабые устройства (≤ 2 ГБ памяти, ≤ 2 ядер, экономия трафика) получают <code>fx-lite</code>: без мотивов и искр. Скрытая вкладка — <code>fx-paused</code>. На экране игры мотивы приглушены до 55 %.</p>
+    </section>
+
+    <section class="ds-sec" id="icons">
+      <h2>Иконки интерфейса · <!--COUNT_ICONS--></h2>
+      <p class="ds-lead">Линейные, сетка 24, обводка 2, скруглённые концы, цвет <code>currentColor</code>. Размер в кнопке 20 px, в тосте 16 px. Все взяты из <code>Icons</code> в <code>src/app.jsx</code>.</p>
+      <div class="ds-icons"><!--ICONS--></div>
+      <div class="ds-do">
+        <div class="yes"><b>Эмодзи — для содержания</b>Темы, наказания, режимы, блок «Чем отличается»: живые и узнаваемые.</div>
+        <div class="yes"><b>Линейные SVG — для действий</b>Назад, поделиться, удалить, копировать — всегда эти иконки.</div>
+        <div class="no"><b>Не смешивать в одном ряду</b>В строке действий не ставить эмодзи рядом с SVG.</div>
+      </div>
+    </section>
+
+    <section class="ds-sec" id="motifs">
+      <h2>Мотивы фона и логотип</h2>
+      <p class="ds-lead"><!--COUNT_MOTIFS--> контурных мотивов поднимаются по фону. Обводка — градиент <code>#motif-ink</code> от светлого к цвету жара; «стекло» добавляет мягкую заливку, «дальние» мельче и размыты. Символов страны-агрессора и политических знаков нет.</p>
+      <div class="ds-motifs"><!--MOTIFS--></div>
+      <h3>Логотип</h3>
+      <div class="ds-board" style="gap:2rem"><!--LOGO_LG--><!--LOGO_MD--><!--LOGO_XS--></div>
+      <p class="ds-spec">Большой — экран входа и итоги; средний — шапка итогов; маленький — подвал «by yedvinn». Сердце в розовой плитке, «ASK» белым, «ME» розой, Unbounded 800 с разрядкой 0.14 em.</p>
+    </section>
+
+    <section class="ds-sec" id="rules">
+      <h2>Правила</h2>
+      <ol class="ds-rules">
+        <li><b>Одна главная кнопка на экране</b> — <code>btn-primary</code>. «Начать игру» — primary, «Продолжить игру» — ghost.</li>
+        <li><b>Шапка экрана</b>: «Назад» — <code>btn-icon</code> слева, заголовок h1 18 px по центру, справа — язык (<code>lang-btn</code>) или «Пригласить».</li>
+        <li><b>Все касаемые элементы ≥ 44 px</b>; текстовые кнопки получают невидимое расширение.</li>
+        <li><b>Выбранное выглядит одинаково</b>: розовая рамка 65 %, заливка 15 %, текст <code>--rose-ink</code> — у чипа, плитки, пункта меню, «Для кого».</li>
+        <li><b>Цвета только из токенов</b>. Новый цвет — сначала токен в <code>:root</code>, потом использование.</li>
+        <li><b>Радиусы только из шкалы</b> 10 / 14 / 20 / 28 / таблетка.</li>
+        <li><b>Текст не меньше 13 px</b>, регистр как в предложении, Unbounded — только для заголовков и цифр.</li>
+        <li><b>Уровень не только цветом</b>: точки, подпись или число рядом.</li>
+        <li><b>Анимируются только transform и opacity</b>; всё уважает <code>prefers-reduced-motion</code>.</li>
+        <li><b>Юридические ссылки</b> — тихий текст 13 px внизу, не строки и не кнопки.</li>
+        <li><b>Тексты интерфейса</b> — через <code>tr()</code>, у каждого есть украинский перевод; украинский — язык по умолчанию.</li>
+        <li><b>Ответ ИИ всегда подписан</b>: «Совет от ИИ» и пометка под текстом.</li>
+        <li><b>Правила пишутся селектором <code>:root .класс</code></b>, утилиты Tailwind в разметке — только для раскладки.</li>
+        <li><b>Перед выпуском</b> — <code>npm run verify</code>: тесты, сборка, первая загрузка ≤ 500 КБ gzip.</li>
+      </ol>
+    </section>
+
+    <section class="ds-sec" id="changes">
+      <h2>Что изменилось в ревизии 29.10</h2>
+      <div class="ds-table-wrap"><table class="ds-table">
+        <thead><tr><th>Было</th><th>Стало</th></tr></thead>
+        <tbody>
+          <tr><td>Текст на розовом — 9 раз литерал <code>#ffd1da</code></td><td>Токен <code>--rose-ink</code></td></tr>
+          <tr><td><code>--rose-300</code> использовался, но не был объявлен</td><td>Объявлен в <code>:root</code></td></tr>
+          <tr><td>Фон меню — литерал <code>#14121d</code></td><td>Токен <code>--pop</code></td></tr>
+          <tr><td>Радиус 10 px вне шкалы</td><td>Токен <code>--r-inner</code></td></tr>
+          <tr><td>Заголовки «Об игре» с прописанным списком шрифтов</td><td><code>var(--font-display)</code></td></tr>
+          <tr><td>Неиспользуемые <code>--ui-btn-h</code>, <code>--ui-radius</code>, <code>--ui-chip-h</code>, <code>--ui-gap-*</code>, <code>--plum-3</code></td><td>Удалены</td></tr>
+          <tr><td>Невыделенная кнопка «Для кого»</td><td><code>btn-tile.is-on</code> + <code>aria-pressed</code></td></tr>
+          <tr><td>5 мотивов фона</td><td>12 мотивов: стекло и дальние слои</td></tr>
+          <tr><td>Новое</td><td><code>lang-btn</code>, <code>menu-pop</code>, <code>swipe-glow</code>, <code>about-card-ico</code>, подпись ИИ</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+  </main>
+</div>
+<script>
+document.querySelectorAll('[data-heat]').forEach(function (b) {
+  b.addEventListener('click', function () {
+    document.documentElement.setAttribute('data-heat', b.getAttribute('data-heat'));
+    document.querySelectorAll('[data-heat]').forEach(function (x) { x.classList.toggle('is-on', x === b); });
+  });
+});
+</script>
