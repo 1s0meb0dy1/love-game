@@ -65,7 +65,7 @@
       "$room": {
         ".read": "auth != null",
         ".write": "auth != null && (!data.child('deleted').exists() || (newData.child('deleted').val() === true && newData.child('status').val() === 'ended'))",
-        ".validate": "newData.hasChildren(['ver','by','t']) && (!newData.child('deleted').exists() || (newData.child('deleted').val() === true && newData.child('status').val() === 'ended' && !newData.child('gid').exists() && !newData.child('g').exists() && !newData.child('solo').exists() && !newData.child('n').exists() && !newData.child('dk').exists() && !newData.child('ids').exists() && !newData.child('d').exists() && !newData.child('idx').exists() && !newData.child('max').exists() && !newData.child('hist').exists() && !newData.child('hard').exists() && !newData.child('pl').exists() && !newData.child('fx').exists() && !newData.child('spin').exists() && !newData.child('pun').exists() && !newData.child('p').exists()))",
+        ".validate": "newData.hasChildren(['ver','by','t']) && (!newData.child('deleted').exists() || (newData.child('deleted').val() === true && newData.child('status').val() === 'ended' && !newData.child('gid').exists() && !newData.child('g').exists() && !newData.child('solo').exists() && !newData.child('n').exists() && !newData.child('dk').exists() && !newData.child('ids').exists() && !newData.child('d').exists() && !newData.child('idx').exists() && !newData.child('max').exists() && !newData.child('hist').exists() && !newData.child('hard').exists() && !newData.child('pl').exists() && !newData.child('fx').exists() && !newData.child('spin').exists() && !newData.child('pun').exists() && !newData.child('p').exists() && !newData.child('st').exists()))",
         "ver": {
           ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 9999999999999"
         },
@@ -184,6 +184,9 @@
           "$other": {
             ".validate": false
           }
+        },
+        "st": {
+          ".validate": "newData.isString() && newData.val().length <= 20000"
         },
         "p": {
           "$device": {
@@ -510,6 +513,34 @@
         },
         "n": {
           ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "tod": {
+      ".read": true,
+      ".write": "auth != null && auth.uid === 'OWNER_UID'",
+      "$id": {
+        ".validate": "newData.hasChildren(['id','type','difficulty','text','isActive']) && newData.child('id').val() === $id && newData.child('id').val().length <= 16",
+        "id": {
+          ".validate": "newData.isString()"
+        },
+        "type": {
+          ".validate": "newData.val() === 'truth' || newData.val() === 'dare'"
+        },
+        "difficulty": {
+          ".validate": "newData.val() === 'easy' || newData.val() === 'medium' || newData.val() === 'hard'"
+        },
+        "text": {
+          ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 300"
+        },
+        "isActive": {
+          ".validate": "newData.isBoolean()"
+        },
+        "updatedAt": {
+          ".validate": "newData.isNumber()"
         },
         "$other": {
           ".validate": false

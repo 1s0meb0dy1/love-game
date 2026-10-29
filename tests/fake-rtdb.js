@@ -1,20 +1,22 @@
 // «База» Firebase в памяти для проверок живой игры. Понимает пути /live/<комната>/…, методы GET/PUT/PATCH/DELETE,
-// удаление через null и проверяет записи теми же правилами, что стоят в правилах Firebase для узла live (копия: fixtures/live-rules.json)
+// удаление через null и проверяет записи теми же правилами, что стоят в правилах Firebase для узла live (шаблон firebase/database.rules.template.json)
 // (иначе тест мог бы пройти там, где настоящая база запись отклонит).
 // Режим «Правда или действие»: ещё понимает /tod.json и /tod/<id>.json (GET/PUT/DELETE) и проверяет записи по fixtures/tod-rules.json через rules-eval.js.
 // Кто пишет, определяется токеном в ?auth=: равный opts.ownerToken — владелец (uid = OWNER_UID), любой другой — обычный пользователь, без токена — не вошёл.
 const fs = require('fs'); const path = require('path'); const { makeRules } = require('./rules-eval.js');
 
-const RULES_FILE = path.join(__dirname, 'fixtures', 'live-rules.json'); // узел live из правил Firebase
+const RULES_FILE = path.join(__dirname, '..', 'firebase', 'database.rules.template.json'); // шаблон правил Firebase (тот же, что проверяется в эмуляторе); берём узел live
 const todRules = makeRules(JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures', 'tod-rules.json'), 'utf8'))); // узел tod из правил Firebase
 const OWNER_UID = 'OWNER_UID'; // так в копии правил обозначен владелец (боевой идентификатор в репозиторий не кладём)
 // пределы берём из настоящего файла правил, чтобы тест не разошёлся с ним
 const limits = (() => {
   try {
-    const live = JSON.parse(fs.readFileSync(RULES_FILE, 'utf8')).live.$room;
+    const live = JSON.parse(fs.readFileSync(RULES_FILE, 'utf8')).rules.live.$room;
     const n = (expr) => Number((String(expr).match(/length\s*(?:\(\))?\s*<=\s*(\d+)/) || [])[1]) || Infinity;
-    return { ids: n(live.ids['.validate']), hist: n(live.hist['.validate']) };
-  } catch (e) { return { ids: 12000, hist: 30000 }; }
+    // поля комнаты, разрешённые правилами: у узла есть "$other": false, поэтому любое другое поле база отклоняет
+    const fields = live.$other && live.$other['.validate'] === false ? Object.keys(live).filter(k => !k.startsWith('.') && !k.startsWith('$')) : null;
+    return { ids: n(live.ids['.validate']), hist: n(live.hist['.validate']), st: live.st ? n(live.st['.validate']) : 0, fields };
+  } catch (e) { throw new Error('fake-rtdb: не прочитан шаблон правил ' + RULES_FILE + ': ' + e.message); }
 })();
 
 module.exports = function makeFakeRtdb(opts = {}) {
@@ -28,7 +30,7 @@ module.exports = function makeFakeRtdb(opts = {}) {
   };
   if (opts.tod) Object.entries(opts.tod).forEach(([id, c]) => setAt(['tod', id], c)); // карточки узла tod с самого начала (как seedTod)
   const patchAt = (p, obj) => { Object.entries(obj).forEach(([k, v]) => setAt(p.concat(String(k).split('/').filter(Boolean)), v)); };
-  // правила узла live/$room (копия правил Firebase: fixtures/live-rules.json)
+  // правила узла live/$room (шаблон firebase/database.rules.template.json; поля вне списка правил отклоняются)
   const check = (room) => {
     const d = getAt(['live', room]); if (d === undefined) return null;
     if (typeof d !== 'object' || !['ver', 'by', 't'].every(k => d[k] !== undefined && d[k] !== null)) return 'нет обязательных полей ver/by/t';
@@ -36,6 +38,8 @@ module.exports = function makeFakeRtdb(opts = {}) {
     if (d.ids !== undefined && !(typeof d.ids === 'string' && d.ids.length <= limits.ids)) return 'ids слишком длинное';
     if (d.hist !== undefined && !(typeof d.hist === 'string' && d.hist.length <= limits.hist)) return 'hist слишком длинная';
     if (d.status !== undefined && d.status !== 'active' && d.status !== 'ended') return 'status не active/ended';
+    if (d.st !== undefined && !(typeof d.st === 'string' && d.st.length <= limits.st)) return 'st не строка или слишком длинное';
+    if (limits.fields) { const extra = Object.keys(d).find(k => !limits.fields.includes(k)); if (extra) return 'поле ' + extra + ' не разрешено правилами'; }
     return null;
   };
   const sleep = (ms) => new Promise(r => setTimeout(r, ms));

@@ -1319,7 +1319,7 @@ i18nSetLang(readStoredLang());
                     const room = liveRoomIdRef.current;
                     if (room) {
                         const marker = { ver: liveVerStart(deviceIdRef.current), by: deviceIdRef.current, t: Date.now(), status: 'ended', deleted: true };
-                        for (const id of [room, room + '_d']) jobs.push(fetchWithTimeout(roomUrl(id), { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(marker) }, 10000).then(r => r.ok).catch(() => false));
+                        for (const id of [room, room + '_d', room + '_t']) jobs.push(fetchWithTimeout(roomUrl(id), { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(marker) }, 10000).then(r => r.ok).catch(() => false));
                     }
                     if (aid) {
                         const ownerUid = await Auth.uid();
