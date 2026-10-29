@@ -130,7 +130,7 @@ i18nSetLang(readStoredLang());
 
         const SESSION_ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
         const generateSessionId = () => { // ID открывает сессию (вход по ID), поэтому берём криптографический генератор; 256 делится на 32 без остатка — перекоса нет
-            const r = crypto.getRandomValues(new Uint8Array(8)); let id = ""; for (let i = 0; i < 8; i++) id += SESSION_ALPHABET[r[i] % SESSION_ALPHABET.length];
+            const r = crypto.getRandomValues(new Uint8Array(8)); let id = ""; for (let i = 0; i < 8; i++) id += SESSION_ALPHABET[r[i] >> 3]; // старші 5 бітів байта = індекс 0..31, без ділення з остачею
             return id;
         };
         const isValidSessionIdFormat = (rawId) => /^[A-Z0-9]{8}$/.test(String(rawId || "").trim().toUpperCase());
