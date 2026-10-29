@@ -13,8 +13,8 @@ export default defineConfig({
       registerType: 'prompt', // новую версию ставит src/main.jsx — не посреди партии (иначе страница перезагружается и игра обрывается)
       includeAssets: ['icons/favicon.png', 'icons/apple-touch-icon.png'],
       manifest: {
-        name: 'ASK ME', short_name: 'Ask Me', description: 'Откровенные разговоры для двоих и компании',
-        lang: 'ru', start_url: base, scope: base, display: 'standalone', orientation: 'portrait',
+        name: 'ASK ME', short_name: 'Ask Me', description: 'Відверті розмови для двох і компанії',
+        lang: 'uk', start_url: base, scope: base, display: 'standalone', orientation: 'portrait',
         background_color: '#0a0710', theme_color: '#0a0710',
         icons: [
           { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },

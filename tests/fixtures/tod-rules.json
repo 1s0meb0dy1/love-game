@@ -17,6 +17,9 @@
    "text": {
     ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 300"
    },
+   "text_uk": {
+     ".validate": "newData.isString() && newData.val().length <= 300"
+   },
    "isActive": {
     ".validate": "newData.isBoolean()"
    },

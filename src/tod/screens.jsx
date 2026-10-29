@@ -4,8 +4,9 @@
 // Ошибки записи в админке показываются прямо на экране (под полем, у кнопки загрузки, всплывающим уведомлением): общее окно ошибки есть не на всех экранах.
 import React from 'react';
 import { TOD_STARTER } from '../content/tod-cards.js';
-import { TOD_TYPES, TOD_LEVELS, TOD_TEXT_MAX, todCleanCard, todGroupCards, todNewId } from './model.js';
+import { TOD_TYPES, TOD_LEVELS, TOD_TEXT_MAX, todCleanCard, todGroupCards, todNewId, todCardText } from './model.js';
 import { TOD_TITLES } from '../content/tod-banter.js';
+import { t as tr, tf, getLang } from '../i18n.js';
 
 const TOD_GROUP_LABEL = { easy: 'Простые', medium: 'Средние', hard: 'Жёсткие' }; // названия групп уровня (в заголовках, фильтрах и форме)
 const TOD_TYPE_LABEL = { truth: 'Правда', dare: 'Действие' };
@@ -37,7 +38,7 @@ export const TodArchive = ({ ui, cards, tab, isAdmin, onManage }) => {
           <div className="flex flex-col divide-y divide-white/[0.08] border-y border-white/10">
             {groups[lv].map(c => (
               <div key={c.id} className="py-4 flex items-start justify-between gap-4">
-                <div className={`flex-1 min-w-0 text-[15px] leading-snug break-words ${c.isActive ? 'text-zinc-100' : 'text-zinc-400'}`}>{c.text}</div>
+                <div className={`flex-1 min-w-0 text-[15px] leading-snug break-words ${c.isActive ? 'text-zinc-100' : 'text-zinc-400'}`}>{todCardText(c, getLang())}</div>
                 {!c.isActive && <span className="tag tag-warn flex-shrink-0"><span aria-hidden="true">🙈</span> {todTx(ui, 'скрыта')}</span>}
               </div>
             ))}
@@ -51,19 +52,19 @@ export const TodArchive = ({ ui, cards, tab, isAdmin, onManage }) => {
 // повтор считается без учёта регистра и пробелов внутри текста
 const todNorm = (s) => String(s).toLowerCase().replace(/\s+/g, '');
 // «1 новая», «2 новых», «21 новая»
-const todNewWord = (n) => (n % 10 === 1 && n % 100 !== 11 ? 'новая' : 'новых');
+const todNewWord = (n) => (n % 10 === 1 && n % 100 !== 11 ? tr("новая") : tr("новых"));
 
 // ошибка записи -> понятное сообщение без адреса базы и токенов; verb — что пытались сделать («сохранить», «загрузить набор»)
 const todErrText = (e, verb) => {
   const m = String((e && e.message) || ''); const http = m.match(/^HTTP (\d{3})$/);
-  if (e && e.todRead) return 'Не удалось проверить, что уже лежит в базе, поэтому ничего не записано. Проверьте интернет и попробуйте ещё раз.';
+  if (e && e.todRead) return tr("Не удалось проверить, что уже лежит в базе, поэтому ничего не записано. Проверьте интернет и попробуйте ещё раз.");
   let text;
-  if (http && (http[1] === '401' || http[1] === '403')) text = `Не удалось ${verb}: нет прав на запись. Проверьте вход владельца.`;
-  else if (http) text = `Не удалось ${verb}: сервер ответил ошибкой. Попробуйте ещё раз чуть позже.`;
-  else if (m === 'Некорректная карточка') text = 'Карточка не прошла проверку. Проверьте тип, уровень и текст.';
-  else text = `Не удалось ${verb}: нет связи с сервером. Проверьте интернет и попробуйте ещё раз.`;
+  if (http && (http[1] === '401' || http[1] === '403')) text = tf("Не удалось {v0}: нет прав на запись. Проверьте вход владельца.", { v0: tr(verb) });
+  else if (http) text = tf("Не удалось {v0}: сервер ответил ошибкой. Попробуйте ещё раз чуть позже.", { v0: tr(verb) });
+  else if (m === 'Некорректная карточка') text = tr('Карточка не прошла проверку. Проверьте тип, уровень и текст.');
+  else text = tf("Не удалось {v0}: нет связи с сервером. Проверьте интернет и попробуйте ещё раз.", { v0: tr(verb) });
   const added = e && Number(e.added); // загрузка набора могла успеть записать часть карточек
-  if (added > 0) text += ` Успело записаться: ${added}. Повторное нажатие дозапишет остальные.`;
+  if (added > 0) text += " " + tf("Успело записаться: {v0}. Повторное нажатие дозапишет остальные.", { v0: added }) + "";
   return text;
 };
 
@@ -94,27 +95,27 @@ export const TodAdmin = ({ ui, cards, source, isAdmin, onSave, onSeed, onBack })
 
   const startEdit = (c) => {
     ui.SoundFX.click(); setEdit(c ? c.id : 'new'); setErr('');
-    setFmType(c ? c.type : (fType !== 'all' ? fType : 'truth')); setFmLevel(c ? c.difficulty : (fLevel !== 'all' ? fLevel : 'easy')); setFmText(c ? c.text : '');
+    setFmType(c ? c.type : (fType !== 'all' ? fType : 'truth')); setFmLevel(c ? c.difficulty : (fLevel !== 'all' ? fLevel : 'easy')); setFmText(c ? todCardText(c, getLang()) : '');
   };
   const save = async () => {
     if (busy) return;
     const clean = todCleanCard({ id: 'td_x', type: fmType, difficulty: fmLevel, text: fmText, isActive: true });
-    if (!clean) { ui.SoundFX.warn(); setErr('Введите текст карточки'); return; }
-    const twin = list.find(c => c.type === fmType && c.id !== edit && todNorm(c.text) === todNorm(clean.text));
-    if (twin) { ui.SoundFX.warn(); setErr(twin.isActive === true ? 'Такая карточка уже есть' : 'Такая карточка уже есть, но скрыта: найдите её в списке и нажмите «Показать»'); return; }
+    if (!clean) { ui.SoundFX.warn(); setErr(tr("Введите текст карточки")); return; }
+    const twin = list.find(c => c.type === fmType && c.id !== edit && (todNorm(c.text) === todNorm(clean.text) || (c.text_uk && todNorm(c.text_uk) === todNorm(clean.text))));
+    if (twin) { ui.SoundFX.warn(); setErr(twin.isActive === true ? tr("Такая карточка уже есть") : tr("Такая карточка уже есть, но скрыта: найдите её в списке и нажмите «Показать»")); return; }
     const existing = edit !== 'new' ? list.find(c => c.id === edit) : null;
-    if (edit !== 'new' && !existing) { ui.SoundFX.warn(); setErr('Карточка не найдена. Закройте форму и откройте её заново.'); return; }
+    if (edit !== 'new' && !existing) { ui.SoundFX.warn(); setErr(tr("Карточка не найдена. Закройте форму и откройте её заново.")); return; }
     setBusy(true); setErr('');
     try {
-      await onSave({ id: existing ? existing.id : todNewId(), type: fmType, difficulty: fmLevel, text: clean.text, isActive: existing ? existing.isActive : true });
-      ui.SoundFX.success(); ui.showToast('Карточка сохранена'); setEdit(null);
+      await onSave({ id: existing ? existing.id : todNewId(), type: fmType, difficulty: fmLevel, text: clean.text, isActive: existing ? existing.isActive : true, typed: true });
+      ui.SoundFX.success(); ui.showToast(tr("Карточка сохранена")); setEdit(null);
     } catch (e) { ui.SoundFX.warn(); setErr(todErrText(e, 'сохранить')); }
     setBusy(false);
   };
   const toggle = async (c) => {
     if (rowBusy) return;
     setRowBusy(c.id);
-    try { await onSave({ ...c, isActive: c.isActive !== true }); ui.SoundFX.click(); ui.showToast(c.isActive === true ? 'Карточка скрыта' : 'Карточка снова в игре'); }
+    try { await onSave({ ...c, isActive: c.isActive !== true }); ui.SoundFX.click(); ui.showToast(c.isActive === true ? tr("Карточка скрыта") : tr("Карточка снова в игре")); }
     catch (e) { ui.SoundFX.warn(); ui.showToast(todErrText(e, 'сохранить'), 6000, 'warn'); }
     setRowBusy('');
   };
@@ -124,8 +125,8 @@ export const TodAdmin = ({ ui, cards, source, isAdmin, onSave, onSeed, onBack })
     try {
       const r = await onSeed(); const added = (r && Number(r.added)) || 0; const skipped = (r && Number(r.skipped)) || 0;
       ui.SoundFX.success();
-      if (added > 0) ui.showToast(`Стартовый набор загружен: ${added} ${todNewWord(added)}` + (skipped > 0 ? `, уже были ${skipped}` : ''), 4200);
-      else ui.showToast('В базе уже есть весь стартовый набор', 3200, 'info');
+      if (added > 0) ui.showToast(tf("Стартовый набор загружен: {v0} {v1}", { v0: added, v1: todNewWord(added) }) + (skipped > 0 ? tf(", уже были {v0}", { v0: skipped }) : ''), 4200);
+      else ui.showToast(tr("В базе уже есть весь стартовый набор"), 3200, 'info');
     } catch (e) { ui.SoundFX.warn(); setSeedErr(todErrText(e, 'загрузить набор')); }
     setSeedBusy(false);
   };
@@ -136,67 +137,67 @@ export const TodAdmin = ({ ui, cards, source, isAdmin, onSave, onSeed, onBack })
   return (
     <div className="safe-screen w-full flex flex-col items-center slide-up relative z-10">
       <header className="w-full max-w-md flex items-center gap-3 pt-2">
-        <button type="button" onClick={() => { ui.SoundFX.click(); onBack(); }} aria-label="Назад" className="btn-icon flex-shrink-0"><Icons.Back /></button>
-        <h1 className="flex-1 text-center pr-11 text-lg font-bold text-white">Карточки</h1>
+        <button type="button" onClick={() => { ui.SoundFX.click(); onBack(); }} aria-label={tr("Назад")} className="btn-icon flex-shrink-0"><Icons.Back /></button>
+        <h1 className="flex-1 text-center pr-11 text-lg font-bold text-white">{tr("Карточки")}</h1>
       </header>
       <main className="w-full max-w-md flex flex-col gap-6 pt-6 pb-6">
-        {!isAdmin ? ( <p className="text-sm text-zinc-400 text-center">Раздел доступен только владельцу.</p> ) : (
+        {!isAdmin ? ( <p className="text-sm text-zinc-400 text-center">{tr("Раздел доступен только владельцу.")}</p> ) : (
           <>
-            <p className="ui-hint">Карточки режима «Правда или действие». Скрытая карточка не попадает в игру и в архив игрока; удалить карточку нельзя, только скрыть. Всего: {list.length}, скрыто: {hiddenN}.</p>
+            <p className="ui-hint">{tr("Карточки режима «Правда или действие». Скрытая карточка не попадает в игру и в архив игрока; удалить карточку нельзя, только скрыть. Всего:")} {list.length}{tr(", скрыто:")} {hiddenN}.</p>
             {source !== 'db' && (
               <div role="note" className="rounded-[20px] border border-white/10 bg-white/[0.04] p-4 flex flex-col gap-2">
-                <span className="tag tag-warn self-start">{source === 'cache' ? 'Копия на устройстве' : 'Встроенный набор'}</span>
+                <span className="tag tag-warn self-start">{source === 'cache' ? tr("Копия на устройстве") : tr("Встроенный набор")}</span>
                 <p className="ui-hint">{source === 'cache'
-                  ? 'Сейчас показана копия карточек на этом устройстве: база не ответила. Изменения могут не сохраниться — проверьте интернет.'
-                  : 'Сейчас показан встроенный набор: в базе карточек нет или она не ответила. Загрузите стартовый набор в базу до того, как менять карточки: после первой записи игрокам будут видны только карточки из базы.'}</p>
+                  ? tr("Сейчас показана копия карточек на этом устройстве: база не ответила. Изменения могут не сохраниться — проверьте интернет.")
+                  : tr("Сейчас показан встроенный набор: в базе карточек нет или она не ответила. Загрузите стартовый набор в базу до того, как менять карточки: после первой записи игрокам будут видны только карточки из базы.")}</p>
               </div>
             )}
             {seedN > 0 && (
               <div className="flex flex-col gap-1">
-                <button type="button" disabled={seedBusy} onClick={seed} className="btn-secondary w-full">{seedBusy ? 'Загружаем карточки…' : `Загрузить стартовый набор (${seedN} ${todNewWord(seedN)})`}</button>
+                <button type="button" disabled={seedBusy} onClick={seed} className="btn-secondary w-full">{seedBusy ? tr("Загружаем карточки…") : tf("Загрузить стартовый набор ({v0} {v1})", { v0: seedN, v1: todNewWord(seedN) })}</button>
                 {seedErr && <span className="ui-error" role="alert">{seedErr}</span>}
               </div>
             )}
             {edit === null ? (
-              <button type="button" onClick={() => startEdit(null)} className="btn-primary w-full">+ Новая карточка</button>
+              <button type="button" onClick={() => startEdit(null)} className="btn-primary w-full">{tr("+ Новая карточка")}</button>
             ) : (
               <section ref={formRef} className="flex flex-col gap-3 rounded-[20px] border border-white/10 bg-white/[0.04] p-4 fade-in">
-                <h2 className="text-sm font-bold text-white">{edit === 'new' ? 'Новая карточка' : 'Редактирование карточки'}</h2>
-                <div className="seg" role="radiogroup" aria-label="Тип карточки">
-                  {TOD_TYPES.map(t => <button key={t} type="button" role="radio" aria-checked={fmType === t} onClick={() => { ui.SoundFX.click(); setFmType(t); setErr(''); }} className={`seg-btn ${fmType === t ? 'is-active' : ''}`}>{TOD_TYPE_LABEL[t]}</button>)}
+                <h2 className="text-sm font-bold text-white">{edit === 'new' ? tr("Новая карточка") : tr("Редактирование карточки")}</h2>
+                <div className="seg" role="radiogroup" aria-label={tr("Тип карточки")}>
+                  {TOD_TYPES.map(t => <button key={t} type="button" role="radio" aria-checked={fmType === t} onClick={() => { ui.SoundFX.click(); setFmType(t); setErr(''); }} className={`seg-btn ${fmType === t ? 'is-active' : ''}`}>{tr(TOD_TYPE_LABEL[t])}</button>)}
                 </div>
-                <div className="seg" role="radiogroup" aria-label="Уровень карточки">
-                  {TOD_LEVELS.map(lv => <button key={lv} type="button" role="radio" aria-checked={fmLevel === lv} onClick={() => { ui.SoundFX.click(); setFmLevel(lv); }} className={`seg-btn ${fmLevel === lv ? 'is-active' : ''}`}>{TOD_GROUP_LABEL[lv]}</button>)}
+                <div className="seg" role="radiogroup" aria-label={tr("Уровень карточки")}>
+                  {TOD_LEVELS.map(lv => <button key={lv} type="button" role="radio" aria-checked={fmLevel === lv} onClick={() => { ui.SoundFX.click(); setFmLevel(lv); }} className={`seg-btn ${fmLevel === lv ? 'is-active' : ''}`}>{tr(TOD_GROUP_LABEL[lv])}</button>)}
                 </div>
                 <div>
-                  <textarea ref={areaRef} value={fmText} maxLength={TOD_TEXT_MAX} onChange={e => { setFmText(e.target.value); setErr(''); }} aria-label="Текст карточки" aria-invalid={err ? 'true' : undefined}
-                    placeholder={fmType === 'truth' ? 'Вопрос, на который нужно ответить честно' : 'Задание, которое нужно выполнить'} />
+                  <textarea ref={areaRef} value={fmText} maxLength={TOD_TEXT_MAX} onChange={e => { setFmText(e.target.value); setErr(''); }} aria-label={tr("Текст карточки")} aria-invalid={err ? 'true' : undefined}
+                    placeholder={fmType === 'truth' ? tr("Вопрос, на который нужно ответить честно") : tr("Задание, которое нужно выполнить")} />
                   <div className="flex items-start justify-between gap-3">
                     {err ? <span className="ui-error" role="alert">{err}</span> : <span></span>}
                     <span className="ui-hint mt-1.5 flex-shrink-0 tabular-nums">{fmText.length} / {TOD_TEXT_MAX}</span>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <button type="button" onClick={() => { ui.SoundFX.click(); setEdit(null); setErr(''); }} className="btn-secondary">Отмена</button>
-                  <button type="button" disabled={busy} onClick={save} className="btn-primary">{busy ? 'Сохраняем…' : 'Сохранить'}</button>
+                  <button type="button" onClick={() => { ui.SoundFX.click(); setEdit(null); setErr(''); }} className="btn-secondary">{tr("Отмена")}</button>
+                  <button type="button" disabled={busy} onClick={save} className="btn-primary">{busy ? tr("Сохраняем…") : tr("Сохранить")}</button>
                 </div>
               </section>
             )}
             <div className="flex flex-col gap-3">
-              <div className="seg" role="group" aria-label="Фильтр по типу">
-                {TOD_FILTER_TYPES.map(([id, label]) => <button key={id} type="button" aria-pressed={fType === id} onClick={() => { ui.SoundFX.click(); setFType(id); }} className={`seg-btn ${fType === id ? 'is-active' : ''}`}>{label}</button>)}
+              <div className="seg" role="group" aria-label={tr("Фильтр по типу")}>
+                {TOD_FILTER_TYPES.map(([id, label]) => <button key={id} type="button" aria-pressed={fType === id} onClick={() => { ui.SoundFX.click(); setFType(id); }} className={`seg-btn ${fType === id ? 'is-active' : ''}`}>{tr(label)}</button>)}
               </div>
-              <div className="flex flex-wrap gap-2" role="group" aria-label="Фильтр по уровню">
-                {TOD_FILTER_LEVELS.map(([id, label]) => <button key={id} type="button" aria-pressed={fLevel === id} onClick={() => { ui.SoundFX.click(); setFLevel(id); }} className={`chip ${fLevel === id ? 'is-on' : ''}`}>{label}</button>)}
+              <div className="flex flex-wrap gap-2" role="group" aria-label={tr("Фильтр по уровню")}>
+                {TOD_FILTER_LEVELS.map(([id, label]) => <button key={id} type="button" aria-pressed={fLevel === id} onClick={() => { ui.SoundFX.click(); setFLevel(id); }} className={`chip ${fLevel === id ? 'is-on' : ''}`}>{tr(label)}</button>)}
               </div>
             </div>
-            {total === 0 && <p className="text-sm text-zinc-400 text-center py-6 leading-relaxed">{list.length === 0 ? 'Карточек пока нет.' : 'По выбранным фильтрам карточек нет.'}</p>}
+            {total === 0 && <p className="text-sm text-zinc-400 text-center py-6 leading-relaxed">{list.length === 0 ? tr("Карточек пока нет.") : tr("По выбранным фильтрам карточек нет.")}</p>}
             {types.map(t => {
               const n = levels.reduce((m, lv) => m + groups[t][lv].length, 0);
               if (n === 0) return null;
               return (
                 <section key={t} className="flex flex-col gap-4">
-                  <h2 className="text-base font-bold text-white">{TOD_TYPE_LABEL[t]} <span className="text-zinc-500 font-semibold">· {n}</span></h2>
+                  <h2 className="text-base font-bold text-white">{tr(TOD_TYPE_LABEL[t])} <span className="text-zinc-500 font-semibold">· {n}</span></h2>
                   {levels.map(lv => {
                     const items = groups[t][lv];
                     if (items.length === 0) return null;
@@ -206,11 +207,11 @@ export const TodAdmin = ({ ui, cards, source, isAdmin, onSave, onSeed, onBack })
                         <div className="rounded-[20px] border border-white/10 bg-white/[0.04] divide-y divide-white/[0.06] overflow-hidden">
                           {items.map(c => (
                             <div key={c.id} className="px-4 py-3.5 flex flex-col gap-2.5">
-                              <p className={`text-[15px] leading-snug break-words ${c.isActive === true ? 'text-zinc-100' : 'text-zinc-400'}`}>{c.text}</p>
+                              <p className={`text-[15px] leading-snug break-words ${c.isActive === true ? 'text-zinc-100' : 'text-zinc-400'}`}>{todCardText(c, getLang())}</p>
                               <div className="flex items-center justify-end gap-2">
-                                {c.isActive !== true && <span className="tag tag-warn mr-auto"><span aria-hidden="true">🙈</span> скрыта</span>}
-                                <button type="button" aria-label={`Изменить: ${c.text}`} onClick={() => startEdit(c)} className="btn-secondary btn-sm">✎ Изменить</button>
-                                <button type="button" disabled={!!rowBusy} aria-label={`${c.isActive === true ? 'Скрыть' : 'Показать'}: ${c.text}`} onClick={() => toggle(c)} className="btn-secondary btn-sm">{c.isActive === true ? 'Скрыть' : 'Показать'}</button>
+                                {c.isActive !== true && <span className="tag tag-warn mr-auto"><span aria-hidden="true">🙈</span> {tr("скрыта")}</span>}
+                                <button type="button" aria-label={tf("Изменить: {v0}", { v0: todCardText(c, getLang()) })} onClick={() => startEdit(c)} className="btn-secondary btn-sm">{tr("✎ Изменить")}</button>
+                                <button type="button" disabled={!!rowBusy} aria-label={`${c.isActive === true ? tr("Скрыть") : tr("Показать")}: ${todCardText(c, getLang())}`} onClick={() => toggle(c)} className="btn-secondary btn-sm">{c.isActive === true ? tr("Скрыть") : tr("Показать")}</button>
                               </div>
                             </div>
                           ))}
@@ -235,7 +236,7 @@ export const TodAdmin = ({ ui, cards, source, isAdmin, onSave, onSeed, onBack })
 const TOD_TONES = [[0, 'Выкл'], [1, 'Мягкий'], [2, 'Острый']];
 const TOD_LEVEL_ICON = { easy: '🟢', medium: '🟡', hard: '🔴' };
 const TOD_LEVEL_WORD = { easy: 'Легко', medium: 'Средне', hard: 'Жёстко' };
-const todTx = (ui, s) => (ui && typeof ui.tr === 'function' ? ui.tr(s) : s);
+const todTx = (ui, s) => (ui && typeof ui.tr === 'function' ? ui.tr(s) : tr(s));
 const todIcon = (p) => (p && p.gender === 'girl' ? '👩' : '👨');
 
 // предупреждение 18+ (раздел 10 спеки): перед стартом с «Жёсткими» или тоном «Острый»; okLabel — другая подпись кнопки (при входе в идущую игру — «Понятно»)
@@ -244,7 +245,7 @@ export const TodAdultModal = ({ ui, open, onOk, onCancel, okLabel }) => (
     <div className="flex flex-col gap-4 pt-1 text-left">
       <h3 className="text-xl font-bold text-white pr-8">{todTx(ui, 'Только для взрослых 18+')}</h3>
       <p className="text-sm text-zinc-300 leading-relaxed">{todTx(ui, 'Игра для взрослых: откровенные карточки, вульгарность и чёрный юмор. Пропуск засчитывается в итогах как позор. Играйте только с теми, кому комфортно.')}</p>
-      <button type="button" onClick={onOk} className="btn-primary w-full">{todTx(ui, okLabel || 'Нам есть 18, начать')}</button>
+      <button type="button" onClick={onOk} className="btn-primary w-full">{todTx(ui, okLabel || tr("Нам есть 18, начать"))}</button>
       <button type="button" onClick={onCancel} className="btn-secondary w-full">{todTx(ui, 'Назад')}</button>
     </div>
   </ui.PopupModal>
@@ -344,7 +345,7 @@ export const TodGame = ({ ui, state, banter, cardText, levelAvail, onAction, onE
           <div className="flex flex-col gap-4">
             <div className="tod-flip">
               <div key={st.card.id + ':' + st.seq} className="tod-flip-in rounded-[24px] border border-white/10 bg-white/[0.05] p-6 min-h-[180px] flex flex-col gap-3">
-                <span className={`tod-lvl tod-lvl-${st.card.lv}`}><span aria-hidden="true">{TOD_LEVEL_ICON[st.card.lv]}</span> {todTx(ui, st.card.pool === 'truth' ? 'Правда' : 'Действие')} · {todTx(ui, TOD_LEVEL_WORD[st.card.lv])}</span>
+                <span className={`tod-lvl tod-lvl-${st.card.lv}`}><span aria-hidden="true">{TOD_LEVEL_ICON[st.card.lv]}</span> {todTx(ui, st.card.pool === 'truth' ? tr("Правда") : tr("Действие"))} · {todTx(ui, TOD_LEVEL_WORD[st.card.lv])}</span>
                 <p className="text-xl leading-snug text-white break-words">{text === null ? todTx(ui, 'Карточка недоступна') : text === undefined ? todTx(ui, 'Загружаем карточку…') : text}</p>
               </div>
             </div>
@@ -353,7 +354,7 @@ export const TodGame = ({ ui, state, banter, cardText, levelAvail, onAction, onE
         {banter && <p key={st.ev.seq} className="tod-banter">{banter}</p>}
         {st.phase === 'card' && st.card && (
           <div className="flex flex-col gap-3">
-            <button type="button" onClick={() => act({ t: 'done' })} className="btn-primary w-full">{todTx(ui, st.card.pool === 'truth' ? 'Ответил(а) — передать ход' : 'Выполнено — передать ход')}</button>
+            <button type="button" onClick={() => act({ t: 'done' })} className="btn-primary w-full">{todTx(ui, st.card.pool === 'truth' ? tr("Ответил(а) — передать ход") : tr("Выполнено — передать ход"))}</button>
             <button type="button" onClick={() => act({ t: 'skip' })} className="btn-secondary w-full"><span aria-hidden="true">🐔</span> {todTx(ui, 'Пропустить')}</button>
           </div>
         )}
@@ -392,7 +393,7 @@ export const TodResults = ({ ui, state, titles, onAgain, onMenu, banner }) => {
         <section className="flex flex-col gap-3">
           <h2 className="text-2xl font-bold text-white">{todTx(ui, 'Зал позора')}</h2>
           {t.shame.length ? <ul className="flex flex-col gap-3">{t.shame.map((x, i) => <Item key={'s' + i} x={x} big />)}</ul>
-            : <p className="text-base text-zinc-200 leading-relaxed">{todTx(ui, t.clean ? 'Сегодня без позора. Все молодцы!' : 'Позорных титулов нет, но пропуски были — в следующий раз смелее.')}</p>}
+            : <p className="text-base text-zinc-200 leading-relaxed">{todTx(ui, t.clean ? tr("Сегодня без позора. Все молодцы!") : tr("Позорных титулов нет, но пропуски были — в следующий раз смелее."))}</p>}
         </section>
         {t.cheer.length > 0 && (
           <section className="flex flex-col gap-3">

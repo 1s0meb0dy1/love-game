@@ -16,6 +16,7 @@ T('владелец пишет корректную карточку', rules.che
 T('обычный пользователь не пишет', rules.check('PUT', ['tod', 'td_a1'], { uid: 'x' }, card()) !== null);
 T('без входа не пишет', rules.check('PUT', ['tod', 'td_a1'], null, card()) !== null);
 T('лишнее поле отклонено ($other)', rules.check('PUT', ['tod', 'td_a1'], OWNER, { ...card(), extra: 1 }) !== null);
+T('украинский текст text_uk принимается (до 300 знаков), длиннее или не строка — отказ', rules.check('PUT', ['tod', 'td_a1'], OWNER, { ...card(), text_uk: 'Питання?' }) === null && rules.check('PUT', ['tod', 'td_a1'], OWNER, { ...card(), text_uk: 'я'.repeat(301) }) !== null && rules.check('PUT', ['tod', 'td_a1'], OWNER, { ...card(), text_uk: 5 }) !== null);
 T('updatedAt допустим', rules.check('PUT', ['tod', 'td_a1'], OWNER, { ...card(), updatedAt: 5 }) === null);
 T('updatedAt не число отклонён', rules.check('PUT', ['tod', 'td_a1'], OWNER, { ...card(), updatedAt: '5' }) !== null);
 T('id не совпадает с ключом', rules.check('PUT', ['tod', 'td_b2'], OWNER, card()) !== null);

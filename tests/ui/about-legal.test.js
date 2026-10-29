@@ -30,7 +30,7 @@ const boot = async (hash, withProfile) => {
   T('герой: заголовок и подзаголовок из файла содержимого, кнопка «' + ABOUT.hero.cta + '»', has(ABOUT.hero.title) && has(ABOUT.hero.lead) && !!mainBtn(ABOUT.hero.cta));
   T('в тексте страницы не осталось неподставленных {заготовок}', !/\{[a-z]+(#[^}]*)?\}/.test(aboutMain().textContent));
   const nums = [...D.querySelectorAll('.about-num-v')].map(e => e.textContent), labels = [...D.querySelectorAll('.about-num-l')];
-  T('цифры подставлены из базы: вопросов ' + A.qCount + ', тем 10, уровней 3, игроков 10 (получено ' + nums.join('/') + ')', nums[0] === String(A.qCount) && nums[1] === '10' && nums[2] === '3' && nums[3] === '10' && labels.length === ABOUT.numbers.length);
+  T('цифры подставлены из базы: вопросов ' + A.qCount + ', тем 14, уровней 3, игроков 10 (получено ' + nums.join('/') + ')', nums[0] === String(A.qCount) && nums[1] === '14' && nums[2] === '3' && nums[3] === '10' && labels.length === ABOUT.numbers.length);
   T('шаги «Как это работает»: ' + ABOUT.steps.length + ' пункта по порядку, с номерами', D.querySelectorAll('.about-steps li').length === ABOUT.steps.length && [...D.querySelectorAll('.about-step-n')].map(e => e.textContent).join('') === ABOUT.steps.map((_, i) => i + 1).join(''));
 
   // демо-вопрос: ровно 9 примеров — по 3 на каждую глубину
