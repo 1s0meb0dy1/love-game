@@ -103,7 +103,7 @@ export const todSanitize = (raw, deck) => {
       const c = raw.card; if (!todIsObj(c) || !TOD_POOLS.includes(c.pool) || typeof c.id !== 'string' || c.id.length < 1 || c.id.length > 16 || !todLv.includes(c.lv)) return null;
       card = { pool: c.pool, id: c.id, lv: c.lv };
     }
-    if ((raw.phase === 'card') !== !!card) return null;
+    if (raw.phase === 'card' ? !card : (raw.phase !== 'ended' && !!card)) return null; // карточка есть в фазе card; после «Завершить» может остаться
     if (!todInt(raw.streak, 0, TOD_NUM_MAX) || !todInt(raw.seq, 0, 1e9)) return null;
     const e = raw.ev; if (!todIsObj(e) || !todEvKeys.includes(e.k) || !todInt(e.seq, 0, 1e9) || !todInt(e.p, 0, n - 1)) return null;
     if (!todIsObj(raw.cur)) return null;

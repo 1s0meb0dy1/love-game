@@ -2,7 +2,7 @@
 const { spawn } = require('child_process'); const path = require('path');
 const fs = require('fs'); const os = require('os');
 const captureDir = process.env.TEST_CAPTURE_FILES === '1' ? fs.mkdtempSync(path.join(os.tmpdir(), 'askme-tests-')) : null;
-const UNIT = ['deck', 'analytics-logic', 'punishment-logic', 'sound', 'topics-logic', 'turn-queue', 'reel-and-queue', 'live-logic', 'content', 'update', 'session-io', 'tod-rules', 'tod-model', 'tod-cards', 'tod-deck', 'tod-engine', 'tod-talk-titles'].map(n => ({ name: 'unit/' + n, file: `unit/${n}.test.js`, env: {} }));
+const UNIT = ['deck', 'analytics-logic', 'punishment-logic', 'sound', 'topics-logic', 'turn-queue', 'reel-and-queue', 'live-logic', 'content', 'update', 'session-io', 'tod-rules', 'tod-model', 'tod-cards', 'tod-deck', 'tod-engine', 'tod-talk-titles', 'tod-channel'].map(n => ({ name: 'unit/' + n, file: `unit/${n}.test.js`, env: {} }));
 const UI = [
   ['game', {}], ['timer', {}], ['modes', { FLOW: 'hard' }], ['modes', { FLOW: 'normal' }], ['modes', { FLOW: 'admin' }], ['results', {}],
   ['menu', { FLOW: 'player' }], ['menu', { FLOW: 'admin' }], ['punishment-templates', { FLOW: 'player' }], ['punishment-templates', { FLOW: 'admin' }],
