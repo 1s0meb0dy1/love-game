@@ -6,7 +6,13 @@ module.exports = (opts = {}) => {
   // тексты страниц лежат в src/content/*.js — в сборке это обычные модули, в тесте вставляем их прямо в код (без `export`)
   const inlined = appSrc.replace(/^import \{[^}]*\} from '\.\/content\/([\w-]+)\.js';[ \t]*$/gm, (m, name) => fs.readFileSync(path.join(root, 'src/content', name + '.js'), 'utf8').replace(/^export /gm, ''));
   const helpers = fs.readFileSync(path.join(root, 'src/session-io.js'), 'utf8').replace(/^export /gm, '');
-  const jsx = helpers + '\n' + inlined.replace(/^import .*$/gm, '').replace(/^const ReactDOM = \{ \.\.\.ReactDOMAll, createRoot \};$/m, '');
+  // модуль локалізації src/i18n.js — так само вставляємо прямо в код (без `export`) і відновлюємо псевдоніми з рядка імпорту
+  const withI18n = inlined.replace(/^import \{([^}]*)\} from '\.\/i18n\.js';[ \t]*$/gm, (m, names) => {
+    const body = fs.readFileSync(path.join(root, 'src/i18n.js'), 'utf8').replace(/^export /gm, '');
+    const aliases = names.split(',').map(s => s.trim()).filter(Boolean).map(tok => { const mm = tok.match(/^(\w+)\s+as\s+(\w+)$/); return mm ? `const ${mm[2]} = ${mm[1]};` : ''; }).filter(Boolean).join(' ');
+    return body + '\n' + aliases + '\n';
+  });
+  const jsx = helpers + '\n' + withI18n.replace(/^import .*$/gm, '').replace(/^const ReactDOM = \{ \.\.\.ReactDOMAll, createRoot \};$/m, '');
   const code = (module.exports.__cache = module.exports.__cache && module.exports.__cache.jsx === jsx ? module.exports.__cache : { jsx, code: babel.transformSync(jsx, { presets: [['@babel/preset-react', { runtime: 'classic' }]] }).code }).code;
   const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8') + '\n<style>' + fs.readFileSync(path.join(root, 'src/styles.css'), 'utf8') + '</style>';
   const exp = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures/questions.json'), 'utf8'));
@@ -15,6 +21,7 @@ module.exports = (opts = {}) => {
   const qs = { ...exp, _meta: { schema: 1 } }; const qCount = Object.keys(exp).length;
   const dom = new JSDOM('<!DOCTYPE html><html><body><div id="root"></div></body></html>', { url: 'https://example.test/love-game/', pretendToBeVisual: true, runScripts: 'outside-only' });
   const w = dom.window; const errors = [];
+  try { w.localStorage.setItem('askme_lang_v1', opts.lang || 'ru'); } catch (e) {} // існуючі тести очікують російський UI; продукт за замовчуванням — українська
   w.addEventListener('error', e => errors.push('window.onerror: ' + (e.message || e.error))); w.addEventListener('unhandledrejection', e => errors.push('unhandled: ' + e.reason));
   w.console.error = (...a) => { const m = a.map(String).join(' '); if (!/act\(|Warning: /.test(m)) errors.push('console.error: ' + m.slice(0, 200)); };
   Object.defineProperty(w, 'crypto', { value: require('crypto').webcrypto }); w.TextEncoder = TextEncoder; w.TextDecoder = TextDecoder;
