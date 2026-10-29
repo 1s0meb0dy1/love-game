@@ -21,7 +21,8 @@ module.exports = (opts = {}) => {
   });
   const inlined = inline(withI18n, path.join(root, 'src'));
   const jsx = helpers + '\n' + inlined.replace(/^import .*$/gm, '').replace(/^const ReactDOM = \{ \.\.\.ReactDOMAll, createRoot \};$/m, '');
-  const code = (module.exports.__cache = module.exports.__cache && module.exports.__cache.jsx === jsx ? module.exports.__cache : { jsx, code: babel.transformSync(jsx, { presets: [['@babel/preset-react', { runtime: 'classic' }]] }).code }).code;
+  // compact: false — код больше 500 КБ Babel иначе сжимает в одну строку, и проверки, которые подменяют кусок кода по тексту, перестают его находить
+  const code = (module.exports.__cache = module.exports.__cache && module.exports.__cache.jsx === jsx ? module.exports.__cache : { jsx, code: babel.transformSync(jsx, { compact: false, presets: [['@babel/preset-react', { runtime: 'classic' }]] }).code }).code;
   const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8') + '\n<style>' + fs.readFileSync(path.join(root, 'src/styles.css'), 'utf8') + '</style>';
   const exp = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures/questions.json'), 'utf8'));
   // opts.bigDb = N — раздуть базу вопросов копиями до N штук (как настоящая база: ~1800 вопросов, чтобы проверить длинные колоды)

@@ -154,6 +154,20 @@ html[data-screen='game'] .bg-room .motifs { opacity: 0.55; }
 :root .tod-lvl-dots { display: inline-flex; align-items: center; gap: 3px; flex: 0 0 auto; }
 :root .tod-lvl-dots i { display: block; width: 8px; height: 8px; border-radius: 999px; border: 1.5px solid currentColor; box-sizing: border-box; }
 :root .tod-lvl-dots i.on { background: currentColor; }
+:root button.tod-lvl { font-size: 1rem; border-color: rgb(var(--tod-c) / 0.45); }
+/* партия «Правда или действие»: большие кнопки выбора, переворот карточки (только transform и opacity), подколка, счётчик пропусков, титулы и таблица итогов */
+:root .tod-pick { flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem; min-height: 132px; text-align: center; }
+:root .tod-chicken { font-variant-numeric: tabular-nums; color: var(--text-2); }
+:root .tod-flip { perspective: 900px; }
+:root .tod-flip-in { backface-visibility: hidden; transform-origin: 50% 50%; animation: tod-flip-in 0.45s var(--ease-out) both; }
+@keyframes tod-flip-in { from { opacity: 0; transform: rotateY(-90deg); } to { opacity: 1; transform: rotateY(0deg); } }
+:root .tod-banter { font-size: 0.9375rem; line-height: 1.45; color: var(--text-2); font-style: italic; animation: tod-banter-in 0.35s var(--ease-out) both; }
+@keyframes tod-banter-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+:root .tod-title-shame { border-color: rgb(255 77 109 / 0.45); background: rgb(255 77 109 / 0.08); }
+:root .tod-table th, :root .tod-table td { padding: 0.625rem 0.5rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+:root .tod-table th { font-size: 0.8125rem; font-weight: 700; color: var(--text-3); }
+:root .tod-table th:not(:first-child), :root .tod-table td:not(:first-child) { text-align: center; width: 3.5rem; font-variant-numeric: tabular-nums; }
+@media (prefers-reduced-motion: reduce) { :root .tod-flip-in { animation: tod-fade-in 0.2s linear both; } :root .tod-banter { animation: tod-fade-in 0.2s linear both; } @keyframes tod-fade-in { from { opacity: 0; } to { opacity: 1; } } }
 /* строка списка, карточка-кнопка, карточки режимов, плитка темы */
 :root .row { display: flex; align-items: center; gap: 0.875rem; width: 100%; min-height: 64px; padding: 0.75rem 1rem; text-align: left; background: transparent; cursor: pointer; transition: background-color 0.2s ease; }
 @media (hover: hover) { :root .row:hover { background: rgb(255 255 255 / 0.045); } } :root .row:active { background: rgb(255 255 255 / 0.07); }

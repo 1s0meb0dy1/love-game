@@ -9,7 +9,12 @@ import { t as tr, setLang as i18nSetLang, getLang, catName as catLabel, diffName
 import { TOD_STARTER } from './content/tod-cards.js';
 import { todCleanList } from './tod/model.js';
 import { todLoadCards, todSaveCard, todSeedStarter, todActive, todReadCache, todWriteCache } from './tod/cards.js';
-import { TodArchive, TodAdmin } from './tod/screens.jsx';
+import { TOD_BANTER, TOD_TITLES } from './content/tod-banter.js';
+import { todBuildDeck, todNext } from './tod/deck.js';
+import { todStart, todApply } from './tod/engine.js';
+import { todPickBanter } from './tod/talk.js';
+import { todTitles } from './tod/titles.js';
+import { TodArchive, TodAdmin, TodLobby, TodGame, TodResults } from './tod/screens.jsx';
 const ReactDOM = { ...ReactDOMAll, createRoot };
 
 // Рання ініціалізація мови з localStorage (щоб t() працювала ще до монтування React).
@@ -255,8 +260,8 @@ i18nSetLang(readStoredLang());
             { id: "Глубокие", name: "Глубокие", classText: "diff-text-3", classBg: "diff-pill-3" }
         ];
 
-        const SCREEN_TO_HASH = { onboarding: '#/welcome', session_created: '#/session-ready', menu: '#/', app_menu: '#/more', game_setup: '#/setup', topics_admin: '#/topics/manage', punish_admin: '#/punishments/manage', tod_admin: '#/tod/manage', analytics: '#/analytics', analytics_sessions: '#/analytics/sessions', hidden_q: '#/questions/hidden', profile_page: '#/profile', admin_login: '#/admin', mode_select: '#/mode', game: '#/play', ai_response: '#/ai', summary: '#/summary', cat_list: '#/topics', q_list: '#/questions', archive_page: '#/archive', add_q: '#/add', edit_q: '#/edit', invite: '#/invite', join: '#/join', about: '#/about', privacy: '#/privacy', terms: '#/terms', cookies: '#/cookies', age: '#/age' };
-        const HASH_TO_SCREEN = { '#/welcome': 'onboarding', '#/session-ready': 'session_created', '#/': 'menu', '#/menu': 'menu', '#/profile': 'profile_page', '#/more': 'app_menu', '#/setup': 'game_setup', '#/topics/manage': 'topics_admin', '#/punishments/manage': 'punish_admin', '#/tod/manage': 'tod_admin', '#/analytics': 'analytics', '#/analytics/sessions': 'analytics_sessions', '#/questions/hidden': 'hidden_q', '#/admin': 'admin_login', '#/mode': 'mode_select', '#/play': 'game', '#/ai': 'ai_response', '#/summary': 'summary', '#/topics': 'cat_list', '#/questions': 'q_list', '#/archive': 'archive_page', '#/add': 'add_q', '#/edit': 'edit_q', '#/invite': 'invite', '#/join': 'join', '#/about': 'about', '#/privacy': 'privacy', '#/terms': 'terms', '#/cookies': 'cookies', '#/age': 'age' };
+        const SCREEN_TO_HASH = { onboarding: '#/welcome', session_created: '#/session-ready', menu: '#/', app_menu: '#/more', game_setup: '#/setup', topics_admin: '#/topics/manage', punish_admin: '#/punishments/manage', tod_admin: '#/tod/manage', tod_lobby: '#/tod', tod_play: '#/tod/play', tod_results: '#/tod/results', analytics: '#/analytics', analytics_sessions: '#/analytics/sessions', hidden_q: '#/questions/hidden', profile_page: '#/profile', admin_login: '#/admin', mode_select: '#/mode', game: '#/play', ai_response: '#/ai', summary: '#/summary', cat_list: '#/topics', q_list: '#/questions', archive_page: '#/archive', add_q: '#/add', edit_q: '#/edit', invite: '#/invite', join: '#/join', about: '#/about', privacy: '#/privacy', terms: '#/terms', cookies: '#/cookies', age: '#/age' };
+        const HASH_TO_SCREEN = { '#/welcome': 'onboarding', '#/session-ready': 'session_created', '#/': 'menu', '#/menu': 'menu', '#/profile': 'profile_page', '#/more': 'app_menu', '#/setup': 'game_setup', '#/topics/manage': 'topics_admin', '#/punishments/manage': 'punish_admin', '#/tod/manage': 'tod_admin', '#/tod': 'tod_lobby', '#/tod/play': 'tod_play', '#/tod/results': 'tod_results', '#/analytics': 'analytics', '#/analytics/sessions': 'analytics_sessions', '#/questions/hidden': 'hidden_q', '#/admin': 'admin_login', '#/mode': 'mode_select', '#/play': 'game', '#/ai': 'ai_response', '#/summary': 'summary', '#/topics': 'cat_list', '#/questions': 'q_list', '#/archive': 'archive_page', '#/add': 'add_q', '#/edit': 'edit_q', '#/invite': 'invite', '#/join': 'join', '#/about': 'about', '#/privacy': 'privacy', '#/terms': 'terms', '#/cookies': 'cookies', '#/age': 'age' };
         // страницы, которые открываются без сессии (по общей ссылке): «Об игре», юридические, быстрое подключение
         const PUBLIC_SCREENS = ['about', 'privacy', 'terms', 'cookies', 'age', 'join'];
         // экраны, которые после перезагрузки страницы нечем наполнить (итоги и разбор опираются на данные партии в памяти): открываем меню
@@ -625,7 +630,7 @@ i18nSetLang(readStoredLang());
             }
             return deck;
         };
-        const SCREEN_TITLES = { hidden_q: 'Скрытые вопросы — ASK ME', analytics: 'Аналитика — ASK ME', analytics_sessions: 'Сессии — Аналитика — ASK ME', app_menu: 'Меню — ASK ME', game_setup: 'Усложнённый режим — ASK ME', topics_admin: 'Управление темами — ASK ME', punish_admin: 'Шаблоны наказаний — ASK ME', tod_admin: 'Карточки — Правда или действие — ASK ME', onboarding: 'ASK ME — начните игру', session_created: 'Сессия создана — ASK ME', menu: 'ASK ME — откровенные разговоры для двоих и компании', profile_page: 'Игроки и сессия — ASK ME', admin_login: 'Вход для владельца — ASK ME', mode_select: 'Режим игры — ASK ME', game: 'Игра — ASK ME', ai_response: 'Совет и ситуация — ASK ME', summary: 'Итоги игры — ASK ME', cat_list: 'Все темы — ASK ME', q_list: 'Вопросы — ASK ME', archive_page: 'Архив вопросов — ASK ME', add_q: 'Новый вопрос — ASK ME', edit_q: 'Редактирование вопроса — ASK ME', invite: 'Пригласить игроков — ASK ME', join: 'Присоединиться к игре — ASK ME', about: 'Об игре — ASK ME', privacy: 'Политика конфиденциальности — ASK ME', terms: 'Пользовательское соглашение — ASK ME', cookies: 'Cookies и локальное хранилище — ASK ME', age: 'Возраст и откровенный контент — ASK ME' };
+        const SCREEN_TITLES = { hidden_q: 'Скрытые вопросы — ASK ME', analytics: 'Аналитика — ASK ME', analytics_sessions: 'Сессии — Аналитика — ASK ME', app_menu: 'Меню — ASK ME', game_setup: 'Усложнённый режим — ASK ME', topics_admin: 'Управление темами — ASK ME', punish_admin: 'Шаблоны наказаний — ASK ME', tod_admin: 'Карточки — Правда или действие — ASK ME', tod_lobby: 'Правда или действие — ASK ME', tod_play: 'Игра — Правда или действие — ASK ME', tod_results: 'Итоги — Правда или действие — ASK ME', onboarding: 'ASK ME — начните игру', session_created: 'Сессия создана — ASK ME', menu: 'ASK ME — откровенные разговоры для двоих и компании', profile_page: 'Игроки и сессия — ASK ME', admin_login: 'Вход для владельца — ASK ME', mode_select: 'Режим игры — ASK ME', game: 'Игра — ASK ME', ai_response: 'Совет и ситуация — ASK ME', summary: 'Итоги игры — ASK ME', cat_list: 'Все темы — ASK ME', q_list: 'Вопросы — ASK ME', archive_page: 'Архив вопросов — ASK ME', add_q: 'Новый вопрос — ASK ME', edit_q: 'Редактирование вопроса — ASK ME', invite: 'Пригласить игроков — ASK ME', join: 'Присоединиться к игре — ASK ME', about: 'Об игре — ASK ME', privacy: 'Политика конфиденциальности — ASK ME', terms: 'Пользовательское соглашение — ASK ME', cookies: 'Cookies и локальное хранилище — ASK ME', age: 'Возраст и откровенный контент — ASK ME' };
         const GROUP_EMOJIS = ['😈', '🤫', '😋', '🤔', '🤪', '😏', '😱', '🫣'];
         const MAX_PLAYERS = 10;
         const LIVE_POLL_MS = 1000, LIVE_INVITE_MS = 3000, LIVE_BEAT_MS = 8000, LIVE_ALIVE_MS = 30000, LIVE_STALE_MS = 120000, LIVE_TAKEOVER_S = 6, LIVE_TAKEOVER_STEP_S = 4, LIVE_TAP_GUARD_MS = 500, LIVE_SOLO_MS = 2000, LIVE_JOIN_WAIT_MS = 15000, LIVE_MAX_DEVICES = MAX_PLAYERS;
@@ -1091,6 +1096,10 @@ i18nSetLang(readStoredLang());
             const todCardsRef = useRef(todBoot.list); // всегда последний список: обработчики записи не должны работать с устаревшим
             const [todTab, setTodTab] = useState('classic'); // вкладка «Все вопросы»: classic | truth | dare
             const [todBackTo, setTodBackTo] = useState('app_menu'); // откуда открыта админка карточек (туда ведёт «Назад»)
+            // партия «Правда или действие» на этом устройстве: настройки лобби, состояние игры st (движок src/tod/engine.js) и колода; локально не сохраняется
+            const [todCfg, setTodCfg] = useState({ hard: false, tone: 1 }); const [todGame, setTodGameState] = useState(null); const [todDeck, setTodDeck] = useState(null);
+            const todGameRef = useRef(null); const todTapRef = useRef(0);
+            const setTodGame = (st) => { todGameRef.current = st; setTodGameState(st); };
             const [ptEdit, setPtEdit] = useState(null); const [ptText, setPtText] = useState(''); const [ptIcon, setPtIcon] = useState(''); const [ptLevel, setPtLevel] = useState('any');
             const [ptErr, setPtErr] = useState(''); const [ptBusy, setPtBusy] = useState(false); const [ptConfirmId, setPtConfirmId] = useState('');
             const [analyticsOn, setAnalyticsOn] = useState(() => { try { return localStorage.getItem('askme_analytics_v1') !== '0'; } catch (e) { return true; } });
@@ -1129,6 +1138,8 @@ i18nSetLang(readStoredLang());
             // страница «Пригласить игроков» открывается из меню и с экранов начала игры: «Назад» возвращает туда, откуда пришли
             const [inviteFrom, setInviteFrom] = useState('app_menu');
             const openInvite = (from) => { SoundFX.click(); setInviteFrom(from); navigate('invite'); };
+            // экраны партии без самой партии (перезагрузка, прямой адрес) -> главная
+            useEffect(() => { if ((screen === 'tod_play' || screen === 'tod_results') && !todGame) { try { window.history.replaceState(null, '', window.location.pathname + window.location.search + '#/'); } catch (e) {} setScreenState('menu'); } }, [screen, todGame]);
             const [addForm, setAddForm] = useState({ text: '', cat: 'family', diff: 'Простые', targetId: '', aud: 'both' }); const [addStatus, setAddStatus] = useState(null); const [isSaving, setIsSaving] = useState(false); const [isGeneratingQuestion, setIsGeneratingQuestion] = useState(false);
             const [editingQuestion, setEditingQuestion] = useState(null); const [editForm, setEditForm] = useState({ text: '', cat: 'family', diff: 'Простые', targetId: '', aud: 'both' }); const [returnScreen, setReturnScreen] = useState('menu'); const [confirmModal, setConfirmModal] = useState(null); const [resultModal, setResultModal] = useState(null);
 
@@ -1858,17 +1869,45 @@ i18nSetLang(readStoredLang());
                 setPtConfirmId(''); setPtBusy(false);
             };
             // ---- режим «Правда или действие»: запись карточек из админки ----
-            const todApply = (list, source, writeCache) => { todCardsRef.current = list; setTodCards(list); setTodSource(source); if (writeCache) todWriteCache(todCardsEnv.storage, list); };
-            const todUi = { Icons, SoundFX, AppFooter, showToast, showError: showErrorPopup, navigate, SettingSwitch, PopupModal };
+            const todSetList = (list, source, writeCache) => { todCardsRef.current = list; setTodCards(list); setTodSource(source); if (writeCache) todWriteCache(todCardsEnv.storage, list); };
+            const todUi = { Icons, SoundFX, AppFooter, showToast, showError: showErrorPopup, navigate, SettingSwitch, PopupModal, tr };
+            // ---- режим «Правда или действие»: партия на одном устройстве ----
+            const todLevelOf = (id) => { const c = todCardsRef.current.find(x => x.id === id); return c ? c.difficulty : null; };
+            const todTextOf = (id) => { const c = todCardsRef.current.find(x => x.id === id); return c ? c.text : null; };
+            // почему нельзя начать (текст под кнопкой); проверка по той же колоде, что соберёт todBegin
+            const todBlock = (() => {
+                const n = profile && Array.isArray(profile.players) ? profile.players.length : 0;
+                if (n < 2) return tr('Нужно минимум два игрока: добавьте игроков в сессии.');
+                const d = todBuildDeck(todCards, { hard: todCfg.hard, seed: 'check' });
+                if (!d.pools.truth.length) return tr('Нет карточек «Правда»: без них игру не начать.');
+                if (!['dare.easy', 'dare.medium', 'dare.hard'].some(k => d.pools[k].length)) return tr('Нет карточек «Действие»: без них игру не начать.');
+                return '';
+            })();
+            const todRandom = (n) => { const a = new Uint32Array(n); try { crypto.getRandomValues(a); } catch (e) { for (let i = 0; i < n; i++) a[i] = Math.floor(Math.random() * 4294967296); } return Array.from(a, x => x.toString(36)).join(''); };
+            const todBegin = () => {
+                if (todBlock) return;
+                const deck = todBuildDeck(todCards, { hard: todCfg.hard, seed: todRandom(2).slice(0, 20) });
+                const gid = ('t' + Date.now().toString(36) + todRandom(1)).slice(0, 24);
+                setTodDeck(deck); setTodGame(todStart({ players: profile.players, opts: todCfg, gid })); todTapRef.current = 0;
+                navigate('tod_play');
+            };
+            // нажатие кнопки хода: повтор раньше LIVE_TAP_GUARD_MS после принятого гасится; seq берётся из текущего состояния
+            const todDispatch = (action) => {
+                const st = todGameRef.current; if (!st) return false;
+                const now = Date.now(); if (now - todTapRef.current < LIVE_TAP_GUARD_MS) return false;
+                const r = todApply(st, { ...action, seq: st.seq }, { deck: todDeck, level: todLevelOf });
+                if (!r.ok) { if (r.reason === 'empty') showToast(tr('В этой колоде карточки закончились'), 3000, 'warn'); return false; }
+                todTapRef.current = now; setTodGame(r.state); return true;
+            };
             // одна карточка (новая, правка, скрыть/показать): список в памяти и кэш устройства обновляются сразу
             const todSave = async (card) => {
                 const saved = await todSaveCard(todCardsEnv, { ...card, text: sanitizeInput(card && card.text, 300) });
                 const merged = todCleanList([...todCardsRef.current.filter(c => c.id !== saved.id), saved]);
-                if (todSource === 'db') { todApply(merged, 'db', true); return saved; }
+                if (todSource === 'db') { todSetList(merged, 'db', true); return saved; }
                 // список был не из базы (встроенный набор или копия): после записи правду знает только база, поэтому читаем её заново
                 const fresh = await todLoadCards(todCardsEnv);
-                if (fresh.source === 'db') todApply(fresh.list, 'db', false); // кэш при чтении из базы записан самой загрузкой
-                else todApply(merged, todSource, false);
+                if (fresh.source === 'db') todSetList(fresh.list, 'db', false); // кэш при чтении из базы записан самой загрузкой
+                else todSetList(merged, todSource, false);
                 return saved;
             };
             // разовая загрузка стартового набора. Список в памяти не берём на веру: запись карточки целиком заменяет её в базе, и устаревший список
@@ -1887,8 +1926,8 @@ i18nSetLang(readStoredLang());
                 try { result = await todSeedStarter(todCardsEnv, ids); } catch (e) { failure = e; }
                 // что бы ни случилось при записи, список в памяти приводим в соответствие с базой
                 const fresh = await todLoadCards(todCardsEnv);
-                if (fresh.source === 'db') todApply(fresh.list, 'db', false);
-                else if (!failure) todApply(todCleanList([...todCardsRef.current, ...TOD_STARTER.filter(c => !ids.includes(c.id))]), todSource, false);
+                if (fresh.source === 'db') todSetList(fresh.list, 'db', false);
+                else if (!failure) todSetList(todCleanList([...todCardsRef.current, ...TOD_STARTER.filter(c => !ids.includes(c.id))]), todSource, false);
                 if (failure) throw failure;
                 return result;
             };
@@ -2702,6 +2741,18 @@ if (screen === 'app_menu') {
                     </div>
                 );
             }
+            if (screen === 'tod_lobby') {
+                return <TodLobby ui={todUi} players={profile ? profile.players : []} cfg={todCfg} setCfg={setTodCfg} deviceCount={1} block={todBlock} onStart={todBegin} onShare={() => openInvite('tod_lobby')} onBack={() => navigate('mode_select')} />;
+            }
+            if (screen === 'tod_play' && todGame) {
+                const lvAvail = { easy: !!todNext(todDeck, todGame.cur, 'dare.easy'), medium: !!todNext(todDeck, todGame.cur, 'dare.medium'), hard: !!todNext(todDeck, todGame.cur, 'dare.hard') };
+                if (todGame.phase === 'ended') return <TodResults ui={todUi} state={todGame} titles={todTitles(todGame, TOD_TITLES)} onAgain={() => { setTodGame(null); navigate('tod_lobby'); }} onMenu={() => navigate('menu')} />;
+                return <TodGame ui={todUi} state={todGame} banter={todPickBanter(todGame, TOD_BANTER, tr)} cardText={todTextOf} levelAvail={lvAvail} onAction={todDispatch}
+                    onEnd={() => { todTapRef.current = 0; if (todDispatch({ t: 'end' })) navigate('tod_results'); }} onLeave={() => navigate('menu')} />;
+            }
+            if (screen === 'tod_results' && todGame) {
+                return <TodResults ui={todUi} state={todGame} titles={todTitles(todGame, TOD_TITLES)} onAgain={() => { setTodGame(null); navigate('tod_lobby'); }} onMenu={() => navigate('menu')} />;
+            }
             if (screen === 'tod_admin') {
                 return <TodAdmin ui={todUi} cards={todCards} source={todSource} isAdmin={isAdmin} onSave={todSave} onSeed={todSeed} onBack={() => navigate(todBackTo)} />;
             }
@@ -2929,6 +2980,13 @@ if (screen === 'mode_select') {
                                     <span className="font-bold text-sm text-white">{tr("Усложнённый режим")}</span>
                                     <span className="text-xs text-zinc-300 leading-relaxed">{tr("Больше азарта: добавьте таймер на ответ и наказания за пропуск. Нужно выбрать хотя бы одно усложнение.")}</span>
                                     <span className="flex flex-wrap gap-1.5 text-xs font-bold text-amber-100/90"><span className="px-2.5 py-1 rounded-full bg-white/[0.07]">{tr("⏱ Таймер")}</span><span className="px-2.5 py-1 rounded-full bg-white/[0.07]">{tr("🎭 Наказания")}</span></span>
+                                </span>
+                            </button>
+                            <button type="button" onClick={() => { SoundFX.click(); navigate('tod_lobby'); }} className="opt-card">
+                                <span aria-hidden="true" className="w-12 h-12 rounded-xl bg-white/[0.07] flex items-center justify-center text-2xl flex-shrink-0">🎲</span>
+                                <span className="flex-1 min-w-0 flex flex-col gap-1.5">
+                                    <span className="font-bold text-sm text-white">{tr("Правда или действие")}</span>
+                                    <span className="text-xs text-zinc-300 leading-relaxed">{tr("Для компании и пар: правда, действие и позор за пропуск. 18+")}</span>
                                 </span>
                             </button>
                             <p className="px-2 text-xs text-zinc-400 leading-relaxed text-center">👥 Если к сессии подключатся другие устройства, игра сама синхронизируется — до {profile ? deviceCap(profile) : MAX_PLAYERS} одновременно (по числу игроков): вопросы, очередь, рулетка{'\u00A0'}и таймер{'\u00A0'}у всех одинаковые. Пока вы играете одни, ничего не отправляется. Пригласить игроков можно кнопкой в шапке.</p>
@@ -3323,9 +3381,9 @@ if (screen === 'summary') {
                         <header className="flex items-center justify-between gap-4 mb-6 pt-2">
                             <div className="flex items-center gap-3.5"><button aria-label={tr("Назад")} onClick={() => { SoundFX.click(); navigate('menu'); }} className="btn-icon flex-shrink-0"><Icons.Back /></button><div><h2 className="text-2xl font-bold text-white">{tr("Все вопросы")}</h2><p className="text-xs text-zinc-500 mt-0.5">{todTab === 'classic' ? `${tr('Активно:')} ${db.length - stats.archivedList.length - stats.disabledCount} ${tr('из')} ${db.length}` : tr('Правда или действие')}</p></div></div>
                         </header>
-                        <div className="seg mb-6" role="tablist" aria-label="Что показать">
+                        <div className="seg mb-6" role="tablist" aria-label={tr("Что показать")}>
                             {[['classic', 'Классика'], ['truth', 'Правда'], ['dare', 'Действие']].map(([id, label]) => (
-                                <button key={id} type="button" role="tab" aria-selected={todTab === id} onClick={() => { SoundFX.click(); setTodTab(id); }} className={`seg-btn ${todTab === id ? 'is-active' : ''}`}>{label}</button>
+                                <button key={id} type="button" role="tab" aria-selected={todTab === id} onClick={() => { SoundFX.click(); setTodTab(id); }} className={`seg-btn ${todTab === id ? 'is-active' : ''}`}>{tr(label)}</button>
                             ))}
                         </div>
                         {todTab !== 'classic' ? (

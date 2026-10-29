@@ -111,6 +111,15 @@ T('legal: в документе «Cookies» перечислены все клю
     const stopLines = L.filter(l => STOP.test(l.text));
     T('tod-banter: нет дублей текста, нет стоп-слов' + (stopLines.length ? ' — ' + stopLines.map(l => l.id).join(', ') : ''), dup(L.map(l => l.text.toLowerCase())).length === 0 && stopLines.length === 0);
     T('tod-banter: реплики skip_* содержат {name}', L.filter(l => /^skip_/.test(l.ev)).every(l => l.text.includes('{name}')));
+    // украинские версии (src/i18n.js, словарь UK: ключ — русский шаблон): у каждой реплики и титула есть перевод с теми же подстановками
+    let UK = null; try { UK = new Function(fs.readFileSync(path.join(root, 'src/i18n.js'), 'utf8').replace(/^export /gm, '') + '; return UK;')(); } catch (e) { T('i18n: словарь загружается — ' + (e && e.message), false); }
+    if (UK) {
+      const subs = (t) => (t.match(/\{[^}]*\}/g) || []).map(x => (x === '{name}' ? x : '{|}')).join();
+      const miss = L.filter(l => typeof UK[l.text] !== 'string' || subs(UK[l.text]) !== subs(l.text) || /[ыэъё]/i.test(UK[l.text]));
+      T('tod-banter: у каждой реплики есть украинский перевод с теми же {name} и {a|b}' + (miss.length ? ' — ' + miss.map(l => l.id).join(', ') : ''), miss.length === 0);
+      T('tod-banter: украинские реплики без стоп-слов и без повторов', L.every(l => !STOP.test(UK[l.text] || '')) && dup(L.map(l => UK[l.text])).length === 0);
+      T('tod-titles: у названий и подсказок титулов есть украинский перевод', (TOD_TITLES || []).every(t => typeof UK[t.name] === 'string' && typeof UK[t.hint] === 'string'));
+    }
     const IDS = ['coward', 'deserter', 'hard_fold', 'later', 'easy_life', 'afraid_dare', 'careful', 'hero', 'fearless', 'redeemed', 'dare_master', 'honest'];
     T('tod-titles: 12 титулов, id по таблице, shame у первых 7', Array.isArray(TOD_TITLES) && TOD_TITLES.length === 12 && TOD_TITLES.every((t, i) => t.id === IDS[i] && t.shame === (i < 7) && t.icon && t.name && t.hint));
   }

@@ -8,8 +8,9 @@ export const todExpand = (template, player) => {
   return String(template || '').replace(/\{name\}|\{([^{}|]*)\|([^{}|]*)\}/g, (m, a, b) => (m === '{name}' ? name : girl ? b : a));
 };
 
-// реплика к последнему событию: '' при выключенном тоне или если строк для события нет. Тон 2 берёт строки тона 2, а без них — тона 1
-export const todPickBanter = (state, lines) => {
+// реплика к последнему событию: '' при выключенном тоне или если строк для события нет. Тон 2 берёт строки тона 2, а без них — тона 1.
+// tf — необязательный перевод шаблона (t из src/i18n.js): переводится шаблон до подстановки, поэтому имя не попадает в словарь
+export const todPickBanter = (state, lines, tf) => {
   if (!state || !state.opts || state.opts.tone === 0 || !state.ev || !Array.isArray(lines)) return '';
   const k = state.ev.k; const of = (tone) => lines.filter(l => l && l.ev === k && l.tone === tone);
   let cand = state.opts.tone === 2 ? of(2) : of(1);
@@ -17,5 +18,6 @@ export const todPickBanter = (state, lines) => {
   if (!cand.length) return '';
   const line = cand[todHash(state.gid + ':' + state.ev.seq + ':' + k) % cand.length];
   const player = Array.isArray(state.pl) ? state.pl[state.ev.p] : null;
-  return todExpand(line.text, player || { name: '', gender: 'guy' });
+  const tpl = typeof tf === 'function' ? tf(line.text) : line.text;
+  return todExpand(tpl, player || { name: '', gender: 'guy' });
 };
