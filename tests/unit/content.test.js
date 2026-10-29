@@ -88,6 +88,33 @@ T('legal: в документе «Cookies» перечислены все клю
 }
 
 // приватность самих текстов: никаких адресов почты и телефонов, имён владельца по паспорту и т. п.
+// --- подколки и титулы «Правда или действие» (src/content/tod-banter.js): границы содержимого — раздел 9.2 спеки ---
+{
+  let B = null;
+  try { B = load('tod-banter', '{ TOD_EVENTS, TOD_BANTER, TOD_TITLES }'); } catch (e) { T('tod-banter: файл загружается — ' + (e && e.message), false); }
+  if (B) {
+    const { TOD_EVENTS, TOD_BANTER, TOD_TITLES } = B; const L = Array.isArray(TOD_BANTER) ? TOD_BANTER : [];
+    const cnt = (ev, tone) => L.filter(l => l.ev === ev && l.tone === tone).length;
+    const thin = (TOD_EVENTS || []).filter(ev => cnt(ev, 1) < 4 || cnt(ev, 2) < 3);
+    T('tod-banter: у каждого события >=4 реплик тона 1 и >=3 тона 2' + (thin.length ? ' — мало: ' + thin.join(', ') : ''), TOD_EVENTS.length === 17 && thin.length === 0);
+    T('tod-banter: id уникальны, ev из TOD_EVENTS, tone 1|2, текст 8..140 знаков', dup(L.map(l => l.id)).length === 0 && L.every(l => TOD_EVENTS.includes(l.ev) && (l.tone === 1 || l.tone === 2) && typeof l.text === 'string' && l.text.length >= 8 && l.text.length <= 140));
+    const badSub = L.filter(l => [...l.text.matchAll(/\{([^}]*)\}/g)].some(m => m[1] !== 'name' && !/^[^{}|]+\|[^{}|]+$/.test(m[1])) || /[{}]/.test(l.text.replace(/\{[^{}]*\}/g, '')));
+    T('tod-banter: в тексте только {name} и {a|b} с непустыми обеими формами' + (badSub.length ? ' — ' + badSub.map(l => l.id).join(', ') : ''), badSub.length === 0);
+    const ua = L.filter(l => l.tags);
+    T('tod-banter: теги только ["ua"], политические (ua) реплики только тона 2, их >= 8', ua.every(l => Array.isArray(l.tags) && l.tags.length === 1 && l.tags[0] === 'ua' && l.tone === 2) && ua.length >= 8);
+    // стоп-список (границы 9.2): этнические и национальные оскорбления, слова о потерях и жертвах, призывы к насилию, сексуально-грубые оскорбления.
+    // Границы слова — через \p{L}: \b в JavaScript не видит кириллицу
+    const STOP = /(?<!\p{L})(русн|кацап|москал|хохл|хохол|жид(?!к)|чурк|хач(и|ей|ам)?(?!\p{L})|ватник|орк(и|ов|ам|а)?(?!\p{L})|укроп|бандеровц)|погиб|убит|убей|убива|жертв|труп(?!п)|похорон|двухсот|мобилиз|расстрел|смерть им|оккупирован|беженц|шлюх|пидор|(?<!\p{L})сук[аи](?!\p{L})|бляд|хуй|хуе|пизд|еба[нт]|ёба[нт]/iu;
+    const stopHit = ['русня', 'Кацапы', 'хохлы', 'орки', 'убить их', 'погибшие', 'мобилизованных', 'сука', 'расстрелять', 'жертвы', 'на оккупированных'].every(w => STOP.test(w));
+    const stopMiss = ['оркестр', 'хачапури', 'жидкий', 'сукно', 'ватрушка', 'труппа', 'задница', 'чёрт', 'хрень', 'армия агрессора', 'пропаганда'].every(w => !STOP.test(w));
+    T('tod-banter: стоп-список ловит примеры и не ловит похожие безобидные слова', stopHit && stopMiss);
+    const stopLines = L.filter(l => STOP.test(l.text));
+    T('tod-banter: нет дублей текста, нет стоп-слов' + (stopLines.length ? ' — ' + stopLines.map(l => l.id).join(', ') : ''), dup(L.map(l => l.text.toLowerCase())).length === 0 && stopLines.length === 0);
+    T('tod-banter: реплики skip_* содержат {name}', L.filter(l => /^skip_/.test(l.ev)).every(l => l.text.includes('{name}')));
+    const IDS = ['coward', 'deserter', 'hard_fold', 'later', 'easy_life', 'afraid_dare', 'careful', 'hero', 'fearless', 'redeemed', 'dare_master', 'honest'];
+    T('tod-titles: 12 титулов, id по таблице, shame у первых 7', Array.isArray(TOD_TITLES) && TOD_TITLES.length === 12 && TOD_TITLES.every((t, i) => t.id === IDS[i] && t.shame === (i < 7) && t.icon && t.name && t.hint));
+  }
+}
 const pii = [...aboutStr, ...legalStr].filter(([, s]) => EMAIL.test(s) || PHONE.test(s.replace(/\d{4}-\d{2}-\d{2}/g, '')));
 T('в текстах нет адресов почты и номеров телефона' + (pii.length ? ' — найдено: ' + pii.map(x => x[0]).join(', ') : ''), pii.length === 0);
 T('в обоих файлах не светится адрес владельца аккаунта (gmail и подобные)', ![...aboutStr, ...legalStr].some(([, s]) => /gmail|yandex\.|mail\.ru|outlook|icloud/i.test(s)));
