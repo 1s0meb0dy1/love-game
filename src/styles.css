@@ -16,8 +16,6 @@
 
 /* ── 2. Токены ──────────────────────────────────────────────────────────── */
 /* «Жар» комнаты: два цвета свечения плавно меняются вместе с глубиной вопроса */
-@property --heat-a { syntax: '<color>'; inherits: true; initial-value: #ff4d6d; }
-@property --heat-b { syntax: '<color>'; inherits: true; initial-value: #ffb061; }
 :root {
   color-scheme: dark;
   /* поверхности */
@@ -40,8 +38,7 @@
   --font-display: 'Unbounded', 'Onest', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   /* движение */
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
-  --heat-a: #ff4d6d; --heat-b: #ffb061;
-  transition: --heat-a 1.6s ease, --heat-b 1.6s ease;
+  --heat-a: #ff4d6d; --heat-b: #ffb061; /* без transition: плавная смена цвета — кроссфейд слоёв .h в фоне (только opacity) */
 }
 html[data-heat='easy'] { --heat-a: #ff7a90; --heat-b: #ffb061; }
 html[data-heat='mid']  { --heat-a: #ff2d63; --heat-b: #d02a8f; }
@@ -69,25 +66,37 @@ button:focus-visible, a:focus-visible, [role="tab"]:focus-visible, [role="switch
 
 /* ── 4. Фон «комната»: свет свечи, который теплеет вместе с вопросами ─────── */
 .bg-room { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; contain: strict; background: radial-gradient(120% 90% at 50% 0%, #170d1d 0%, var(--night) 62%); }
-.bg-room .glow { position: absolute; display: block; width: 105vmax; height: 105vmax; border-radius: 50%; will-change: transform, opacity; background: radial-gradient(closest-side, var(--heat-a) 0%, transparent 100%); }
-.bg-room .glow-a { top: -62vmax; left: 50%; margin-left: -52vmax; opacity: 0.30; animation: glowA 46s ease-in-out infinite alternate, breathe 7s ease-in-out infinite; }
-.bg-room .glow-b { bottom: -66vmax; right: -50vmax; opacity: 0.20; background: radial-gradient(closest-side, var(--heat-b) 0%, transparent 100%); animation: glowB 58s ease-in-out infinite alternate; }
-.bg-room .glow-c { top: 28%; left: -62vmax; width: 80vmax; height: 80vmax; opacity: 0.16; background: radial-gradient(closest-side, #7a3bd1 0%, transparent 100%); animation: glowC 72s ease-in-out infinite alternate; }
+.bg-room .glow { position: absolute; display: block; width: 52.5vmax; height: 52.5vmax; border-radius: 50%; will-change: transform, opacity; }
+/* слои цвета свечения по глубине вопроса: меняется только opacity (дёшево для GPU), раньше анимировалась переменная --heat-a на <html> и пересчитывались стили всей страницы */
+.bg-room .glow > .h { position: absolute; inset: 0; border-radius: 50%; opacity: 0; transition: opacity 1.6s ease; will-change: opacity; }
+.bg-room .glow-a .h-easy { background: radial-gradient(closest-side, #ff7a90 0%, transparent 100%); } .bg-room .glow-a .h-mid { background: radial-gradient(closest-side, #ff2d63 0%, transparent 100%); } .bg-room .glow-a .h-deep { background: radial-gradient(closest-side, #a24bff 0%, transparent 100%); }
+.bg-room .glow-b .h-easy { background: radial-gradient(closest-side, #ffb061 0%, transparent 100%); } .bg-room .glow-b .h-mid { background: radial-gradient(closest-side, #d02a8f 0%, transparent 100%); } .bg-room .glow-b .h-deep { background: radial-gradient(closest-side, #ff3d7a 0%, transparent 100%); }
+html:not([data-heat='mid']):not([data-heat='deep']) .bg-room .h-easy, html[data-heat='mid'] .bg-room .h-mid, html[data-heat='deep'] .bg-room .h-deep { opacity: 1; }
+.bg-room .glow-a { top: -35.75vmax; left: 50%; margin-left: -26.25vmax; opacity: 0.30; animation: glowA 46s ease-in-out infinite alternate, breathe 7s ease-in-out infinite; }
+.bg-room .glow-b { bottom: -39.75vmax; right: -23.75vmax; opacity: 0.20; animation: glowB 58s ease-in-out infinite alternate; }
+.bg-room .glow-c { top: calc(28% + 20vmax); left: -42vmax; width: 40vmax; height: 40vmax; margin-top: -20vmax; opacity: 0.16; background: radial-gradient(closest-side, #7a3bd1 0%, transparent 100%); animation: glowC 72s ease-in-out infinite alternate; }
 .bg-room .motifs { position: absolute; inset: 0; }
-.bg-room .motif { position: absolute; bottom: -18vh; left: var(--x); width: var(--s); height: var(--s); color: #ffe9f0; opacity: 0; will-change: transform, opacity; animation: motifRise var(--d) linear var(--l) infinite; }
+.bg-room .motif { position: absolute; bottom: -18vh; left: var(--x); width: var(--s); height: var(--s); opacity: 0; will-change: transform, opacity; animation: motifRise var(--d) linear var(--l) infinite; }
+/* мотивы: контур — градиент от светлого к цвету глубины (#motif-ink), «стекло» — ещё и мягкая заливка, «дальние» — мельче, размыты и тусклее */
+.bg-room .motif-defs { position: absolute; width: 0; height: 0; }
+.bg-room .stop-heat { stop-color: var(--heat-a); }
+.bg-room .motif.m-glass { fill: url(#motif-glass); }
+.bg-room .motif.m-far { filter: blur(1.2px); }
 .bg-room .embers { position: absolute; inset: 0; }
 .bg-room .embers b { position: absolute; left: var(--x); bottom: -3vh; width: var(--s); height: var(--s); border-radius: 50%; opacity: 0; background: radial-gradient(circle, #ffe2b8 0%, rgb(255 176 97 / 0.85) 38%, transparent 72%); animation: ember var(--d) linear var(--l) infinite; }
 .bg-room .grain { position: absolute; inset: 0; opacity: 0.07; background-size: 180px 180px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 0.9 0 0 0 0 0.95 0 0 0 0.9 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
 .bg-room::after { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 90% 70% at 50% 45%, transparent 55%, rgb(5 3 8 / 0.55) 100%); }
-@keyframes glowA { from { transform: translate3d(-4vmax, 0, 0) scale(1); } to { transform: translate3d(5vmax, 6vmax, 0) scale(1.1); } }
-@keyframes glowB { from { transform: translate3d(0, 0, 0) scale(1.05); } to { transform: translate3d(-8vmax, -5vmax, 0) scale(0.94); } }
-@keyframes glowC { from { transform: translate3d(0, 0, 0) scale(1); } to { transform: translate3d(9vmax, 7vmax, 0) scale(1.12); } }
+/* слои свечения вдвое меньше и растянуты scale(2): растр в 4 раза меньше, радиальный градиент от этого не теряет вид */
+@keyframes glowA { from { transform: translate3d(-4vmax, 0, 0) scale(2); } to { transform: translate3d(5vmax, 6vmax, 0) scale(2.2); } }
+@keyframes glowB { from { transform: translate3d(0, 0, 0) scale(2.1); } to { transform: translate3d(-8vmax, -5vmax, 0) scale(1.88); } }
+@keyframes glowC { from { transform: translate3d(0, 0, 0) scale(2); } to { transform: translate3d(9vmax, 7vmax, 0) scale(2.24); } }
 @keyframes breathe { 0%, 100% { opacity: 0.26; } 50% { opacity: 0.34; } }
 @keyframes motifRise { 0% { transform: translate3d(0, 0, 0) rotate(var(--r0, -6deg)); opacity: 0; } 10% { opacity: var(--o, 0.07); } 88% { opacity: var(--o, 0.07); } 100% { transform: translate3d(var(--dx, 4vw), -125vh, 0) rotate(var(--r1, 8deg)); opacity: 0; } }
 @keyframes ember { 0% { transform: translate3d(0, 0, 0) scale(0.6); opacity: 0; } 14% { opacity: 0.9; } 70% { opacity: 0.45; } 100% { transform: translate3d(var(--sw, 20px), -64vh, 0) scale(1); opacity: 0; } }
 /* экономный режим: слабые устройства, экономия трафика, вкладка не видна */
 html.fx-lite .bg-room .motifs, html.fx-lite .bg-room .embers { display: none; }
-html.fx-lite .bg-room .glow { animation: none; }
+html.fx-lite .bg-room .glow { animation: none; transform: scale(2); }
+html.fx-lite .bg-room .glow > .h { transition: none; }
 html.fx-paused .bg-room * { animation-play-state: paused !important; }
 /* на экране игры комната спокойнее, чтобы карточка оставалась главным */
 html[data-screen='game'] .bg-room .motifs { opacity: 0.55; }
@@ -217,7 +226,8 @@ input[aria-invalid='true'], textarea[aria-invalid='true'] { border-color: var(--
 :root .diff-pill-1 { background: rgb(var(--lvl-1-rgb) / 0.14); border-color: rgb(var(--lvl-1-rgb) / 0.55); color: #ffd9b0; }
 :root .diff-pill-2 { background: rgb(var(--lvl-2-rgb) / 0.15); border-color: rgb(var(--lvl-2-rgb) / 0.55); color: #ffc0cd; }
 :root .diff-pill-3 { background: rgb(var(--lvl-3-rgb) / 0.16); border-color: rgb(var(--lvl-3-rgb) / 0.55); color: #e6cbff; }
-.topic-pill-active { background: rgb(255 77 109 / 0.13); border: 1px solid rgb(255 77 109 / 0.55); color: var(--text); }
+/* выбранная плитка (темы, «Для кого»): тот же вид, что у chip.is-on; селектор :root перебивает базовый фон .btn-tile / .tile */
+:root .topic-pill-active, :root .btn-tile.is-on { background: rgb(255 77 109 / 0.15); border: 1px solid rgb(255 77 109 / 0.65); color: #ffd1da; box-shadow: inset 0 0 0 1px rgb(255 77 109 / 0.25); }
 .topic-pill-inactive { background: transparent; border: 1px solid var(--line); color: var(--text-3); }
 .pulse-soft { animation: pulseSoft 2.4s ease-in-out infinite; }
 
@@ -370,6 +380,8 @@ input[aria-invalid='true'], textarea[aria-invalid='true'] { border-color: var(--
 :root .about-card { padding: 1rem 1.1rem; border-radius: var(--r-surface); border: 1px solid var(--line); background: rgb(255 255 255 / 0.03); }
 :root .about-card h3 { font-size: 1rem; font-weight: 700; color: #fff; line-height: 1.3; }
 :root .about-card p { margin-top: 0.3rem; font-size: 0.9375rem; line-height: 1.55; color: var(--text-2); }
+:root .about-card.has-ico { display: grid; grid-template-columns: 2.75rem 1fr; gap: 0.875rem; align-items: start; }
+:root .about-card-ico { display: flex; align-items: center; justify-content: center; width: 2.75rem; height: 2.75rem; border-radius: var(--r-control); background: rgb(255 77 109 / 0.12); border: 1px solid rgb(255 77 109 / 0.28); font-size: 1.375rem; line-height: 1; }
 :root .about-cta { display: flex; flex-direction: column; gap: 0.875rem; padding: 1.5rem 1.25rem; border-radius: var(--r-hero); border: 1px solid rgb(255 77 109 / 0.35); background: linear-gradient(160deg, rgb(255 77 109 / 0.18), rgb(255 255 255 / 0.02)); }
 :root .about-cta h2 { font-family: 'Unbounded', 'Onest', sans-serif; font-size: 1.25rem; line-height: 1.25; font-weight: 700; color: #fff; text-wrap: balance; }
 :root .about-cta p { font-size: 0.9375rem; line-height: 1.5; color: var(--text-2); }
@@ -387,3 +399,13 @@ input[aria-invalid='true'], textarea[aria-invalid='true'] { border-color: var(--
 :root .join-h { font-family: 'Unbounded', 'Onest', sans-serif; font-size: 1.375rem; line-height: 1.25; font-weight: 700; color: #fff; text-wrap: balance; margin-top: 0.75rem; }
 :root .join-p { font-size: 1rem; line-height: 1.55; color: var(--text-2); text-wrap: pretty; }
 :root .join-chip { display: inline-flex; align-items: center; min-height: 32px; padding: 0 0.9rem; border-radius: 999px; border: 1px solid var(--line-strong); background: rgb(255 255 255 / 0.05); font-size: 0.875rem; font-weight: 600; color: var(--text-2); }
+
+/* Перетягування картки питання: світіння краю + відблиск (лише opacity і transform). Колір — з напряму та дозволу. */
+:root .swipe-glow { position: absolute; inset: 0; z-index: 20; border-radius: var(--r-hero); pointer-events: none; opacity: 0; overflow: hidden; will-change: opacity; }
+:root .swipe-glow::before { content: ''; position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 0 0 2px rgb(var(--glow-rgb) / 0.75), 0 0 46px -6px rgb(var(--glow-rgb) / 0.55); }
+:root .swipe-glow::after { content: ''; position: absolute; top: 0; bottom: 0; width: 55%; background: linear-gradient(var(--glow-dir), rgb(var(--glow-rgb) / 0.28), transparent 75%); }
+:root .swipe-glow[data-side='right'] { --glow-dir: to left; } :root .swipe-glow[data-side='right']::after { right: 0; }
+:root .swipe-glow[data-side='left'] { --glow-dir: to right; } :root .swipe-glow[data-side='left']::after { left: 0; }
+:root .swipe-glow[data-ok='yes'] { --glow-rgb: 255 77 109; } :root .swipe-glow[data-ok='no'] { --glow-rgb: 255 176 97; }
+:root .swipe-shine { position: absolute; top: -20%; bottom: -20%; left: 35%; width: 30%; background: linear-gradient(105deg, transparent, rgb(255 255 255 / 0.10), transparent); will-change: transform; }
+@media (prefers-reduced-motion: reduce) { :root .swipe-shine { display: none; } }

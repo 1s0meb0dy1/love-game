@@ -969,7 +969,7 @@ i18nSetLang(readStoredLang());
                     <section aria-labelledby="about-uniq" className="flex flex-col gap-3">
                         <h2 id="about-uniq" className="about-h2">{aboutDoc().unique.title}</h2>
                         <div className="flex flex-col gap-2.5">
-                            {aboutDoc().unique.items.map((u, i) => (<div key={i} className="about-card"><h3>{F(u.title)}</h3><p>{F(u.text)}</p></div>))}
+                            {aboutDoc().unique.items.map((u, i) => (<div key={i} className="about-card has-ico"><span className="about-card-ico" aria-hidden="true">{u.icon}</span><div><h3>{F(u.title)}</h3><p>{F(u.text)}</p></div></div>))}
                         </div>
                     </section>
 
@@ -1611,6 +1611,16 @@ i18nSetLang(readStoredLang());
                     el.style.transition = tr; el.style.opacity = String(q); el.style.transform = `scale(${0.94 + 0.06 * q})`;
                 });
             };
+            // світіння краю картки під час перетягування: сторона — напрям, колір — можна (rose) чи ні (amber); відблиск їде слідом за пальцем
+            const glowRef = useRef(null);
+            const applyGlow = (dx, mode) => {
+                const g = glowRef.current; if (!g) return;
+                const p = Math.min(1, Math.abs(dx) / 140); const dir = dx > 0 ? 'right' : 'left';
+                g.dataset.side = dir; g.dataset.ok = dx !== 0 && !swipeAllowed(dir) ? 'no' : 'yes';
+                g.style.transition = mode === 'none' ? 'none' : 'opacity 260ms ease-out';
+                g.style.opacity = String(p);
+                const shine = g.firstChild; if (shine) { shine.style.transition = g.style.transition; shine.style.transform = `translate3d(${-dx * 0.6}px,0,0)`; }
+            };
             const applySwipe = (dx, mode, scale = 1) => {
                 const el = cardRef.current; if (!el) return;
                 el.style.transition = mode === 'out' ? `transform 340ms ${SWIPE_EASE}, opacity 300ms ease-out` : mode === 'spring' ? 'transform 460ms cubic-bezier(0.34, 1.45, 0.64, 1), opacity 260ms ease-out' : mode === 'enter' ? `transform 420ms ${SWIPE_EASE}, opacity 320ms ease-out` : 'none';
@@ -1618,6 +1628,7 @@ i18nSetLang(readStoredLang());
                 el.style.transform = `translate3d(${dx}px,0,0) rotate(${dx * 0.045}deg) scale(${scale})`;
                 el.style.opacity = String(mode === 'out' ? 0 : 1);
                 applyPeek(mode === 'enter' ? 0 : dx, mode === 'enter' ? 'none' : mode);
+                applyGlow(mode === 'enter' || mode === 'spring' ? 0 : dx, mode);
             };
             const swipeBusy = () => turnPopup.open || showSkipPopup || showEndGameConfirm || punish.open || (timerKey !== '' && tm.key === timerKey && timerDismissKey !== timerKey);
             const swipeAllowed = (dir) => {
@@ -3263,25 +3274,10 @@ if (screen === 'mode_select') {
                             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                                 <div className="lg:col-span-7 flex flex-col gap-8">
                                     <div className="space-y-4">
-                                        <div className="flex items-center justify-between"><h2 className="text-xs font-bold text-zinc-400">{tr("Темы вопросов")}</h2><button onClick={() => { SoundFX.click(); const allActiveIds = CATEGORIES.filter(c => stats.activeByCat[c.id] > 0).map(c => c.id); setSelectedCats(allActiveIds.every(id => selectedCats.includes(id)) ? [] : allActiveIds); }} className="btn-text">{CATEGORIES.filter(c => stats.activeByCat[c.id] > 0).every(c => selectedCats.includes(c.id)) ? tr("Снять все") : tr("Выбрать все")}</button></div>
-                                        <div className="grid grid-cols-2 gap-2.5">
-                                            {CATEGORIES.map(cat => {
-                                                const catActiveCount = stats.activeByCat[cat.id] || 0; const isEmpty = catActiveCount === 0; const isSelected = selectedCats.includes(cat.id) && !isEmpty;
-                                                return ( <button key={cat.id} disabled={isEmpty} onClick={() => toggleCategory(cat.id)} className={`tile ${ isEmpty ? 'opacity-30 border border-white/10 text-zinc-500' : isSelected ? 'topic-pill-active' : 'topic-pill-inactive' }`} > <div className="flex items-center gap-2 min-w-0"><span className="text-base flex-shrink-0 max-[340px]:hidden">{cat.icon}</span><span className="text-[13px] truncate">{catLabel(cat.id, cat.name)}</span></div> <span className={`text-xs font-bold flex-shrink-0 ${isSelected ? 'text-rose-400' : 'text-zinc-500'}`}>{catActiveCount}</span> </button> );
-                                            })}
-                                        </div>
-                                    </div>
-                                    <div className="space-y-4">
-                                        <h2 className="text-xs font-bold text-zinc-400">{tr("Сложность")}</h2>
-                                        <div className="grid grid-cols-3 gap-2.5">
-                                            {DIFFICULTIES.map(diff => ( <button key={diff.id} onClick={() => toggleDiff(diff.id)} className={`btn-tile ${ selectedDiffs.includes(diff.id) ? diff.classBg : '' }`} >{diffLabel(diff.id, diff.name)}</button> ))}
-                                        </div>
-                                    </div>
-                                    <div className="space-y-4">
                                         <h2 className="text-xs font-bold text-zinc-400">{tr("Для кого")}</h2>
                                         <div className="grid grid-cols-2 gap-2.5">
-                                            <button type="button" onClick={() => { SoundFX.toggle(true); setAudienceMode('couple'); }} className={`btn-tile ${ audienceMode === 'couple' ? 'topic-pill-active' : '' }`}>❤️ {tr("Пара")}</button>
-                                            <button type="button" onClick={() => { SoundFX.toggle(true); setAudienceMode('group'); }} className={`btn-tile ${ audienceMode === 'group' ? 'topic-pill-active' : '' }`}>🎉 {tr("Компания")}</button>
+                                            <button type="button" onClick={() => { SoundFX.toggle(true); setAudienceMode('couple'); }} aria-pressed={audienceMode === 'couple'} className={`btn-tile ${ audienceMode === 'couple' ? 'is-on' : '' }`}>❤️ {tr("Пара")}</button>
+                                            <button type="button" onClick={() => { SoundFX.toggle(true); setAudienceMode('group'); }} aria-pressed={audienceMode === 'group'} className={`btn-tile ${ audienceMode === 'group' ? 'is-on' : '' }`}>🎉 {tr("Компания")}</button>
                                         </div>
                                         <p className="text-xs text-zinc-500 leading-snug">{audienceMode === 'couple' ? tr("Все вопросы, в том числе самые откровенные.") : tr("Только вопросы, которые подходят для компании.")}</p>
                                     </div>
@@ -3306,6 +3302,21 @@ if (screen === 'mode_select') {
                                             <button type="button" onClick={handleStartClick} disabled={!profile} aria-disabled={!!startBlock && !isAdmin ? 'true' : undefined} aria-describedby={startBlock ? 'start-hint' : undefined} className={`w-full ${profile ? 'btn-primary' : 'btn-secondary opacity-60 cursor-not-allowed'}`} > <Icons.Play /> {!profile ? tr("Введите имена для игры") : hasSavedGame ? tr("Начать новую игру") : tr("Начать игру")} </button>
                                             <div id="start-hint" aria-live="polite">{startBlock && ( <p key={startErrTick} role={startErrTick ? 'alert' : undefined} className={`inline-error ${startErrTick ? 'shake' : ''}`}><span aria-hidden="true" className="inline-error-i">!</span><span>{startBlock}{isAdmin ? tr(" Тестовый режим доступен и без выбора.") : ''}</span></p> )}</div>
                                             {profile && ( <p className="mt-3.5 text-center text-xs text-zinc-500">{tr("ID сессии:")} <span className="font-semibold text-zinc-300 select-all">{profile.sessionId}</span></p> )}
+                                        </div>
+                                    </div>
+                                    <div className="space-y-4">
+                                        <div className="flex items-center justify-between"><h2 className="text-xs font-bold text-zinc-400">{tr("Темы вопросов")}</h2><button onClick={() => { SoundFX.click(); const allActiveIds = CATEGORIES.filter(c => stats.activeByCat[c.id] > 0).map(c => c.id); setSelectedCats(allActiveIds.every(id => selectedCats.includes(id)) ? [] : allActiveIds); }} className="btn-text">{CATEGORIES.filter(c => stats.activeByCat[c.id] > 0).every(c => selectedCats.includes(c.id)) ? tr("Снять все") : tr("Выбрать все")}</button></div>
+                                        <div className="grid grid-cols-2 gap-2.5">
+                                            {CATEGORIES.map(cat => {
+                                                const catActiveCount = stats.activeByCat[cat.id] || 0; const isEmpty = catActiveCount === 0; const isSelected = selectedCats.includes(cat.id) && !isEmpty;
+                                                return ( <button key={cat.id} disabled={isEmpty} onClick={() => toggleCategory(cat.id)} className={`tile ${ isEmpty ? 'opacity-30 border border-white/10 text-zinc-500' : isSelected ? 'topic-pill-active' : 'topic-pill-inactive' }`} > <div className="flex items-center gap-2 min-w-0"><span className="text-base flex-shrink-0 max-[340px]:hidden">{cat.icon}</span><span className="text-[13px] truncate">{catLabel(cat.id, cat.name)}</span></div> <span className={`text-xs font-bold flex-shrink-0 ${isSelected ? 'text-rose-400' : 'text-zinc-500'}`}>{catActiveCount}</span> </button> );
+                                            })}
+                                        </div>
+                                    </div>
+                                    <div className="space-y-4">
+                                        <h2 className="text-xs font-bold text-zinc-400">{tr("Сложность")}</h2>
+                                        <div className="grid grid-cols-3 gap-2.5">
+                                            {DIFFICULTIES.map(diff => ( <button key={diff.id} onClick={() => toggleDiff(diff.id)} className={`btn-tile ${ selectedDiffs.includes(diff.id) ? diff.classBg : '' }`} >{diffLabel(diff.id, diff.name)}</button> ))}
                                         </div>
                                     </div>
                                 </div>
@@ -3369,6 +3380,7 @@ if (screen === 'mode_select') {
                             {showNextPeek && ( <div ref={peekNextRef} aria-hidden="true" data-peek="next" className="absolute inset-0 z-[5] rounded-[28px] border border-white/10 bg-gradient-to-b from-[#1b1824] to-[#100e16] px-6 pt-9 pb-6 flex flex-col items-center justify-center text-center pointer-events-none select-none overflow-hidden" style={{ opacity: 0, filter: 'blur(11px) brightness(0.9)', willChange: 'transform, opacity' }}>{peekBody(nextQ)}</div> )}
                             {showPrevPeek && ( <div ref={peekPrevRef} aria-hidden="true" data-peek="prev" className="absolute inset-0 z-[5] rounded-[28px] border border-white/10 bg-gradient-to-b from-[#1b1824] to-[#100e16] px-6 pt-9 pb-6 flex flex-col items-center justify-center text-center pointer-events-none select-none overflow-hidden" style={{ opacity: 0, filter: 'grayscale(0.75) brightness(0.82)', willChange: 'transform, opacity' }}>{peekBody(prevQ)}</div> )}
                             <div ref={cardRef} className="relative z-10 w-full" style={{ willChange: 'transform, opacity', touchAction: 'pan-y' }}>
+                            <div ref={glowRef} aria-hidden="true" className="swipe-glow" data-side="right" data-ok="yes"><span className="swipe-shine"></span></div>
                             {swipeHint && ( <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10 px-3 py-1 rounded-full text-xs font-bold bg-white/[0.10] border border-white/[0.16] text-zinc-100 pointer-events-none fade-in">{swipeHint}</div> )}
                             <div className="relative w-full flex flex-col items-center justify-center slide-up rounded-[28px] border border-white/10 bg-gradient-to-b from-[#1b1824] to-[#100e16] px-6 pt-7 pb-6 sm:px-8 shadow-[0_32px_64px_-24px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.07)]" style={{ minHeight: 'min(60dvh, 540px)' }} key={currentQ.dbKey + '_' + currentIndex}>
                                 <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 h-7 rounded-full bg-[#1b1824] border border-white/[0.16] flex items-center gap-2 text-xs font-bold text-zinc-300 whitespace-nowrap">{tr("Вопрос №")} {currentQ.num} {gameMode === 'test' && currentQ.archived && ( <span className="text-xs px-1.5 rounded bg-white/[0.10] text-zinc-300">{tr("В архиве")}</span> )}</div>
