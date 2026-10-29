@@ -1146,7 +1146,10 @@ i18nSetLang(readStoredLang());
             const [inviteFrom, setInviteFrom] = useState('app_menu');
             const openInvite = (from) => { SoundFX.click(); setInviteFrom(from); navigate('invite'); };
             // экраны партии без самой партии (перезагрузка, прямой адрес) -> главная
-            useEffect(() => { if ((screen === 'tod_play' || screen === 'tod_results') && !todGame) { try { window.history.replaceState(null, '', window.location.pathname + window.location.search + '#/'); } catch (e) {} setScreenState('menu'); } }, [screen, todGame]);
+            // после перезагрузки на #/tod/play или #/tod/results партию сначала ищем в канале сессии (эффект возврата ниже), и только потом уводим на главную
+            const [todResuming, setTodResuming] = useState(() => /^#\/tod\/(?:play|results)(?:[/?]|$)/.test(window.location.hash || ''));
+            const [todClassicBusy, setTodClassicBusy] = useState(false); // в сессии идёт классическая живая игра: новую партию «Правды или действия» не начинаем
+            useEffect(() => { if ((screen === 'tod_play' || screen === 'tod_results') && !todGame && !todResuming) { try { window.history.replaceState(null, '', window.location.pathname + window.location.search + '#/'); } catch (e) {} setScreenState('menu'); } }, [screen, todGame, todResuming]);
             const [addForm, setAddForm] = useState({ text: '', cat: 'family', diff: 'Простые', targetId: '', aud: 'both' }); const [addStatus, setAddStatus] = useState(null); const [isSaving, setIsSaving] = useState(false); const [isGeneratingQuestion, setIsGeneratingQuestion] = useState(false);
             const [editingQuestion, setEditingQuestion] = useState(null); const [editForm, setEditForm] = useState({ text: '', cat: 'family', diff: 'Простые', targetId: '', aud: 'both' }); const [returnScreen, setReturnScreen] = useState('menu'); const [confirmModal, setConfirmModal] = useState(null); const [resultModal, setResultModal] = useState(null);
 
@@ -1887,6 +1890,7 @@ i18nSetLang(readStoredLang());
             const todBlock = (() => {
                 const n = profile && Array.isArray(profile.players) ? profile.players.length : 0;
                 if (n < 2) return tr('Нужно минимум два игрока: добавьте игроков в сессии.');
+                if (todClassicBusy) return tr('В сессии идёт классическая игра — завершите её');
                 const d = todBuildDeck(todCards, { hard: todCfg.hard, seed: 'check' });
                 if (!d.pools.truth.length) return tr('Нет карточек «Правда»: без них игру не начать.');
                 if (!['dare.easy', 'dare.medium', 'dare.hard'].some(k => d.pools[k].length)) return tr('Нет карточек «Действие»: без них игру не начать.');
@@ -2338,6 +2342,43 @@ i18nSetLang(readStoredLang());
                     todExtraRef.current = { ...todExtraRef.current, [id]: card }; setTodExtra(todExtraRef.current);
                 })();
             }, [screen, todCards, todGame && todGame.card && todGame.card.id]);
+            // возврат после перезагрузки: ждём профиль и комнату сессии, читаем канал с колодой. active — снова в игре (без повторного 18+), ended — итоги,
+            // пусто или испорчено — главная с заменой адреса на #/
+            useEffect(() => {
+                if (!todResuming) return;
+                if (!profile || !isValidAESKey(profile.sessionKey)) { setTodResuming(false); return; }
+                if (!liveRoomId) return;
+                let on = true;
+                (async () => {
+                    let r = null; try { r = await todChannelApi().read(liveRoomId, { deck: true }); } catch (e) {}
+                    if (!on) return;
+                    const ok = r && r.deck && r.state && (r.status === 'active' || r.status === 'ended');
+                    if (ok) {
+                        todRoomRef.current = r.status === 'active' ? liveRoomId : ''; todVerRef.current = r.ver; todSentRef.current = 0; todForceRef.current = false;
+                        setTodDeck(r.deck); todDeckRef.current = r.deck; setTodGame(r.state); todTapRef.current = Date.now();
+                        const want = r.status === 'active' && r.state.phase !== 'ended' ? 'tod_play' : 'tod_results';
+                        if (want === 'tod_play') todChannelApi().beat(liveRoomId).catch(() => {});
+                        if (screen !== want) { try { window.history.replaceState(null, '', window.location.pathname + window.location.search + SCREEN_TO_HASH[want]); } catch (e) {} setScreenState(want); }
+                    } else { try { window.history.replaceState(null, '', window.location.pathname + window.location.search + '#/'); } catch (e) {} setScreenState('menu'); }
+                    setTodResuming(false);
+                })();
+                return () => { on = false; };
+            }, [todResuming, profile, liveRoomId]);
+            // в лобби смотрим классическую комнату сессии: пока в ней идёт живая игра, старт заблокирован
+            useEffect(() => {
+                if (screen !== 'tod_lobby' || !liveRoomId) { setTodClassicBusy(false); return; }
+                let stop = false, busy = false;
+                const check = async () => {
+                    if (busy || stop || document.hidden) return; busy = true;
+                    try {
+                        const sr = await fetchWithTimeout(roomUrl(liveRoomId, '/status') + '?t=' + Date.now(), {}, 6000); const status = sr.ok ? await sr.json() : null;
+                        let on = false;
+                        if (status === 'active') { const pr = await fetchWithTimeout(roomUrl(liveRoomId, '/p') + '?t=' + Date.now(), {}, 6000); const p = pr.ok ? await pr.json() : null; on = liveAlive(p, Date.now(), deviceIdRef.current).alive.length > 0; }
+                        if (!stop) setTodClassicBusy(on);
+                    } catch (e) {} finally { busy = false; }
+                };
+                check(); const id = setInterval(check, LIVE_INVITE_MS); return () => { stop = true; clearInterval(id); };
+            }, [screen, liveRoomId]);
             // выход из игры одного устройства не завершает её для остальных: просто убираем свою отметку
             const liveLeave = () => {
                 const room = liveRoomRef.current, me = deviceIdRef.current;
@@ -2866,6 +2907,9 @@ if (screen === 'app_menu') {
                 </>
             );
             const todAgain = () => { todLeave(); setTodGame(null); navigate('tod_lobby'); };
+            if ((screen === 'tod_play' || screen === 'tod_results') && !todGame) {
+                return <div className="safe-screen w-full flex flex-col items-center justify-center relative z-10"><p className="text-sm text-zinc-400 text-center" role="status">{tr('Загружаем игру…')}</p></div>;
+            }
             if (screen === 'tod_lobby') {
                 return <TodLobby ui={todUi} players={profile ? profile.players : []} cfg={todCfg} setCfg={setTodCfg} deviceCount={1 + todPeers} block={todBlock} onStart={todBegin} onShare={() => openInvite('tod_lobby')} onBack={() => navigate('mode_select')} banner={todInviteBanner} />;
             }

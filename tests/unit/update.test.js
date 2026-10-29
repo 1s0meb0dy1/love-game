@@ -9,4 +9,6 @@ T('итоги партии #/summary и экраны с вводом или се
 T('главная, меню, настройка, архив, «Об игре» — не партия: можно обновляться', ['#/', '#/more', '#/mode', '#/setup', '#/archive', '#/about', '#/invite', '#/privacy', ''].every(h => !inGameHash(h)));
 T('похожие адреса не считаются партией (#/playlist, #/aid)', !inGameHash('#/playlist') && !inGameHash('#/aid') && !inGameHash('#/about') && !inGameHash('#/summaries') && !inGameHash('#/profiles'));
 T('пустое и странное значение не ломает проверку', !inGameHash(undefined) && !inGameHash(null) && !inGameHash(42));
+T('партия «Правда или действие»: #/tod, #/tod/play, #/tod/results, #/tod/manage, #/tod?x=1 — без перезагрузки', ['#/tod', '#/tod/play', '#/tod/results', '#/tod/manage', '#/tod?x=1'].every(inGameHash));
+T('похожие на #/tod адреса (#/todo, #/topics) — не партия', !inGameHash('#/todo') && !inGameHash('#/topics'));
 console.log(res.join('\n')); console.log('--- captured runtime errors: 0'); process.exit(0);

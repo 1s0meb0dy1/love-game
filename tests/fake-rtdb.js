@@ -88,6 +88,7 @@ module.exports = function makeFakeRtdb(opts = {}) {
     deck: () => { const k = mainRooms()[0]; return k && root.live[k + '_d'] ? clone(root.live[k + '_d']) : null; },
     // канал режима «Правда или действие» (live/<комната>_t): { ver, by, t, status, p, ids, st } или null
     todRoom: () => { const k = Object.keys(root.live || {}).find(isTodRoom); return k ? clone(root.live[k]) : null; },
+    todRoomKey: () => Object.keys(root.live || {}).find(isTodRoom) || null,
     // карточки узла tod: { <id>: карточка } (копия); seedTod кладёт карточки по id в обход правил, остальные не трогает
     tod: () => clone(root.tod || {}),
     seedTod: (map) => { Object.entries(map).forEach(([id, c]) => setAt(['tod', id], c)); },

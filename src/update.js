@@ -1,3 +1,3 @@
 // Адреса экранов, на которых нельзя перезагружать страницу: идёт партия (игра и разбор ответа), её итоги, а также экраны с вводом или секретом в памяти
 // (приглашение, создание и правка сессии, профиль, добавление вопроса): перезагрузка стёрла бы набранное. См. src/main.jsx.
-export const inGameHash = (hash) => /^#\/(?:play|ai|summary|join|welcome|session-ready|profile|add|edit|admin)(?:[/?]|$)/.test(String(hash || ''));
+export const inGameHash = (hash) => /^#\/(?:play|ai|summary|join|welcome|session-ready|profile|add|edit|admin|tod)(?:[/?]|$)/.test(String(hash || ''));
