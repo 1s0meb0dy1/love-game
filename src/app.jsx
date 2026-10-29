@@ -17,6 +17,7 @@ import { todPickBanter } from './tod/talk.js';
 import { todTitles } from './tod/titles.js';
 import { TodArchive, TodAdmin, TodLobby, TodGame, TodResults, TodAdultModal } from './tod/screens.jsx';
 import { todChannel } from './tod/channel.js';
+import { aiAsk } from './ai/client.js';
 const ReactDOM = { ...ReactDOMAll, createRoot };
 
 // Рання ініціалізація мови з localStorage (щоб t() працювала ще до монтування React).
@@ -787,24 +788,14 @@ i18nSetLang(readStoredLang());
             </footer>
         );
 
-        const callNeuralNet = async (systemPrompt, userPrompt, maxTokens = 900, signal) => {
-            const randomSeed = Math.floor(Math.random() * 10000000);
-            try { const response = await fetchWithTimeout("https://text.pollinations.ai/openai", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: "openai", max_tokens: maxTokens, seed: randomSeed, temperature: 0.92, messages: [ { role: "system", content: systemPrompt }, { role: "user", content: userPrompt } ] }), signal }); if (response.ok) { const data = await response.json(); const content = data?.choices?.[0]?.message?.content; if (content) return content.trim(); } } catch (e) {}
-            return null;
-        };
-
         // Визначити, чи текст українською (за специфічними літерами).
-        const looksUkrainian = (s) => /[іїєґІЇЄҐ]|ʼ|ʼ/.test(String(s || ''));
-        // Автопереклад короткого тексту через Pollinations. target: 'uk' | 'ru'. Повертає переклад або "".
+        const looksUkrainian = (s) => /[іїєґІЇЄҐ]|ʼ/.test(String(s || ''));
+        // Автопереклад короткого тексту (через src/ai/client.js: проксі → Pollinations). target: 'uk' | 'ru'. Повертає переклад або "".
         const translateText = async (text, target) => {
             const clean = String(text || '').replace(/^№\s*\d+\.\s*/, '').trim();
             if (!clean) return '';
-            const sys = target === 'uk'
-                ? "Ти професійний перекладач з російської на українську. Виводь ЛИШЕ переклад, природною грамотною українською, звертання на 'ти'. Якщо є форми роду '(а)','(ла)' — передай українськими відповідниками для обох родів. Без пояснень і лапок навколо."
-                : "Ты профессиональный переводчик с украинского на русский. Выводи ТОЛЬКО перевод, естественным грамотным русским, обращение на 'ты'. Если есть формы рода '(а)','(ла)' — сохрани их. Без пояснений и кавычек вокруг.";
-            const out = await callNeuralNet(sys, "Переклади / Переведи:\n" + clean, 400);
-            if (!out) return '';
-            return out.replace(/^\s*\d+[\.\)]\s*/, '').replace(/^["'«»\s]+|["'«»\s]+$/g, '').trim();
+            const { text: out } = await aiAsk({ type: 'translate', text: clean, to: target, lang: target });
+            return out ? out.replace(/^\s*\d+[\.\)]\s*/, '').replace(/^["'«»\s]+|["'«»\s]+$/g, '').trim() : '';
         };
         // Побудувати пару {ru, uk} з уведеного адміном тексту (мова визначається автоматично).
         const buildBilingual = async (typed) => {
@@ -813,32 +804,22 @@ i18nSetLang(readStoredLang());
             const uk = await translateText(clean, 'uk'); return { ru: clean, uk: uk || '' };
         };
 
-        const synthesizeSmartFallback = (promptType, cleanQuestion, catId, p1Name, p2Name) => {
-            const catObj = CATEGORIES.find(c => c.id === catId) || CATEGORIES[0];
-            const settings = [ `Поздний вечер, за окном мягко светятся огни ночного города, а мы сидим в полумраке с чашками горячего чая`, `Мы едем в машине по ночной трассе, играет тихий плейлист, и атмосфера располагает к откровенности` ];
-            const chosenSetting = settings[Math.floor(Math.random() * settings.length)];
-
-            if (promptType === "situation") { return `🎬 Моделирование ситуации:\n${chosenSetting}. Я ловлю твой взгляд, делаю паузу и с искренним любопытством спрашиваю: «${cleanQuestion}»\n\n👩👨 Как бы ответили большинство:\n• Для большинства это вопрос про эмоциональный подтекст, чувство безопасности и доверие.\n• Кто-то склонен воспринимать такой вопрос более прямолинейно и практично.`; }
-            return `Сервис подсказок сейчас недоступен.\n\nОбсудите вопрос «${cleanQuestion}» в своём темпе: что вы чувствуете, чего хотите и какие границы важны. Это общая подсказка для разговора.`;
+        // «Ситуація» / «Порада»: питання й тема — мовою інтерфейсу, імена гравців не передаються (лише кількість); onChunk — текст потоком
+        const fetchFromAI = async (promptType, questionText, catId, playersCount, signal, onChunk) => {
+            const cleanQuestion = String(questionText || '').replace(/^№\s*\d+\.\s*/, '').trim(); const catObj = CATEGORIES.find(c => c.id === catId);
+            const { text } = await aiAsk({ type: promptType === 'situation' ? 'situation' : 'advice', lang: getLang(), question: cleanQuestion, category: catObj ? catLabel(catObj.id, catObj.name) : '', players: playersCount }, { signal, onChunk });
+            return text;
         };
 
-        const fetchFromAI = async (promptType, questionText, catId, pNames, signal) => {
-            const cleanQuestion = questionText.replace(/^№\s*\d+\.\s*/, '').trim(); const catObj = CATEGORIES.find(c => c.id === catId); const catName = catObj ? catObj.name : "Отношения"; const randomSeed = Math.floor(Math.random() * 999999);
-            let systemPrompt = "", userPrompt = "";
-            if (promptType === "situation") { systemPrompt = "Ты креативный сценарист и психолог отношений. Пиши живо, реалистично, без шаблонов."; userPrompt = `Мы играем (${pNames}). Вопрос из темы "${catName}": "${cleanQuestion}". Сгенерируй новый ответ (код ${randomSeed}) из 2 блоков:\n\n🎬 Моделирование ситуации:\n(1 реалистичная жизненная ситуация из 3 предложений, которая происходит с нами сейчас и подводит к вопросу "${cleanQuestion}". От первого лица "мы").\n\n👩👨 Как бы ответили большинство девушек и парней:\n(Как на этот вопрос обычно отвечают).`; }
-            else { systemPrompt = "Ты практикующий семейный психотерапевт и сексолог."; userPrompt = `Разбери вопрос для игроков (${pNames}) из темы "${catName}": "${cleanQuestion}" (код ${randomSeed}) строго по 6 пунктам:\n\n🧠 Как лучше поступить в этой ситуации:\n👩👨 Как обычно отвечают большинство девушек и парней:\n💡 Интересные факты:\n📊 Статистика:\n🔗 Как это влияет на отношения:\n🛠️ Психологические советы:`; }
-            if (getLang() === 'uk') systemPrompt += " Відповідай українською мовою, зберігаючи ці самі emoji-заголовки блоків.";
-            const netResponse = await callNeuralNet(systemPrompt, userPrompt, 950, signal);
-            if (netResponse) return netResponse; return synthesizeSmartFallback(promptType, cleanQuestion, catId, pNames);
-        };
-
-        const generateUniqueQuestionAI = async (targetCat, targetDiff, allExistingQuestions, pNames) => {
-            const existingSet = new Set(allExistingQuestions.map(q => (q.cleanText || "").toLowerCase().trim()));
-            const diffDesc = targetDiff.id === "Простые" ? "Легкий (прямой, жизненный или пикантный вопрос)" : targetDiff.id === "Средние" ? "Средний (вопрос про личный опыт, желания или отношения)" : "Глубокий (максимально откровенный, психологический или провокационный вопрос)";
-            const systemPrompt = "Ты автор глубоких и острых игр."; const userPrompt = `Придумай ОДИН совершенно новый, уникальный вопрос для игроков (${pNames}). Тема: "${targetCat.name}". Сложность: "${targetDiff.name}" — ${diffDesc}. Код вариации: ${Math.floor(Math.random() * 999999)}. Выведи ТОЛЬКО чистый текст самого вопроса на русском языке на "ты" без кавычек и без номера.`;
-            const aiResult = await callNeuralNet(systemPrompt, userPrompt, 150);
-            if (aiResult) { const cleaned = aiResult.replace(/^["«№\d\.\-\s]+|["»]+$/g, '').trim(); if (cleaned.length > 10 && !existingSet.has(cleaned.toLowerCase())) return cleaned; }
-            return "Какой совет об отношениях ты считаешь самым устаревшим и неправильным?";
+        // нове питання для адмінки: текст мовою інтерфейсу, без повторів наявних
+        const generateUniqueQuestionAI = async (targetCat, targetDiff, allExistingQuestions) => {
+            const existingSet = new Set(allExistingQuestions.flatMap(q => [q.cleanText, q.cleanTextUk]).filter(Boolean).map(x => x.toLowerCase().trim()));
+            for (let i = 0; i < 2; i++) {
+                const { text } = await aiAsk({ type: 'question', lang: getLang(), category: catLabel(targetCat.id, targetCat.name), text: diffLabel(targetDiff.id, targetDiff.name) });
+                const cleaned = String(text || '').replace(/^["«№\d\.\-\s]+|["»]+$/g, '').trim();
+                if (cleaned.length > 10 && !existingSet.has(cleaned.toLowerCase())) return cleaned;
+            }
+            return '';
         };
 
         const reindexSequential = (items) => { return items.map((item, idx) => { const seqNum = idx + 1; const clean = item.cleanText || String(item.text || '').replace(/^№\s*\d+\.\s*/, '').trim(); return { ...item, num: seqNum, cleanText: clean, text: `№ ${seqNum}. ${clean}` }; }); };
@@ -2560,15 +2541,16 @@ i18nSetLang(readStoredLang());
                 SoundFX.magic(); setAiType(type); setAiContent(tr('Готовлю подсказку…')); setIsAiTyping(true); navigate('ai_response');
                 // Начало эффекта нового экрана не меняет id; cleanup старого экрана отменяет только свою работу.
                 try {
-                    const names = (profile?.players || []).map((p, i) => 'Игрок ' + (i + 1)).join(' и ');
-                    const response = await fetchFromAI(type, q.cleanText || q.text, q.categoryId, names, controller.signal);
+                    const qText = (lang === 'uk' && q.cleanTextUk) ? q.cleanTextUk : (q.cleanText || q.text);
+                    const onChunk = (t) => { if (!controller.signal.aborted && aiRequestRef.current.id === id && t) setAiContent(String(t).slice(0, 12000)); };
+                    const response = await fetchFromAI(type, qText, q.categoryId, (profile?.players || []).length, controller.signal, onChunk);
                     if (controller.signal.aborted || aiRequestRef.current.id !== id) return;
                     setAiContent(String(response).slice(0, 12000));
                 } catch (error) { if (!controller.signal.aborted && aiRequestRef.current.id === id) setAiContent(tr('Подсказка недоступна. Попробуйте ещё раз')); }
                 finally { if (aiRequestRef.current.id === id) setIsAiTyping(false); }
             };
 
-            const handleGenerateQuestionAI = async () => { if (!isAdmin || isGeneratingQuestion || !ActionGuard.canProceed(800)) return; SoundFX.magic(); setIsGeneratingQuestion(true); try { const randomCat = CATEGORIES[Math.floor(Math.random() * CATEGORIES.length)]; const randomDiff = DIFFICULTIES[Math.floor(Math.random() * DIFFICULTIES.length)]; const pNames = (profile?.players || []).map((p, i) => "Игрок " + (i + 1)).join(" и ") || tr("Пара"); const generatedText = await generateUniqueQuestionAI(randomCat, randomDiff, db, pNames); if (generatedText) { SoundFX.success(); setAddForm({ text: generatedText, cat: randomCat.id, diff: randomDiff.id, targetId: '', aud: 'both' }); } } catch (err) {} finally { setIsGeneratingQuestion(false); } };
+            const handleGenerateQuestionAI = async () => { if (!isAdmin || isGeneratingQuestion || !ActionGuard.canProceed(800)) return; SoundFX.magic(); setIsGeneratingQuestion(true); try { const randomCat = CATEGORIES[Math.floor(Math.random() * CATEGORIES.length)]; const randomDiff = DIFFICULTIES[Math.floor(Math.random() * DIFFICULTIES.length)]; const generatedText = await generateUniqueQuestionAI(randomCat, randomDiff, db); if (generatedText) { SoundFX.success(); setAddForm({ text: generatedText, cat: randomCat.id, diff: randomDiff.id, targetId: '', aud: 'both' }); } } catch (err) {} finally { setIsGeneratingQuestion(false); } };
             const openEditScreen = (questionObj, fromScreen) => { if (!isAdmin) return; SoundFX.click(); setEditingQuestion(questionObj); setEditForm({ text: (lang === 'uk' && questionObj.cleanTextUk) ? questionObj.cleanTextUk : (questionObj.cleanText || questionObj.text.replace(/^№\s*\d+\.\s*/, '')), cat: questionObj.categoryId, diff: questionObj.level, targetId: String(questionObj.targetId || '').startsWith('aud_') ? '' : questionObj.targetId || '', savedTarget: String(questionObj.targetId || '').startsWith('aud_') ? questionObj.targetId : '', aud: questionObj.audience || 'both' }); setReturnScreen(fromScreen); setConfirmModal(null); setResultModal(null); navigate('edit_q'); };
 
             // Фоновий автопереклад: не блокує збереження. Рахує пару ru/uk і дописує text_uk у Firebase + локально.

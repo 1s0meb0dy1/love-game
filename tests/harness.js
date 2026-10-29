@@ -15,7 +15,7 @@ module.exports = (opts = {}) => {
   // раскрываются так же (каждый файл один раз, зависимость раньше зависимого), поэтому app.jsx не обязан импортировать то, что нужно только модулю.
   const seen = new Set();
   const inline = (src, dir) => src.replace(/^import \{[^}]*\} from '(\.{1,2}\/[\w\/-]+\.jsx?)';[ \t]*$/gm, (m, rel) => {
-    const file = path.resolve(dir, rel); if (!/[\\/]src[\\/](content|tod)[\\/][\w-]+\.jsx?$/.test(file)) return m; // остальные импорты убираются ниже
+    const file = path.resolve(dir, rel); if (!/[\\/]src[\\/](content|tod|ai)[\\/][\w-]+\.jsx?$/.test(file)) return m; // остальные импорты убираются ниже
     if (seen.has(file)) return ''; seen.add(file);
     return inline(fs.readFileSync(file, 'utf8'), path.dirname(file)).replace(/^export /gm, '');
   });
