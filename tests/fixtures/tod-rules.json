@@ -20,6 +20,9 @@
    "text_uk": {
      ".validate": "newData.isString() && newData.val().length <= 300"
    },
+   "text_en": {
+     ".validate": "newData.isString() && newData.val().length <= 300"
+   },
    "isActive": {
     ".validate": "newData.isBoolean()"
    },

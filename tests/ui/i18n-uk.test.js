@@ -6,7 +6,7 @@ const ADMIN = process.env.FLOW === 'admin';
 if (ADMIN) w.localStorage.setItem('askme_auth_v2', JSON.stringify({ owner: { idToken: 't', refreshToken: 'r', expiresAt: Date.now() + 3.6e6 } }));
 const RU_ONLY = /[ыэъёЫЭЪЁ]/;
 // друга ознака: рядок дорівнює російському ключу словника (або містить довгий ключ), для якого є інший український переклад
-const i18nSrc = fs.readFileSync(require('path').join(__dirname, '../../src/i18n.js'), 'utf8');
+const i18nSrc = fs.readFileSync(require('path').join(__dirname, '../../src/i18n-en.js'), 'utf8') + '\n' + fs.readFileSync(require('path').join(__dirname, '../../src/i18n.js'), 'utf8').replace(/^import .*$/gm, '');
 const UKD = new Function(i18nSrc.replace(/^export /gm, '') + '\nreturn UK;')();
 const ruKeys = Object.keys(UKD).filter(k => UKD[k] !== k && /[А-Яа-яЁё]{3,}/.test(k));
 const ruExact = new Set(ruKeys.map(k => k.trim())); const ruLong = ruKeys.filter(k => k.trim().length >= 14);

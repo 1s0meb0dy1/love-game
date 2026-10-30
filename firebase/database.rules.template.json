@@ -19,6 +19,15 @@
         "text": {
           ".validate": "newData.isString() && newData.val().length <= 599"
         },
+        "text_uk": {
+          ".validate": "newData.isString() && newData.val().length <= 599"
+        },
+        "text_en": {
+          ".validate": "newData.isString() && newData.val().length <= 599"
+        },
+        "audience": {
+          ".validate": "newData.val() === 'couple' || newData.val() === 'both' || newData.val() === 'group'"
+        },
         "targetId": {
           ".validate": "newData.isString() && (newData.val() === '' || newData.val().matches(/^aud_[a-f0-9]{64}$/))"
         },
@@ -537,6 +546,9 @@
           ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 300"
         },
         "text_uk": {
+          ".validate": "newData.isString() && newData.val().length <= 300"
+        },
+        "text_en": {
           ".validate": "newData.isString() && newData.val().length <= 300"
         },
         "isActive": {

@@ -6,7 +6,8 @@ module.exports = (opts = {}) => {
   const helpers = fs.readFileSync(path.join(root, 'src/session-io.js'), 'utf8').replace(/^export /gm, '');
   // модуль локалізації src/i18n.js — вставляємо прямо в код (без `export`) і відновлюємо псевдоніми з рядка імпорту
   const withI18n = appSrc.replace(/^import \{([^}]*)\} from '\.\/i18n\.js';[ \t]*$/gm, (m, names) => {
-    const body = fs.readFileSync(path.join(root, 'src/i18n.js'), 'utf8').replace(/^export /gm, '');
+    // англійський словник src/i18n-en.js іде першим: i18n.js імпортує його однорядковим імпортом, який тут прибирається
+    const body = (fs.readFileSync(path.join(root, 'src/i18n-en.js'), 'utf8') + '\n' + fs.readFileSync(path.join(root, 'src/i18n.js'), 'utf8').replace(/^import .*$/gm, '')).replace(/^export /gm, '');
     const aliases = names.split(',').map(s => s.trim()).filter(Boolean).map(tok => { const mm = tok.match(/^(\w+)\s+as\s+(\w+)$/); return mm ? `const ${mm[2]} = ${mm[1]};` : ''; }).filter(Boolean).join(' ');
     return body + '\n' + aliases + '\n';
   });

@@ -5,7 +5,7 @@ import React from 'react';
 import { HIST_MAX, histBadge, histTotals } from './model.js';
 import { t as tr, tf, getLang } from '../i18n.js';
 
-const histLocale = (lang) => (lang === 'uk' ? 'uk-UA' : 'ru-RU');
+const histLocale = (lang) => (lang === 'uk' ? 'uk-UA' : lang === 'en' ? 'en-US' : 'ru-RU');
 // «Сегодня», «Вчера» или дата словами («12 октября», с годом, если не этот)
 export const histDayLabel = (t, now, lang) => {
   const d = new Date(t); const n = new Date(now);

@@ -1,9 +1,11 @@
-// Локалізація ASK ME — uk (за замовчуванням) та ru.
-// Ключ словника UK — російський оригінал (джерело правди в коді), значення — український переклад.
+// Локалізація ASK ME — uk (за замовчуванням), en та ru.
+// Ключ словників UK і EN (src/i18n-en.js) — російський оригінал (джерело правди в коді), значення — переклад.
 // Відсутній переклад м'яко падає на російський оригінал, тож інтерфейс ніколи не ламається.
 // Промпти до ШІ навмисно НЕ локалізуються (це інструкції моделі, не інтерфейс).
 
-export const SUPPORTED_LANGS = ['uk', 'ru'];
+import { EN, CATEGORY_EN, DIFFICULTY_EN } from './i18n-en.js';
+
+export const SUPPORTED_LANGS = ['uk', 'en', 'ru'];
 export const DEFAULT_LANG = 'uk';
 export const LANG_STORAGE_KEY = 'askme_lang_v1';
 
@@ -24,6 +26,7 @@ export const DIFFICULTY_UK = {
 export const AUDIENCE_LABELS = {
   ru: { couple: "Для пары", both: "Пара и компания", group: "Для компании" },
   uk: { couple: "Для пари", both: "Пара і компанія", group: "Для компанії" },
+  en: { couple: "For couples", both: "Couples & groups", group: "For groups" },
 };
 
 // Словник інтерфейсу: російський оригінал -> український переклад.
@@ -1050,20 +1053,41 @@ let CURRENT_LANG = DEFAULT_LANG;
 export const getLang = () => CURRENT_LANG;
 export const setLang = (l) => { CURRENT_LANG = SUPPORTED_LANGS.includes(l) ? l : DEFAULT_LANG; };
 
+// Мова пристрою для першого входу (поки людина не обрала мову сама): uk / en / ru за списком мов браузера, інакше uk.
+export const detectLang = (langs) => {
+  for (const raw of (Array.isArray(langs) ? langs : [])) {
+    const code = String(raw || '').toLowerCase().split(/[-_]/)[0];
+    if (SUPPORTED_LANGS.includes(code)) return code;
+  }
+  return DEFAULT_LANG;
+};
+
 // Переклад UI-рядка. Якщо мова ru або перекладу немає — повертає оригінал.
+const DICTS = { uk: UK, en: EN };
 export const t = (s) => {
-  if (CURRENT_LANG !== 'uk') return s;
-  return (Object.prototype.hasOwnProperty.call(UK, s) ? UK[s] : s);
+  const d = DICTS[CURRENT_LANG]; if (!d) return s;
+  return (Object.prototype.hasOwnProperty.call(d, s) ? d[s] : s);
 };
 
 // Переклад рядка з підстановками: tf('Залишилось {n} с', { n: 5 }). Ключ словника — шаблон з {іменами}.
 export const tf = (s, vars = {}) => t(s).replace(/\{(\w+)\}/g, (m, k) => (Object.prototype.hasOwnProperty.call(vars, k) ? String(vars[k]) : m));
 
 // Назва категорії за поточною мовою (fallback — передана ru-назва).
-export const catName = (id, ruName) => (CURRENT_LANG === 'uk' && CATEGORY_UK[id]) ? CATEGORY_UK[id] : ruName;
+const CATS = { uk: CATEGORY_UK, en: CATEGORY_EN };
+export const catName = (id, ruName) => (CATS[CURRENT_LANG] && CATS[CURRENT_LANG][id]) ? CATS[CURRENT_LANG][id] : ruName;
 
 // Назва рівня складності за поточною мовою.
-export const diffName = (id, ruName) => (CURRENT_LANG === 'uk' && DIFFICULTY_UK[id]) ? DIFFICULTY_UK[id] : ruName;
+const DIFFS = { uk: DIFFICULTY_UK, en: DIFFICULTY_EN };
+export const diffName = (id, ruName) => (DIFFS[CURRENT_LANG] && DIFFS[CURRENT_LANG][id]) ? DIFFS[CURRENT_LANG][id] : ruName;
 
 // Підпис аудиторії.
 export const audienceLabel = (aud) => (AUDIENCE_LABELS[CURRENT_LANG] || AUDIENCE_LABELS.ru)[aud] || '';
+
+// Текст із бази (питання, картка) за мовою: uk -> text_uk, en -> text_en, з м'яким фолбеком на ru.
+export const pickText = (lang, ru, uk, en) => {
+  const v = lang === 'uk' ? uk : lang === 'en' ? en : '';
+  return (typeof v === 'string' && v.trim()) ? v : ru;
+};
+
+// Локаль для дат і чисел.
+export const dateLocale = (lang) => (lang === 'uk' ? 'uk-UA' : lang === 'en' ? 'en-US' : 'ru-RU');

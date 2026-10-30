@@ -120,7 +120,7 @@ export const TodAdmin = ({ ui, cards, source, isAdmin, onSave, onSeed, onBack, i
     if (busy) return;
     const clean = todCleanCard({ id: 'td_x', type: fmType, difficulty: fmLevel, text: fmText, isActive: true });
     if (!clean) { ui.SoundFX.warn(); setErr(tr("Введите текст карточки")); return; }
-    const twin = list.find(c => c.type === fmType && c.id !== edit && (todNorm(c.text) === todNorm(clean.text) || (c.text_uk && todNorm(c.text_uk) === todNorm(clean.text))));
+    const twin = list.find(c => c.type === fmType && c.id !== edit && (todNorm(c.text) === todNorm(clean.text) || (c.text_uk && todNorm(c.text_uk) === todNorm(clean.text)) || (c.text_en && todNorm(c.text_en) === todNorm(clean.text))));
     if (twin) { ui.SoundFX.warn(); setErr(twin.isActive === true ? tr("Такая карточка уже есть") : tr("Такая карточка уже есть, но скрыта: найдите её в списке и нажмите «Показать»")); return; }
     const existing = edit !== 'new' ? list.find(c => c.id === edit) : null;
     if (edit !== 'new' && !existing) { ui.SoundFX.warn(); setErr(tr("Карточка не найдена. Закройте форму и откройте её заново.")); return; }

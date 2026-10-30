@@ -123,7 +123,7 @@ T('legal: страница «Авторские права» с © и псевд
     T('tod-banter: нет дублей текста, нет стоп-слов' + (stopLines.length ? ' — ' + stopLines.map(l => l.id).join(', ') : ''), dup(L.map(l => l.text.toLowerCase())).length === 0 && stopLines.length === 0);
     T('tod-banter: реплики skip_* содержат {name}', L.filter(l => /^skip_/.test(l.ev)).every(l => l.text.includes('{name}')));
     // украинские версии (src/i18n.js, словарь UK: ключ — русский шаблон): у каждой реплики и титула есть перевод с теми же подстановками
-    let UK = null; try { UK = new Function(fs.readFileSync(path.join(root, 'src/i18n.js'), 'utf8').replace(/^export /gm, '') + '; return UK;')(); } catch (e) { T('i18n: словарь загружается — ' + (e && e.message), false); }
+    let UK = null; try { UK = new Function((fs.readFileSync(path.join(root, 'src/i18n-en.js'), 'utf8') + '\n' + fs.readFileSync(path.join(root, 'src/i18n.js'), 'utf8').replace(/^import .*$/gm, '')).replace(/^export /gm, '') + '; return UK;')(); } catch (e) { T('i18n: словарь загружается — ' + (e && e.message), false); }
     if (UK) {
       const subs = (t) => (t.match(/\{[^}]*\}/g) || []).map(x => (x === '{name}' ? x : '{|}')).join();
       const miss = L.filter(l => typeof UK[l.text] !== 'string' || subs(UK[l.text]) !== subs(l.text) || /[ыэъё]/i.test(UK[l.text]));
@@ -143,4 +143,19 @@ const shape = (o) => Array.isArray(o) ? '[' + o.map(shape).join(',') + ']' : (o 
 T('about-uk: структура совпадает с about.js (те же ключи, длины списков и типы)', shape(ABOUT) === shape(ABOUT_UK));
 T('about-uk: id, значки, группы и числа те же, что в about.js', JSON.stringify(ABOUT.features.map(f => [f.id, f.group, f.icon])) === JSON.stringify(ABOUT_UK.features.map(f => [f.id, f.group, f.icon])) && ABOUT.version === ABOUT_UK.version && ABOUT.updated === ABOUT_UK.updated);
 T('about-uk: в украинском тексте нет русских букв ы, э, ъ, ё', !strings(ABOUT_UK).some(([p, s]) => !/^demo\.examples$/.test(p) && /[ыэъёЫЭЪЁ]/.test(s)));
+// --- англійські версії (src/content/legal-en.js, about-en.js): та сама структура, без кирилиці ---
+const CYR = /[А-Яа-яЁёІіЇїЄєҐґ]/;
+const LEGAL_EN = load('legal-en', 'LEGAL_EN'); const legalEnStr = strings(LEGAL_EN);
+T('legal-en: ті самі документи, розділи і кількість абзаців/пунктів/рядків, що в legal.js', legalShape(LEGAL_EN) === legalShape(LEGAL));
+T('legal-en: той самий контакт і дата; заготовки {contact}/{operator} стоять там само', LEGAL_EN.contact.url === LEGAL.contact.url && LEGAL_EN.updated === LEGAL.updated && JSON.stringify(legalEnStr.map(([p, s]) => p + ':' + (s.match(/\{\w+\}/g) || []).join())) === JSON.stringify(legalStr.map(([p, s]) => p + ':' + (s.match(/\{\w+\}/g) || []).join())));
+T('legal-en: дата англійською збігається (' + LEGAL_EN.updatedHuman + ')', (() => { const [y, m, d] = LEGAL_EN.updated.split('-').map(Number); return LEGAL_EN.updatedHuman === ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][m - 1] + ' ' + d + ', ' + y; })());
+T('legal-en: немає кирилиці й порожніх рядків', legalEnStr.every(([, s]) => !CYR.test(s) && s.trim().length > 0));
+T('legal-en: таблиця cookies — ті самі ключі сховища, що в російській версії', JSON.stringify(LEGAL_EN.docs.cookies.sections.find(x => x.table).table.slice(0, -2).map(r => r[0])) === JSON.stringify(LEGAL.docs.cookies.sections.find(x => x.table).table.slice(0, -2).map(r => r[0])));
+T('legal-en: «Copyright» з © і псевдонімом, сторонні ліцензії перелічено', /© 20\d\d yedvinn/.test(LEGAL_EN.docs.copyright.lead) && /MIT/.test(JSON.stringify(LEGAL_EN.docs.copyright)) && /Open Font License/.test(JSON.stringify(LEGAL_EN.docs.copyright)));
+const ABOUT_EN = load('about-en', 'ABOUT_EN');
+T('about-en: структура збігається з about.js (ті самі ключі, довжини списків і типи)', shape(ABOUT) === shape(ABOUT_EN));
+T('about-en: id, значки, групи й числа ті самі, що в about.js', JSON.stringify(ABOUT.features.map(f => [f.id, f.group, f.icon])) === JSON.stringify(ABOUT_EN.features.map(f => [f.id, f.group, f.icon])) && ABOUT.version === ABOUT_EN.version && ABOUT.updated === ABOUT_EN.updated);
+const aboutEnCyr = strings(ABOUT_EN).filter(([p, s]) => CYR.test(s));
+T('about-en: в англійському тексті немає кирилиці' + (aboutEnCyr.length ? ' — ' + aboutEnCyr.slice(0, 5).map(([p]) => p).join(', ') : ''), aboutEnCyr.length === 0);
+T('в англійських текстах немає адрес пошти, телефонів і адреси акаунта власника', ![...strings(ABOUT_EN), ...legalEnStr].some(([, s]) => EMAIL.test(s) || PHONE.test(s.replace(/\d{4}-\d{2}-\d{2}/g, '')) || /gmail|yandex\.|mail\.ru|outlook|icloud/i.test(s)));
 console.log(res.join('\n')); console.log('--- captured runtime errors: 0'); process.exit(0);
