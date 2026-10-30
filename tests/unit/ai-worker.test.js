@@ -32,5 +32,14 @@ const req = (body, origin = 'https://1s0meb0dy1.github.io', method = 'POST') => 
   plan = [() => new Response(new ReadableStream({ start(c) { const e = new TextEncoder(); c.enqueue(e.encode('data: ' + JSON.stringify({ candidates: [{ content: { parts: [{ text: 'Перший, ' }] } }] }) + '\r\n\r\n')); c.enqueue(e.encode('data: ' + JSON.stringify({ candidates: [{ content: { parts: [{ text: 'другий' }] }, finishReason: 'STOP' }] }))); c.close(); } }), { status: 200 })];
   r = await W.fetch(req({ type: 'advice', lang: 'uk', question: 'Питання з CRLF' }), env, ctx);
   T('SSE з \\r\\n і хвостом без переносу читається повністю', r.status === 200 && (await r.text()) === 'Перший, другий');
+  // Gemini не відповідає → Groq (OpenAI-сумісний потік) → Workers AI (прив'язка AI, без ключа)
+  const oa = (t) => new Response(new ReadableStream({ start(c) { c.enqueue(new TextEncoder().encode('data: ' + JSON.stringify({ choices: [{ delta: { content: t } }] }) + '\n\ndata: [DONE]\n\n')); c.close(); } }), { status: 200 });
+  seen.length = 0; plan = [() => new Response('quota', { status: 429 }), () => new Response('quota', { status: 429 }), () => oa('Відповідь від запасного Groq')];
+  r = await W.fetch(req({ type: 'advice', lang: 'uk', question: 'Питання для Groq' }), { ...env, GROQ_API_KEY: 'gsk_x' }, ctx);
+  T('Gemini 429 → відповідає Groq із ключем у заголовку', r.status === 200 && (await r.text()) === 'Відповідь від запасного Groq' && /api\.groq\.com/.test(seen[2].url) && JSON.parse(seen[2].body).model === 'openai/gpt-oss-120b');
+  const ai = { run: async (model, inp) => { ai.model = model; ai.inp = inp; return new ReadableStream({ start(c) { c.enqueue(new TextEncoder().encode('data: {"response":"Workers AI "}\n\ndata: {"response":"відповідає"}\n\ndata: [DONE]\n\n')); c.close(); } }); } };
+  plan = [() => new Response('x', { status: 500 }), () => new Response('x', { status: 500 }), () => new Response('x', { status: 503 })];
+  r = await W.fetch(req({ type: 'advice', lang: 'uk', question: 'Питання для Workers AI' }), { ...env, GROQ_API_KEY: 'gsk_x', AI: ai }, ctx);
+  T('Gemini і Groq впали → Workers AI без ключа', r.status === 200 && (await r.text()) === 'Workers AI відповідає' && /llama/.test(ai.model) && ai.inp.stream === true && ai.inp.messages.length === 2);
   console.log(res.join('\n')); console.log('--- captured runtime errors: 0'); process.exit(res.some(l => l.startsWith('FAIL')) ? 1 : 0);
 })().catch(e => { console.log(res.join('\n')); console.log('TEST CRASH:', e && e.stack); process.exit(1); });
