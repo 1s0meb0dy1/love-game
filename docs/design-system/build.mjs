@@ -1,4 +1,5 @@
 // Запуск: npm run build && node docs/design-system/build.mjs → docs/design-system/ask-me-heat.html (не в git; довідник для артефакту «ASK ME Heat»).
+// Знімки екранів (розділи «Екрани» і «Комп'ютер») спершу робить docs/design-system/shots.cjs; без них сторінка збирається, лише без картинок.
 // Збирає живий довідник дизайн-системи ASK ME: справжній CSS застосунку + реальні іконки, мотиви фону й логотип.
 import fs from 'node:fs'; import path from 'node:path';
 const ROOT = process.argv[2] || path.resolve(import.meta.dirname, "../.."); const OUT = process.argv[3] || path.join(import.meta.dirname, "ask-me-heat.html"); const PAGE = process.argv[4] || path.join(import.meta.dirname, "page.html");
@@ -18,7 +19,9 @@ const jsx2html = (s) => s
   .replace(/\s(strokeWidth|strokeLinecap|strokeLinejoin|fillRule|clipRule|strokeDasharray|strokeMiterlimit|stopColor|stopOpacity)=/g, (_, a) => ' ' + a.replace(/[A-Z]/g, c => '-' + c.toLowerCase()) + '=');
 const app = rd('src/app.jsx');
 const iconsBlock = app.slice(app.indexOf('const Icons = {'), app.indexOf('const PopupModal'));
-const icons = [...iconsBlock.matchAll(/(\w+): \(\) => (<svg[\s\S]*?<\/svg>)/g)].map(m => [m[1], jsx2html(m[2]).replace(/class="[^"]*"/, 'class="ds-ico"')]);
+const iconSrc = [...iconsBlock.matchAll(/(\w+): \(\) => (<svg[\s\S]*?<\/svg>)/g)].map(m => [m[1], jsx2html(m[2])]);
+const icons = iconSrc.map(([n, svg]) => [n, svg.replace(/class="[^"]*"/, 'class="ds-ico"')]);
+const iconInline = Object.fromEntries(iconSrc); // для зразків кнопок: іконка з тими ж класами розміру, що й у застосунку
 const logoSrc = app.slice(app.indexOf('const AskMeLogo'), app.indexOf('// divider: тонкая линия'));
 const logos = [...logoSrc.matchAll(/return \( (<div[\s\S]*?<\/div>) \);/g)].map(m => jsx2html(m[1]));
 
@@ -36,6 +39,15 @@ html = html.replace('/*APP_CSS*/', () => css)
   .replace('<!--MOTIFS-->', () => motifs.map((m, i) => `<figure class="ds-motif-cell">${m.svg}<figcaption>${MOTIF_NAMES[i] || 'Мотив'}<span>${m.kind === 'контур' ? 'контур' : m.kind === 'm-glass' ? 'стекло' : 'дальний'}</span></figcaption></figure>`).join('\n'))
   .replace('<!--ROOM-->', () => room)
   .replace('<!--LOGO_LG-->', () => logos[2] || '').replace('<!--LOGO_MD-->', () => logos[1] || '').replace('<!--LOGO_XS-->', () => logos[0] || '')
-  .replace(/<!--COUNT_ICONS-->/g, String(icons.length)).replace(/<!--COUNT_MOTIFS-->/g, String(motifs.length));
+  .replace(/<!--COUNT_ICONS-->/g, String(icons.length)).replace(/<!--COUNT_MOTIFS-->/g, String(motifs.length))
+  .replace(/<!--ICON:(\w+)-->/g, (_, n) => iconInline[n] || '');
+
+// 4. знімки екранів як data: URI (одна сторінка без зовнішніх файлів)
+const SHOTS = path.join(import.meta.dirname, 'shots'); let shots = 0;
+html = html.replace(/<!--SHOT:([\w-]+)\|([^>]*?)-->/g, (_, n, alt) => {
+  const f = path.join(SHOTS, n + '.jpg'); if (!fs.existsSync(f)) return '';
+  shots++; return `<img class="ds-shot" src="data:image/jpeg;base64,${fs.readFileSync(f).toString('base64')}" alt="${alt}" loading="lazy" decoding="async">`;
+});
+const missing = [...html.matchAll(/<!--(ICON|SHOT):[^>]*-->/g)].map(m => m[0]); if (missing.length) console.warn('не знайдено:', missing.join(' '));
 fs.writeFileSync(OUT, html);
-console.log('icons', icons.length, 'motifs', motifs.length, 'logos', logos.length, 'room', room.length, 'bytes', html.length);
+console.log('icons', icons.length, 'motifs', motifs.length, 'logos', logos.length, 'shots', shots, 'room', room.length, 'bytes', html.length);

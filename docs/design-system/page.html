@@ -86,6 +86,23 @@ main.ds-main { min-width: 0; display: flex; flex-direction: column; gap: 3.5rem;
 .ds-do .yes { border-color: rgb(74 222 155 / 0.4); background: rgb(74 222 155 / 0.05); }
 .ds-do .no { border-color: rgb(255 122 138 / 0.4); background: rgb(255 122 138 / 0.05); }
 .ds-do b { display: block; margin-bottom: 0.25rem; color: #fff; }
+/* знімки екранів */
+.ds-shots { display: grid; gap: 1rem; }
+.ds-shots.phone { grid-template-columns: repeat(auto-fill, minmax(11.5rem, 1fr)); }
+.ds-shots.desk { grid-template-columns: repeat(auto-fill, minmax(24rem, 1fr)); }
+.ds-shots figure { display: flex; flex-direction: column; gap: 0.5rem; margin: 0; min-width: 0; }
+.ds-shot { display: block; width: 100%; height: auto; border-radius: var(--r-surface); border: 1px solid var(--line-strong); background: var(--plum-1); }
+.ds-shots figcaption { font-size: 0.8125rem; color: var(--text-3); line-height: 1.35; }
+/* живі зразки, яким у застосунку потрібне фіксоване місце на екрані */
+.ds-fixed .to-top { position: static; opacity: 1; visibility: visible; transform: none; pointer-events: auto; }
+.ds-narrow { width: 100%; max-width: 26rem; }
+.ds-avatars { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.ds-avatars .tod-avatar { width: 2.5rem; height: 2.5rem; font-size: 1.15rem; }
+.ds-head { width: 100%; padding: 0.75rem; border-radius: var(--r-surface); border: 1px dashed var(--line); }
+.ds-head .page-head { margin: 0; }
+.ds-intro { position: relative; display: flex; flex-direction: column; gap: 1rem; padding: 1rem 1.25rem 1.25rem; border-radius: var(--r-hero); border: 1px solid var(--line-strong); background: radial-gradient(120% 80% at 50% 0%, #1d1026 0%, var(--night) 70%); max-width: 24rem; }
+.ds-intro .intro-copy { padding-bottom: 0; }
+.ds-pod { width: 100%; max-width: 26rem; }
 @media (max-width: 860px) {
   .ds-shell { grid-template-columns: minmax(0, 1fr); gap: 1.5rem; padding-block: 1rem 4rem; }
   .ds-nav { position: static; flex-direction: row; overflow-x: auto; gap: 0.25rem; scrollbar-width: none; margin: 0 -16px; padding: 0 16px; }
@@ -93,6 +110,8 @@ main.ds-main { min-width: 0; display: flex; flex-direction: column; gap: 3.5rem;
   .ds-nav a { white-space: nowrap; border: 1px solid var(--line); border-radius: 999px; }
   .ds-heat { grid-template-columns: minmax(0, 1fr); }
   .ds-type-row { grid-template-columns: minmax(0, 1fr); gap: 0.25rem; }
+  .ds-shots.phone { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
+  .ds-shots.desk { grid-template-columns: minmax(0, 1fr); }
 }
 </style>
 
@@ -108,9 +127,15 @@ main.ds-main { min-width: 0; display: flex; flex-direction: column; gap: 3.5rem;
     <a href="#inputs">Выбор и ввод</a>
     <a href="#labels">Метки</a>
     <a href="#surfaces">Поверхности</a>
+    <a href="#heads">Шапки</a>
     <a href="#feedback">Уведомления и окна</a>
+    <a href="#tod">Правда или действие</a>
+    <a href="#history">Прошлые игры</a>
+    <a href="#intro">Знакомство</a>
     <a href="#motion">Движение</a>
     <a href="#room">Фон «комната»</a>
+    <a href="#desktop">Компьютер</a>
+    <a href="#screens">Экраны</a>
     <a href="#icons">Иконки</a>
     <a href="#motifs">Мотивы и логотип</a>
     <a href="#rules">Правила</a>
@@ -122,7 +147,7 @@ main.ds-main { min-width: 0; display: flex; flex-direction: column; gap: 3.5rem;
       <!--LOGO_LG-->
       <h1>Дизайн-система «Heat»</h1>
       <p class="ds-lead">Тёмная сливовая комната, свечение которой теплеет вместе с глубиной вопроса. Все примеры ниже нарисованы настоящими стилями приложения: что видите здесь, то и в игре.</p>
-      <div class="ds-meta"><span class="tag lg">Источник: <code>src/styles.css</code></span><span class="tag lg">Ревизия 29.10.2026</span><span class="tag tag-ok lg">WCAG AA по тексту</span></div>
+      <div class="ds-meta"><span class="tag lg">Источник: <code>src/styles.css</code></span><span class="tag lg">Ревизия 31.10.2026</span><span class="tag lg">UA · EN · RU</span><span class="tag tag-ok lg">WCAG AA по тексту</span></div>
     </header>
 
     <section class="ds-sec" id="principles">
@@ -133,7 +158,10 @@ main.ds-main { min-width: 0; display: flex; flex-direction: column; gap: 3.5rem;
         <div class="yes"><b>Касание от 44 px</b>Маленький текст получает невидимую зону нажатия.</div>
         <div class="yes"><b>Цвет — не единственный признак</b>Уровень показан ещё и точками, подписью или числом.</div>
         <div class="yes"><b>Анимируем только transform и opacity</b>Фон и эффекты не нагружают слабые телефоны.</div>
+        <div class="yes"><b>Свечение — акцент, а не подсветка</b>Тени кнопок и блоков тихие, без бесконечной пульсации.</div>
+        <div class="yes"><b>Ход — один экран</b>Партия «Правды или действия» на телефоне помещается без прокрутки.</div>
         <div class="no"><b>Не писать КАПСОМ</b>Регистр как в предложении; разрядка только в логотипе.</div>
+        <div class="no"><b>Не переносить подпись кнопки</b>Название в одну строку; если не помещается — сократить текст.</div>
       </div>
     </section>
 
@@ -177,6 +205,17 @@ main.ds-main { min-width: 0; display: flex; flex-direction: column; gap: 3.5rem;
         <div class="ds-sw"><i style="background:rgb(var(--tod-medium-rgb))"></i><b>--tod-medium</b><span>«Средне» · 14.3 : 1</span></div>
         <div class="ds-sw"><i style="background:rgb(var(--tod-hard-rgb))"></i><b>--tod-hard</b><span>«Жёстко» · 6.9 : 1</span></div>
       </div>
+      <h3>Аватары игроков и подиум</h3>
+      <div class="ds-board col">
+        <div class="ds-avatars"><span class="tod-avatar" style="--h:345">👨</span><span class="tod-avatar" style="--h:28">👩</span><span class="tod-avatar" style="--h:275">👨</span><span class="tod-avatar" style="--h:160">👩</span><span class="tod-avatar" style="--h:200">👨</span><span class="tod-avatar" style="--h:50">👩</span><span class="tod-avatar" style="--h:310">👨</span><span class="tod-avatar" style="--h:120">👩</span><span class="tod-avatar" style="--h:15">👨</span><span class="tod-avatar" style="--h:240">👩</span></div>
+        <span class="ds-spec"><code>tod-avatar</code>: градиент от оттенка <code>--h</code> по номеру в очереди — 345, 28, 275, 160, 200, 50, 310, 120, 15, 240 (<code>TOD_HUES</code>), соседи не похожи. Значок — пол игрока.</span>
+      </div>
+      <div class="ds-swatches">
+        <div class="ds-sw"><i style="background:#ffd64f"></i><b>#ffd64f</b><span>подиум · золото</span></div>
+        <div class="ds-sw"><i style="background:#d0c2cd"></i><b>#d0c2cd</b><span>подиум · серебро (= --text-2)</span></div>
+        <div class="ds-sw"><i style="background:#ff8a3d"></i><b>#ff8a3d</b><span>подиум · бронза</span></div>
+      </div>
+      <p class="ds-spec">Золото и бронза пока литералы в <code>.tod-pod-1/3</code> — кандидаты в токены.</p>
       <h3>Жар комнаты (свечение фона)</h3>
       <div class="ds-heat">
         <div style="background:radial-gradient(90% 90% at 20% 10%, #ff7a90, transparent 70%), radial-gradient(90% 90% at 90% 100%, #ffb061, transparent 70%), var(--night)">easy · #ff7a90 / #ffb061</div>
@@ -211,7 +250,8 @@ main.ds-main { min-width: 0; display: flex; flex-direction: column; gap: 3.5rem;
           <tr><td><code>--r-control</code></td><td>14 px</td><td>кнопки, поля, плитки</td></tr>
           <tr><td><code>--r-surface</code></td><td>20 px</td><td>карточки, списки, меню</td></tr>
           <tr><td><code>--r-hero</code></td><td>28 px</td><td>герой, окна, карточка вопроса</td></tr>
-          <tr><td>999 px</td><td>таблетка</td><td>чипы, метки, переключатель, тосты</td></tr>
+          <tr><td>999 px</td><td>таблетка</td><td>чипы, метки, переключатель, тосты, «Наверх»</td></tr>
+          <tr><td><code>--desk-w</code></td><td>72 rem</td><td>ширина сайта на компьютере: панель, страницы и подвал на одной линии</td></tr>
         </tbody>
       </table></div>
       <div class="ds-radii"><div style="border-radius:var(--r-inner)">10</div><div style="border-radius:var(--r-control)">14</div><div style="border-radius:var(--r-surface)">20</div><div style="border-radius:var(--r-hero)">28</div><div style="border-radius:999px;justify-content:center;align-items:center">pill</div></div>
@@ -228,21 +268,30 @@ main.ds-main { min-width: 0; display: flex; flex-direction: column; gap: 3.5rem;
         <div class="ds-item"><button class="btn-danger w-full">Видалити мої дані</button><span class="ds-spec"><code>btn-danger</code> — необратимое, с подтверждением</span></div>
         <div class="ds-item"><button class="btn-dashed w-full">+ Додати покарання</button><span class="ds-spec"><code>btn-dashed</code> — добавить элемент</span></div>
         <div class="ds-item"><button class="btn-primary w-full" disabled>Почати гру</button><span class="ds-spec">Выключенная: 42 % и без тени</span></div>
-        <div class="ds-item"><div style="display:flex;gap:.5rem"><button class="btn-tile flex-1">Для двох</button><button class="btn-tile is-on flex-1" aria-pressed="true">Компанія</button></div><span class="ds-spec"><code>btn-tile</code> и <code>is-on</code> — выбор варианта («Для кого»)</span></div>
       </div>
-      <h3>Иконки-кнопки и текстовые</h3>
+      <h3>Выбор на главной: «Для кого» и «Сложность»</h3>
+      <div class="ds-board grid2">
+        <div class="ds-item"><span class="ui-title-section">Для кого</span><div style="display:flex;gap:.75rem"><button class="btn-tile is-on flex-1" aria-pressed="true">❤️ Пара</button><button class="btn-tile flex-1" aria-pressed="false">🎉 Компанія</button></div><span class="ui-hint">Усі питання, зокрема найвідвертіші.</span><span class="ds-spec"><code>btn-tile.is-on</code> + <code>aria-pressed</code> — один вариант из двух, вид как у <code>chip.is-on</code>. Подсказка под плитками меняется вместе с выбором.</span></div>
+        <div class="ds-item"><span class="ui-title-section">Складність</span><div style="display:flex;gap:.5rem"><button class="btn-tile diff-pill-1 flex-1">Легкі</button><button class="btn-tile diff-pill-2 flex-1">Середні</button><button class="btn-tile flex-1">Глибокі</button></div><span class="ds-spec">Несколько вариантов: выбранная плитка получает цвет своей глубины (<code>diff-pill-1/2/3</code>), невыбранная — обычная <code>btn-tile</code>.</span></div>
+      </div>
+      <h3>Иконки-кнопки, язык и текстовые</h3>
       <div class="ds-board">
-        <button class="btn-icon" aria-label="Назад"><svg class="ds-ico" style="width:20px;height:20px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg></button>
-        <button class="btn-icon lang-btn">UA</button>
-        <button class="btn-icon lang-btn is-on">RU</button>
-        <button class="btn-icon plain" aria-label="Изменить">✎</button>
-        <button class="btn-icon lg" aria-label="Звук">🔊</button>
-        <button class="btn-primary btn-sm">Готово</button>
+        <button class="btn-icon" aria-label="Назад"><!--ICON:Back--></button>
+        <button class="btn-icon" aria-label="Вимкнути звук"><!--ICON:SoundOn--></button>
+        <button class="btn-secondary btn-sm lang-btn" aria-label="Мова: Українська"><span>UA</span><span class="lang-chev"><!--ICON:ChevronDown--></span></button>
+        <button class="btn-secondary btn-sm lang-btn is-on" aria-label="Мова: Українська"><span>UA</span><span class="lang-chev is-open"><!--ICON:ChevronDown--></span></button>
+        <button class="btn-secondary btn-sm"><span>Меню</span><span class="text-lg leading-none">☰</span></button>
+        <button class="btn-icon" aria-label="Запросити гравців"><!--ICON:Share--></button>
+        <button class="btn-icon plain" aria-label="Змінити"><!--ICON:Edit--></button>
+        <button class="btn-primary btn-sm"><!--ICON:Resume--> Продовжити гру</button>
         <button class="btn-text">Зняти всі</button>
         <button class="btn-text muted">Скасувати</button>
         <span class="btn-badge">3</span>
       </div>
-      <p class="ds-spec"><code>btn-icon</code> 44×44: <code>plain</code> без рамки, <code>lg</code> 54×54, <code>fluid</code> на всю ширину, <code>is-on</code> включена, <code>lang-btn</code> — код языка в шапке справа. <code>btn-text</code> — ссылка-действие с зоной касания 44 px.</p>
+      <p class="ds-spec"><code>btn-icon</code> 44×44: <code>plain</code> без рамки, <code>lg</code> 54×54, <code>fluid</code> на всю ширину, <code>is-on</code> включена. Язык — <code>btn-secondary btn-sm lang-btn</code>: код и стрелка <code>lang-chev</code>, при открытом меню рамка розы и стрелка вверх. «Меню ☰» — <code>btn-secondary btn-sm</code>. <code>btn-text</code> — ссылка-действие с зоной касания 44 px.</p>
+      <h3>«Наверх»</h3>
+      <div class="ds-board ds-fixed"><button class="to-top is-on" aria-label="Нагору"><!--ICON:ArrowUp--></button><span class="ds-spec"><code>to-top</code> — круг 48 px в правом нижнем углу. Появляется (<code>is-on</code>), когда листаете вверх глубже первого экрана; над нижней панелью кнопок поднимается (<code>is-lifted</code>).</span></div>
+      <p class="ds-spec">Названия кнопок всегда в одну строку (<code>white-space: nowrap</code>). На экранах уже 360 px шрифт кнопок 15 px и поля меньше; если всё равно не помещается — сокращаем текст, а не переносим.</p>
     </section>
 
     <section class="ds-sec" id="inputs">
@@ -253,17 +302,21 @@ main.ds-main { min-width: 0; display: flex; flex-direction: column; gap: 3.5rem;
         <div class="ds-item"><label class="ui-title-section" for="ds-ta">Своє питання</label><textarea id="ds-ta" placeholder="Напишіть питання…"></textarea></div>
         <div class="ds-item"><span class="ui-title-section">Кнопка-поле с меню</span>
           <div class="ds-pop-wrap"><button type="button" class="field-btn is-open"><span>💬 Розмови</span><span class="ds-spec">▾</span></button>
-            <div class="menu-pop" role="menu"><button class="menu-opt is-on"><span>Українська</span><span class="text-xs font-bold text-zinc-500">UA</span></button><button class="menu-opt"><span>Русский</span><span class="text-xs font-bold text-zinc-500">RU</span></button></div></div>
-          <span class="ds-spec"><code>field-btn</code> + <code>menu-pop</code> / <code>menu-opt</code> — тот же вид у выбора языка</span></div>
+            <div class="menu-pop" role="menu"><button class="menu-opt is-on"><span>Українська</span><span class="text-xs font-bold text-zinc-500">UA</span></button><button class="menu-opt"><span>English</span><span class="text-xs font-bold text-zinc-500">EN</span></button><button class="menu-opt"><span>Русский</span><span class="text-xs font-bold text-zinc-500">RU</span></button></div></div>
+          <span class="ds-spec"><code>field-btn</code> + <code>menu-pop</code> / <code>menu-opt</code> — тот же вид у выбора языка (три языка: UA, EN, RU)</span></div>
+        <div class="ds-item"><span class="ui-title-section">Фільтр за складністю</span>
+          <div class="ds-pop-wrap"><button type="button" class="field-btn is-open" aria-label="Фільтр за складністю"><div class="flex items-center gap-2.5 truncate"><span class="text-rose-400 flex-shrink-0"><!--ICON:Filter--></span><span class="text-sm font-medium text-white truncate">Усі питання · 160</span></div><span class="text-zinc-400 rotate-180 text-rose-400"><!--ICON:ChevronDown--></span></button>
+            <div class="menu-pop left-0 right-0" role="menu"><button class="menu-opt is-on"><span>Усі питання · 160</span><span class="text-rose-400"><!--ICON:Check--></span></button><button class="menu-opt"><span>Легкі · 58</span></button><button class="menu-opt"><span>Середні · 61</span></button><button class="menu-opt"><span>Глибокі · 41</span></button></div></div>
+          <span class="ds-spec">Список вопросов темы: <code>CustomSelect</code> со значком фильтра (<code>leadIcon</code>) вместо прежних сегментов с числами</span></div>
       </div>
       <div class="ds-board col">
-        <div class="seg" role="tablist"><button class="seg-btn is-active" role="tab" aria-selected="true">Теми</button><button class="seg-btn" role="tab">Питання</button><button class="seg-btn" role="tab">Архів</button></div>
-        <div class="seg level-seg"><button class="seg-btn level-seg-btn is-active"><span>Усі</span><span class="level-seg-n">120</span></button><button class="seg-btn level-seg-btn"><span class="flex items-center gap-1"><i class="level-dot" style="background:rgb(var(--lvl-1-rgb))"></i>Легкі</span><span class="level-seg-n">48</span></button><button class="seg-btn level-seg-btn"><span class="flex items-center gap-1"><i class="level-dot" style="background:rgb(var(--lvl-2-rgb))"></i>Середні</span><span class="level-seg-n">41</span></button><button class="seg-btn level-seg-btn"><span class="flex items-center gap-1"><i class="level-dot" style="background:rgb(var(--lvl-3-rgb))"></i>Глибокі</span><span class="level-seg-n">31</span></button></div>
+        <div class="seg" role="tablist"><button class="seg-btn is-active" role="tab" aria-selected="true">Класика</button><button class="seg-btn" role="tab">Правда</button><button class="seg-btn" role="tab">Дія</button></div>
+        <div class="seg" role="radiogroup"><button class="seg-btn" role="radio">Вимк.</button><button class="seg-btn is-active" role="radio" aria-checked="true">М'який</button><button class="seg-btn" role="radio">Гострий</button></div>
         <div style="display:flex;flex-wrap:wrap;gap:.5rem"><button class="chip is-on">Усі</button><button class="chip">Для пар</button><button class="chip">Для компанії</button><button class="chip">Офлайн</button></div>
         <div style="display:flex;align-items:center;gap:1rem"><button class="switch is-on" role="switch" aria-checked="true" aria-label="Звук"><span class="switch-knob"></span></button><button class="switch" role="switch" aria-checked="false" aria-label="Статистика"><span class="switch-knob"></span></button><span class="ds-spec"><code>switch</code> 52×32, зона касания ≈ 48</span></div>
         <div class="timer-presets"><button class="chip">30</button><button class="chip is-on">45</button><button class="chip">60</button><button class="chip">90</button><button class="chip">120</button></div>
       </div>
-      <p class="ds-spec"><code>seg</code> — вкладки, <code>level-seg</code> — фильтр по глубине с числом, <code>chip</code> — фильтры, <code>timer-presets</code> — пять значений в один ряд.</p>
+      <p class="ds-spec"><code>seg</code> — вкладки («Классика / Правда / Действие» во «Всех вопросах») и выбор из трёх (тон подколок в лобби), <code>chip</code> — фильтры, <code>timer-presets</code> — пять значений в один ряд.</p>
     </section>
 
     <section class="ds-sec" id="labels">
@@ -282,6 +335,10 @@ main.ds-main { min-width: 0; display: flex; flex-direction: column; gap: 3.5rem;
         <span class="tod-lvl tod-lvl-hard"><span class="tod-lvl-dots"><i class="on"></i><i class="on"></i><i class="on"></i></span>Жорстко <span class="tod-lvl-n">40</span></span>
         <span class="chip tod-chicken">🐔 2</span>
       </div>
+      <div class="ds-board grid2">
+        <div class="ds-item"><div class="room-strip" role="group" aria-label="Склад сесії"><ul class="room-strip-names"><li><span>Аня</span></li><li><span>Макс</span></li><li><span>Оля</span></li></ul><div class="room-strip-dev"><span class="room-pips"><i class="me"></i><i class="on"></i></span><span>У грі 2 пристрої</span></div></div><span class="ds-spec"><code>room-strip</code> — состав сессии: имена через точку и устройства (<code>room-pips</code>: <code>me</code> — это устройство, <code>on</code> — подключённые, мягко пульсируют). Заметно тише кнопки «Поделиться».</span></div>
+        <div class="ds-item"><span class="hist-badge">🎲 Правда чи дія · 2 гравці</span><span class="ds-spec"><code>hist-badge</code> — таблетка-сводка на экране одной прошлой игры.</span></div>
+      </div>
       <p class="ds-spec">Метки не нажимаются (28 / 36 px). Уровень всегда показан и цветом, и точками или подписью.</p>
     </section>
 
@@ -292,8 +349,9 @@ main.ds-main { min-width: 0; display: flex; flex-direction: column; gap: 3.5rem;
         <div class="about-acc-item"><button class="row"><span class="fx-ico">📊</span><span class="flex-1"><b style="color:#fff">Статистика гри</b></span><span class="switch is-on" role="presentation"><span class="switch-knob"></span></span></button></div>
       </div>
       <div class="ds-board grid2">
-        <button class="opt-card opt-brand"><span style="font-size:1.6rem">💬</span><span><b style="color:#fff">Звичайний режим</b><br><span class="ui-hint">Питання по черзі</span></span></button>
-        <button class="opt-card opt-ember"><span style="font-size:1.6rem">🎲</span><span><b style="color:#fff">Правда чи дія</b><br><span class="ui-hint">Картки трьох рівнів</span></span></button>
+        <button class="opt-card opt-brand"><span style="font-size:1.6rem">💬</span><span><b style="color:#fff">Звичайний режим</b><br><span class="ui-hint">Жереб вирішує, хто відповідає першим</span></span></button>
+        <button class="opt-card opt-ember"><span style="font-size:1.6rem">🔥</span><span><b style="color:#fff">Ускладнений режим</b><br><span class="ui-hint">Таймер і покарання за пропуск</span></span></button>
+        <button class="opt-card"><span style="font-size:1.6rem">🎲</span><span><b style="color:#fff">Правда чи дія</b><br><span class="ui-hint">Правда, дія й ганьба за пропуск. 18+</span></span></button>
         <button class="card-btn"><b style="color:#fff">Картка-кнопка</b><span class="ui-hint"><code>card-btn</code></span></button>
         <button class="card-btn accent"><b style="color:#fff">Акцентна картка</b><span class="ui-hint"><code>card-btn accent</code></span></button>
         <button class="tile topic-pill-active"><span>🤝 Довіра</span><span>24</span></button>
@@ -310,6 +368,20 @@ main.ds-main { min-width: 0; display: flex; flex-direction: column; gap: 3.5rem;
       <p class="ds-spec">Рамка и заливка выделяют объект по роли: строки списка — без рамок внутри общего блока, карточки — рамка 1 px, выбранное — розовая рамка и <code>--rose-ink</code>.</p>
     </section>
 
+    <section class="ds-sec" id="heads">
+      <h2>Шапки</h2>
+      <p class="ds-lead">Три вида шапок. Образцы ниже живые: на телефоне вы увидите телефонную раскладку, на компьютере (от 1024 px) — компьютерную.</p>
+      <h3>Шапка страницы <code>page-head</code></h3>
+      <div class="ds-head"><header class="page-head w-full flex items-center gap-3"><button class="btn-icon flex-shrink-0" aria-label="Назад"><!--ICON:Back--></button><h1 class="page-title flex-1 text-center text-lg font-bold text-white">Оберіть режим</h1><button class="btn-icon flex-shrink-0" aria-label="Запросити гравців"><!--ICON:Share--></button></header></div>
+      <div class="ds-head"><header class="page-head w-full flex items-center gap-3"><button class="btn-icon flex-shrink-0" aria-label="Назад"><!--ICON:Back--></button><h1 class="page-title flex-1 text-center text-lg font-bold text-white">Меню</h1><div class="relative flex-shrink-0"><button class="btn-secondary btn-sm lang-btn" aria-label="Мова: Українська"><span>UA</span><span class="lang-chev"><!--ICON:ChevronDown--></span></button></div></header></div>
+      <p class="ds-spec">Телефон: сетка из трёх колонок, боковые — по 44 px, поэтому заголовок h1 (18 px) стоит строго по центру экрана, даже если справа ничего нет. Справа — одно действие: «Пригласить» (<code>btn-icon</code>) на экранах начала игры или выбор языка в «Меню». Компьютер: заголовок слева 32 px / 800, линия снизу, действие справа.</p>
+      <h3>Шапка партии <code>game-head</code></h3>
+      <div class="ds-head"><header class="game-head w-full flex items-center justify-between gap-2 py-2"><button class="btn-icon flex-shrink-0" aria-label="Назад"><!--ICON:Back--></button><div class="game-head-r flex items-center gap-1.5 flex-shrink-0"><button class="btn-icon flex-shrink-0" aria-label="Вимкнути звук"><!--ICON:SoundOn--></button><button class="btn-secondary btn-sm lang-btn" aria-label="Мова: Українська"><span>UA</span><span class="lang-chev"><!--ICON:ChevronDown--></span></button><button class="btn-secondary btn-sm flex-shrink-0"><span>Меню</span><span class="text-lg leading-none">☰</span></button></div></header></div>
+      <p class="ds-spec">Одна шапка на все режимы (обычный, усложнённый, «Правда или действие»): «Назад» слева; звук, язык и «Меню» справа, все высотой 44 px. «Назад» и «Меню» сначала спрашивают: поставить на паузу или закончить для всех.</p>
+      <h3>Главная</h3>
+      <p class="ds-spec">Слева «👤 Игроки», справа «Меню ☰» (обе <code>btn-secondary btn-sm</code>), под ними логотип и слоган. На компьютере вместо них — верхняя панель <code>desk-nav</code> (см. «Компьютер»).</p>
+    </section>
+
     <section class="ds-sec" id="feedback">
       <h2>Уведомления и окна</h2>
       <div class="ds-board grid2">
@@ -320,8 +392,76 @@ main.ds-main { min-width: 0; display: flex; flex-direction: column; gap: 3.5rem;
           <div class="toast toast-warn"><span class="toast-ico"><b>!</b></span><span class="toast-text">Не вдалося зʼєднатися</span></div>
         </div>
         <div class="ds-modal"><div class="viewport-popup-box"><h3 style="margin-bottom:.5rem">Почати нову гру?</h3><p class="ui-hint" style="margin-bottom:1rem">Поточна партія завершиться для всіх.</p><div style="display:flex;flex-direction:column;gap:.5rem"><button class="btn-primary w-full">Почати нову</button><button class="btn-ghost w-full">Скасувати</button></div></div></div>
+        <div class="ds-modal"><div class="viewport-popup-box"><div class="flex flex-col gap-3 text-left"><h3 class="text-xl font-bold text-white">Ви справді хочете закінчити гру?</h3><p class="text-sm text-zinc-300 leading-relaxed">Можна поставити гру на паузу: вона збережеться, а «Продовжити гру» чекає на головній. Або закінчити партію для всіх і відкрити підсумки.</p><button class="btn-primary w-full"><!--ICON:Pause--> Поставити на паузу</button><button class="btn-danger w-full">Завершити для всіх</button><button class="btn-ghost w-full">Повернутися до гри</button></div></div></div>
       </div>
-      <p class="ds-spec"><code>showToast(текст, мс, вид)</code>: ok — зелёный, turn — розовый, info — орхидея, warn — янтарь и <code>role="alert"</code>. Полоска снизу показывает оставшееся время. Окно — <code>viewport-popup-box</code>, Esc и ловушка фокуса.</p>
+      <p class="ds-spec"><code>showToast(текст, мс, вид)</code>: ok — зелёный, turn — розовый, info — орхидея, warn — янтарь и <code>role="alert"</code>. Полоска снизу показывает оставшееся время. Окно — <code>viewport-popup-box</code>, Esc и ловушка фокуса. Окно паузы: главное — «Поставить на паузу» (партия сохраняется, «Продолжить игру» ждёт на главной и в «Прошлых играх»), опасное — «Завершить для всех».</p>
+    </section>
+
+    <section class="ds-sec" id="tod">
+      <h2>«Правда или действие»</h2>
+      <p class="ds-lead">Режим со своими уровнями (<code>--tod-easy/medium/hard</code>), аватарами и ведущим-насмешником. Лобби листается; ход на телефоне — ровно один экран.</p>
+      <h3>Лобби</h3>
+      <div class="ds-board grid2" style="align-items:start">
+        <div class="tod-hero ds-narrow"><div class="tod-fan"><button type="button" class="tod-face tod-face-truth" aria-label="Правда — приклад"><span class="tod-face-in"><span class="tod-face-front"><span class="tod-face-ico">💬</span><span class="tod-face-name">Правда</span><span class="tod-face-hint">Натисни — приклад</span></span><span class="tod-face-back"><span class="tod-face-back-t">Правда</span><span class="tod-face-q">Яку свою звичку ти приховуєш навіть від близьких?</span></span></span></button><button type="button" class="tod-face tod-face-dare" aria-label="Дія — приклад"><span class="tod-face-in"><span class="tod-face-front"><span class="tod-face-ico">🎯</span><span class="tod-face-name">Дія</span><span class="tod-face-hint">Натисни — приклад</span></span><span class="tod-face-back"><span class="tod-face-back-t">Дія</span><span class="tod-face-q">Покажи без слів свій ранок — інші вгадують.</span></span></span></button></div><p class="tod-hero-title">Обирай. Ризикуй. Не пропускай.</p><p class="tod-hero-meta">У колоді: 40 правд · 40 дій</p></div>
+        <div class="tod-rules"><div class="tod-rule tod-rule-lock"><span class="tod-rule-ico"><span class="tod-lockdemo"><i></i><i></i><i></i><b>🔒</b></span></span><span><b style="color:#fff">«Правда» — не більше 3 разів поспіль</b><br><span class="ui-hint">Після третьої правди поспіль наступний хід — лише «Дія».</span></span></div><div class="tod-rule"><span class="tod-rule-ico">🐔</span><span><b style="color:#fff">Пропуск — це ганьба</b><br><span class="ui-hint">Пропуски потрапляють до «Зали ганьби».</span></span></div><div class="tod-rule"><span class="tod-rule-ico">🔥</span><span><b style="color:#fff">У дії три рівні</b><br><span class="ui-hint">Легко, середньо й жорстко.</span></span></div></div>
+      </div>
+      <p class="ds-spec">Веер <code>tod-fan</code> из двух <code>tod-face</code> покачивается; нажатие переворачивает карточку (<code>is-flipped</code>) и показывает пример — нажмите. Правила — <code>tod-rule</code>, главное с замком — <code>tod-rule-lock</code> с анимацией <code>tod-lockdemo</code>. «Начать игру» в лобби — обычная <code>btn-primary</code> (<code>tod-go</code> больше не пульсирует).</p>
+      <h3>Ход</h3>
+      <div class="ds-board col">
+        <ul class="tod-roster" aria-label="Гравці"><li class="chip is-on tod-now" aria-current="true"><span class="tod-avatar" style="--h:345">👨</span><span class="tod-name">Аня</span><span class="tod-chicken">🐔 0</span></li><li class="chip"><span class="tod-avatar" style="--h:28">👩</span><span class="tod-name">Макс</span><span class="tod-chicken">🐔 1</span></li><li class="chip"><span class="tod-avatar" style="--h:275">👨</span><span class="tod-name">Оля</span><span class="tod-chicken">🐔 0</span></li></ul>
+        <div class="grid grid-cols-2 gap-3 ds-narrow"><button class="opt-card opt-brand tod-pick"><span class="tod-pick-ico">💬</span><span class="font-bold text-white text-lg">Правда</span><span class="tod-pick-sub">Відповідай чесно</span><span class="tod-pips"><i class="on"></i><i></i><i></i></span></button><button class="opt-card opt-ember tod-pick"><span class="tod-pick-ico">🎯</span><span class="font-bold text-white text-lg">Дія</span><span class="tod-pick-sub">Виконай завдання</span></button></div>
+        <div class="grid grid-cols-2 gap-3 ds-narrow"><button class="opt-card opt-brand tod-pick is-locked" aria-disabled="true"><span class="tod-pick-ico">🔒</span><span class="font-bold text-white text-lg">Правда</span><span class="tod-pick-sub">Закрита: тричі поспіль</span><span class="tod-pips is-locked"><i class="on"></i><i class="on"></i><i class="on"></i></span></button><button class="opt-card opt-ember tod-pick tod-attn"><span class="tod-pick-ico">🎯</span><span class="font-bold text-white text-lg">Дія</span><span class="tod-pick-sub">Тепер лише вона</span></button></div>
+        <div class="tod-choose ds-narrow"><button class="btn-tile tod-lvl tod-lvl-easy tod-heat w-full justify-between"><span class="flex items-center gap-3"><span class="tod-lvl-dots"><i class="on"></i><i></i><i></i></span><span>Легко</span></span><span class="text-xs text-zinc-400 font-semibold">Розминка</span></button><button class="btn-tile tod-lvl tod-lvl-medium tod-heat w-full justify-between"><span class="flex items-center gap-3"><span class="tod-lvl-dots"><i class="on"></i><i class="on"></i><i></i></span><span>Середньо</span></span><span class="text-xs text-zinc-400 font-semibold">Гарячіше</span></button><button class="btn-tile tod-lvl tod-lvl-hard tod-heat w-full justify-between" disabled><span class="flex items-center gap-3"><span class="tod-lvl-dots"><i class="on"></i><i class="on"></i><i class="on"></i></span><span>Жорстко</span></span><span class="text-xs text-zinc-400 font-semibold">поки порожньо</span></button></div>
+        <div class="tod-stage ds-narrow"><span class="tod-avatar tod-avatar-lg" style="--h:345">👨</span><h2 class="tod-turn">Хід гравця: Аня</h2></div>
+      </div>
+      <p class="ds-spec">Игроки — <code>tod-roster</code> из <code>chip</code> с аватаром и счётчиком 🐔; у того, чей ход, — <code>is-on tod-now</code> и <code>aria-current</code>. Выбор — две <code>tod-pick</code>: точки <code>tod-pips</code> считают «Правды» подряд; после трёх «Правда» заперта (<code>is-locked</code>, пунктир, 🔒, тряска <code>tod-nope</code> и предупреждение), а «Действие» подсвечено (<code>tod-attn</code>). Уровень — <code>btn-tile tod-lvl tod-heat</code>, рамка цвета уровня. Пока карточки нет, имя игрока — компактная строка <code>tod-stage</code>.</p>
+      <h3>Карточка и подколка</h3>
+      <div class="ds-board grid2" style="align-items:start">
+        <div class="ds-narrow flex flex-col gap-3"><div class="tod-card tod-card-medium rounded-[24px] border border-white/10 bg-white/[0.05] flex flex-col" style="min-height:17rem"><div class="tod-card-turn"><span class="tod-avatar" style="--h:345">👨</span><h2 class="tod-turn">Хід гравця: Аня</h2></div><span class="tod-lvl tod-lvl-medium"><span class="tod-lvl-dots"><i class="on"></i><i class="on"></i><i></i></span><span>Правда · Середньо</span></span><p class="text-xl leading-snug text-white">Про що ти мовчиш найдовше, хоча дуже хочеться розповісти?</p></div><div class="tod-actions grid grid-cols-2 gap-3"><button class="btn-primary w-full"><!--ICON:Check--> Відповів(ла)</button><button class="btn-secondary w-full">🐔 Пропустити</button></div></div>
+        <div class="flex flex-col gap-4"><div class="tod-heckle"><span class="tod-heckle-face">🧐</span><p class="tod-banter">Правда, отже. Аня, брехати не можна — усі бачать твої очі.</p></div><div class="tod-heckle is-spicy"><span class="tod-heckle-face">🔥</span><p class="tod-banter">Аня лізе в саме пекло. Тримайте її.</p></div><span class="ds-spec">Ведущий <code>tod-heckle</code>: лицо меняется от события (🎤 ход, 🧐 правда, 😈 действие, 👏 выполнено, 🐔 пропуск…), реплика в пузыре <code>tod-banter</code> цвета орхидеи. Тон «Острый» — <code>is-spicy</code>: пузырь розовый и вздрагивает. На телефоне реплика обрезается до 3 строк (на низком экране — 2, без лица).</span></div>
+      </div>
+      <p class="ds-spec">Карточка <code>tod-card tod-card-easy/medium/hard</code> — главный объект экрана: кромка сверху цвета уровня, один блик при появлении, всё по центру, сверху «Ход игрока» (<code>tod-card-turn</code>). Текст 24–30 px, на компьютере 34 px. Кнопки <code>tod-actions</code> на телефоне — в два столбца.</p>
+      <h3>Итоги</h3>
+      <div class="ds-board grid2" style="align-items:start">
+        <header class="tod-res-hero ds-narrow"><span class="tod-res-cup">🏆</span><h1 class="tod-res-title">Підсумки</h1><p class="tod-res-sub">Партію закінчено</p><ul class="tod-stats"><li class="tod-stat"><span class="tod-stat-v">14</span><span class="tod-stat-l">виконано</span></li><li class="tod-stat"><span class="tod-stat-v">3</span><span class="tod-stat-l">пропусків</span></li><li class="tod-stat"><span class="tod-stat-v">2</span><span class="tod-stat-l">жорстких</span></li></ul></header>
+        <div class="flex flex-col gap-4 ds-pod"><ol class="tod-podium tod-podium-3"><li class="tod-pod tod-pod-2" style="--k:0.714"><span class="tod-pod-medal">🥈</span><span class="tod-avatar tod-avatar-lg" style="--h:28">👩</span><span class="tod-pod-name">Макс</span><span class="tod-pod-bar"><b>5</b></span></li><li class="tod-pod tod-pod-1" style="--k:1"><span class="tod-pod-medal">🥇</span><span class="tod-avatar tod-avatar-lg" style="--h:345">👨</span><span class="tod-pod-name">Аня</span><span class="tod-pod-bar"><b>7</b></span></li><li class="tod-pod tod-pod-3" style="--k:0.286"><span class="tod-pod-medal">🥉</span><span class="tod-avatar tod-avatar-lg" style="--h:275">👨</span><span class="tod-pod-name">Оля</span><span class="tod-pod-bar"><b>2</b></span></li></ol><p class="tod-clean">Сьогодні без ганьби. Усі молодці!</p></div>
+      </div>
+      <p class="ds-spec">Кубок <code>tod-res-cup</code>, три числа <code>tod-stats</code>, подиум <code>tod-podium</code>: золото в центре, серебро слева, бронза справа, высота столбика <code>--k</code> — доля от лидера. Дальше «Зала ганьби» (<code>tod-title-shame</code>, крупнее и первой), «Герои игры» и таблица <code>tod-table</code>. Если позора нет — зелёная плашка <code>tod-clean</code>.</p>
+    </section>
+
+    <section class="ds-sec" id="history">
+      <h2>Прошлые игры</h2>
+      <p class="ds-lead">История партий сессии (<code>#/history</code>): сводка, лента по дням, у незаконченной — «Продолжить игру».</p>
+      <div class="ds-board grid2" style="align-items:start">
+        <section class="hist-hero"><p class="hist-hero-n">6</p><p class="hist-hero-l">ігор зіграно у вашій сесії</p><ul class="hist-stats"><li class="hist-stat"><span class="hist-stat-v">84</span><span class="hist-stat-l">питань пройдено</span></li><li class="hist-stat"><span class="hist-stat-v">5</span><span class="hist-stat-l">пропусків</span></li><li class="hist-stat"><span class="hist-stat-v">❤️</span><span class="hist-stat-l">Романтика</span></li></ul></section>
+        <div class="flex flex-col gap-3"><p class="hist-day">Сьогодні</p>
+          <div class="hist-card is-last"><button class="hist-card-main"><span class="hist-card-top"><span class="hist-time">21:40</span><span class="tag">Звичайний</span><span class="tag tag-rose">Остання</span></span><span class="hist-names">Аня · Макс</span><span class="hist-prog"><span class="hist-prog-bar"><i style="width:38%"></i></span><span class="hist-prog-txt">Пройдено 23 з 60</span></span><span class="hist-chev">›</span></button><div class="hist-card-foot"><p class="hist-stop">Зупинилися на питанні 24 з 60</p><button class="btn-primary btn-sm"><!--ICON:Resume--> Продовжити гру</button></div></div>
+          <div class="hist-card"><button class="hist-card-main"><span class="hist-card-top"><span class="hist-time">19:05</span><span class="tag tag-warn">Ускладнений</span></span><span class="hist-names">Аня · Макс · Оля</span><span class="hist-prog"><span class="hist-prog-bar"><i style="width:100%"></i></span><span class="hist-prog-txt">Пройдено 40 з 40</span></span><span class="hist-tags"><span class="tag tag-ok">🏆 Пройшли всю колоду</span></span><span class="hist-chev">›</span></button></div>
+        </div>
+      </div>
+      <div class="ds-board"><section class="hist-empty ds-narrow" style="margin:0 auto"><span class="hist-empty-ico">🎲</span><h2 class="hist-empty-h">Тут з’являться ваші ігри</h2><p class="hist-empty-p">Зіграйте першу партію — і вона збережеться тут.</p><button class="btn-primary btn-sm">Почати гру</button></section></div>
+      <p class="ds-spec">Карточка <code>hist-card</code>: время Unbounded, метка режима (усложнённый — <code>tag-warn</code>), имена, полоска прогресса роза → янтарь. Последняя игра — <code>is-last</code> с розовой рамкой; у незаконченной снизу <code>hist-card-foot</code> с «Продолжить игру». Пусто — <code>hist-empty</code> с пунктирной рамкой.</p>
+    </section>
+
+    <section class="ds-sec" id="intro">
+      <h2>Знакомство «сторис»</h2>
+      <p class="ds-lead">Шесть историй для нового гостя на приветствии (<code>src/intro/stories.jsx</code>, тексты в <code>src/content/intro.js</code>). Повтор — «Как играть — за 30 секунд».</p>
+      <div class="ds-board grid2" style="align-items:start">
+        <div class="ds-intro"><div class="intro-bars"><i><b class="is-done"></b></i><i><b style="transform:scaleX(.55)"></b></i><i><b></b></i><i><b></b></i><i><b></b></i><i><b></b></i></div><div class="intro-copy"><p class="intro-kicker">Гра-ритуал для пар і компаній</p><h2 class="intro-title">Розмови, яких вам бракувало</h2><p class="intro-text">Питання й дії, після яких ви знаєте одне одного трохи краще, ніж учора.</p></div><div class="intro-cta"><button class="btn-primary w-full">Почати <!--ICON:Next--></button><p class="intro-hint">Торкніться праворуч — далі, ліворуч — назад, утримуйте — пауза</p></div></div>
+        <div class="ds-shots phone"><figure><!--SHOT:m-intro|Перша історія знайомства--><figcaption>Первая история: сердце, пузыри-реплики, логотип</figcaption></figure></div>
+      </div>
+      <div class="ds-table-wrap"><table class="ds-table">
+        <thead><tr><th>Класс</th><th>Что это</th></tr></thead>
+        <tbody>
+          <tr><td><code>intro</code>, <code>intro-frame</code></td><td>окно на весь экран; на экранах от 768 px — рамка 9:16 с радиусом 28, стрелки <code>intro-side</code> по бокам и подсказка про клавиши</td></tr>
+          <tr><td><code>intro-bars</code></td><td>полоски прогресса: прошедшие полные, текущая заполняется за 6,5 с, удержание — пауза</td></tr>
+          <tr><td><code>intro-glow</code> + <code>g-rose/ember/orchid/hot</code></td><td>свечение рамки по тону истории, переключается только opacity</td></tr>
+          <tr><td><code>intro-zone.is-prev/is-next</code></td><td>невидимые зоны касания: левые 30 % — назад, остальное — дальше</td></tr>
+          <tr><td><code>intro-kicker</code>, <code>intro-title</code>, <code>intro-text</code></td><td>роза 14 px, заголовок 26–34 px, текст 16 px; появляются снизу по очереди</td></tr>
+          <tr><td><code>ia-*</code></td><td>иллюстрации: привет, глубины, очередь (стрелка-рулетка), «Правда или действие» (переворот), вместе (три телефона), старт</td></tr>
+        </tbody>
+      </table></div>
+      <p class="ds-spec">У каждой иллюстрации осмысленный последний кадр: при «уменьшении движения» он виден сразу, а истории сами не листаются. На низких экранах сцена уменьшается до 86 % и 72 %.</p>
     </section>
 
     <section class="ds-sec" id="motion">
@@ -339,18 +479,65 @@ main.ds-main { min-width: 0; display: flex; flex-direction: column; gap: 3.5rem;
           <tr><td>Свечение свайпа <code>swipe-glow</code></td><td>за пальцем</td><td>opacity края, сдвиг блика</td></tr>
           <tr><td>Смена жара фона</td><td>1.6 с</td><td>кроссфейд слоёв <code>.h</code> (только opacity)</td></tr>
           <tr><td>Тост</td><td>400 мс вход, 250 мс выход</td><td>translate + scale + opacity</td></tr>
+          <tr><td>Новая карточка вопроса <code>cardInNext</code> / <code>cardInPrev</code></td><td>420 мс</td><td>вперёд — подъём и scale 0.965; назад — слева с наклоном −1.4°</td></tr>
+          <tr><td>Веер лобби <code>todSway</code> и переворот <code>tod-face</code></td><td>5.6 с цикл / 700 мс</td><td>покачивание rotate + translate; rotateY 180°</td></tr>
+          <tr><td>Карточка «Правды» <code>todSheen</code></td><td>900 мс, один раз</td><td>блик проходит по карточке</td></tr>
+          <tr><td>Подколка <code>todHeckleIn</code>, острая <code>todSpicy</code></td><td>550 / 600 мс</td><td>вылет пузыря; лёгкое вздрагивание</td></tr>
+          <tr><td>Искры «выполнено» <code>tod-burst</code>, курица «пропуск» <code>tod-egg</code></td><td>900 мс / 1.1 с</td><td>разлёт 12 искр; падение 🐔</td></tr>
+          <tr><td>Итоги: кубок, подиум</td><td>1.1 с / 600 + 800 мс</td><td>кубок вылетает; столбики растут <code>scaleY</code></td></tr>
+          <tr><td>Сторис: полоска, текст</td><td>6.5 с / 600 мс</td><td><code>scaleX</code> полоски; текст поднимается снизу</td></tr>
+          <tr><td>«Наверх» <code>to-top</code></td><td>280 мс</td><td>opacity + сдвиг 12 px + scale 0.9</td></tr>
+          <tr><td>Компьютер: наклон карточек, прожектор, параллакс</td><td>180 / 500 мс</td><td>rotateX/Y за курсором; свет за мышью; мотивы смещаются</td></tr>
         </tbody>
       </table></div>
-      <p class="ds-spec">При <code>prefers-reduced-motion</code> анимации сокращаются до мгновенных, мотивы и искры фона скрываются, блик свайпа пропадает.</p>
+      <p class="ds-spec">При <code>prefers-reduced-motion</code> анимации сокращаются до мгновенных, мотивы и искры фона скрываются, блик свайпа пропадает, веер, подколки и подиум стоят на месте. Бесконечных пульсаций у кнопок нет: свечение «дышит» только у фона и финальной кнопки сторис.</p>
     </section>
 
     <section class="ds-sec" id="room">
       <h2>Фон «комната»</h2>
-      <p class="ds-lead">Три свечения, 12 мотивов, искры, зерно и виньетка. Нажмите уровень — так фон меняется вместе с глубиной вопроса.</p>
+      <p class="ds-lead">Три свечения, 12 мотивов, искры и зерно на ровной ночи <code>--night</code>: виньетки и тёмного верха больше нет. Нажмите уровень — так фон меняется вместе с глубиной вопроса.</p>
       <div class="ds-room"><!--ROOM-->
         <div class="ds-room-ui"><button class="chip is-on" data-heat="easy">Легкі</button><button class="chip" data-heat="mid">Середні</button><button class="chip" data-heat="deep">Глибокі</button></div>
       </div>
-      <p class="ds-spec">Слабые устройства (≤ 2 ГБ памяти, ≤ 2 ядер, экономия трафика) получают <code>fx-lite</code>: без мотивов и искр. Скрытая вкладка — <code>fx-paused</code>. На экране игры мотивы приглушены до 55 %.</p>
+      <p class="ds-spec">Слабые устройства (≤ 2 ГБ памяти, ≤ 2 ядер, экономия трафика) получают <code>fx-lite</code>: без мотивов и искр. Скрытая вкладка — <code>fx-paused</code>. На экране игры мотивы приглушены до 55 %. На компьютере (<code>html[data-fx]</code>) за курсором идёт мягкий розовый прожектор, а мотивы чуть смещаются (параллакс).</p>
+    </section>
+
+    <section class="ds-sec" id="desktop">
+      <h2>Компьютер (от 1024 px)</h2>
+      <p class="ds-lead">Сайт, а не растянутый телефон: верхняя панель, общая ширина <code>--desk-w</code> 72 rem, страницы в колонки, расширенный подвал.</p>
+      <div class="ds-shots desk">
+        <figure><!--SHOT:d-home|Главная на компьютере--><figcaption>Главная: панель <code>desk-nav</code>, выбор слева, «Начать игру» в липкой карточке справа</figcaption></figure>
+        <figure><!--SHOT:d-mode|Выбор режима на компьютере--><figcaption>Режимы: <code>mode-grid</code> — три вертикальные карточки, шапка слева, подвал <code>desk-footer</code></figcaption></figure>
+        <figure><!--SHOT:d-tod|Ход «Правды или действия» на компьютере--><figcaption>«Правда или действие»: <code>tod-desk</code> — карточка и кнопки слева, игроки и ведущий справа</figcaption></figure>
+        <figure><!--SHOT:d-about|«Об игре» на компьютере--><figcaption>«Об игре» как лендинг: <code>about-page</code> на 12 колонок</figcaption></figure>
+      </div>
+      <div class="ds-table-wrap"><table class="ds-table">
+        <thead><tr><th>Класс</th><th>Что это</th></tr></thead>
+        <tbody>
+          <tr><td><code>desk-nav</code>, <code>desk-link</code> (+ <code>is-on</code>)</td><td>панель 64 px: логотип, «Главная · Играть · Вопросы · Об игре» (текущая — роза с полоской), справа имена <code>desk-players</code>, ID, звук, язык, «Меню». 1024–1279 px — без имён</td></tr>
+          <tr><td><code>page-head</code> на компьютере</td><td>«Назад», заголовок слева 32 px / 800, действие справа, линия снизу</td></tr>
+          <tr><td><code>desk-cols</code>, <code>mode-grid</code>, <code>tod-desk</code></td><td>две колонки равной высоты; три режима в ряд; игра «Правды» в две колонки с липкой правой</td></tr>
+          <tr><td><code>profile-page</code>, <code>invite-page</code>, <code>pregame</code>, <code>hist-page</code>, <code>legal-wrap</code>, <code>about-page</code>, <code>onb-split</code></td><td>раскладки страниц: игроки, приглашение (QR слева), усложнённый режим, прошлые игры (сводка слева), документы (оглавление <code>legal-toc</code> слева), «Об игре», первый вход (рассказ слева, форма справа)</td></tr>
+          <tr><td><code>desk-arrow</code>, <code>kbd</code>, <code>desk-keys</code>, <code>desk-info</code></td><td>стрелки 52 px по бокам карточки вопроса, клавиши ← → в меню, панель «О сессии»</td></tr>
+          <tr><td><code>html[data-fx] .opt-card</code></td><td>карточки выбора наклоняются за курсором и ловят блик</td></tr>
+          <tr><td><code>desk-footer</code>, <code>desk-fcol</code>, <code>desk-footer-bar</code></td><td>подвал: о бренде + 18+, колонки «Игра · Режимы · Документы», нижняя строка</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section class="ds-sec" id="screens">
+      <h2>Экраны телефона</h2>
+      <p class="ds-lead">Снимки собранного приложения (390 × 844, украинский). Обновляются скриптом <code>docs/design-system/shots.cjs</code>.</p>
+      <div class="ds-shots phone">
+        <figure><!--SHOT:m-welcome|Приветствие--><figcaption>Приветствие: новая игра или вход по ID, «Как играть — за 30 секунд»</figcaption></figure>
+        <figure><!--SHOT:m-home|Главная--><figcaption>Главная: «Игроки» и «Меню», «Для кого», «Сложность», темы</figcaption></figure>
+        <figure><!--SHOT:m-more|Меню--><figcaption>Меню: язык в шапке справа, ID, разделы и настройки</figcaption></figure>
+        <figure><!--SHOT:m-mode|Выбор режима--><figcaption>Режимы: состав сессии <code>room-strip</code> и три <code>opt-card</code></figcaption></figure>
+        <figure><!--SHOT:m-game|Обычная игра--><figcaption>Обычная игра: общая шапка партии, карточка, счётчик <code>game-count</code></figcaption></figure>
+        <figure><!--SHOT:m-tod-lobby|Лобби «Правды или действия»--><figcaption>Лобби: веер, правила, подколки, свои карточки</figcaption></figure>
+        <figure><!--SHOT:m-tod-choose|Выбор «Правда или действие»--><figcaption>Ход: игроки, выбор, ведущий — один экран</figcaption></figure>
+        <figure><!--SHOT:m-tod-card|Карточка «Правды»--><figcaption>Карточка с ходом игрока и двумя кнопками</figcaption></figure>
+      </div>
     </section>
 
     <section class="ds-sec" id="icons">
@@ -370,21 +557,26 @@ main.ds-main { min-width: 0; display: flex; flex-direction: column; gap: 3.5rem;
       <div class="ds-motifs"><!--MOTIFS--></div>
       <h3>Логотип</h3>
       <div class="ds-board" style="gap:2rem"><!--LOGO_LG--><!--LOGO_MD--><!--LOGO_XS--></div>
-      <p class="ds-spec">Большой — экран входа и итоги; средний — шапка итогов; маленький — подвал «by yedvinn». Сердце в розовой плитке, «ASK» белым, «ME» розой, Unbounded 800 с разрядкой 0.14 em.</p>
+      <p class="ds-spec">Большой — главная, вход и итоги; средний — панель и подвал на компьютере, шапка сторис; маленький — подвал «by yedvinn». Сердце в розовой плитке, «ASK» белым, «ME» розой, Unbounded 800 с разрядкой 0.14 em.</p>
     </section>
 
     <section class="ds-sec" id="rules">
       <h2>Правила</h2>
       <ol class="ds-rules">
         <li><b>Одна главная кнопка на экране</b> — <code>btn-primary</code>. «Начать игру» — primary, «Продолжить игру» — ghost.</li>
-        <li><b>Шапка экрана</b>: «Назад» — <code>btn-icon</code> слева, заголовок h1 18 px по центру, справа — язык (<code>lang-btn</code>) или «Пригласить».</li>
+        <li><b>Шапка страницы</b> — <code>page-head</code>: «Назад» (<code>btn-icon</code>) слева, h1 18 px строго по центру (боковые колонки по 44 px), справа одно действие — «Пригласить» или язык. На компьютере заголовок слева 32 px.</li>
+        <li><b>Шапка партии</b> одна на все режимы: «Назад» слева; звук, язык и «Меню» справа. Уход из партии всегда спрашивает: пауза или конец для всех.</li>
+        <li><b>Язык</b> выбирается только кнопкой <code>lang-btn</code> (код + стрелка) в шапке «Меню», партии и сторис; три языка UA · EN · RU.</li>
         <li><b>Все касаемые элементы ≥ 44 px</b>; текстовые кнопки получают невидимое расширение.</li>
+        <li><b>Подпись кнопки — одна строка</b>; на экранах уже 360 px шрифт 15 px, дальше — короче текст.</li>
         <li><b>Выбранное выглядит одинаково</b>: розовая рамка 65 %, заливка 15 %, текст <code>--rose-ink</code> — у чипа, плитки, пункта меню, «Для кого».</li>
         <li><b>Цвета только из токенов</b>. Новый цвет — сначала токен в <code>:root</code>, потом использование.</li>
         <li><b>Радиусы только из шкалы</b> 10 / 14 / 20 / 28 / таблетка.</li>
         <li><b>Текст не меньше 13 px</b>, регистр как в предложении, Unbounded — только для заголовков и цифр.</li>
         <li><b>Уровень не только цветом</b>: точки, подпись или число рядом.</li>
-        <li><b>Анимируются только transform и opacity</b>; всё уважает <code>prefers-reduced-motion</code>.</li>
+        <li><b>Анимируются только transform и opacity</b>; всё уважает <code>prefers-reduced-motion</code>. Свечение тихое, бесконечных пульсаций у кнопок нет.</li>
+        <li><b>Ход «Правды или действия» на телефоне — один экран</b> (<code>tod-play</code>): середина сжимается, подколка обрезается до 3 строк, кнопки внизу в два столбца.</li>
+        <li><b>Компьютер</b> — от 1024 px: ширина <code>--desk-w</code>, страницы раскладываются в колонки, новых классов для телефона это не требует.</li>
         <li><b>Юридические ссылки</b> — тихий текст 13 px внизу, не строки и не кнопки.</li>
         <li><b>Тексты интерфейса</b> — через <code>tr()</code>, у каждого есть украинский перевод; украинский — язык по умолчанию.</li>
         <li><b>Ответ ИИ всегда подписан</b>: «Совет от ИИ» и пометка под текстом.</li>
@@ -394,25 +586,43 @@ main.ds-main { min-width: 0; display: flex; flex-direction: column; gap: 3.5rem;
     </section>
 
     <section class="ds-sec" id="changes">
-      <h2>Что изменилось в ревизии 29.10</h2>
+      <h2>Что изменилось в ревизии 31.10</h2>
+      <h3>Убрано</h3>
       <div class="ds-table-wrap"><table class="ds-table">
         <thead><tr><th>Было</th><th>Стало</th></tr></thead>
         <tbody>
-          <tr><td>Текст на розовом — 9 раз литерал <code>#ffd1da</code></td><td>Токен <code>--rose-ink</code></td></tr>
-          <tr><td><code>--rose-300</code> использовался, но не был объявлен</td><td>Объявлен в <code>:root</code></td></tr>
-          <tr><td>Фон меню — литерал <code>#14121d</code></td><td>Токен <code>--pop</code></td></tr>
-          <tr><td>Радиус 10 px вне шкалы</td><td>Токен <code>--r-inner</code></td></tr>
-          <tr><td>Заголовки «Об игре» с прописанным списком шрифтов</td><td><code>var(--font-display)</code></td></tr>
-          <tr><td>Неиспользуемые <code>--ui-btn-h</code>, <code>--ui-radius</code>, <code>--ui-chip-h</code>, <code>--ui-gap-*</code>, <code>--plum-3</code></td><td>Удалены</td></tr>
-          <tr><td>Невыделенная кнопка «Для кого»</td><td><code>btn-tile.is-on</code> + <code>aria-pressed</code></td></tr>
-          <tr><td>5 мотивов фона</td><td>12 мотивов: стекло и дальние слои</td></tr>
-          <tr><td>Новое</td><td><code>lang-btn</code>, <code>menu-pop</code>, <code>swipe-glow</code>, <code>about-card-ico</code>, подпись ИИ</td></tr>
+          <tr><td>Язык — квадратная <code>btn-icon lang-btn</code> с кодом</td><td><code>btn-secondary btn-sm lang-btn</code> со стрелкой <code>lang-chev</code>; в меню языков есть English</td></tr>
+          <tr><td>Фильтр глубины <code>level-seg</code>: четыре сегмента с числами и точками <code>level-dot</code></td><td>Выпадающий список со значком фильтра. Классы <code>level-seg*</code> в CSS остались без использования — можно удалить</td></tr>
+          <tr><td>Виньетка <code>bg-room::after</code> и тёмный радиальный верх фона</td><td>Ровная ночь <code>--night</code>, ни верх, ни низ не затемняются</td></tr>
+          <tr><td>Заголовок шапки «flex-1 по центру» (сдвигался, если справа пусто)</td><td>Сетка <code>page-head</code> с равными боковыми колонками</td></tr>
+          <tr><td>Лобби «Правды» в один экран (<code>tod-lobby</code>, <code>tod-rule-more</code>, <code>tod-opt-row</code>, <code>tod-room</code>)</td><td>Обычное лобби с прокруткой; в один экран теперь только ход</td></tr>
+          <tr><td>Пульсация «Начать игру» (<code>tod-go</code>), «Действия» (<code>tod-attn</code>) и сильные тени</td><td>Тихие тени без бесконечной пульсации</td></tr>
         </tbody>
       </table></div>
+      <h3>Добавлено</h3>
+      <div class="ds-table-wrap"><table class="ds-table">
+        <thead><tr><th>Что</th><th>Классы</th></tr></thead>
+        <tbody>
+          <tr><td>Выбор «Для кого» и «Сложность» на главной</td><td><code>btn-tile.is-on</code>, <code>btn-tile.diff-pill-1/2/3</code></td></tr>
+          <tr><td>Шапки: страницы, партии, «Меню» с языком</td><td><code>page-head</code>, <code>page-title</code>, <code>game-head</code>, <code>lang-chev</code></td></tr>
+          <tr><td>«Правда или действие»: лобби, ход, карточка, ведущий, итоги</td><td><code>tod-hero</code>, <code>tod-face</code>, <code>tod-rule</code>, <code>tod-roster</code>, <code>tod-pick</code>, <code>tod-pips</code>, <code>tod-card</code>, <code>tod-heckle</code>, <code>tod-res-hero</code>, <code>tod-podium</code>, <code>tod-avatar</code></td></tr>
+          <tr><td>Пауза партии</td><td>окно «Поставить на паузу / Завершить для всех / Вернуться»</td></tr>
+          <tr><td>Прошлые игры</td><td><code>hist-hero</code>, <code>hist-card</code>, <code>hist-empty</code>, <code>hist-badge</code></td></tr>
+          <tr><td>Состав сессии и устройства</td><td><code>room-strip</code>, <code>room-pips</code></td></tr>
+          <tr><td>Знакомство «сторис»</td><td><code>intro-*</code>, <code>ia-*</code></td></tr>
+          <tr><td>Версия для компьютера</td><td><code>desk-*</code>, <code>--desk-w</code>, раскладки страниц, <code>html[data-fx]</code></td></tr>
+          <tr><td>«Наверх», счётчик вопросов, перелистывание карточки</td><td><code>to-top</code>, <code>game-count</code>, <code>cardInNext/Prev</code></td></tr>
+          <tr><td>Справочник: снимки экранов телефона и компьютера</td><td><code>docs/design-system/shots.cjs</code></td></tr>
+        </tbody>
+      </table></div>
+      <p class="ds-spec">Ревизия 29.10: токены <code>--rose-ink</code>, <code>--rose-300</code>, <code>--pop</code>, <code>--r-inner</code>; 12 мотивов фона; <code>menu-pop</code>, <code>swipe-glow</code>, <code>about-card-ico</code>, подпись ИИ.</p>
     </section>
   </main>
 </div>
 <script>
+document.querySelectorAll('.tod-face').forEach(function (b) {
+  b.addEventListener('click', function () { b.classList.toggle('is-flipped'); });
+});
 document.querySelectorAll('[data-heat]').forEach(function (b) {
   b.addEventListener('click', function () {
     document.documentElement.setAttribute('data-heat', b.getAttribute('data-heat'));
