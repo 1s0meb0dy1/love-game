@@ -19,14 +19,17 @@ const sha = async (s) => [...new Uint8Array(await crypto.subtle.digest('SHA-256'
 const cacheUrl = (key, slot) => `https://askme-ai-cache.invalid/${key}/${slot}`;
 
 // один виклик Gemini у потоковому режимі -> ReadableStream чистого тексту (або виняток, якщо модель не відповіла вчасно)
+// maxOutputTokens із запасом: «роздуми» моделі теж витрачають токени, без нього відповідь буває порожньою
 const geminiStream = async (env, model, p, signal) => {
-  const body = { systemInstruction: { parts: [{ text: p.system }] }, contents: [{ role: 'user', parts: [{ text: p.user }] }], generationConfig: { maxOutputTokens: p.maxTokens, thinkingConfig: { thinkingLevel: 'low' } },
+  const body = { systemInstruction: { parts: [{ text: p.system }] }, contents: [{ role: 'user', parts: [{ text: p.user }] }], generationConfig: { maxOutputTokens: p.maxTokens + 1024, thinkingConfig: { thinkingLevel: 'minimal' } },
     safetySettings: ['HARM_CATEGORY_HARASSMENT', 'HARM_CATEGORY_HATE_SPEECH', 'HARM_CATEGORY_SEXUALLY_EXPLICIT', 'HARM_CATEGORY_DANGEROUS_CONTENT'].map(category => ({ category, threshold: 'BLOCK_ONLY_HIGH' })) };
   const call = (b) => fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': String(env.GEMINI_API_KEY).trim() }, body: JSON.stringify(b), signal });
   let res = await call(body);
   if (res.status === 400) { delete body.generationConfig.thinkingConfig; res = await call(body); } // модель без thinkingLevel
   if (!res.ok || !res.body) { let why = ''; try { const t = await res.text(); const m = t.match(/"message"\s*:\s*"([^"]{0,120})/); why = ' ' + (m ? m[1] : t.slice(0, 80)); } catch (e) {} if (!why.trim()) { const k = String(env.GEMINI_API_KEY || '').trim(); why = ' empty body; key ' + (/^AIza[0-9A-Za-z_-]{35}$/.test(k) ? 'format ok' : 'format bad len ' + k.length); } throw new Error('gemini ' + res.status + why.slice(0, 90)); }
-  return sseToText(res.body, (j) => (j && j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts || []).filter(x => !x.thought).map(x => x.text || '').join(''));
+  const info = { why: '' }; // причина порожньої відповіді (finishReason / blockReason) — для X-AI-Fail
+  const out = sseToText(res.body, (j) => { const c = j && j.candidates && j.candidates[0]; const r = (c && c.finishReason) || (j && j.promptFeedback && j.promptFeedback.blockReason); if (r) info.why = r; return (c && c.content && c.content.parts || []).filter(x => !x.thought).map(x => x.text || '').join(''); });
+  out.info = info; return out;
 };
 
 const pollinationsStream = async (env, p, signal) => {
@@ -37,14 +40,13 @@ const pollinationsStream = async (env, p, signal) => {
   return sseToText(res.body, (j) => (j && j.choices && j.choices[0] && j.choices[0].delta && j.choices[0].delta.content) || '');
 };
 
-// SSE (data: {...}) -> потік тексту
+// SSE (data: {...}) -> потік тексту. Google розділяє рядки \r\n, тому ділимо по /\r?\n/ і дочитуємо хвіст у flush
 const sseToText = (body, pickText) => {
   const dec = new TextDecoder(); const enc = new TextEncoder(); let buf = '';
+  const emit = (l, ctl) => { const m = l.match(/^data:\s*(.*)$/); if (!m || m[1] === '[DONE]') return; try { const t = pickText(JSON.parse(m[1])); if (t) ctl.enqueue(enc.encode(t)); } catch (e) {} };
   return body.pipeThrough(new TransformStream({
-    transform(chunk, ctl) {
-      buf += dec.decode(chunk, { stream: true }); const lines = buf.split('\n'); buf = lines.pop();
-      for (const l of lines) { const m = l.match(/^data:\s*(.*)$/); if (!m || m[1] === '[DONE]') continue; try { const t = pickText(JSON.parse(m[1])); if (t) ctl.enqueue(enc.encode(t)); } catch (e) {} }
-    },
+    transform(chunk, ctl) { buf += dec.decode(chunk, { stream: true }); const lines = buf.split(/\r?\n/); buf = lines.pop(); for (const l of lines) emit(l, ctl); },
+    flush(ctl) { buf += dec.decode(); if (buf) emit(buf, ctl); },
   }));
 };
 
@@ -52,7 +54,7 @@ const sseToText = (body, pickText) => {
 const withFirstChunk = async (stream, ms) => {
   const reader = stream.getReader(); let timer;
   const first = await Promise.race([reader.read(), new Promise((_, rej) => { timer = setTimeout(() => rej(new Error('first-byte timeout')), ms); })]).finally(() => clearTimeout(timer));
-  if (first.done || !first.value || !first.value.length) throw new Error('empty');
+  if (first.done || !first.value || !first.value.length) throw new Error('empty' + (stream.info && stream.info.why ? ' ' + stream.info.why : ''));
   return new ReadableStream({ start(ctl) { ctl.enqueue(first.value); }, async pull(ctl) { const r = await reader.read(); if (r.done) ctl.close(); else ctl.enqueue(r.value); }, cancel() { reader.cancel(); } });
 };
 
@@ -84,7 +86,8 @@ export default {
         return new Response(toClient, { headers: { ...headers, 'X-AI-Source': 'live' } });
       } catch (e) { clearTimeout(kill); ac.abort(); fails.push(labels[i] + ':' + String(e && e.message || e).replace(/[^\w .:-]/g, '').slice(0, 110)); }
     }
-    for (let i = 0; i < CACHE_SLOTS; i++) { const hit = await caches.default.match(cacheUrl(key, (i + Math.floor(Math.random() * CACHE_SLOTS)) % CACHE_SLOTS)); if (hit) return new Response(hit.body, { headers: { ...headers, 'X-AI-Source': 'cache' } }); }
+    const off = Math.floor(Math.random() * CACHE_SLOTS); // зсув один на весь цикл, інакше слоти перевіряються не всі
+    for (let i = 0; i < CACHE_SLOTS; i++) { const hit = await caches.default.match(cacheUrl(key, (i + off) % CACHE_SLOTS)); if (hit) return new Response(hit.body, { headers: { ...headers, 'X-AI-Source': 'cache' } }); }
     return new Response('unavailable', { status: 503, headers: { ...cors, 'X-AI-Fail': fails.join('; ').slice(0, 700), 'Access-Control-Expose-Headers': 'X-AI-Fail' } });
   },
 };

@@ -28,5 +28,9 @@ const req = (body, origin = 'https://1s0meb0dy1.github.io', method = 'POST') => 
   plan = [() => new Response('', { status: 400 }), () => new Response('', { status: 400 }), () => new Response('', { status: 400 }), () => new Response(JSON.stringify([{ error: { code: 400, message: 'API key not valid. Please pass a valid API key.', status: 'INVALID_ARGUMENT' } }]), { status: 400 })];
   r = await W.fetch(req({ type: 'advice', lang: 'uk', question: 'Ще одне питання' }), { ...env, GEMINI_API_KEY: 'AIzaSECRETSECRETSECRETSECRETSECRET12345' }, ctx); const fail = r.headers.get('X-AI-Fail') || '';
   T('503 пояснює причину в X-AI-Fail (текст помилки Google, формат ключа), але не сам ключ', r.status === 503 && /m1:gemini 400/.test(fail) && /API key not valid/.test(fail) && /format/.test(fail) && !/SECRET/.test(fail) && /X-AI-Fail/.test(r.headers.get('Access-Control-Expose-Headers') || ''));
+  // справжній Gemini розділяє рядки SSE як \r\n, а останній рядок може прийти без переносу
+  plan = [() => new Response(new ReadableStream({ start(c) { const e = new TextEncoder(); c.enqueue(e.encode('data: ' + JSON.stringify({ candidates: [{ content: { parts: [{ text: 'Перший, ' }] } }] }) + '\r\n\r\n')); c.enqueue(e.encode('data: ' + JSON.stringify({ candidates: [{ content: { parts: [{ text: 'другий' }] }, finishReason: 'STOP' }] }))); c.close(); } }), { status: 200 })];
+  r = await W.fetch(req({ type: 'advice', lang: 'uk', question: 'Питання з CRLF' }), env, ctx);
+  T('SSE з \\r\\n і хвостом без переносу читається повністю', r.status === 200 && (await r.text()) === 'Перший, другий');
   console.log(res.join('\n')); console.log('--- captured runtime errors: 0'); process.exit(res.some(l => l.startsWith('FAIL')) ? 1 : 0);
 })().catch(e => { console.log(res.join('\n')); console.log('TEST CRASH:', e && e.stack); process.exit(1); });
