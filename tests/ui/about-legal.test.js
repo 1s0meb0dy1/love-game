@@ -102,7 +102,7 @@ const boot = async (hash, withProfile) => {
 
   // ---------- юридические страницы ----------
   A = await boot('#/privacy', false); ({ w, D, sleep, c } = A);
-  const ids = { privacy: '#/privacy', terms: '#/terms', cookies: '#/cookies', age: '#/age' };
+  const ids = { privacy: '#/privacy', terms: '#/terms', cookies: '#/cookies', age: '#/age', copyright: '#/copyright' };
   T('политика открывается по прямой ссылке без сессии', D.title === LEGAL.docs.privacy.title + ' — ASK ME' && D.querySelector('h1').textContent === LEGAL.docs.privacy.title);
   for (const id of LEGAL.order) {
     await A.go(ids[id]); const doc = LEGAL.docs[id], page = D.querySelector('main.legal-doc'), txt = norm(page.textContent);
