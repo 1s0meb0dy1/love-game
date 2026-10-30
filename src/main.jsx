@@ -3,6 +3,9 @@ import './app.jsx';
 import { registerSW } from 'virtual:pwa-register';
 import { inGameHash } from './update.js';
 
+// установлений застосунок (старий iOS «На початковий екран» або оболонка Capacitor): клас is-app прибирає віньєтку фону
+try { if (window.navigator.standalone === true || (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform())) document.documentElement.classList.add('is-app'); } catch (e) {}
+
 // Новая версия скачивается сама, но страница перезагружается только вне партии: перезагрузка посреди игры обрывала бы её.
 // Пока идёт игра, раз в 3 секунды проверяем, не вышел ли игрок из неё.
 let waiting = 0;

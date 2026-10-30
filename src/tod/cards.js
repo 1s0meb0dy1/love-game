@@ -19,6 +19,16 @@ export const todWriteCache = (storage, list) => {
   try { storage.setItem(TOD_CACHE_KEY, JSON.stringify(todCleanList(list))); } catch (e) {}
 };
 
+// украинский текст из стартового набора для карточек, у которых его нет (в базу набор загрузили раньше, чем в нём появился text_uk).
+// Берётся, только если id совпадает и русский текст не менялся владельцем: переписанная карточка без перевода остаётся на русском.
+export const todFillUk = (list, starter) => {
+  const src = new Map(todCleanList(starter).filter(c => c.text_uk).map(c => [c.id, c]));
+  return (Array.isArray(list) ? list : []).map(c => {
+    const s = !c.text_uk && src.get(c.id);
+    return s && s.text === c.text ? todCleanCard({ ...c, text_uk: s.text_uk }) : c;
+  });
+};
+
 // загрузка карточек: база -> кэш -> стартовый набор. Результат { list, source: 'db' | 'cache' | 'starter' }, исключений не бывает.
 // Из базы берётся всё, что в ней лежит (и скрытые карточки: они нужны админке); при непустом результате он же пишется в кэш.
 // Пустая база, ошибка сети, отказ и мусор вместо данных считаются одинаково: кэш, а если его нет — стартовый набор (в кэш он не пишется).
@@ -26,11 +36,11 @@ export const todLoadCards = async (env) => {
   try {
     const res = await env.fetch(`${env.baseUrl}/tod.json?t=${Date.now()}`, {}, TOD_FETCH_MS);
     if (res && res.ok) {
-      const list = todCleanList(await res.json());
+      const list = todFillUk(todCleanList(await res.json()), env.starter);
       if (list.length) { todWriteCache(env.storage, list); return { list, source: 'db' }; }
     }
   } catch (e) {}
-  const cached = todReadCache(env.storage);
+  const cached = todFillUk(todReadCache(env.storage), env.starter);
   if (cached.length) return { list: cached, source: 'cache' };
   return { list: todCleanList(env.starter), source: 'starter' };
 };

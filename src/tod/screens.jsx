@@ -338,6 +338,7 @@ const TodMine = ({ ui, list, onAdd, onDel }) => {
 export const TodLobby = ({ ui, players, cfg, setCfg, deviceCount, block, onStart, onShare, onBack, banner, deckInfo, peek, mine, onMineAdd, onMineDel }) => {
   const [warn, setWarn] = React.useState(false); const [busy, setBusy] = React.useState(false);
   const [flip, setFlip] = React.useState({ truth: '', dare: '' }); // текст на обороте веера; '' — карточка лицом
+  const [rule, setRule] = React.useState(''); // раскрытое правило: '' | 'lock' | 'skip' | 'lvl'
   const list = Array.isArray(players) ? players : [];
   const go = async () => { if (busy) return; setBusy(true); try { await onStart(); } finally { setBusy(false); } };
   const startClick = () => {
@@ -360,50 +361,61 @@ export const TodLobby = ({ ui, players, cfg, setCfg, deviceCount, block, onStart
     </button>
   );
   const di = deckInfo || null;
+  // правила — три плитки в ряд; нажатие раскрывает пояснение под ними (так лобби на телефоне помещается в один экран)
+  const rules = [
+    { id: 'lock', ico: <span className="tod-lockdemo" aria-hidden="true"><i></i><i></i><i></i><b>🔒</b></span>, name: tf("Не больше {v0} правд подряд", { v0: TOD_TRUTH_LIMIT }), title: tf("«Правда» — не больше {v0} раз подряд", { v0: TOD_TRUTH_LIMIT }), hint: todTx(ui, 'После третьей правды подряд следующий ход — только «Действие». Так интереснее!') },
+    { id: 'skip', ico: <span aria-hidden="true">🐔</span>, name: todTx(ui, 'Пропуск — позор'), title: todTx(ui, 'Пропуск — это позор'), hint: todTx(ui, 'Ход не передаётся, а в итогах пропуски попадают в «Зал позора».') },
+    { id: 'lvl', ico: <span aria-hidden="true">🔥</span>, name: tf("{v0} уровня действий", { v0: 3 }), title: todTx(ui, 'У действия три уровня'), hint: todTx(ui, 'Легко, средне и жёстко — выбирайте по настроению компании.') },
+  ];
+  const ruleOn = rules.find(r => r.id === rule) || null;
   return (
-    <div className="safe-screen w-full flex flex-col items-center slide-up relative z-10">
-      <header className="w-full max-w-md lg:max-w-5xl flex items-center gap-3 pt-2">
+    <div className="safe-screen tod-lobby w-full flex flex-col items-center slide-up relative z-10">
+      <header className="w-full max-w-md lg:max-w-5xl flex items-center gap-3">
         <button type="button" aria-label={todTx(ui, 'Назад')} onClick={() => { ui.SoundFX.click(); onBack(); }} className="btn-icon flex-shrink-0"><ui.Icons.Back /></button>
         <h1 className="flex-1 text-center text-lg font-bold text-white">{todTx(ui, 'Правда или действие')}</h1>
         <button type="button" aria-label={todTx(ui, 'Поделиться сессией')} title={todTx(ui, 'Поделиться сессией')} onClick={onShare} className="btn-icon flex-shrink-0"><ui.Icons.Share /></button>
       </header>
-      <main className="w-full max-w-md lg:max-w-5xl flex flex-col gap-6 pt-6 pb-8 desk-cols">
+      <main className="tod-lobby-main w-full max-w-md lg:max-w-5xl flex flex-col gap-3 desk-cols">
         {banner}
         <section className="tod-hero" aria-label={todTx(ui, 'Правда или действие')}>
-          <div className="tod-fan">
-            {face('truth', '💬', todTx(ui, 'Правда'), todTx(ui, 'Нажми — пример'))}
-            {face('dare', '🎯', todTx(ui, 'Действие'), todTx(ui, 'Нажми — пример'))}
-          </div>
-          <p className="tod-hero-title">{todTx(ui, 'Выбирай. Рискуй. Не пропускай.')}</p>
-          {di && <p className="tod-hero-meta">{tf("В колоде: {v0} правд · {v1} действий", { v0: di.truth, v1: di.dare })}</p>}
-        </section>
-        <section className="flex flex-col gap-3" aria-label={todTx(ui, 'Правила')}>
-          <h2 className="text-sm font-bold text-zinc-300">{todTx(ui, 'Правила')}</h2>
-          <ul className="tod-rules">
-            <li className="tod-rule tod-rule-lock">
-              <span className="tod-rule-ico"><span className="tod-lockdemo" aria-hidden="true"><i></i><i></i><i></i><b>🔒</b></span></span>
-              <span className="flex flex-col gap-0.5 min-w-0"><span className="text-sm font-bold text-white">{tf("«Правда» — не больше {v0} раз подряд", { v0: TOD_TRUTH_LIMIT })}</span><span className="ui-hint">{todTx(ui, 'После третьей правды подряд следующий ход — только «Действие». Так интереснее!')}</span></span>
-            </li>
-            <li className="tod-rule">
-              <span className="tod-rule-ico" aria-hidden="true">🐔</span>
-              <span className="flex flex-col gap-0.5 min-w-0"><span className="text-sm font-bold text-white">{todTx(ui, 'Пропуск — это позор')}</span><span className="ui-hint">{todTx(ui, 'Ход не передаётся, а в итогах пропуски попадают в «Зал позора».')}</span></span>
-            </li>
-            <li className="tod-rule">
-              <span className="tod-rule-ico" aria-hidden="true">🔥</span>
-              <span className="flex flex-col gap-0.5 min-w-0"><span className="text-sm font-bold text-white">{todTx(ui, 'У действия три уровня')}</span><span className="ui-hint">{todTx(ui, 'Легко, средне и жёстко — выбирайте по настроению компании.')}</span></span>
-            </li>
-          </ul>
-        </section>
-        <section className="flex flex-col gap-4 rounded-[20px] border border-white/10 bg-white/[0.04] p-4">
-          <div className="flex flex-col gap-2">
-            <span className="text-sm font-bold text-white">{todTx(ui, 'Подколки')}</span>
-            <div className="seg" role="group" aria-label={todTx(ui, 'Подколки')}>
-              {TOD_TONES.map(([tone, label]) => <button key={tone} type="button" aria-pressed={cfg.tone === tone} onClick={() => { ui.SoundFX.click(); setCfg({ ...cfg, tone }); }} className={`seg-btn ${cfg.tone === tone ? 'is-active' : ''}`}>{todTx(ui, label)}</button>)}
+          <div className="tod-hero-in">
+            <div className="tod-fan">
+              {face('truth', '💬', todTx(ui, 'Правда'), todTx(ui, 'Нажми — пример'))}
+              {face('dare', '🎯', todTx(ui, 'Действие'), todTx(ui, 'Нажми — пример'))}
             </div>
-            <span className="ui-hint">{cfg.tone === 2 ? todTx(ui, 'Острый: лёгкая вульгарность, чёрный юмор и сатира на государство-агрессора. 18+') : cfg.tone === 1 ? todTx(ui, 'Мягкий: игривые подколки без грубостей.') : todTx(ui, 'Без подколок под карточкой.')}</span>
+            <div className="tod-hero-txt">
+              <p className="tod-hero-title">{todTx(ui, 'Выбирай. Рискуй. Не пропускай.')}</p>
+              {di && <p className="tod-hero-meta">{tf("В колоде: {v0} правд · {v1} действий", { v0: di.truth, v1: di.dare })}</p>}
+            </div>
+          </div>
+        </section>
+        <section className="flex flex-col gap-2" aria-label={todTx(ui, 'Правила')}>
+          <ul className="tod-rules">
+            {rules.map(r => (
+              <li key={r.id}>
+                <button type="button" aria-expanded={rule === r.id} aria-controls="tod-rule-more" onClick={() => { ui.SoundFX.click(); setRule(v => (v === r.id ? '' : r.id)); }} className={`tod-rule tod-rule-${r.id} ${rule === r.id ? 'is-open' : ''}`}>
+                  <span className="tod-rule-ico">{r.ico}</span>
+                  <span className="tod-rule-name">{r.name}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+          <div id="tod-rule-more" aria-live="polite">
+            {ruleOn && <p className="tod-rule-more fade-in"><b>{ruleOn.title}.</b> {ruleOn.hint}</p>}
+          </div>
+        </section>
+        <section className="tod-opts flex flex-col gap-3 rounded-[20px] border border-white/10 bg-white/[0.04] p-4">
+          <div className="flex flex-col gap-1.5">
+            <div className="tod-opt-row">
+              <span className="text-sm font-bold text-white">{todTx(ui, 'Подколки')}</span>
+              <div className="seg seg-sm" role="group" aria-label={todTx(ui, 'Подколки')}>
+                {TOD_TONES.map(([tone, label]) => <button key={tone} type="button" aria-pressed={cfg.tone === tone} onClick={() => { ui.SoundFX.click(); setCfg({ ...cfg, tone }); }} className={`seg-btn ${cfg.tone === tone ? 'is-active' : ''}`}>{todTx(ui, label)}</button>)}
+              </div>
+            </div>
+            <span className={`ui-hint ${cfg.tone === 2 ? '' : 'tod-opt-hint'}`}>{cfg.tone === 2 ? todTx(ui, 'Острый: лёгкая вульгарность, чёрный юмор и сатира на государство-агрессора. 18+') : cfg.tone === 1 ? todTx(ui, 'Мягкий: игривые подколки без грубостей.') : todTx(ui, 'Без подколок под карточкой.')}</span>
           </div>
           <div className="flex items-center justify-between gap-4">
-            <span className="flex flex-col gap-0.5"><span className="text-sm font-bold text-white">{todTx(ui, 'Жёсткие 18+')}</span><span className="ui-hint">{todTx(ui, 'Откровенные карточки уровня «Жёстко»')}</span></span>
+            <span className="flex flex-col gap-0.5"><span className="text-sm font-bold text-white">{todTx(ui, 'Жёсткие 18+')}</span><span className="ui-hint tod-opt-hint">{todTx(ui, 'Откровенные карточки уровня «Жёстко»')}</span></span>
             <ui.SettingSwitch on={!!cfg.hard} label={todTx(ui, 'Жёсткие 18+')} onChange={() => { ui.SoundFX.toggle && ui.SoundFX.toggle(!cfg.hard); setCfg({ ...cfg, hard: !cfg.hard }); }} />
           </div>
           {Array.isArray(mine) && mine.length > 0 && (
@@ -414,11 +426,11 @@ export const TodLobby = ({ ui, players, cfg, setCfg, deviceCount, block, onStart
           )}
         </section>
         {typeof onMineAdd === 'function' && <TodMine ui={ui} list={Array.isArray(mine) ? mine : []} onAdd={onMineAdd} onDel={onMineDel} />}
-        <div className="flex flex-col gap-3">
-          <h2 className="text-sm font-bold text-zinc-300">{todTx(ui, 'Игроки')} · {list.length}</h2>
-          <ui.RoomStrip players={list} devices={deviceCount || 1} />
-          <p className="ui-hint">{todTx(ui, 'Кнопки хода можно нажимать с любого устройства сессии.')}</p>
-          <button type="button" onClick={onShare} className="btn-secondary w-full"><ui.Icons.Share /> {todTx(ui, 'Поделиться сессией')}</button>
+        <div className="tod-lobby-go flex flex-col gap-3">
+          <div className="tod-room">
+            <ui.RoomStrip players={list} devices={deviceCount || 1} />
+            <button type="button" onClick={onShare} className="btn-secondary tod-room-share flex-shrink-0"><ui.Icons.Share /> <span>{todTx(ui, 'Поделиться сессией')}</span></button>
+          </div>
           <div className="flex flex-col gap-2">
             <button type="button" onClick={startClick} disabled={busy} aria-disabled={block ? 'true' : undefined} aria-describedby={block ? 'tod-start-hint' : undefined} className="btn-primary tod-go w-full"><ui.Icons.Play /> {todTx(ui, 'Начать игру')}</button>
             {block && <p id="tod-start-hint" className="ui-error" role="alert">{block}</p>}
@@ -426,7 +438,6 @@ export const TodLobby = ({ ui, players, cfg, setCfg, deviceCount, block, onStart
         </div>
       </main>
       <TodAdultModal ui={ui} open={warn} onOk={() => { setWarn(false); go(); }} onCancel={() => { ui.SoundFX.click(); setWarn(false); }} />
-      <ui.AppFooter divider={false} />
     </div>
   );
 };
