@@ -19,7 +19,8 @@ export const todTitles = (state, titles) => {
     hard_fold: () => all(r => r.sh > 0),
     later: () => all(r => r.skips > r.done && r.skips + r.done >= 3),
     easy_life: () => all(r => r.lv >= 4 && r.easy / r.lv >= 0.8),
-    afraid_dare: () => all(r => r.dares === 0 && r.truths + r.dares >= 4),
+    // «Правда» не больше 3 раз подряд, поэтому «Действие» выбирают хотя бы раз в четыре хода; боится действий тот, кто брал его только по принуждению: не чаще одного на каждые три правды
+    afraid_dare: () => all(r => r.truths >= 3 && r.dares <= Math.floor(r.truths / 3)),
     careful: () => all(r => hardOn && r.hardLv === 0 && r.dares >= 4),
     hero: () => top('hard', 1),
     fearless: () => all(r => r.skips === 0 && r.done >= 5),

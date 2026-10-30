@@ -11,6 +11,9 @@ import { t as tr, tf, setLang as i18nSetLang, getLang, catName as catLabel, diff
 import { TOD_STARTER } from './content/tod-cards.js';
 import { todCleanList, todCleanCard, todCardText } from './tod/model.js';
 import { todLoadCards, todSaveCard, todSeedStarter, todActive, todReadCache, todWriteCache } from './tod/cards.js';
+import { todMineRead, todMineWrite, todMineAdd, todMineRemove, todIsMine } from './tod/mine.js';
+import { histClean, histMerge, histAdd, histMarkContinued, histBuild } from './history/model.js';
+import { HistList, HistView, histDayLabel } from './history/screens.jsx';
 import { TOD_BANTER, TOD_TITLES } from './content/tod-banter.js';
 import { todBuildDeck, todNext } from './tod/deck.js';
 import { todStart, todApply } from './tod/engine.js';
@@ -175,6 +178,8 @@ i18nSetLang(readStoredLang());
             }
             return out;
         };
+        const cleanHistory = (v) => histClean(v, cleanSavedGame);
+        const mergeHistory = (a, b) => histMerge(a, b, cleanSavedGame);
         const cleanIdList = (v, max = 5000) => Array.isArray(v) ? v.filter(x => typeof x === 'string' || typeof x === 'number').slice(0, max) : [];
 
         let lastSyncToastAt = 0;
@@ -268,8 +273,8 @@ i18nSetLang(readStoredLang());
             { id: "Глубокие", name: "Глубокие", classText: "diff-text-3", classBg: "diff-pill-3" }
         ];
 
-        const SCREEN_TO_HASH = { onboarding: '#/welcome', session_created: '#/session-ready', menu: '#/', app_menu: '#/more', game_setup: '#/setup', topics_admin: '#/topics/manage', punish_admin: '#/punishments/manage', tod_admin: '#/tod/manage', tod_lobby: '#/tod', tod_play: '#/tod/play', tod_results: '#/tod/results', analytics: '#/analytics', analytics_sessions: '#/analytics/sessions', hidden_q: '#/questions/hidden', profile_page: '#/profile', admin_login: '#/admin', mode_select: '#/mode', game: '#/play', ai_response: '#/ai', summary: '#/summary', cat_list: '#/topics', q_list: '#/questions', archive_page: '#/archive', add_q: '#/add', edit_q: '#/edit', invite: '#/invite', join: '#/join', about: '#/about', privacy: '#/privacy', terms: '#/terms', cookies: '#/cookies', age: '#/age', copyright: '#/copyright' };
-        const HASH_TO_SCREEN = { '#/welcome': 'onboarding', '#/session-ready': 'session_created', '#/': 'menu', '#/menu': 'menu', '#/profile': 'profile_page', '#/more': 'app_menu', '#/setup': 'game_setup', '#/topics/manage': 'topics_admin', '#/punishments/manage': 'punish_admin', '#/tod/manage': 'tod_admin', '#/tod': 'tod_lobby', '#/tod/play': 'tod_play', '#/tod/results': 'tod_results', '#/analytics': 'analytics', '#/analytics/sessions': 'analytics_sessions', '#/questions/hidden': 'hidden_q', '#/admin': 'admin_login', '#/mode': 'mode_select', '#/play': 'game', '#/ai': 'ai_response', '#/summary': 'summary', '#/topics': 'cat_list', '#/questions': 'q_list', '#/archive': 'archive_page', '#/add': 'add_q', '#/edit': 'edit_q', '#/invite': 'invite', '#/join': 'join', '#/about': 'about', '#/privacy': 'privacy', '#/terms': 'terms', '#/cookies': 'cookies', '#/age': 'age', '#/copyright': 'copyright' };
+        const SCREEN_TO_HASH = { onboarding: '#/welcome', session_created: '#/session-ready', menu: '#/', app_menu: '#/more', game_setup: '#/setup', topics_admin: '#/topics/manage', punish_admin: '#/punishments/manage', tod_admin: '#/tod/manage', history: '#/history', history_view: '#/history/view', tod_lobby: '#/tod', tod_play: '#/tod/play', tod_results: '#/tod/results', analytics: '#/analytics', analytics_sessions: '#/analytics/sessions', hidden_q: '#/questions/hidden', profile_page: '#/profile', admin_login: '#/admin', mode_select: '#/mode', game: '#/play', ai_response: '#/ai', summary: '#/summary', cat_list: '#/topics', q_list: '#/questions', archive_page: '#/archive', add_q: '#/add', edit_q: '#/edit', invite: '#/invite', join: '#/join', about: '#/about', privacy: '#/privacy', terms: '#/terms', cookies: '#/cookies', age: '#/age', copyright: '#/copyright' };
+        const HASH_TO_SCREEN = { '#/welcome': 'onboarding', '#/session-ready': 'session_created', '#/': 'menu', '#/menu': 'menu', '#/profile': 'profile_page', '#/more': 'app_menu', '#/setup': 'game_setup', '#/topics/manage': 'topics_admin', '#/punishments/manage': 'punish_admin', '#/tod/manage': 'tod_admin', '#/history': 'history', '#/history/view': 'history_view', '#/tod': 'tod_lobby', '#/tod/play': 'tod_play', '#/tod/results': 'tod_results', '#/analytics': 'analytics', '#/analytics/sessions': 'analytics_sessions', '#/questions/hidden': 'hidden_q', '#/admin': 'admin_login', '#/mode': 'mode_select', '#/play': 'game', '#/ai': 'ai_response', '#/summary': 'summary', '#/topics': 'cat_list', '#/questions': 'q_list', '#/archive': 'archive_page', '#/add': 'add_q', '#/edit': 'edit_q', '#/invite': 'invite', '#/join': 'join', '#/about': 'about', '#/privacy': 'privacy', '#/terms': 'terms', '#/cookies': 'cookies', '#/age': 'age', '#/copyright': 'copyright' };
         // страницы, которые открываются без сессии (по общей ссылке): «Об игре», юридические, быстрое подключение
         const PUBLIC_SCREENS = ['about', 'privacy', 'terms', 'cookies', 'age', 'copyright', 'join'];
         // экраны, которые после перезагрузки страницы нечем наполнить (итоги и разбор опираются на данные партии в памяти): открываем меню
@@ -338,7 +343,7 @@ i18nSetLang(readStoredLang());
         if (typeof window !== 'undefined') { const unlockHandler = () => SoundFX.init(); window.addEventListener('touchstart', unlockHandler, { passive: true, once: true }); window.addEventListener('click', unlockHandler, { passive: true, once: true }); }
 
         const Icons = {
-            Play: () => <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5.14v14l11-7-11-7z" /></svg>, Menu: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>, Back: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>, Next: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>, Sparkles: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>, List: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>, Plus: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>, Check: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>, Bulb: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>, Edit: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>, Trash: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>, Restore: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>, Archive: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>, SoundOn: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>, SoundOff: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" /></svg>, User: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>, Lock: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>, Copy: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>, Share: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>, IosShare: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>, Eye: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>, EyeOff: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>, ChevronDown: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>, DownloadApp: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>, Close: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M6 18L18 6M6 6l12 12" /></svg>, Logout: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+            Play: () => <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5.14v14l11-7-11-7z" /></svg>, Menu: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>, Back: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>, Next: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>, Sparkles: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>, List: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>, Plus: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>, Check: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>, Bulb: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>, Edit: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.9} d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg>, Resume: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.9} d="M16.023 9.348h4.992V4.356M2.985 19.644v-4.992h4.992M2.985 14.652l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" /><path d="M10.4 9.1v5.8l4.7-2.9z" fill="currentColor" stroke="none" /></svg>, Trash: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>, Restore: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>, Archive: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>, SoundOn: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>, SoundOff: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" /></svg>, User: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>, Lock: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>, Copy: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>, Share: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>, IosShare: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>, Eye: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>, EyeOff: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>, ChevronDown: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>, DownloadApp: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>, Close: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M6 18L18 6M6 6l12 12" /></svg>, Logout: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
             , Skip: () => <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M5 5.5l9.5 6.5L5 18.5v-13z" /><path d="M19 5v14" /></svg>
         };
 
@@ -402,12 +407,13 @@ i18nSetLang(readStoredLang());
             }, [open]);
             return (
                 <div ref={ref} className="relative flex-shrink-0">
-                    <button type="button" onClick={() => { SoundFX.click(); setOpen(o => !o); }} aria-haspopup="true" aria-expanded={open} aria-label={tr('Язык') + ': ' + LANG_NAMES[lang]} className={`btn-icon lang-btn ${open ? 'is-on' : ''}`}>{LANG_CODES[lang]}</button>
+                    <button type="button" onClick={() => { SoundFX.click(); setOpen(o => !o); }} aria-haspopup="true" aria-expanded={open} aria-label={tr('Язык') + ': ' + LANG_NAMES[lang]} className={`btn-secondary btn-sm lang-btn ${open ? 'is-on' : ''}`}><span>{LANG_CODES[lang]}</span><span aria-hidden="true" className={`lang-chev ${open ? 'is-open' : ''}`}><Icons.ChevronDown /></span></button>
                     {open && (
                         <div className="menu-pop right-0 w-44 fade-in" role="menu">
                             {SUPPORTED_LANGS.map(l => (
                                 <button key={l} type="button" role="menuitemradio" aria-checked={l === lang} lang={l} onClick={() => { if (l !== lang) { SoundFX.toggle(true); onChange(l); } setOpen(false); }} className={`menu-opt ${l === lang ? 'is-on' : ''}`}><span>{LANG_NAMES[l]}</span><span className="text-xs font-bold text-zinc-500">{LANG_CODES[l]}</span></button>
                             ))}
+                            <button type="button" role="menuitemradio" aria-checked="false" aria-disabled="true" disabled lang="en" className="menu-opt"><span>English</span><span className="text-xs font-bold text-zinc-500">{tr("Скоро")}</span></button>
                         </div>
                     )}
                 </div>
@@ -573,7 +579,7 @@ i18nSetLang(readStoredLang());
                     {rows.map(r => (
                         <div key={r.label}>
                             <div className="flex items-center justify-between mb-1.5">
-                                <span className={`font-bold text-xs ${r.cls}`}>{r.label}</span>
+                                <span className={`font-bold text-xs ${r.cls}`}>{tr(r.label)}</span>
                                 <span className="font-display text-xl font-bold text-white"><AnimatedCounter target={r.count} /></span>
                             </div>
                             <div className="h-2 rounded-full bg-white/[0.07] overflow-hidden">
@@ -663,7 +669,7 @@ i18nSetLang(readStoredLang());
             }
             return deck;
         };
-        const SCREEN_TITLES = { hidden_q: 'Скрытые вопросы — ASK ME', analytics: 'Аналитика — ASK ME', analytics_sessions: 'Сессии — Аналитика — ASK ME', app_menu: 'Меню — ASK ME', game_setup: 'Усложнённый режим — ASK ME', topics_admin: 'Управление темами — ASK ME', punish_admin: 'Шаблоны наказаний — ASK ME', tod_admin: 'Карточки — Правда или действие — ASK ME', tod_lobby: 'Правда или действие — ASK ME', tod_play: 'Игра — Правда или действие — ASK ME', tod_results: 'Итоги — Правда или действие — ASK ME', onboarding: 'ASK ME — начните игру', session_created: 'Сессия создана — ASK ME', menu: 'ASK ME — откровенные разговоры для двоих и компании', profile_page: 'Игроки и сессия — ASK ME', admin_login: 'Вход для владельца — ASK ME', mode_select: 'Режим игры — ASK ME', game: 'Игра — ASK ME', ai_response: 'Совет и ситуация — ASK ME', summary: 'Итоги игры — ASK ME', cat_list: 'Все темы — ASK ME', q_list: 'Вопросы — ASK ME', archive_page: 'Архив вопросов — ASK ME', add_q: 'Новый вопрос — ASK ME', edit_q: 'Редактирование вопроса — ASK ME', invite: 'Пригласить игроков — ASK ME', join: 'Присоединиться к игре — ASK ME', about: 'Об игре — ASK ME', privacy: 'Политика конфиденциальности — ASK ME', terms: 'Пользовательское соглашение — ASK ME', cookies: 'Cookies и локальное хранилище — ASK ME', age: 'Возраст и откровенный контент — ASK ME', copyright: 'Авторские права — ASK ME' };
+        const SCREEN_TITLES = { hidden_q: 'Скрытые вопросы — ASK ME', analytics: 'Аналитика — ASK ME', analytics_sessions: 'Сессии — Аналитика — ASK ME', app_menu: 'Меню — ASK ME', game_setup: 'Усложнённый режим — ASK ME', topics_admin: 'Управление темами — ASK ME', punish_admin: 'Шаблоны наказаний — ASK ME', tod_admin: 'Карточки — Правда или действие — ASK ME', history: 'Прошлые игры — ASK ME', history_view: 'Прошлая игра — ASK ME', tod_lobby: 'Правда или действие — ASK ME', tod_play: 'Игра — Правда или действие — ASK ME', tod_results: 'Итоги — Правда или действие — ASK ME', onboarding: 'ASK ME — начните игру', session_created: 'Сессия создана — ASK ME', menu: 'ASK ME — откровенные разговоры для двоих и компании', profile_page: 'Игроки и сессия — ASK ME', admin_login: 'Вход для владельца — ASK ME', mode_select: 'Режим игры — ASK ME', game: 'Игра — ASK ME', ai_response: 'Совет и ситуация — ASK ME', summary: 'Итоги игры — ASK ME', cat_list: 'Все темы — ASK ME', q_list: 'Вопросы — ASK ME', archive_page: 'Архив вопросов — ASK ME', add_q: 'Новый вопрос — ASK ME', edit_q: 'Редактирование вопроса — ASK ME', invite: 'Пригласить игроков — ASK ME', join: 'Присоединиться к игре — ASK ME', about: 'Об игре — ASK ME', privacy: 'Политика конфиденциальности — ASK ME', terms: 'Пользовательское соглашение — ASK ME', cookies: 'Cookies и локальное хранилище — ASK ME', age: 'Возраст и откровенный контент — ASK ME', copyright: 'Авторские права — ASK ME' };
         const GROUP_EMOJIS = ['😈', '🤫', '😋', '🤔', '🤪', '😏', '😱', '🫣'];
         const MAX_PLAYERS = 10;
         const LIVE_POLL_MS = 1000, LIVE_INVITE_MS = 3000, LIVE_BEAT_MS = 8000, LIVE_ALIVE_MS = 30000, LIVE_STALE_MS = 120000, LIVE_TAKEOVER_S = 6, LIVE_TAKEOVER_STEP_S = 4, LIVE_TAP_GUARD_MS = 500, LIVE_SOLO_MS = 2000, LIVE_JOIN_WAIT_MS = 15000, LIVE_MAX_DEVICES = MAX_PLAYERS;
@@ -782,14 +788,123 @@ i18nSetLang(readStoredLang());
             return ( <div onClick={onClick} className={`inline-flex flex-col items-center select-none ${onClick ? 'cursor-pointer' : ''}`}> <div className="flex items-center gap-3.5"> <div className="w-11 h-11 md:w-12 md:h-12 rounded-xl bg-gradient-to-br from-rose-500 to-rose-700 flex items-center justify-center shadow-[0_8px_28px_rgba(225,29,72,0.4)] pulse-soft"> <svg className="w-5 h-5 md:w-6 md:h-6 text-white" viewBox="0 0 24 24" fill="currentColor"> <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/> </svg> </div> <div className="font-display text-[32px] md:text-5xl font-extrabold tracking-[0.05em] text-white leading-none flex items-center"> <span>ASK</span> <span className="text-rose-500 ml-2">ME</span> </div> </div> </div> );
         };
 
+        // ---- Десктопная версия (от 1024 px): верхняя панель, расширенный подвал и «живые» эффекты; на телефоне и в тестах ничего этого нет ----
+        const DESK_MQ = '(min-width: 1024px)';
+        const useIsDesktop = () => {
+            const read = () => { try { return !!(window.matchMedia && window.matchMedia(DESK_MQ).matches); } catch (e) { return false; } };
+            const [on, setOn] = useState(read);
+            useEffect(() => {
+                let mq = null; try { mq = window.matchMedia(DESK_MQ); } catch (e) { return undefined; }
+                if (!mq || typeof mq.addEventListener !== 'function') return undefined;
+                const h = () => setOn(!!mq.matches); h(); mq.addEventListener('change', h);
+                return () => mq.removeEventListener('change', h);
+            }, []);
+            return on;
+        };
+        // верхняя панель живёт в отдельном корне (#desk-root), поэтому состояние приложения передаётся ей через маленькое хранилище: приложение кладёт значения, панель подписана
+        const deskStore = { s: { screen: '', hasProfile: false, sessionId: '', sessionKey: '', players: [], muted: false, lang: 'uk' }, subs: new Set(), api: {} };
+        deskStore.set = (patch) => {
+            if (Object.keys(patch).every(k => Object.is(deskStore.s[k], patch[k]))) return;
+            deskStore.s = { ...deskStore.s, ...patch }; deskStore.subs.forEach(f => f());
+        };
+        const useDeskState = () => { const [, bump] = useState(0); useEffect(() => { const f = () => bump(n => n + 1); deskStore.subs.add(f); return () => { deskStore.subs.delete(f); }; }, []); return deskStore.s; };
+        const DESK_HIDE = ['game', 'ai_response', 'summary', 'tod_play', 'tod_results']; // экраны партии: панели нет, чтобы не уйти из игры случайным нажатием
+        const DESK_GROUPS = { home: ['menu', 'profile_page'], play: ['mode_select', 'game_setup', 'tod_lobby'], questions: ['cat_list', 'q_list', 'archive_page', 'add_q', 'edit_q', 'hidden_q'], about: ['about'] };
+        const DesktopNav = () => {
+            const desk = useIsDesktop(); const st = useDeskState();
+            const show = desk && !!st.screen && !DESK_HIDE.includes(st.screen);
+            useEffect(() => { const root = document.documentElement; if (show) root.dataset.nav = '1'; else delete root.dataset.nav; return () => { delete root.dataset.nav; }; }, [show]);
+            if (!show) return null;
+            const api = deskStore.api; const go = (id) => { SoundFX.click(); if (api.navigate) api.navigate(id); };
+            const on = (g) => DESK_GROUPS[g].includes(st.screen);
+            const link = (g, id, label) => <li key={g}><button type="button" onClick={() => go(id)} aria-current={on(g) ? 'page' : undefined} className={`desk-link ${on(g) ? 'is-on' : ''}`}>{label}</button></li>;
+            return (
+                <nav className="desk-nav" aria-label={tr("Основная навигация")}>
+                    <div className="desk-nav-in">
+                        <AskMeLogo size="md" onClick={() => go(st.hasProfile ? 'menu' : 'about')} />
+                        <ul className="desk-links">
+                            {st.hasProfile && link('home', 'menu', tr("Главная"))}
+                            {st.hasProfile && link('play', 'mode_select', tr("Играть"))}
+                            {st.hasProfile && link('questions', 'cat_list', tr("Вопросы"))}
+                            {link('about', 'about', tr("Об игре"))}
+                        </ul>
+                        <div className="desk-nav-right">
+                            {st.hasProfile && st.players.length > 0 && <span className="desk-players" title={st.players.map(p => p.name).join(', ')}>{st.players.map(p => p.name).join(' · ')}</span>}
+                            {st.hasProfile && <SessionIdBadge sessionId={st.sessionId} sessionKey={st.sessionKey} onCopy={api.showToast} />}
+                            <button type="button" onClick={() => api.toggleMute && api.toggleMute()} aria-label={st.muted ? tr("Включить звук") : tr("Выключить звук")} title={st.muted ? tr("Включить звук") : tr("Выключить звук")} className="btn-icon">{st.muted ? <Icons.SoundOff /> : <Icons.SoundOn />}</button>
+                            <LangMenu lang={st.lang} onChange={(l) => api.changeLang && api.changeLang(l)} />
+                            {st.hasProfile && <button type="button" onClick={() => go('app_menu')} className="btn-secondary btn-sm"><span>{tr("Меню")}</span><Icons.Menu /></button>}
+                        </div>
+                    </div>
+                </nav>
+            );
+        };
+        // эффекты мыши только на компьютере с точным указателем: мягкий прожектор света за курсором, лёгкий параллакс узоров фона, наклон карточек выбора
+        const DesktopFx = () => {
+            const desk = useIsDesktop();
+            useEffect(() => {
+                if (!desk) return undefined;
+                let fine = false; try { fine = window.matchMedia('(hover: hover) and (pointer: fine)').matches; } catch (e) {}
+                const reduce = (() => { try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } })();
+                if (!fine || reduce) return undefined;
+                const root = document.documentElement; root.dataset.fx = '1';
+                const bg = document.querySelector('.bg-room'); let raf = 0, mx = 0, my = 0, tiltEl = null;
+                const paint = () => { raf = 0; if (!bg) return; bg.style.setProperty('--mx', mx + 'px'); bg.style.setProperty('--my', my + 'px'); bg.style.setProperty('--px', (mx / window.innerWidth - 0.5).toFixed(3)); bg.style.setProperty('--py', (my / window.innerHeight - 0.5).toFixed(3)); };
+                const reset = (el) => { if (!el) return; ['--rx', '--ry', '--gx', '--gy'].forEach(k => el.style.removeProperty(k)); };
+                const move = (e) => {
+                    mx = e.clientX; my = e.clientY; if (!raf) raf = requestAnimationFrame(paint);
+                    const t = e.target && e.target.closest ? e.target.closest('.opt-card:not(:disabled)') : null;
+                    if (t !== tiltEl) { reset(tiltEl); tiltEl = t; }
+                    if (t) { const r = t.getBoundingClientRect(); const px = (e.clientX - r.left) / Math.max(r.width, 1), py = (e.clientY - r.top) / Math.max(r.height, 1); t.style.setProperty('--ry', ((px - 0.5) * 7).toFixed(2) + 'deg'); t.style.setProperty('--rx', ((0.5 - py) * 5).toFixed(2) + 'deg'); t.style.setProperty('--gx', (px * 100).toFixed(1) + '%'); t.style.setProperty('--gy', (py * 100).toFixed(1) + '%'); }
+                };
+                const leave = () => { reset(tiltEl); tiltEl = null; };
+                document.addEventListener('pointermove', move, { passive: true }); document.documentElement.addEventListener('pointerleave', leave);
+                return () => { document.removeEventListener('pointermove', move); document.documentElement.removeEventListener('pointerleave', leave); cancelAnimationFrame(raf); reset(tiltEl); delete root.dataset.fx; };
+            }, [desk]);
+            return null;
+        };
+
         // divider: тонкая линия над подвалом (на «Меню» и экранах начала игры не нужна); wide — под широкую вёрстку главной на компьютере
-        const AppFooter = ({ noLinks = false, divider = true, wide = false }) => (
+        const AppFooter = ({ noLinks = false, divider = true, wide = false }) => {
+            const desk = useIsDesktop();
+            if (desk) return (
+                <footer className="desk-footer select-none z-10">
+                    <div className="desk-footer-in">
+                        <div className="desk-fcol desk-fbrand">
+                            <AskMeLogo size="md" />
+                            <p>{tr("Откровенные разговоры для двоих и компании. Играйте по взаимному согласию и берегите чужие границы.")}</p>
+                            <span className="tag tag-rose">18+</span>
+                        </div>
+                        <nav className="desk-fcol" aria-label={tr("Игра")}><h2>{tr("Игра")}</h2><a href="#/">{tr("Главная")}</a><a href="#/topics">{tr("Все вопросы")}</a><a href="#/archive">{tr("Архив")}</a><a href="#/about">{tr("Об игре")}</a></nav>
+                        <nav className="desk-fcol" aria-label={tr("Режимы")}><h2>{tr("Режимы")}</h2><a href="#/mode">{tr("Выберите режим")}</a><a href="#/setup">{tr("Усложнённый режим")}</a><a href="#/tod">{tr("Правда или действие")}</a><a href="#/invite">{tr("Пригласить игроков")}</a></nav>
+                        <nav className="desk-fcol" aria-label={tr("Документы")}><h2>{tr("Документы")}</h2><a href="#/privacy">{tr("Конфиденциальность")}</a><a href="#/terms">{tr("Соглашение")}</a><a href="#/cookies">{tr("Cookies")}</a><a href="#/age">{tr("Возраст 18+")}</a><a href="#/copyright">{tr("© Авторские права")}</a></nav>
+                    </div>
+                    <div className="desk-footer-bar"><span>by <b>yedvinn</b></span><span>{tr("Подсказка: листать вопросы можно стрелками ← → на клавиатуре")}</span></div>
+                </footer>
+            );
+            return (
             <footer className="w-full py-6 flex flex-col items-center justify-center gap-3 select-none z-10">
                 {divider && <div aria-hidden="true" className={`footer-rule mb-3 ${wide ? 'is-wide' : ''}`}></div>}
                 <div className="flex items-center justify-center gap-3 opacity-60 hover:opacity-100 transition-opacity"> <AskMeLogo size="xs" /> <span className="text-white/20 text-xs">•</span> <span className="text-xs text-zinc-400 font-semibold"> by <span className="text-rose-400">yedvinn</span> </span> </div>
                 {!noLinks && <nav aria-label={tr("Информация")} className="footer-links"><a href="#/about">{tr("Об игре")}</a><a href="#/privacy">{tr("Конфиденциальность")}</a><a href="#/terms">{tr("Соглашение")}</a><a href="#/copyright">{tr("© Авторские права")}</a></nav>}
             </footer>
-        );
+            );
+        };
+
+        // Состав сессии: имена игроков и устройства в комнате (первое — это устройство, остальные подключены). Спокойный блок, заметно тише кнопки «Поделиться»:
+        // имена устройств в базе не хранятся, поэтому показываем игроков сессии и число устройств
+        const RoomStrip = ({ players, devices }) => {
+            const list = Array.isArray(players) ? players : []; const n = Math.max(1, Math.min(Number(devices) || 1, MAX_PLAYERS));
+            return (
+                <div className="room-strip" role="group" aria-label={tr("Состав сессии")}>
+                    <ul className="room-strip-names">{list.map((p, i) => <li key={(p && p.id) || i}><span>{p && p.name}</span></li>)}</ul>
+                    <div className="room-strip-dev">
+                        <span className="room-pips" aria-hidden="true">{Array.from({ length: n }, (_, i) => <i key={i} className={i === 0 ? 'me' : 'on'}></i>)}</span>
+                        <span>{n === 1 ? tr("Пока только это устройство") : tf("В игре {v0} {v1}", { v0: n, v1: declOfNum(n, ['устройство', 'устройства', 'устройств']) })}</span>
+                    </div>
+                </div>
+            );
+        };
 
         // Визначити, чи текст українською (за специфічними літерами).
         const looksUkrainian = (s) => /[іїєґІЇЄҐ]|ʼ/.test(String(s || ''));
@@ -951,6 +1066,14 @@ i18nSetLang(readStoredLang());
                         </div>
                     </section>
 
+                    <section aria-labelledby="about-tod" className="flex flex-col gap-3">
+                        <h2 id="about-tod" className="about-h2">{aboutDoc().todSection.title}</h2>
+                        <p className="about-lead">{F(aboutDoc().todSection.lead)}</p>
+                        <div className="flex flex-col gap-2.5">
+                            {aboutDoc().todSection.items.map((u, i) => (<div key={i} className="about-card has-ico"><span className="about-card-ico" aria-hidden="true">{u.icon}</span><div><h3>{F(u.title)}</h3><p>{F(u.text)}</p></div></div>))}
+                        </div>
+                    </section>
+
                     <section aria-labelledby="about-uniq" className="flex flex-col gap-3">
                         <h2 id="about-uniq" className="about-h2">{aboutDoc().unique.title}</h2>
                         <div className="flex flex-col gap-2.5">
@@ -1076,7 +1199,7 @@ i18nSetLang(readStoredLang());
                             if(!pts) { pts = [ { id: 'p1', name: sanitizeName(parsed.guyName || ''), gender: 'guy' }, { id: 'p2', name: sanitizeName(parsed.girlName || ''), gender: 'girl' } ]; }
                             const sid = (parsed.sessionId && isValidSessionIdFormat(parsed.sessionId)) ? parsed.sessionId.toUpperCase() : generateSessionId();
                             if (sessionTasks.blocked(sid)) return null;
-                            return { sessionId: sid, sessionKey: isValidAESKey(parsed.sessionKey) ? parsed.sessionKey : undefined, players: cleanPlayers(pts), archivedIds: cleanIdList(parsed.archivedIds), disabledIds: cleanIdList(parsed.disabledIds), savedGame: cleanSavedGame(parsed.savedGame), syncConflict: parsed.syncConflict === true, legacyPath: typeof parsed.legacyPath === 'string' && /^sess_[a-f0-9]{16}$/.test(parsed.legacyPath) ? parsed.legacyPath : undefined, joinAt: Math.min(Number(parsed.joinAt) || 0, Date.now()), updatedAt: parsed.updatedAt || Date.now() };
+                            return { sessionId: sid, sessionKey: isValidAESKey(parsed.sessionKey) ? parsed.sessionKey : undefined, players: cleanPlayers(pts), archivedIds: cleanIdList(parsed.archivedIds), disabledIds: cleanIdList(parsed.disabledIds), savedGame: cleanSavedGame(parsed.savedGame), history: cleanHistory(parsed.history), syncConflict: parsed.syncConflict === true, legacyPath: typeof parsed.legacyPath === 'string' && /^sess_[a-f0-9]{16}$/.test(parsed.legacyPath) ? parsed.legacyPath : undefined, joinAt: Math.min(Number(parsed.joinAt) || 0, Date.now()), updatedAt: parsed.updatedAt || Date.now() };
                         }
                     }
                 } catch (e) {} return null;
@@ -1111,10 +1234,13 @@ i18nSetLang(readStoredLang());
             const [todBoot] = useState(() => { const cached = todReadCache(todCardsEnv.storage); return cached.length ? { list: cached, source: 'cache' } : { list: todCleanList(TOD_STARTER), source: 'starter' }; });
             const [todCards, setTodCards] = useState(todBoot.list); const [todSource, setTodSource] = useState(todBoot.source);
             const todCardsRef = useRef(todBoot.list); // всегда последний список: обработчики записи не должны работать с устаревшим
+            const [todMine, setTodMineState] = useState(() => todMineRead(todCardsEnv.storage)); const todMineRef = useRef(todMine); todMineRef.current = todMine; // свои карточки: только на этом устройстве
+            const [histId, setHistId] = useState(''); const [histAsk, setHistAsk] = useState(null); const [pendingResume, setPendingResume] = useState(false); // история игр: открытая запись, запись в окне подтверждения, ожидание продолжения
+            const [todEditId, setTodEditId] = useState(''); // карточка, форму которой открыть в админке (кнопка «Изменить» в архиве)
             const [todTab, setTodTab] = useState('classic'); // вкладка «Все вопросы»: classic | truth | dare
             const [todBackTo, setTodBackTo] = useState('app_menu'); // откуда открыта админка карточек (туда ведёт «Назад»)
             // партия «Правда или действие» на этом устройстве: настройки лобби, состояние игры st (движок src/tod/engine.js) и колода; локально не сохраняется
-            const [todCfg, setTodCfg] = useState({ hard: false, tone: 1 }); const [todGame, setTodGameState] = useState(null); const [todDeck, setTodDeck] = useState(null);
+            const [todCfg, setTodCfg] = useState({ hard: false, tone: 1, mine: false }); const [todGame, setTodGameState] = useState(null); const [todDeck, setTodDeck] = useState(null);
             const todGameRef = useRef(null); const todTapRef = useRef(0); const todDeckRef = useRef(null); todDeckRef.current = todDeck;
             const setTodGame = (st) => { todGameRef.current = st; setTodGameState(st); };
             // синхронизация партии между устройствами: комната канала ('' — партия только на этом устройстве), последняя известная ver, наибольшая записанная ver,
@@ -1226,7 +1352,7 @@ i18nSetLang(readStoredLang());
                     setProfile(current => {
                         if (current?.sessionKey !== started.sessionKey) return current;
                         if (players.length && Number(cloud.updatedAt) > Number(started.updatedAt)) {
-                            return { ...current, players, archivedIds: cleanIdList(cloud.archivedIds), disabledIds: cleanIdList(cloud.disabledIds), savedGame: cleanSavedGame(cloud.savedGame), updatedAt: Number(cloud.updatedAt) };
+                            return { ...current, players, archivedIds: cleanIdList(cloud.archivedIds), disabledIds: cleanIdList(cloud.disabledIds), savedGame: cleanSavedGame(cloud.savedGame), history: mergeHistory(current.history, cloud.history), updatedAt: Number(cloud.updatedAt) };
                         }
                         return current;
                     });
@@ -1292,7 +1418,7 @@ i18nSetLang(readStoredLang());
                 const toProfile = (dec, sessionId, sessionKey) => {
                     let pts = cleanPlayers(dec.players); if (!pts.length && dec.guyName && dec.girlName) pts = [{id:'p1', name:String(dec.guyName).slice(0, 25), gender:'guy'}, {id:'p2', name:String(dec.girlName).slice(0, 25), gender:'girl'}];
                     if (!pts.length) return null;
-                    return { sessionId, sessionKey, players: pts, archivedIds: cleanIdList(dec.archivedIds), disabledIds: cleanIdList(dec.disabledIds), savedGame: cleanSavedGame(dec.savedGame), updatedAt: Date.now() };
+                    return { sessionId, sessionKey, players: pts, archivedIds: cleanIdList(dec.archivedIds), disabledIds: cleanIdList(dec.disabledIds), savedGame: cleanSavedGame(dec.savedGame), history: cleanHistory(dec.history), updatedAt: Date.now() };
                 };
                 try {
                     let restored = null, legacyPath = null, offline = false;
@@ -1378,6 +1504,11 @@ i18nSetLang(readStoredLang());
 
             const handleShareGame = async () => { SoundFX.click(); const shareUrl = `${window.location.origin}${window.location.pathname}#/welcome`; if (navigator.share) { try { await navigator.share({ title: tr("ASK ME — Игра"), text: tr("Откровенные разговоры ❤️"), url: shareUrl }); return; } catch (e) { if (e.name === 'AbortError') return; } } await copyTextToClipboard(shareUrl); showToast(tr("Ссылка на игру скопирована!")); };
             const toggleMute = () => { const nextState = !isMuted; setIsMuted(nextState); SoundFX.muted = nextState; if (!nextState) SoundFX.click(); };
+            const desk = useIsDesktop(); // компьютер (от 1024 px): другая вёрстка экранов, верхняя панель и расширенный подвал
+            useEffect(() => {
+                Object.assign(deskStore.api, { navigate, toggleMute, changeLang, showToast });
+                deskStore.set({ screen, hasProfile: !!profile, sessionId: profile ? profile.sessionId : '', sessionKey: profile ? profile.sessionKey : '', players: profile ? profile.players : [], muted: isMuted, lang });
+            });
             const handleLogoSecretTap = () => { const nextCount = logoTapCount + 1; setLogoTapCount(nextCount); if (nextCount >= 5) { SoundFX.magic(); setLogoTapCount(0); setAdminPinError(''); navigate('admin_login'); } };
 
             const useCloudProfile = async () => {
@@ -1388,7 +1519,7 @@ i18nSetLang(readStoredLang());
                     const cloud = await sessionStore.hydrate(current), players = cleanPlayers(cloud?.players);
                     if (!players.length || profileRef.current?.sessionKey !== current.sessionKey || sessionTasks.blocked(current.sessionId)) throw new Error('cloud-unavailable');
                     sessionStore.acceptHydration(current.sessionKey); hydratedKeyRef.current = current.sessionKey;
-                    const updated = { ...current, players, archivedIds: cleanIdList(cloud.archivedIds), disabledIds: cleanIdList(cloud.disabledIds), savedGame: cleanSavedGame(cloud.savedGame), updatedAt: Number(cloud.updatedAt) || Date.now(), syncConflict: false };
+                    const updated = { ...current, players, archivedIds: cleanIdList(cloud.archivedIds), disabledIds: cleanIdList(cloud.disabledIds), savedGame: cleanSavedGame(cloud.savedGame), history: mergeHistory(current.history, cloud.history), updatedAt: Number(cloud.updatedAt) || Date.now(), syncConflict: false };
                     setProfile(updated); setPlayersForm(players); showToast(tr("Загружена облачная копия сессии"));
                 } catch (error) { showToast(tr("Облачная копия недоступна. Локальный прогресс сохранён"), 5000, 'warn'); }
                 finally { setIsRestoringSession(false); }
@@ -1399,7 +1530,7 @@ i18nSetLang(readStoredLang());
                 if (validPlayers.length < 2) { SoundFX.warn(); setPlayersError(tr("Введите минимум два имени, чтобы начать игру")); return; }
                 SoundFX.success(); setPlayersError('');
                 const isNewSession = (!profile?.sessionId || isPreviewMode); const newSid = isNewSession ? generateSessionId() : profile.sessionId; const newKey = (!isNewSession && isValidAESKey(profile?.sessionKey)) ? profile.sessionKey : await generateAESKey();
-                const updatedProfile = { sessionId: newSid, sessionKey: newKey, players: validPlayers, archivedIds: isNewSession ? [] : (profile?.archivedIds || []), disabledIds: isNewSession ? [] : (profile?.disabledIds || []), savedGame: isNewSession ? null : (profile?.savedGame || null), syncConflict: !isNewSession && !!profile?.syncConflict, joinAt: isNewSession ? 0 : (profile?.joinAt || 0), updatedAt: Date.now() };
+                const updatedProfile = { sessionId: newSid, sessionKey: newKey, players: validPlayers, archivedIds: isNewSession ? [] : (profile?.archivedIds || []), disabledIds: isNewSession ? [] : (profile?.disabledIds || []), savedGame: isNewSession ? null : (profile?.savedGame || null), history: isNewSession ? [] : (profile?.history || []), syncConflict: !isNewSession && !!profile?.syncConflict, joinAt: isNewSession ? 0 : (profile?.joinAt || 0), updatedAt: Date.now() };
                 setProfile(updatedProfile); setIsPreviewMode(false); if (isNewSession) navigate('session_created'); else { showToast(tr("Имена сохранены")); navigate('menu'); }
             };
             const handleExitSession = () => {
@@ -1587,13 +1718,14 @@ i18nSetLang(readStoredLang());
             const [swipeHint, setSwipeHint] = useState('');
             useEffect(() => () => clearTimeout(swipeTimerRef.current), []);
             const SWIPE_EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
+            // карточка под основной (следующая или предыдущая): проявляется и «поднимается» по мере того, как основную уводят в сторону; только opacity и transform
             const applyPeek = (dx, mode) => {
                 const p = Math.min(1, Math.abs(dx) / 110);
-                const tr = mode === 'out' ? 'opacity 300ms ease-out, transform 340ms cubic-bezier(0.22, 1, 0.36, 1)' : mode === 'spring' ? 'opacity 260ms ease-out, transform 420ms ease-out' : 'none';
+                const tr = mode === 'out' ? 'opacity 260ms ease-out, transform 300ms cubic-bezier(0.22, 1, 0.36, 1)' : mode === 'spring' ? 'opacity 240ms ease-out, transform 380ms cubic-bezier(0.22, 1, 0.36, 1)' : 'none';
                 [[peekNextRef.current, dx > 0], [peekPrevRef.current, dx < 0]].forEach(([el, on]) => {
                     if (!el) return;
                     const q = on ? (mode === 'out' ? 1 : p) : 0;
-                    el.style.transition = tr; el.style.opacity = String(q); el.style.transform = `scale(${0.94 + 0.06 * q})`;
+                    el.style.transition = tr; el.style.opacity = String(q); el.style.transform = `translate3d(0,${((1 - q) * 14).toFixed(1)}px,0) scale(${(0.92 + 0.08 * q).toFixed(3)})`;
                 });
             };
             // світіння краю картки під час перетягування: сторона — напрям, колір — можна (rose) чи ні (amber); відблиск їде слідом за пальцем
@@ -1608,9 +1740,10 @@ i18nSetLang(readStoredLang());
             };
             const applySwipe = (dx, mode, scale = 1) => {
                 const el = cardRef.current; if (!el) return;
-                el.style.transition = mode === 'out' ? `transform 340ms ${SWIPE_EASE}, opacity 300ms ease-out` : mode === 'spring' ? 'transform 460ms cubic-bezier(0.34, 1.45, 0.64, 1), opacity 260ms ease-out' : mode === 'enter' ? `transform 420ms ${SWIPE_EASE}, opacity 320ms ease-out` : 'none';
+                // уход: ускоряется (как брошенная карточка), прозрачность гаснет чуть позже старта; возврат — мягкая пружина без сильного «перелёта»
+                el.style.transition = mode === 'out' ? 'transform 300ms cubic-bezier(0.45, 0, 0.9, 0.6), opacity 220ms ease-in 70ms' : mode === 'spring' ? 'transform 420ms cubic-bezier(0.22, 1.25, 0.36, 1), opacity 200ms ease-out' : mode === 'enter' ? `transform 380ms ${SWIPE_EASE}, opacity 300ms ease-out` : 'none';
                 el.style.transformOrigin = '50% 115%';
-                el.style.transform = `translate3d(${dx}px,0,0) rotate(${dx * 0.045}deg) scale(${scale})`;
+                el.style.transform = `translate3d(${dx}px,0,0) rotate(${(dx * 0.045).toFixed(2)}deg) scale(${scale})`;
                 el.style.opacity = String(mode === 'out' ? 0 : 1);
                 applyPeek(mode === 'enter' ? 0 : dx, mode === 'enter' ? 'none' : mode);
                 applyGlow(mode === 'enter' || mode === 'spring' ? 0 : dx, mode);
@@ -1658,16 +1791,39 @@ i18nSetLang(readStoredLang());
                 const dir = dx > 0 ? 'right' : 'left';
                 const far = Math.abs(dx) >= Math.min(110, w * 0.25) || (Math.abs(s.vx) > 0.5 && Math.abs(dx) > 36);
                 if (!far || !swipeAllowed(dir)) { if (far) SoundFX.warn(); applySwipe(0, 'spring'); return; }
+                commitSwipe(dir);
+            };
+            // уход карточки и смена вопроса: карточка улетает (300 мс), потом меняется вопрос, а новая карточка проявляется уже на месте.
+            // Смену вопроса замечает layout-эффект ниже (до отрисовки кадра), поэтому между «улетела» и «появилась» нет вспышки старой карточки
+            const swipePendingRef = useRef('');
+            const commitSwipe = (dir) => {
                 SoundFX.flip(dir); SoundFX.skipNextFlip = true;
-                applySwipe(dir === 'right' ? 560 : -560, 'out', 0.96);
+                swipePendingRef.current = dir;
+                applySwipe(dir === 'right' ? 520 : -520, 'out', 0.94);
                 clearTimeout(swipeTimerRef.current);
                 swipeTimerRef.current = setTimeout(() => {
                     performSwipe(dir); SoundFX.skipNextFlip = false;
-                    applySwipe(dir === 'right' ? -56 : 56, 'none', 0.95); applyPeek(0, 'none');
-                    if (cardRef.current) cardRef.current.style.opacity = '0';
-                    requestAnimationFrame(() => requestAnimationFrame(() => applySwipe(0, 'enter', 1)));
-                }, 260);
+                    // вопрос не сменился (например, ход перешёл к следующему игроку на той же карточке): карточка возвращается на место сама
+                    swipeTimerRef.current = setTimeout(() => {
+                        if (!swipePendingRef.current) return;
+                        swipePendingRef.current = '';
+                        applySwipe(dir === 'right' ? -40 : 40, 'none', 0.96); if (cardRef.current) cardRef.current.style.opacity = '0';
+                        requestAnimationFrame(() => requestAnimationFrame(() => applySwipe(0, 'enter', 1)));
+                    }, 120);
+                }, 300);
             };
+            // смена вопроса (свайп, клавиши, кнопки или другое устройство): направление остаётся на слое до следующей смены, чтобы анимация не запускалась повторно
+            const prevIdxRef = useRef(currentIndex);
+            React.useLayoutEffect(() => {
+                const prev = prevIdxRef.current; prevIdxRef.current = currentIndex; if (prev === currentIndex) return;
+                const el = cardRef.current; const pend = swipePendingRef.current; const dir = pend || (currentIndex > prev ? 'right' : 'left');
+                if (pend) {
+                    swipePendingRef.current = ''; clearTimeout(swipeTimerRef.current);
+                    applySwipe(0, 'none', 1); // новая карточка уже в DOM: основной слой на месте, без перехода
+                    [peekNextRef.current, peekPrevRef.current].forEach(pe => { if (pe) { pe.style.transition = 'opacity 260ms ease-out'; pe.style.opacity = '0'; } });
+                }
+                if (el) el.dataset.enter = dir; // CSS (.game-card) проявляет новую карточку
+            }, [currentIndex]);
             const onSwipeCancel = (e) => { if (swipeRef.current.id === e.pointerId) { swipeRef.current = { id: null, x0: 0, y0: 0, locked: null, lx: 0, lt: 0, vx: 0 }; setSwipeHint(''); applySwipe(0, 'spring'); } };
             useEffect(() => {
                 if (screen !== 'game') return;
@@ -1677,7 +1833,7 @@ i18nSetLang(readStoredLang());
                     const wantNext = e.key === 'ArrowRight';
                                         if (swipeBusy()) return;
                     const dir = wantNext ? 'right' : 'left';
-                    if (swipeAllowed(dir)) performSwipe(dir);
+                    if (swipeAllowed(dir)) commitSwipe(dir);
                 };
                 window.addEventListener('keydown', onKey);
                 return () => window.removeEventListener('keydown', onKey);
@@ -1721,7 +1877,7 @@ i18nSetLang(readStoredLang());
                 setNewPunish(''); setPunishErr(''); setShowAddPunish(false);
             };
             const chip = "px-3 py-1.5 rounded-full border border-white/12 bg-white/[0.04] text-zinc-200";
-            const pregameContent = (
+            const renderPregame = (strip) => (
                 <div className="flex flex-col gap-5 text-left">
                         <div className="text-center">
                             <h3 className="text-lg font-bold text-white">{tr("Усложнённый режим")}</h3>
@@ -1782,6 +1938,7 @@ i18nSetLang(readStoredLang());
                                 </section>
                             </div>
                         )}
+                        {strip}
                         <div className="flex flex-col gap-2">
                             <button type="button" disabled={!(settings.timerOn || settings.punishOn)} onClick={startFromPregame} className="btn-primary w-full">{tr("Начать игру")}</button>
                             {!(settings.timerOn || settings.punishOn) && <p role="alert" className="inline-error"><span aria-hidden="true" className="inline-error-i">!</span><span>{tr("Включите хотя бы одно усложнение: таймер или наказания.")}</span></p>}
@@ -1891,18 +2048,31 @@ i18nSetLang(readStoredLang());
             };
             // ---- режим «Правда или действие»: запись карточек из админки ----
             const todSetList = (list, source, writeCache) => { todCardsRef.current = list; setTodCards(list); setTodSource(source); if (writeCache) todWriteCache(todCardsEnv.storage, list); };
-            const todUi = { Icons, SoundFX, AppFooter, showToast, showError: showErrorPopup, navigate, SettingSwitch, PopupModal, tr };
+            const todUi = { Icons, SoundFX, AppFooter, showToast, showError: showErrorPopup, navigate, SettingSwitch, PopupModal, RoomStrip, tr };
             // ---- режим «Правда или действие»: партия на одном устройстве ----
-            const todCardOf = (id) => todCardsRef.current.find(x => x.id === id) || todExtraRef.current[id];
+            const todCardOf = (id) => todCardsRef.current.find(x => x.id === id) || (todIsMine(id) ? todMineRef.current.find(x => x.id === id) : undefined) || todExtraRef.current[id]; // null в todExtra — карточки нет в базе
             const todLevelOf = (id) => { const c = todCardOf(id); return c ? c.difficulty : null; };
             // текст карточки: строка; undefined — ещё запрашиваем; null — карточки нет
-            const todTextOf = (id) => { const c = todCardOf(id); return c ? todCardText(c, lang) : c; };
+            const todTextOf = (id) => { const c = todCardOf(id); if (c) return todCardText(c, lang); return todIsMine(id) ? tr('Карточка другого игрока: её прочитает автор') : c; };
+            // карточки партии: база плюс (по переключателю в лобби) свои карточки этого устройства
+            const todPool = () => (todCfg.mine ? [...todCards, ...todMine] : todCards);
+            const todCheckDeck = todBuildDeck(todPool(), { hard: todCfg.hard, seed: 'check' });
+            const todDeckInfo = { truth: todCheckDeck.pools.truth.length, dare: ['dare.easy', 'dare.medium', 'dare.hard'].reduce((n, k) => n + todCheckDeck.pools[k].length, 0) };
+            const todPickIdx = (n) => { const a = new Uint32Array(1); try { crypto.getRandomValues(a); } catch (e) { a[0] = Date.now(); } return a[0] % Math.max(n, 1); };
+            // пример текста для оборота карточек в лобби: случайная включённая карточка из базы (жёсткие — только при включённых «Жёстких 18+»)
+            const todPeek = (type) => { const pool = todCards.filter(c => c.type === type && c.isActive === true && (todCfg.hard || c.difficulty !== 'hard')); return pool.length ? todCardText(pool[todPickIdx(pool.length)], lang) : ''; };
+            const todMineAddCard = (draft) => {
+                const r = todMineAdd(todMineRef.current, draft);
+                if (!r.ok) return r.reason === 'full' ? tr('Слишком много своих карточек: удалите ненужные') : r.reason === 'dup' ? tr('Такая карточка у вас уже есть') : tr('Введите текст карточки');
+                todMineRef.current = r.list; setTodMineState(r.list); todMineWrite(todCardsEnv.storage, r.list); setTodCfg(c => ({ ...c, mine: true })); return '';
+            };
+            const todMineDelCard = (id) => { const list = todMineRemove(todMineRef.current, id); todMineRef.current = list; setTodMineState(list); todMineWrite(todCardsEnv.storage, list); if (!list.length) setTodCfg(c => ({ ...c, mine: false })); };
             // почему нельзя начать (текст под кнопкой); проверка по той же колоде, что соберёт todBegin
             const todBlock = (() => {
                 const n = profile && Array.isArray(profile.players) ? profile.players.length : 0;
                 if (n < 2) return tr('Нужно минимум два игрока: добавьте игроков в сессии.');
                 if (todClassicBusy) return tr('В сессии идёт классическая игра — завершите её');
-                const d = todBuildDeck(todCards, { hard: todCfg.hard, seed: 'check' });
+                const d = todCheckDeck;
                 if (!d.pools.truth.length) return tr('Нет карточек «Правда»: без них игру не начать.');
                 if (!['dare.easy', 'dare.medium', 'dare.hard'].some(k => d.pools[k].length)) return tr('Нет карточек «Действие»: без них игру не начать.');
                 return '';
@@ -1910,7 +2080,7 @@ i18nSetLang(readStoredLang());
             const todRandom = (n) => { const a = new Uint32Array(n); try { crypto.getRandomValues(a); } catch (e) { for (let i = 0; i < n; i++) a[i] = Math.floor(Math.random() * 4294967296); } return Array.from(a, x => x.toString(36)).join(''); };
             const todBegin = async () => {
                 if (todBlock) return;
-                const deck = todBuildDeck(todCards, { hard: todCfg.hard, seed: todRandom(2).slice(0, 20) });
+                const deck = todBuildDeck(todPool(), { hard: todCfg.hard, seed: todRandom(2).slice(0, 20) });
                 const gid = ('t' + Date.now().toString(36) + todRandom(1)).slice(0, 24);
                 const st = todStart({ players: profile.players, opts: todCfg, gid });
                 todRoomRef.current = ''; todVerRef.current = null; todSentRef.current = 0; todForceRef.current = false;
@@ -2352,7 +2522,7 @@ i18nSetLang(readStoredLang());
             // точечная подгрузка карточки, которой нет у этого устройства
             useEffect(() => {
                 const c = todGame && todGame.card; if (!c || screen !== 'tod_play') return;
-                const id = c.id; if (todCardsRef.current.some(x => x.id === id) || todExtraRef.current[id] !== undefined || todAskedRef.current[id]) return;
+                const id = c.id; if (todIsMine(id) || todCardsRef.current.some(x => x.id === id) || todExtraRef.current[id] !== undefined || todAskedRef.current[id]) return;
                 todAskedRef.current[id] = true;
                 (async () => {
                     let card = null;
@@ -2524,10 +2694,19 @@ i18nSetLang(readStoredLang());
                 setAnsweredCount(completed.length); setCompletedAllFlag(isAllCleared);
                 if (isAllCleared) SoundFX.romanticFinale(); else SoundFX.success();
                 archiveAnsweredQuestions(completed);
+                // запись в «Прошлые игры»; снимок для «Продолжить» — только если остановились на середине колоды
+                const histRes = (isAllCleared || reachedVeryEnd) ? null : cleanSavedGame({ questionIds: gameQuestions.map(q => q.id || q.dbKey), currentIndex, maxReachedIndex, turnHistory });
+                const histRec = histBuild({ now: Date.now(), players: profile?.players || [], questions: gameQuestions, entries: gameQuestions.map((q, i) => normTurn(turnHistory[i])), hard: hardMode, reached: maxReachedIndex + 1, allCleared: isAllCleared, res: histRes });
+                if (histRec) setProfile(p => p ? { ...p, history: histAdd(p.history, histRec), updatedAt: Date.now() } : p);
                 if (!completed.length) setProfile(p => p ? { ...p, savedGame: null, updatedAt: Date.now() } : p);
                 reportGame(maxReachedIndex + 1, { complete: isAllCleared }); navigate('summary');
             };
 
+            // «Продолжить игру» из прошлых игр: снимок партии становится сохранённой игрой, запись помечается «продолжена»; если уже есть начатая игра — сначала спрашиваем
+            const startResumeFromHistory = (rec) => { setHistAsk(null); setProfile(prev => prev ? { ...prev, savedGame: cleanSavedGame(rec.res), history: histMarkContinued(prev.history, rec.id), updatedAt: Date.now() } : prev); setPendingResume(true); };
+            const resumeFromHistory = (rec) => { if (!rec || !rec.res) return; if (profile?.savedGame?.questionIds?.length) { setHistAsk(rec); return; } startResumeFromHistory(rec); };
+            useEffect(() => { if (pendingResume && profile?.savedGame?.questionIds?.length) { setPendingResume(false); handleResumeSavedGame(); } }, [pendingResume, profile]);
+            useEffect(() => { if (screen === 'history_view' && profile && !(profile.history || []).some(g => g.id === histId)) { try { window.history.replaceState(null, '', window.location.pathname + window.location.search + '#/history'); } catch (e) {} setScreenState('history'); } }, [screen, histId, profile]);
             useEffect(() => {
                 if (screen !== 'ai_response') {
                     aiRequestRef.current.id++; aiRequestRef.current.controller?.abort();
@@ -2732,6 +2911,7 @@ if (screen === 'app_menu') {
                     { title: tr('Разделы'), items: [
                         { id: 'players', icon: '👥', title: tr('Игроки и сессия'), desc: tr('Имена, состав и восстановление'), onClick: () => { if (profile) { setPlayersForm(profile.players); navigate('profile_page'); } } },
                         { id: 'questions', icon: '📚', title: tr('Все вопросы'), desc: tr('Темы и список вопросов'), onClick: () => navigate('cat_list') },
+                        { id: 'history', icon: '🕑', title: tr('Прошлые игры'), desc: (profile?.history || []).length ? tf('Сыграно игр: {v0} · {v1}', { v0: profile.history.length, v1: histDayLabel(profile.history[0].t, Date.now(), lang) }) : tr('Здесь появятся ваши игры'), onClick: () => navigate('history') },
                         { id: 'archive', icon: '🗂️', title: tr('Архив'), desc: `${tr('Пройдено вопросов:')} ${stats.archivedList.length}`, onClick: () => navigate('archive_page') },
                         { id: 'about', icon: '✨', title: tr('Об игре'), desc: tr('Что умеет ASK ME и как играть'), onClick: () => navigate('about') },
                     ] },
@@ -2745,7 +2925,7 @@ if (screen === 'app_menu') {
                 const ownerItems = isAdmin ? [
                     { id: 'topics', icon: '⚙️', title: tr('Управление темами'), desc: tr('Добавление тем и порядок'), onClick: () => { setTopicDraft(CATEGORIES.map(c => c.id)); setTopicErr(''); navigate('topics_admin'); } },
                     { id: 'punish', icon: '🎭', title: tr('Шаблоны наказаний'), desc: tr('Список для всех игроков'), onClick: () => { setPtEdit(null); setPtErr(''); setPtConfirmId(''); navigate('punish_admin'); } },
-                    { id: 'tod', icon: '🎲', title: tr('Правда или действие'), desc: tr('Карточки: добавить, изменить, скрыть'), onClick: () => { setTodBackTo('app_menu'); navigate('tod_admin'); } },
+                    { id: 'tod', icon: '🎲', title: tr('Правда или действие'), desc: tr('Карточки: добавить, изменить, скрыть'), onClick: () => { setTodBackTo('app_menu'); setTodEditId(''); navigate('tod_admin'); } },
                     { id: 'analytics', icon: '📊', title: tr('Аналитика'), desc: tr('Сессии, вопросы, наказания'), onClick: () => { setAnSel(null); setAnConfirm(''); navigate('analytics'); } },
                     { id: 'hidden', icon: '🙈', title: tr('Скрытые вопросы'), desc: `${tr('Сейчас скрыто:')} ${stats.hiddenCount}`, onClick: () => { setHqConfirmAll(false); navigate('hidden_q'); } },
                     { id: 'translateall', icon: '🌐', title: tr('Перекласти всі питання'), desc: tr('Дозаповнити українські версії'), onClick: handleTranslateAll },
@@ -2765,12 +2945,12 @@ if (screen === 'app_menu') {
                 return (
                     <div className="safe-screen w-full flex flex-col items-center slide-up relative z-10">
                         <PwaInstallModal {...pwaModalProps} /> {exitConfirmPopup}
-                        <header className="w-full max-w-md flex items-center gap-3 pt-2">
+                        <header className="w-full max-w-md lg:max-w-5xl flex items-center gap-3 pt-2">
                             <button type="button" onClick={() => { SoundFX.click(); navigate('menu'); }} aria-label={tr("Назад")} className="btn-icon flex-shrink-0"><Icons.Back /></button>
                             <h1 className="flex-1 text-center text-lg font-bold text-white">{tr('Меню')}</h1>
-                            <LangMenu lang={lang} onChange={changeLang} />
+                            {desk ? <span aria-hidden="true" className="w-11 flex-shrink-0"></span> : <LangMenu lang={lang} onChange={changeLang} />}
                         </header>
-                        <main className="w-full max-w-md flex flex-col gap-6 pt-6 pb-6">
+                        <main className="w-full max-w-md lg:max-w-5xl flex flex-col gap-6 pt-6 pb-6 desk-cols">
                             {profile && (
                                 <section className="flex flex-col gap-2.5">
                                     <SessionIdBadge sessionKey={profile.sessionKey} sessionId={profile.sessionId} onCopy={showToast} size="lg" />
@@ -2789,6 +2969,22 @@ if (screen === 'app_menu') {
                                     <div className="owner-zone-box divide-y divide-amber-200/10 overflow-hidden">{renderMenuItems(ownerItems)}</div>
                                 </section>
                             )}
+                            {desk && profile && (
+                                <section className="desk-info" aria-label={tr("О сессии")}>
+                                    <h2 className="text-sm font-bold text-white">{tr("О сессии")}</h2>
+                                    <ul className="desk-info-stats">
+                                        <li><b>{profile.players.length}</b><span>{declOfNum(profile.players.length, ['игрок', 'игрока', 'игроков'])}</span></li>
+                                        <li><b>{CATEGORIES.length}</b><span>{declOfNum(CATEGORIES.length, ['тема', 'темы', 'тем'])}</span></li>
+                                        <li><b>{stats.availableActive}</b><span>{tr("новых вопросов")}</span></li>
+                                        <li><b>{stats.archivedList.length}</b><span>{tr("в архиве")}</span></li>
+                                    </ul>
+                                    <ul className="room-strip-names">{profile.players.map(p => <li key={p.id}><span>{p.name}</span></li>)}</ul>
+                                    <dl className="desk-keys">
+                                        <div><dt><kbd>←</kbd><kbd>→</kbd></dt><dd>{tr("листать вопросы в игре")}</dd></div>
+                                        <div><dt><kbd>Esc</kbd></dt><dd>{tr("закрыть окно")}</dd></div>
+                                    </dl>
+                                </section>
+                            )}
                             <section className="rounded-[20px] border border-rose-500/25 bg-gradient-to-br from-rose-500/[0.12] to-transparent p-5 flex flex-col gap-3">
                                 <div><h2 className="text-sm font-bold text-white">{tr('Поделиться игрой')}</h2><p className="text-xs text-zinc-400 leading-snug mt-1">{tr('Отправьте ссылку на игру — присоединиться можно с любого устройства.')}</p></div>
                                 <button type="button" onClick={handleShareGame} className="btn-primary w-full flex items-center justify-center gap-2"><Icons.Share /> {tr('Поделиться')}</button>
@@ -2803,6 +2999,8 @@ if (screen === 'app_menu') {
                 );
             }
 
+            // состав сессии на экранах выбора режима: игроки и устройства, которые уже в идущей игре (иначе только это устройство)
+            const lobbyStrip = profile ? <RoomStrip players={profile.players} devices={1 + Math.max(liveInvite ? liveInvite.count : 0, todInvite ? todInvite.count : 0)} /> : null;
             if (screen === 'game_setup') {
                 return (
                     <div className="safe-screen w-full flex flex-col items-center slide-up relative z-10">
@@ -2811,7 +3009,7 @@ if (screen === 'app_menu') {
                             <h1 className="flex-1 text-center text-lg font-bold text-white">{tr("Усложнённый режим")}</h1>
                             <button type="button" onClick={() => openInvite('game_setup')} aria-label={tr("Пригласить игроков")} title={tr("Пригласить игроков")} className="btn-icon flex-shrink-0"><Icons.Share /></button>
                         </header>
-                        <main className="w-full max-w-md flex flex-col gap-6 py-6">{pregameContent}</main>
+                        <main className="w-full max-w-md flex flex-col gap-6 py-6">{renderPregame(lobbyStrip)}</main>
                         <AppFooter divider={false} />
                     </div>
                 );
@@ -2901,7 +3099,7 @@ if (screen === 'app_menu') {
                                                     <div key={t.id} className="flex items-center gap-2 rounded-[20px] border border-white/10 bg-white/[0.04] px-3.5 py-3">
                                                         <span aria-hidden="true" className="w-10 h-10 rounded-full bg-white/[0.07] flex items-center justify-center text-lg flex-shrink-0">{t.icon}</span>
                                                         <span className="flex-1 min-w-0 text-sm text-zinc-100 leading-snug">{tr(t.text)}</span>
-                                                        <button type="button" aria-label={tf("Изменить: {v0}", { v0: tr(t.text) })} onClick={() => startPtEdit(t)} className="btn-icon plain flex-shrink-0">✎</button>
+                                                        <button type="button" aria-label={tf("Изменить: {v0}", { v0: tr(t.text) })} onClick={() => startPtEdit(t)} className="btn-icon plain flex-shrink-0"><Icons.Edit /></button>
                                                         <button type="button" disabled={ptBusy} aria-label={ptConfirmId === t.id ? tr("Подтвердить удаление") : tf("Удалить: {v0}", { v0: tr(t.text) })} onClick={() => deletePt(t.id)} className={`flex-shrink-0 ${ptConfirmId === t.id ? 'btn-danger btn-sm' : 'btn-icon plain'}`}>{ptConfirmId === t.id ? tr("Точно?") : '🗑'}</button>
                                                     </div>
                                                 ))}
@@ -2931,19 +3129,19 @@ if (screen === 'app_menu') {
                 return <div className="safe-screen w-full flex flex-col items-center justify-center relative z-10"><p className="text-sm text-zinc-400 text-center" role="status">{tr('Загружаем игру…')}</p></div>;
             }
             if (screen === 'tod_lobby') {
-                return <TodLobby ui={todUi} players={profile ? profile.players : []} cfg={todCfg} setCfg={setTodCfg} deviceCount={1 + todPeers} block={todBlock} onStart={todBegin} onShare={() => openInvite('tod_lobby')} onBack={() => navigate('mode_select')} banner={todInviteBanner} />;
+                return <TodLobby ui={todUi} players={profile ? profile.players : []} cfg={todCfg} setCfg={setTodCfg} deviceCount={1 + todPeers} block={todBlock} onStart={todBegin} onShare={() => openInvite('tod_lobby')} onBack={() => navigate('mode_select')} banner={todInviteBanner} deckInfo={todDeckInfo} peek={todPeek} mine={todMine} onMineAdd={todMineAddCard} onMineDel={todMineDelCard} />;
             }
             if (screen === 'tod_play' && todGame) {
                 const lvAvail = { easy: !!todNext(todDeck, todGame.cur, 'dare.easy'), medium: !!todNext(todDeck, todGame.cur, 'dare.medium'), hard: !!todNext(todDeck, todGame.cur, 'dare.hard') };
                 if (todGame.phase === 'ended') return <TodResults ui={todUi} state={todGame} titles={todTitles(todGame, TOD_TITLES)} onAgain={todAgain} onMenu={() => navigate('menu')} banner={todInviteBanner} />;
-                return <TodGame ui={todUi} state={todGame} banter={todPickBanter(todGame, TOD_BANTER, tr)} cardText={todTextOf} levelAvail={lvAvail} onAction={todDispatch}
-                    onEnd={() => { todTapRef.current = 0; if (todDispatch({ t: 'end' })) navigate('tod_results'); }} onLeave={() => { todLeave(); setTodGame(null); navigate('menu'); }} />;
+                return <TodGame ui={todUi} desktop={desk} state={todGame} banter={todPickBanter(todGame, TOD_BANTER, tr)} cardText={todTextOf} levelAvail={lvAvail} onAction={todDispatch}
+                    onEnd={() => { todTapRef.current = 0; if (todDispatch({ t: 'end' })) navigate('tod_results'); }} onLeave={(to) => { todLeave(); setTodGame(null); navigate(to === 'menu' ? 'app_menu' : 'tod_lobby'); }} />;
             }
             if (screen === 'tod_results' && todGame) {
                 return <TodResults ui={todUi} state={todGame} titles={todTitles(todGame, TOD_TITLES)} onAgain={todAgain} onMenu={() => navigate('menu')} banner={todInviteBanner} />;
             }
             if (screen === 'tod_admin') {
-                return <TodAdmin ui={todUi} cards={todCards} source={todSource} isAdmin={isAdmin} onSave={todSave} onSeed={todSeed} onBack={() => navigate(todBackTo)} />;
+                return <TodAdmin ui={todUi} cards={todCards} source={todSource} isAdmin={isAdmin} onSave={todSave} onSeed={todSeed} initialEdit={todEditId} onBack={() => { setTodEditId(''); navigate(todBackTo); }} />;
             }
             if (screen === 'analytics') {
                 const ag = anFiltered ? aggregateAnalytics(anFiltered.anon) : null;
@@ -3149,26 +3347,28 @@ const liveInviteBanner = liveInvite ? (
 if (screen === 'mode_select') {
                 return (
                     <div className="safe-screen w-full flex flex-col items-center slide-up relative z-10">
-                        <header className="w-full max-w-md flex items-center gap-3 pt-2">
+                        <header className="w-full max-w-md lg:max-w-5xl flex items-center gap-3 pt-2">
                             <button aria-label={tr("Назад")} onClick={() => { SoundFX.click(); navigate('menu'); }} className="btn-icon flex-shrink-0"><Icons.Back /></button>
                             <h1 className="flex-1 text-center text-lg font-bold text-white">{tr("Выберите режим")}</h1>
                             <button type="button" onClick={() => openInvite('mode_select')} aria-label={tr("Пригласить игроков")} title={tr("Пригласить игроков")} className="btn-icon flex-shrink-0"><Icons.Share /></button>
                         </header>
-                        <main className="w-full max-w-md flex flex-col gap-4 pt-6 pb-8">
+                        <main className="w-full max-w-md lg:max-w-5xl flex flex-col gap-4 pt-6 pb-8">
                             {liveInviteBanner}
                             {todInviteBanner}
+                            {lobbyStrip}
+                            <div className="mode-grid">
                             <button disabled={stats.availableActive === 0} onClick={() => { SoundFX.click(); setHardMode(false); startWithMode('normal', { hard: false }); }} className="opt-card opt-brand">
                                 <span aria-hidden="true" className="w-12 h-12 rounded-xl bg-rose-500/20 flex items-center justify-center text-2xl flex-shrink-0">💬</span>
                                 <span className="flex-1 min-w-0 flex flex-col gap-1.5">
-                                    <span className="flex items-center justify-between gap-2"><span className="font-bold text-sm text-white">{tr("Обычный режим")}</span> <span className="text-xs font-bold px-2.5 py-0.5 rounded-lg bg-rose-500/25 text-rose-200">{stats.availableActive} {tr("вопр.")}</span></span>
-                                    <span className="text-xs text-zinc-300 leading-relaxed">{tr("Без лишних настроек: жребий определяет, кто отвечает первым. Пройденные вопросы уходят в Архив.")}</span>
+                                    <span className="flex items-center justify-between gap-2"><span className="font-bold text-sm text-white">{tr("Обычный режим")}</span> <span className="flex-shrink-0 whitespace-nowrap text-xs font-bold px-2.5 py-0.5 rounded-lg bg-rose-500/25 text-rose-200">{stats.availableActive} {tr("вопр.")}</span></span>
+                                    <span className="text-xs text-zinc-300 leading-relaxed">{tr("Жребий решает, кто отвечает первым. Пройденное уходит в Архив.")}</span>
                                 </span>
                             </button>
                             <button disabled={stats.availableActive === 0} onClick={() => { SoundFX.click(); navigate('game_setup'); }} className="opt-card opt-ember">
                                 <span aria-hidden="true" className="w-12 h-12 rounded-xl bg-amber-400/15 flex items-center justify-center text-2xl flex-shrink-0">🔥</span>
                                 <span className="flex-1 min-w-0 flex flex-col gap-2">
                                     <span className="font-bold text-sm text-white">{tr("Усложнённый режим")}</span>
-                                    <span className="text-xs text-zinc-300 leading-relaxed">{tr("Больше азарта: добавьте таймер на ответ и наказания за пропуск. Нужно выбрать хотя бы одно усложнение.")}</span>
+                                    <span className="text-xs text-zinc-300 leading-relaxed">{tr("Таймер на ответ и наказания за пропуск. Включите хотя бы одно.")}</span>
                                     <span className="flex flex-wrap gap-1.5 text-xs font-bold text-amber-100/90"><span className="px-2.5 py-1 rounded-full bg-white/[0.07]">{tr("⏱ Таймер")}</span><span className="px-2.5 py-1 rounded-full bg-white/[0.07]">{tr("🎭 Наказания")}</span></span>
                                 </span>
                             </button>
@@ -3176,15 +3376,16 @@ if (screen === 'mode_select') {
                                 <span aria-hidden="true" className="w-12 h-12 rounded-xl bg-white/[0.07] flex items-center justify-center text-2xl flex-shrink-0">🎲</span>
                                 <span className="flex-1 min-w-0 flex flex-col gap-1.5">
                                     <span className="font-bold text-sm text-white">{tr("Правда или действие")}</span>
-                                    <span className="text-xs text-zinc-300 leading-relaxed">{tr("Для компании и пар: правда, действие и позор за пропуск. 18+")}</span>
+                                    <span className="text-xs text-zinc-300 leading-relaxed">{tr("Правда, действие и позор за пропуск. 18+")}</span>
                                 </span>
                             </button>
-                            <p className="px-2 text-xs text-zinc-400 leading-relaxed text-center">{tr("👥 Если к сессии подключатся другие устройства, игра сама синхронизируется — до")} {profile ? deviceCap(profile) : MAX_PLAYERS} {tr("одновременно (по числу игроков): вопросы, очередь, рулетка")}{'\u00A0'}{tr("и таймер")}{'\u00A0'}{tr("у всех одинаковые. Пока вы играете одни, ничего не отправляется. Пригласить игроков можно кнопкой в шапке.")}</p>
+                            </div>
+                            <p className="px-2 text-xs text-zinc-400 leading-relaxed text-center">{tf("👥 К игре можно подключить до {v0} устройств (по числу игроков): вопросы, очередь и таймер будут общими. Пригласить — кнопкой в шапке.", { v0: profile ? deviceCap(profile) : MAX_PLAYERS })}</p>
                             {isAdmin && (
                                 <button onClick={() => { SoundFX.click(); setHardMode(false); startWithMode('test'); }} className="opt-card">
                                     <span aria-hidden="true" className="w-12 h-12 rounded-xl bg-white/[0.07] flex items-center justify-center text-2xl flex-shrink-0">🧪</span>
                                     <span className="flex-1 min-w-0 flex flex-col gap-1.5">
-                                        <span className="flex items-center justify-between gap-2"><span className="font-bold text-sm text-zinc-200">{tr("Тестовый режим")}</span> <span className="text-xs font-bold px-2.5 py-0.5 rounded-lg bg-white/[0.10] text-zinc-300">{stats.availableTotal > 0 ? stats.availableTotal : db.length} {tr("вопр.")}</span></span>
+                                        <span className="flex items-center justify-between gap-2"><span className="font-bold text-sm text-zinc-200">{tr("Тестовый режим")}</span> <span className="flex-shrink-0 whitespace-nowrap text-xs font-bold px-2.5 py-0.5 rounded-lg bg-white/[0.10] text-zinc-300">{stats.availableTotal > 0 ? stats.availableTotal : db.length} {tr("вопр.")}</span></span>
                                         <span className="text-xs text-zinc-400 leading-relaxed">{tr("Для владельца: все вопросы (включая Архив) и редактирование карточек.")}</span>
                                     </span>
                                 </button>
@@ -3224,10 +3425,10 @@ if (screen === 'mode_select') {
                 return (
                     <div className="safe-screen w-full flex flex-col items-center justify-between slide-up relative z-10">
                         {exitConfirmPopup} {newGameConfirmPopup} <PwaInstallModal {...pwaModalProps} />
-                        <div className="w-full max-w-md lg:max-w-4xl mx-auto flex flex-col gap-7 pt-1">
+                        <div className="w-full max-w-md lg:max-w-6xl mx-auto flex flex-col gap-7 pt-1">
                             {liveInviteBanner}
                             {todInviteBanner}
-                            <header className="w-full flex items-center justify-between gap-3">
+                            {!desk && <header className="w-full flex items-center justify-between gap-3">
                                 <button onClick={() => { if(profile) { SoundFX.click(); setPlayersForm(profile.players); navigate('profile_page'); } else navigate('onboarding'); }} className="btn-secondary btn-sm min-w-0">
                                     <Icons.User /> <span className="truncate">{profile ? tr("Игроки") : tr("Гость")}</span> {isAdmin && <span className="text-rose-400 text-xs">●</span>}
                                 </button>
@@ -3237,11 +3438,11 @@ if (screen === 'mode_select') {
                                         <span>{tr('Меню')}</span><span aria-hidden="true" className="text-lg leading-none">☰</span>
                                     </button>
                                 </div>
-                            </header>
+                            </header>}
 
                             <div className="flex flex-col items-center text-center gap-3 py-1">
                                 <AskMeLogo size="lg" onClick={handleLogoSecretTap} />
-                                <p className="text-rose-400 text-xs sm:text-xs font-extrabold mt-0.5 drop-shadow-[0_0_14px_rgba(244,63,94,0.45)]">
+                                <p className="text-rose-400 text-xs sm:text-xs font-extrabold mt-0.5">
                                     {!profile ? tr("Откровенные разговоры для пар и компаний") : isGroup ? tr("Откровенные разговоры для компании") : tr("Откровенные разговоры для двоих")}
                                 </p>
                                 {profile ? (
@@ -3267,9 +3468,24 @@ if (screen === 'mode_select') {
                                         </div>
                                         <p className="text-xs text-zinc-500 leading-snug">{audienceMode === 'couple' ? tr("Все вопросы, в том числе самые откровенные.") : tr("Только вопросы, которые подходят для компании.")}</p>
                                     </div>
+                                    <div className="space-y-4">
+                                        <h2 className="text-xs font-bold text-zinc-400">{tr("Сложность")}</h2>
+                                        <div className="grid grid-cols-3 gap-2.5">
+                                            {DIFFICULTIES.map(diff => ( <button key={diff.id} onClick={() => toggleDiff(diff.id)} className={`btn-tile ${ selectedDiffs.includes(diff.id) ? diff.classBg : '' }`} >{diffLabel(diff.id, diff.name)}</button> ))}
+                                        </div>
+                                    </div>
+                                    <div className="space-y-4">
+                                        <div className="flex items-center justify-between"><h2 className="text-xs font-bold text-zinc-400">{tr("Темы вопросов")}</h2><button onClick={() => { SoundFX.click(); const allActiveIds = CATEGORIES.filter(c => stats.activeByCat[c.id] > 0).map(c => c.id); setSelectedCats(allActiveIds.every(id => selectedCats.includes(id)) ? [] : allActiveIds); }} className="btn-text">{CATEGORIES.filter(c => stats.activeByCat[c.id] > 0).every(c => selectedCats.includes(c.id)) ? tr("Снять все") : tr("Выбрать все")}</button></div>
+                                        <div className="grid grid-cols-2 xl:grid-cols-3 gap-2.5">
+                                            {CATEGORIES.map(cat => {
+                                                const catActiveCount = stats.activeByCat[cat.id] || 0; const isEmpty = catActiveCount === 0; const isSelected = selectedCats.includes(cat.id) && !isEmpty;
+                                                return ( <button key={cat.id} disabled={isEmpty} onClick={() => toggleCategory(cat.id)} className={`tile ${ isEmpty ? 'opacity-30 border border-white/10 text-zinc-500' : isSelected ? 'topic-pill-active' : 'topic-pill-inactive' }`} > <div className="flex items-center gap-2 min-w-0"><span className="text-base flex-shrink-0 max-[340px]:hidden">{cat.icon}</span><span className="text-[13px] truncate">{catLabel(cat.id, cat.name)}</span></div> <span className={`text-xs font-bold flex-shrink-0 ${isSelected ? 'text-rose-400' : 'text-zinc-500'}`}>{catActiveCount}</span> </button> );
+                                            })}
+                                        </div>
+                                    </div>
                                 </div>
 
-                                <div className="lg:col-span-5 flex flex-col gap-7 lg:pl-6 lg:border-l lg:border-white/10">
+                                <div className="lg:col-span-5 flex flex-col gap-7 lg:sticky lg:top-24 lg:p-6 lg:rounded-[28px] lg:border lg:border-white/10 lg:bg-white/[0.03] lg:shadow-[0_30px_70px_-40px_rgba(0,0,0,0.9)]">
                                     <div className="lg:hidden hairline-divider"></div>
                                     <div className="space-y-3.5">
                                         <div className="flex items-center justify-between"><h2 className="text-xs font-bold text-zinc-400">{tr("Список вопросов")}</h2><span className="text-xs text-zinc-500">{tr("В архиве:")} <b className="text-zinc-300">{stats.archivedList.length}</b></span></div>
@@ -3283,26 +3499,11 @@ if (screen === 'mode_select') {
                                             <div className="flex flex-col items-center gap-1"><span className="font-display text-4xl font-bold text-rose-500 leading-none">{stats.availableActive}</span><span className="text-xs font-bold text-zinc-500">{declOfNum(stats.availableActive, ['Вопрос', 'Вопроса', 'Вопросов'])}</span></div>
                                         </div>
 
-                                        {hasSavedGame && profile && ( <button type="button" onClick={() => handleResumeSavedGame()} className="btn-ghost w-full flex items-center justify-center gap-2"><Icons.Play /> {tr("Продолжить игру")} <span className="text-xs font-semibold text-zinc-500">{tr("· вопрос")} {(profile.savedGame.currentIndex || 0) + 1}</span></button> )}
+                                        {hasSavedGame && profile && ( <button type="button" onClick={() => handleResumeSavedGame()} className="btn-ghost w-full flex items-center justify-center gap-2"><Icons.Resume /> {tr("Продолжить игру")} <span className="text-xs font-semibold text-zinc-500">{tr("· вопрос")} {(profile.savedGame.currentIndex || 0) + 1}</span></button> )}
                                         <div className="flex flex-col">
                                             <button type="button" onClick={handleStartClick} disabled={!profile} aria-disabled={!!startBlock && !isAdmin ? 'true' : undefined} aria-describedby={startBlock ? 'start-hint' : undefined} className={`w-full ${profile ? 'btn-primary' : 'btn-secondary opacity-60 cursor-not-allowed'}`} > <Icons.Play /> {!profile ? tr("Введите имена для игры") : hasSavedGame ? tr("Начать новую игру") : tr("Начать игру")} </button>
                                             <div id="start-hint" aria-live="polite">{startBlock && ( <p key={startErrTick} role={startErrTick ? 'alert' : undefined} className={`inline-error ${startErrTick ? 'shake' : ''}`}><span aria-hidden="true" className="inline-error-i">!</span><span>{startBlock}{isAdmin ? tr(" Тестовый режим доступен и без выбора.") : ''}</span></p> )}</div>
                                             {profile && ( <p className="mt-3.5 text-center text-xs text-zinc-500">{tr("ID сессии:")} <span className="font-semibold text-zinc-300 select-all">{profile.sessionId}</span></p> )}
-                                        </div>
-                                    </div>
-                                    <div className="space-y-4">
-                                        <div className="flex items-center justify-between"><h2 className="text-xs font-bold text-zinc-400">{tr("Темы вопросов")}</h2><button onClick={() => { SoundFX.click(); const allActiveIds = CATEGORIES.filter(c => stats.activeByCat[c.id] > 0).map(c => c.id); setSelectedCats(allActiveIds.every(id => selectedCats.includes(id)) ? [] : allActiveIds); }} className="btn-text">{CATEGORIES.filter(c => stats.activeByCat[c.id] > 0).every(c => selectedCats.includes(c.id)) ? tr("Снять все") : tr("Выбрать все")}</button></div>
-                                        <div className="grid grid-cols-2 gap-2.5">
-                                            {CATEGORIES.map(cat => {
-                                                const catActiveCount = stats.activeByCat[cat.id] || 0; const isEmpty = catActiveCount === 0; const isSelected = selectedCats.includes(cat.id) && !isEmpty;
-                                                return ( <button key={cat.id} disabled={isEmpty} onClick={() => toggleCategory(cat.id)} className={`tile ${ isEmpty ? 'opacity-30 border border-white/10 text-zinc-500' : isSelected ? 'topic-pill-active' : 'topic-pill-inactive' }`} > <div className="flex items-center gap-2 min-w-0"><span className="text-base flex-shrink-0 max-[340px]:hidden">{cat.icon}</span><span className="text-[13px] truncate">{catLabel(cat.id, cat.name)}</span></div> <span className={`text-xs font-bold flex-shrink-0 ${isSelected ? 'text-rose-400' : 'text-zinc-500'}`}>{catActiveCount}</span> </button> );
-                                            })}
-                                        </div>
-                                    </div>
-                                    <div className="space-y-4">
-                                        <h2 className="text-xs font-bold text-zinc-400">{tr("Сложность")}</h2>
-                                        <div className="grid grid-cols-3 gap-2.5">
-                                            {DIFFICULTIES.map(diff => ( <button key={diff.id} onClick={() => toggleDiff(diff.id)} className={`btn-tile ${ selectedDiffs.includes(diff.id) ? diff.classBg : '' }`} >{diffLabel(diff.id, diff.name)}</button> ))}
                                         </div>
                                     </div>
                                 </div>
@@ -3336,7 +3537,7 @@ if (screen === 'mode_select') {
                 const peekBody = (q) => {
                     const c = CATEGORIES.find(x => x.id === q.categoryId) || CATEGORIES[0];
                     const t = q.cleanText || q.text.replace(/^№\s*\d+\.\s*/, '');
-                    return ( <><div className="flex items-center gap-2 text-xs font-bold text-zinc-200 mb-6"><span>{c.icon}</span><span>{catLabel(c.id, c.name)}</span></div><div className="text-[24px] sm:text-[29px] font-medium leading-[1.18] text-white px-2">{t}</div></> );
+                    return ( <><div className="flex items-center gap-2 text-xs font-bold text-zinc-200 mb-6"><span>{c.icon}</span><span>{catLabel(c.id, c.name)}</span></div><div className="peek-text text-[24px] sm:text-[29px] font-medium leading-[1.18] text-white px-2">{t}</div></> );
                 };
 
                 return (
@@ -3345,7 +3546,6 @@ if (screen === 'mode_select') {
 
                         <header className="w-full max-w-xl mx-auto flex justify-between items-center py-2 flex-shrink-0 gap-2">
                             <div className="flex items-center gap-2">
-                                <div className="px-3.5 py-1.5 rounded-full border border-white/[0.16] text-white font-display font-bold text-xs "> {currentIndex + 1} <span className="text-zinc-500">/</span> {gameQuestions.length} </div>
                                 {live.room && liveCount > 1 && ( <div className="tag" role="status" aria-label={tf("Устройств в игре: {v0}", { v0: liveCount })}><span aria-hidden="true">👥</span> {liveCount}</div> )}
                                 {isAdmin && gameMode === 'test' && ( <>
                                     <button type="button" onClick={() => openEditScreen(currentQ, 'game')} className="btn-icon" aria-label={tr("Редактировать вопрос")} title={tr("Редактировать")}><Icons.Edit /></button>
@@ -3360,15 +3560,17 @@ if (screen === 'mode_select') {
                         </header>
 
                         <main className="flex-1 flex flex-col items-center justify-center py-6 pb-28 select-none" style={{ touchAction: 'pan-y' }} onPointerDown={onSwipeStart} onPointerMove={onSwipeMove} onPointerUp={onSwipeEnd} onPointerCancel={onSwipeCancel}>
-                            <div className="relative w-full max-w-lg">
+                            <div className="relative w-full max-w-lg lg:max-w-2xl">
+                            {desk && <button type="button" onClick={() => { if (!swipeBusy() && swipeAllowed('left')) commitSwipe('left'); else SoundFX.warn(); }} aria-label={tr("Предыдущий вопрос")} title={tr("Предыдущий вопрос")} disabled={currentIndex === 0} className="desk-arrow is-left"><Icons.Back /></button>}
+                            {desk && <button type="button" onClick={() => { if (!swipeBusy() && swipeAllowed('right')) commitSwipe('right'); else SoundFX.warn(); }} aria-label={tr("Следующий вопрос")} title={tr("Следующий вопрос")} className="desk-arrow is-right"><Icons.Next /></button>}
                             <div aria-hidden="true" className="absolute inset-x-9 top-9 bottom-[-26px] rounded-[28px] border border-white/10 bg-[#0f0d15] pointer-events-none"></div>
                             <div aria-hidden="true" className="absolute inset-x-5 top-5 bottom-[-14px] rounded-[28px] border border-white/10 bg-[#141119] pointer-events-none"></div>
-                            {showNextPeek && ( <div ref={peekNextRef} aria-hidden="true" data-peek="next" className="absolute inset-0 z-[5] rounded-[28px] border border-white/10 bg-gradient-to-b from-[#1b1824] to-[#100e16] px-6 pt-9 pb-6 flex flex-col items-center justify-center text-center pointer-events-none select-none overflow-hidden" style={{ opacity: 0, filter: 'blur(11px) brightness(0.9)', willChange: 'transform, opacity' }}>{peekBody(nextQ)}</div> )}
-                            {showPrevPeek && ( <div ref={peekPrevRef} aria-hidden="true" data-peek="prev" className="absolute inset-0 z-[5] rounded-[28px] border border-white/10 bg-gradient-to-b from-[#1b1824] to-[#100e16] px-6 pt-9 pb-6 flex flex-col items-center justify-center text-center pointer-events-none select-none overflow-hidden" style={{ opacity: 0, filter: 'grayscale(0.75) brightness(0.82)', willChange: 'transform, opacity' }}>{peekBody(prevQ)}</div> )}
+                            {showNextPeek && ( <div ref={peekNextRef} aria-hidden="true" data-peek="next" className="peek-soft absolute inset-0 z-[5] rounded-[28px] border border-white/10 bg-gradient-to-b from-[#1b1824] to-[#100e16] px-6 pt-9 pb-6 flex flex-col items-center justify-center text-center pointer-events-none select-none overflow-hidden" style={{ opacity: 0, willChange: 'transform, opacity' }}>{peekBody(nextQ)}</div> )}
+                            {showPrevPeek && ( <div ref={peekPrevRef} aria-hidden="true" data-peek="prev" className="peek-dim absolute inset-0 z-[5] rounded-[28px] border border-white/10 bg-gradient-to-b from-[#1b1824] to-[#100e16] px-6 pt-9 pb-6 flex flex-col items-center justify-center text-center pointer-events-none select-none overflow-hidden" style={{ opacity: 0, willChange: 'transform, opacity' }}>{peekBody(prevQ)}</div> )}
                             <div ref={cardRef} className="relative z-10 w-full" style={{ willChange: 'transform, opacity', touchAction: 'pan-y' }}>
                             <div ref={glowRef} aria-hidden="true" className="swipe-glow" data-side="right" data-ok="yes"><span className="swipe-shine"></span></div>
-                            {swipeHint && ( <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10 px-3 py-1 rounded-full text-xs font-bold bg-white/[0.10] border border-white/[0.16] text-zinc-100 pointer-events-none fade-in">{swipeHint}</div> )}
-                            <div className="relative w-full flex flex-col items-center justify-center slide-up rounded-[28px] border border-white/10 bg-gradient-to-b from-[#1b1824] to-[#100e16] px-6 pt-7 pb-6 sm:px-8 shadow-[0_32px_64px_-24px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.07)]" style={{ minHeight: 'min(60dvh, 540px)' }} key={currentQ.dbKey + '_' + currentIndex}>
+                            {swipeHint && ( <div className="absolute -top-11 left-1/2 -translate-x-1/2 z-10 px-3 py-1 rounded-full text-xs font-bold bg-white/[0.10] border border-white/[0.16] text-zinc-100 pointer-events-none fade-in">{swipeHint}</div> )}
+                            <div className="game-card relative w-full flex flex-col items-center justify-center rounded-[28px] border border-white/10 bg-gradient-to-b from-[#1b1824] to-[#100e16] px-6 pt-7 pb-6 sm:px-8 shadow-[0_32px_64px_-24px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.07)]" style={{ minHeight: 'min(60dvh, 540px)' }} key={currentQ.dbKey + '_' + currentIndex}>
                                 <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 h-7 rounded-full bg-[#1b1824] border border-white/[0.16] flex items-center gap-2 text-xs font-bold text-zinc-300 whitespace-nowrap">{tr("Вопрос №")} {currentQ.num} {gameMode === 'test' && currentQ.archived && ( <span className="text-xs px-1.5 rounded bg-white/[0.10] text-zinc-300">{tr("В архиве")}</span> )}</div>
                                 <div className="flex flex-col items-center gap-1.5 mb-6 pt-2">
                                     
@@ -3406,6 +3608,7 @@ if (screen === 'mode_select') {
                                 )}
                                 {currentIndex === 0 && ( <p className="mt-6 text-xs text-zinc-500 text-center">{tr("Листайте карточки свайпами или кнопками")}</p> )}
                             </div></div></div>
+                            <p className="game-count" role="status" aria-label={tf("Вопрос {v0} из {v1}", { v0: currentIndex + 1, v1: gameQuestions.length })}>{currentIndex + 1} <span aria-hidden="true">/</span> {gameQuestions.length}</p>
                         </main>
 
                         <div className="fixed bottom-0 left-0 right-0 p-4 sm:p-6 z-20 bg-gradient-to-t from-[#0a0710] via-[#0a0710]/90 to-transparent" style={{ paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom))' }}>
@@ -3564,9 +3767,31 @@ if (screen === 'summary') {
                 );
             }
 
+            if (screen === 'history' || screen === 'history_view') {
+                const histUi = { Icons, SoundFX, AppFooter, SummaryRing, SummaryBars, AnimatedCounter };
+                const histTopic = (id) => { const c = CATEGORIES.find(x => x.id === id); return c ? { icon: c.icon, name: catLabel(c.id, c.name) } : null; };
+                const list = profile?.history || []; const rec = screen === 'history_view' ? list.find(g => g.id === histId) : null;
+                const toPlay = () => navigate(stats.availableActive > 0 ? 'mode_select' : 'menu');
+                return (
+                    <>
+                        {rec
+                            ? <HistView ui={histUi} rec={rec} onBack={() => navigate('history')} onResume={resumeFromHistory} onPlay={toPlay} topicInfo={histTopic} />
+                            : <HistList ui={histUi} history={list} onOpen={(id) => { setHistId(id); navigate('history_view'); }} onResume={resumeFromHistory} onStart={toPlay} onBack={() => navigate('app_menu')} topicInfo={histTopic} />}
+                        <PopupModal isOpen={!!histAsk} onClose={() => setHistAsk(null)}>
+                            <div className="flex flex-col gap-3 pt-1 text-left">
+                                <h3 className="text-xl font-bold text-white pr-8">{tr('Заменить начатую игру?')}</h3>
+                                <p className="text-sm text-zinc-300 leading-relaxed">{profile?.savedGame ? tf('У вас уже есть незавершённая игра (вопрос {v0} из {v1}). Если продолжить прошлую, текущая будет заменена.', { v0: (profile.savedGame.currentIndex || 0) + 1, v1: profile.savedGame.questionIds.length }) : ''}</p>
+                                <button type="button" onClick={() => { SoundFX.click(); if (histAsk) startResumeFromHistory(histAsk); }} className="btn-primary w-full">{tr('Заменить и продолжить')}</button>
+                                <button type="button" onClick={() => { SoundFX.click(); setHistAsk(null); }} className="btn-secondary w-full">{tr('Отмена')}</button>
+                            </div>
+                        </PopupModal>
+                    </>
+                );
+            }
+
             if (screen === 'cat_list') {
                 return (
-                    <div className="safe-screen w-full flex flex-col fade-in max-w-md lg:max-w-3xl mx-auto relative z-10">
+                    <div className="safe-screen w-full flex flex-col fade-in max-w-md lg:max-w-5xl mx-auto relative z-10">
                         <header className="flex items-center justify-between gap-4 mb-6 pt-2">
                             <div className="flex items-center gap-3.5"><button aria-label={tr("Назад")} onClick={() => { SoundFX.click(); navigate('menu'); }} className="btn-icon flex-shrink-0"><Icons.Back /></button><div><h2 className="text-2xl font-bold text-white">{tr("Все вопросы")}</h2><p className="text-xs text-zinc-500 mt-0.5">{todTab === 'classic' ? `${tr('Активно:')} ${db.length - stats.archivedList.length - stats.disabledCount} ${tr('из')} ${db.length}` : tr('Правда или действие')}</p></div></div>
                         </header>
@@ -3576,11 +3801,13 @@ if (screen === 'summary') {
                             ))}
                         </div>
                         {todTab !== 'classic' ? (
-                            <div className="flex-1 pb-24"><TodArchive ui={todUi} cards={todCards} tab={todTab} isAdmin={isAdmin} onManage={() => { setTodBackTo('cat_list'); navigate('tod_admin'); }} /></div>
+                            <div className="flex-1 pb-24"><TodArchive ui={todUi} cards={todCards} tab={todTab} isAdmin={isAdmin} onManage={() => { setTodBackTo('cat_list'); setTodEditId(''); navigate('tod_admin'); }}
+                                onEdit={(c) => { setTodBackTo('cat_list'); setTodEditId(c.id); navigate('tod_admin'); }}
+                                onToggle={async (c) => { try { await todSave({ ...c, isActive: c.isActive !== true }); SoundFX.click(); showToast(c.isActive === true ? tr('Карточка скрыта') : tr('Карточка снова в игре')); } catch (e) { SoundFX.warn(); showToast(tr('Не удалось сохранить. Проверьте интернет и попробуйте ещё раз.'), 5000, 'warn'); } }} /></div>
                         ) : (<>
                         <div className="flex-1 flex flex-col gap-8 pb-24">
                             {isAdmin && ( <button type="button" onClick={() => { SoundFX.click(); setTopicDraft(CATEGORIES.map(c => c.id)); setTopicErr(''); navigate('topics_admin'); }} className="btn-secondary w-full flex items-center justify-center gap-2.5">{tr("⚙ Управление темами")}</button> )}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 divide-y md:divide-y-0 border-y border-white/10 divide-white/[0.08]">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 divide-y md:divide-y-0 border-y border-white/10 divide-white/[0.08]">
                                 {CATEGORIES.map(cat => (
                                     <button key={cat.id} onClick={() => { SoundFX.click(); setViewCategory(cat.id); setVisibleLimit(60); navigate('q_list'); }} className="row justify-between md:border-b md:border-white/10">
                                         <div className="flex items-center gap-3.5"><span className="text-2xl">{cat.icon}</span><div><div className="font-semibold text-base text-white">{catLabel(cat.id, cat.name)}</div><div className="text-xs text-zinc-500">{tr("Активных:")} <span className="text-zinc-300 font-semibold">{stats.activeByCat[cat.id] || 0}</span> {tr("из")} {stats.totalByCat[cat.id] || 0}</div></div></div><span className="text-zinc-500"><Icons.Next /></span>
@@ -3688,4 +3915,6 @@ if (screen === 'summary') {
         root.render(<App />);
         const toastRoot = document.createElement('div'); toastRoot.id = 'toast-root'; document.body.appendChild(toastRoot);
         ReactDOM.createRoot(toastRoot).render(<ToastHost />);
+        const deskRoot = document.createElement('div'); deskRoot.id = 'desk-root'; document.body.insertBefore(deskRoot, document.getElementById('root'));
+        ReactDOM.createRoot(deskRoot).render(<><DesktopNav /><DesktopFx /></>);
     

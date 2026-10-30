@@ -84,7 +84,7 @@ html:not([data-heat='mid']):not([data-heat='deep']) .bg-room .h-easy, html[data-
 .bg-room .embers { position: absolute; inset: 0; }
 .bg-room .embers b { position: absolute; left: var(--x); bottom: -3vh; width: var(--s); height: var(--s); border-radius: 50%; opacity: 0; background: radial-gradient(circle, #ffe2b8 0%, rgb(255 176 97 / 0.85) 38%, transparent 72%); animation: ember var(--d) linear var(--l) infinite; }
 .bg-room .grain { position: absolute; inset: 0; opacity: 0.07; background-size: 180px 180px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 0.9 0 0 0 0 0.95 0 0 0 0.9 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
-.bg-room::after { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 90% 70% at 50% 45%, transparent 55%, rgb(5 3 8 / 0.55) 100%); }
+.bg-room::after { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 100% 80% at 50% 40%, transparent 62%, rgb(5 3 8 / 0.28) 100%); }
 /* слои свечения вдвое меньше и растянуты scale(2): растр в 4 раза меньше, радиальный градиент от этого не теряет вид */
 @keyframes glowA { from { transform: translate3d(-4vmax, 0, 0) scale(2); } to { transform: translate3d(5vmax, 6vmax, 0) scale(2.2); } }
 @keyframes glowB { from { transform: translate3d(0, 0, 0) scale(2.1); } to { transform: translate3d(-8vmax, -5vmax, 0) scale(1.88); } }
@@ -196,7 +196,10 @@ html[data-screen='game'] .bg-room .motifs { opacity: 0.55; }
 @media (hover: hover) { :root .field-btn:not(.is-open):hover { border-color: rgb(255 226 238 / 0.36); } }
 :root .menu-pop { position: absolute; top: 100%; margin-top: 0.5rem; z-index: 50; max-height: 15rem; overflow-y: auto; padding: 0.375rem; background: var(--pop); border: 1px solid var(--line-strong); border-radius: var(--r-surface); box-shadow: 0 20px 50px rgba(0,0,0,0.85); scrollbar-width: none; }
 :root .menu-pop::-webkit-scrollbar { display: none; }
-:root .btn-icon.lang-btn { font-size: 0.8125rem; font-weight: 800; letter-spacing: 0.04em; color: var(--text); }
+:root .btn-secondary.lang-btn { gap: 0.25rem; padding: 0 0.75rem 0 0.875rem; font-size: 0.8125rem; font-weight: 800; letter-spacing: 0.04em; color: var(--text); }
+:root .lang-chev { display: inline-flex; color: var(--text-3); transition: transform 0.2s var(--ease-out), color 0.2s ease; }
+:root .lang-chev.is-open { transform: rotate(180deg); color: var(--rose); }
+:root .btn-secondary.lang-btn.is-on { border-color: rgb(255 77 109 / 0.6); background: rgb(255 77 109 / 0.14); }
 :root .menu-opt { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; width: 100%; min-height: var(--ctl-h); padding: 0.5rem 0.875rem; border-radius: var(--r-inner); text-align: left; font-size: 0.9375rem; font-weight: 500; color: var(--text-2); cursor: pointer; transition: background-color 0.15s ease, color 0.15s ease; }
 :root .menu-opt.is-on { color: var(--rose-ink); font-weight: 600; background: rgb(255 77 109 / 0.15); }
 @media (hover: hover) { :root .menu-opt:not(.is-on):hover { background: rgb(255 255 255 / 0.07); color: var(--text); } }
@@ -205,6 +208,11 @@ html[data-screen='game'] .bg-room .motifs { opacity: 0.55; }
 :root .switch.is-on { border-color: rgb(255 255 255 / 0.18); background: linear-gradient(180deg, var(--rose-fill-a) 0%, var(--rose-fill-b) 100%); }
 :root .switch-knob { position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 999px; background: #fff; box-shadow: 0 2px 6px rgb(0 0 0 / 0.35); transition: transform 0.22s var(--ease-out); }
 :root .switch.is-on .switch-knob { transform: translateX(20px); }
+
+/* названия кнопок всегда в одну строку: если не помещаются — шрифт чуть меньше на узких экранах, а длинные подписи сокращаются в тексте */
+:root .btn-primary, :root .btn-secondary, :root .btn-ghost, :root .btn-accent, :root .btn-danger, :root .btn-tile { white-space: nowrap; max-width: 100%; }
+:root .btn-tile { padding: 0 0.75rem; }
+@media (max-width: 359px) { :root .btn-primary, :root .btn-secondary, :root .btn-ghost, :root .btn-accent, :root .btn-danger { padding: 0 0.875rem; font-size: 0.9375rem; } :root .btn-sm { font-size: 0.875rem; padding: 0 0.75rem; } }
 
 /* ── 6. Поля ввода и списки ─────────────────────────────────────────────── */
 input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, textarea { box-sizing: border-box; background-color: rgb(255 255 255 / 0.045); border: 1px solid var(--line-field); border-radius: var(--r-control); color: var(--text); padding-left: 1rem; padding-right: 1rem; font-family: var(--font-ui); font-size: 1rem; line-height: 1.3; transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease; }
@@ -246,6 +254,9 @@ input[aria-invalid='true'], textarea[aria-invalid='true'] { border-color: var(--
 .confetti-piece { position: absolute; top: 0; will-change: transform, opacity; opacity: 0; animation: confettiFall var(--dur, 5s) linear var(--delay, 0s) 1 forwards; }
 @media (prefers-reduced-motion: reduce) { .reveal { animation: none; opacity: 1; } .confetti-layer { display: none; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; } .bg-room .motifs, .bg-room .embers { display: none; } }
+
+/* компьютер: «телефонные» колонки шире (28rem -> 40rem); экраны со своей раскладкой задают lg:max-w-* и перебивают это правило */
+@media (min-width: 1024px) { :where(main, header).max-w-md { max-width: 40rem; } }
 
 @tailwind components;
 @tailwind utilities;
@@ -408,3 +419,352 @@ input[aria-invalid='true'], textarea[aria-invalid='true'] { border-color: var(--
 :root .swipe-glow[data-ok='yes'] { --glow-rgb: 255 77 109; } :root .swipe-glow[data-ok='no'] { --glow-rgb: 255 176 97; }
 :root .swipe-shine { position: absolute; top: -20%; bottom: -20%; left: 35%; width: 30%; background: linear-gradient(105deg, transparent, rgb(255 255 255 / 0.10), transparent); will-change: transform; }
 @media (prefers-reduced-motion: reduce) { :root .swipe-shine { display: none; } }
+
+/* ═══ «Правда или действие»: лобби, ход, итоги ═══════════════════════════════ */
+/* аватар игрока: цветная подложка (оттенок --h от номера в очереди) со значком пола */
+:root .tod-avatar { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; width: 1.75rem; height: 1.75rem; border-radius: 999px; font-size: 0.95rem; line-height: 1; background: linear-gradient(145deg, hsl(var(--h) 90% 66%), hsl(calc(var(--h) + 38) 80% 52%)); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.35); }
+:root .tod-avatar-lg { width: 3.5rem; height: 3.5rem; font-size: 1.75rem; box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.4), 0 10px 26px -8px hsl(var(--h) 90% 60% / 0.8); }
+:root .tod-pop { animation: todPop 0.45s var(--ease-out) both; }
+@keyframes todPop { from { opacity: 0; transform: scale(0.7) translate3d(0, 8px, 0); } to { opacity: 1; transform: none; } }
+
+/* герой лобби: веер из двух карточек, которые покачиваются и по нажатию переворачиваются */
+:root .tod-hero { position: relative; overflow: hidden; padding: 1.25rem 1.1rem 1.25rem; border-radius: var(--r-hero); border: 1px solid var(--line-strong); text-align: center; background: radial-gradient(90% 80% at 8% 0%, rgb(255 77 109 / 0.26), transparent 62%), radial-gradient(90% 80% at 100% 100%, rgb(255 176 97 / 0.22), transparent 60%), rgb(255 255 255 / 0.03); }
+:root .tod-fan { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; max-width: 19rem; margin: 0.25rem auto 1rem; perspective: 1000px; }
+:root .tod-face { position: relative; display: block; width: 100%; aspect-ratio: 3 / 4; padding: 0; border: 0; background: none; cursor: pointer; transform: rotate(var(--rot, 0deg)); animation: todSway 5.6s ease-in-out infinite; -webkit-tap-highlight-color: transparent; }
+:root .tod-face-truth { --rot: -5deg; --fa: #ff4d6d; --fb: #b8173f; }
+:root .tod-face-dare { --rot: 5deg; --fa: #ffb061; --fb: #d9692a; animation-delay: -2.8s; }
+@keyframes todSway { 0%, 100% { transform: rotate(var(--rot)) translate3d(0, 0, 0); } 50% { transform: rotate(calc(var(--rot) * -0.35)) translate3d(0, -7px, 0); } }
+:root .tod-face:active { animation-play-state: paused; }
+:root .tod-face-in { position: absolute; inset: 0; transform-style: preserve-3d; transition: transform 0.7s var(--ease-out); }
+:root .tod-face.is-flipped .tod-face-in { transform: rotateY(180deg); }
+:root .tod-face-front, :root .tod-face-back { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.4rem; padding: 0.75rem; border-radius: 20px; backface-visibility: hidden; -webkit-backface-visibility: hidden; border: 1px solid rgb(255 255 255 / 0.22); box-shadow: 0 18px 36px -16px rgb(0 0 0 / 0.8), inset 0 1px 0 rgb(255 255 255 / 0.3); }
+:root .tod-face-front { background: radial-gradient(120% 90% at 20% 0%, rgb(255 255 255 / 0.28), transparent 55%), linear-gradient(160deg, var(--fa), var(--fb)); color: #fff; overflow: hidden; }
+:root .tod-face-front::after { content: ''; position: absolute; top: -20%; bottom: -20%; left: -60%; width: 40%; background: linear-gradient(105deg, transparent, rgb(255 255 255 / 0.35), transparent); transform: skewX(-18deg); animation: todShine 5.6s ease-in-out infinite; }
+:root .tod-face-dare .tod-face-front::after { animation-delay: 2s; }
+@keyframes todShine { 0%, 62% { left: -60%; } 100% { left: 140%; } }
+:root .tod-face-ico { font-size: 2.6rem; line-height: 1; filter: drop-shadow(0 4px 8px rgb(0 0 0 / 0.35)); }
+:root .tod-face-name { font-family: var(--font-display); font-size: 1.05rem; font-weight: 700; letter-spacing: -0.01em; text-shadow: 0 2px 8px rgb(0 0 0 / 0.35); }
+:root .tod-face-hint { font-size: 0.75rem; font-weight: 600; color: rgb(255 255 255 / 0.85); }
+:root .tod-face-back { transform: rotateY(180deg); background: linear-gradient(160deg, rgb(32 21 44), rgb(20 13 28)); border-color: rgb(var(--tod-bc, 255 77 109) / 0.6); justify-content: flex-start; text-align: left; align-items: stretch; gap: 0.5rem; }
+:root .tod-face-dare .tod-face-back { --tod-bc: 255 176 97; }
+:root .tod-face-back-t { font-size: 0.75rem; font-weight: 800; color: rgb(var(--tod-bc, 255 77 109)); }
+:root .tod-face-q { font-size: 0.8125rem; line-height: 1.35; color: var(--text); font-weight: 600; display: -webkit-box; -webkit-line-clamp: 7; -webkit-box-orient: vertical; overflow: hidden; }
+:root .tod-hero-title { font-family: var(--font-display); font-size: 1.15rem; line-height: 1.25; font-weight: 700; color: #fff; text-wrap: balance; }
+:root .tod-hero-meta { margin-top: 0.5rem; font-size: 0.8125rem; color: var(--text-3); font-variant-numeric: tabular-nums; }
+
+/* правила */
+:root .tod-rules { display: flex; flex-direction: column; gap: 0.5rem; }
+:root .tod-rule { display: flex; align-items: flex-start; gap: 0.875rem; padding: 0.875rem 1rem; border-radius: var(--r-surface); border: 1px solid var(--line); background: rgb(255 255 255 / 0.03); }
+:root .tod-rule-lock { border-color: rgb(255 77 109 / 0.4); background: linear-gradient(160deg, rgb(255 77 109 / 0.12), rgb(255 255 255 / 0.02)); }
+:root .tod-rule-ico { flex: 0 0 auto; display: flex; align-items: center; justify-content: center; width: 2.5rem; height: 2.5rem; border-radius: 999px; background: rgb(255 255 255 / 0.07); font-size: 1.25rem; }
+:root .tod-rule-lock .tod-rule-ico { width: 3.5rem; border-radius: 14px; background: rgb(255 77 109 / 0.16); }
+/* анимация-подсказка: три точки заполняются, и «Правда» запирается */
+:root .tod-lockdemo { position: relative; display: inline-flex; align-items: center; gap: 4px; }
+:root .tod-lockdemo i { width: 8px; height: 8px; border-radius: 999px; border: 1.5px solid var(--rose-300); background: transparent; animation: todFill 4.8s linear infinite; }
+:root .tod-lockdemo i:nth-child(2) { animation-delay: 0.5s; } :root .tod-lockdemo i:nth-child(3) { animation-delay: 1s; }
+:root .tod-lockdemo b { position: absolute; inset: -6px -4px; display: flex; align-items: center; justify-content: center; font-size: 1.15rem; opacity: 0; background: rgb(40 16 30 / 0.92); border-radius: 12px; animation: todLock 4.8s linear infinite; }
+@keyframes todFill { 0%, 6% { background: transparent; } 12%, 78% { background: var(--rose); border-color: var(--rose); } 90%, 100% { background: transparent; border-color: var(--rose-300); } }
+@keyframes todLock { 0%, 40% { opacity: 0; transform: scale(0.6); } 48% { opacity: 1; transform: scale(1.12); } 54%, 78% { opacity: 1; transform: scale(1); } 90%, 100% { opacity: 0; transform: scale(0.9); } }
+
+/* свои карточки */
+:root .tod-mine-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; width: 100%; min-height: var(--ctl-h); text-align: left; cursor: pointer; }
+:root .tod-chev { display: inline-flex; color: var(--text-3); transition: transform 0.2s var(--ease-out); }
+:root .tod-chev.is-open { transform: rotate(180deg); color: var(--rose); }
+
+/* кнопка старта: мягкое «дыхание» свечения, чтобы глаз шёл к главному действию */
+:root .tod-go { animation: todGo 2.8s ease-in-out infinite; }
+@keyframes todGo { 0%, 100% { box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.22), 0 10px 28px -8px rgb(255 77 109 / 0.55); } 50% { box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.22), 0 14px 38px -6px rgb(255 77 109 / 0.85); } }
+
+/* ход: игроки в ряд, сцена с аватаром, выбор правды/действия */
+:root .tod-roster { display: flex; gap: 0.5rem; overflow-x: auto; padding: 2px 2px 6px; margin: 0 -2px; scrollbar-width: none; scroll-snap-type: x proximity; }
+:root .tod-roster::-webkit-scrollbar { display: none; }
+:root .tod-roster .chip { flex: 0 0 auto; scroll-snap-align: center; }
+:root .tod-roster .chip.tod-now { box-shadow: 0 0 0 3px rgb(255 77 109 / 0.22), 0 8px 22px -8px rgb(255 77 109 / 0.7); }
+:root .tod-stage { position: relative; display: flex; align-items: center; gap: 0.875rem; padding: 0.875rem 1rem; border-radius: var(--r-surface); border: 1px solid var(--line-strong); background: linear-gradient(135deg, rgb(255 255 255 / 0.06), rgb(255 255 255 / 0.02)); overflow: hidden; }
+:root .tod-stage .tod-avatar-lg { animation: todBob 3.2s ease-in-out infinite; }
+@keyframes todBob { 0%, 100% { transform: translate3d(0, 0, 0); } 50% { transform: translate3d(0, -4px, 0); } }
+:root .tod-turn { min-width: 0; font-family: var(--font-display); font-size: 1.2rem; line-height: 1.2; font-weight: 700; color: #fff; animation: todTurnIn 0.5s var(--ease-out) both; }
+@keyframes todTurnIn { from { opacity: 0; transform: translate3d(14px, 0, 0); } to { opacity: 1; transform: none; } }
+:root .tod-pick { position: relative; overflow: hidden; }
+:root .tod-pick::before { content: ''; position: absolute; inset: 0; background: radial-gradient(70% 60% at 50% 0%, rgb(255 255 255 / 0.14), transparent 70%); opacity: 0; transition: opacity 0.25s ease; pointer-events: none; }
+@media (hover: hover) { :root .tod-pick:not(.is-locked):hover { transform: translate3d(0, -3px, 0); } :root .tod-pick:not(.is-locked):hover::before { opacity: 1; } }
+:root .tod-pick-ico { font-size: 2.25rem; line-height: 1; transition: transform 0.3s var(--ease-out); }
+@media (hover: hover) { :root .tod-pick:not(.is-locked):hover .tod-pick-ico { transform: scale(1.15) rotate(-6deg); } }
+:root .tod-pick-sub { font-size: 0.8125rem; line-height: 1.3; color: var(--text-2); }
+:root .tod-pick.is-locked { cursor: not-allowed; filter: saturate(0.5); border-style: dashed; background: rgb(255 255 255 / 0.03); }
+:root .tod-pick.is-locked .tod-pick-ico { animation: todLockPop 0.5s var(--ease-out) both; }
+@keyframes todLockPop { from { transform: scale(0.4) rotate(-20deg); } to { transform: none; } }
+:root .tod-attn { animation: todAttn 1.6s ease-in-out infinite; border-color: rgb(255 176 97 / 0.9); }
+@keyframes todAttn { 0%, 100% { box-shadow: 0 0 0 0 rgb(255 176 97 / 0.5); } 60% { box-shadow: 0 0 0 10px rgb(255 176 97 / 0); } }
+:root .tod-nope { animation: shakeX 0.4s cubic-bezier(.36,.07,.19,.97) both; }
+:root .tod-pips { display: inline-flex; gap: 5px; margin-top: 0.15rem; }
+:root .tod-pips i { width: 9px; height: 9px; border-radius: 999px; border: 1.5px solid var(--rose-300); box-sizing: border-box; transition: background-color 0.25s ease, transform 0.25s var(--ease-out); }
+:root .tod-pips i.on { background: var(--rose); border-color: var(--rose); transform: scale(1.1); }
+:root .tod-pips.is-locked i.on { background: var(--danger); border-color: var(--danger); }
+:root .tod-ruleline { display: flex; align-items: flex-start; gap: 0.5rem; padding: 0.625rem 0.875rem; border-radius: var(--r-control); border: 1px solid var(--line); background: rgb(255 255 255 / 0.03); font-size: 0.8125rem; line-height: 1.4; color: var(--text-2); }
+:root .tod-ruleline.is-hot { border-color: rgb(255 77 109 / 0.55); background: rgb(255 77 109 / 0.1); color: var(--rose-ink); animation: errIn 0.28s var(--ease-out) both; }
+:root .tod-heat { transition: transform 0.16s var(--ease-out), background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.25s ease; }
+@media (hover: hover) { :root .tod-heat:not(:disabled):hover { box-shadow: 0 10px 26px -12px rgb(var(--tod-c) / 0.9); background: rgb(var(--tod-c) / 0.1); } }
+/* карточка с заданием: цветная кромка по уровню и один блик при появлении */
+:root .tod-card { position: relative; overflow: hidden; border-top: 3px solid rgb(var(--tod-c, 255 255 255) / 0.9); }
+:root .tod-card::after { content: ''; position: absolute; top: 0; bottom: 0; left: -60%; width: 40%; background: linear-gradient(105deg, transparent, rgb(255 255 255 / 0.12), transparent); transform: skewX(-18deg); animation: todSheen 0.9s 0.35s ease-out both; pointer-events: none; }
+@keyframes todSheen { from { left: -60%; } to { left: 140%; } }
+:root .tod-card-easy { --tod-c: var(--tod-easy-rgb); } :root .tod-card-medium { --tod-c: var(--tod-medium-rgb); } :root .tod-card-hard { --tod-c: var(--tod-hard-rgb); }
+/* искры после выполненного задания и падающая курица после пропуска */
+:root .tod-burst { position: absolute; left: 1.75rem; top: 50%; width: 0; height: 0; pointer-events: none; }
+:root .tod-burst i { position: absolute; left: -3px; top: -3px; width: 6px; height: 6px; border-radius: 999px; background: var(--c); animation: todSpark 0.9s var(--ease-out) both; }
+@keyframes todSpark { from { opacity: 1; transform: rotate(var(--a)) translate3d(0, 0, 0) scale(1); } to { opacity: 0; transform: rotate(var(--a)) translate3d(var(--d), 0, 0) scale(0.3); } }
+:root .tod-egg { position: absolute; right: 1rem; top: -2rem; font-size: 1.75rem; pointer-events: none; animation: todDrop 1.1s cubic-bezier(.3,.6,.4,1) both; }
+@keyframes todDrop { 0% { opacity: 0; transform: translate3d(0, 0, 0) rotate(-20deg); } 20% { opacity: 1; } 70% { opacity: 1; transform: translate3d(0, 4.5rem, 0) rotate(12deg); } 100% { opacity: 0; transform: translate3d(0, 5rem, 0) rotate(0deg); } }
+:root .tod-title-ico { display: inline-block; animation: todPop 0.6s 0.2s var(--ease-out) both; }
+@media (prefers-reduced-motion: reduce) { :root .tod-face, :root .tod-stage .tod-avatar-lg, :root .tod-go, :root .tod-attn, :root .tod-lockdemo i, :root .tod-lockdemo b, :root .tod-face-front::after, :root .tod-card::after { animation: none !important; } :root .tod-lockdemo b { opacity: 1; background: transparent; inset: auto; position: static; } }
+
+/* ═══ «Правда или действие» — волна 2: заголовок игры, подколка, итоги, состав сессии ═══ */
+/* состав сессии (игроки и устройства): спокойный блок, заметно тише кнопки «Поделиться сессией» */
+:root .room-strip { display: flex; flex-direction: column; gap: 0.5rem; padding: 0.75rem 0.875rem; border-radius: var(--r-control); border: 1px solid var(--line); background: rgb(255 255 255 / 0.025); }
+:root .room-strip-names { display: flex; flex-wrap: wrap; gap: 0.25rem 0.5rem; min-width: 0; }
+:root .room-strip-names li { display: inline-flex; align-items: center; gap: 0.375rem; max-width: 100%; font-size: 0.875rem; font-weight: 600; line-height: 1.3; color: var(--text-2); }
+:root .room-strip-names li + li::before { content: ''; width: 3px; height: 3px; margin-right: 0.125rem; border-radius: 999px; background: var(--text-3); }
+:root .room-strip-names li span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+:root .room-strip-dev { display: flex; align-items: center; gap: 0.5rem; font-size: 0.8125rem; line-height: 1.3; color: var(--text-3); }
+:root .room-pips { display: inline-flex; align-items: center; gap: 4px; flex: 0 0 auto; }
+:root .room-pips i { display: block; width: 9px; height: 14px; border-radius: 3px; border: 1.5px solid var(--text-3); box-sizing: border-box; }
+:root .room-pips i.me { border-color: var(--rose-300); background: rgb(255 159 179 / 0.25); }
+:root .room-pips i.on { border-color: var(--ok); background: rgb(74 222 155 / 0.25); animation: roomPulse 2.4s ease-in-out infinite; }
+@keyframes roomPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+
+/* английский в списке языков: виден, но пока недоступен */
+:root .menu-opt:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* игра: заголовок по центру под шапкой */
+:root .tod-titlebar { display: flex; flex-direction: column; align-items: center; gap: 0.25rem; text-align: center; }
+:root .tod-title-main { font-family: var(--font-display); font-size: 1.625rem; line-height: 1.15; font-weight: 700; letter-spacing: -0.01em; color: #fff; text-wrap: balance; }
+:root .tod-title-sub { font-size: 0.9375rem; font-weight: 600; line-height: 1.3; color: var(--text-2); }
+
+/* подколка: ведущий-насмешник с пузырём реплики */
+:root .tod-heckle { position: relative; display: flex; align-items: flex-end; gap: 0.75rem; animation: todHeckleIn 0.55s cubic-bezier(.2,.9,.25,1.2) both; }
+:root .tod-heckle-face { flex: 0 0 auto; display: flex; align-items: center; justify-content: center; width: 3rem; height: 3rem; border-radius: 999px; font-size: 1.65rem; line-height: 1; background: linear-gradient(145deg, rgb(201 139 255 / 0.35), rgb(201 139 255 / 0.12)); border: 1px solid rgb(201 139 255 / 0.55); box-shadow: 0 10px 24px -10px rgb(201 139 255 / 0.8); animation: todFaceWiggle 2.6s 0.6s ease-in-out infinite; }
+:root .tod-heckle .tod-banter { position: relative; flex: 1 1 auto; min-width: 0; padding: 0.75rem 1rem; border-radius: 18px 18px 18px 4px; border: 1px solid rgb(201 139 255 / 0.5); background: linear-gradient(160deg, rgb(201 139 255 / 0.2), rgb(201 139 255 / 0.06)); font-size: 1rem; line-height: 1.4; font-weight: 600; font-style: normal; color: #fff; text-wrap: pretty; overflow-wrap: anywhere; animation: none; box-shadow: 0 14px 30px -18px rgb(201 139 255 / 0.9); }
+:root .tod-heckle .tod-banter::before { content: ''; position: absolute; left: -7px; bottom: 6px; width: 12px; height: 12px; background: rgb(54 36 76); border-left: 1px solid rgb(201 139 255 / 0.5); border-bottom: 1px solid rgb(201 139 255 / 0.5); transform: rotate(45deg); border-bottom-left-radius: 3px; }
+:root .tod-heckle.is-spicy .tod-heckle-face { background: linear-gradient(145deg, rgb(255 77 109 / 0.4), rgb(255 77 109 / 0.12)); border-color: rgb(255 77 109 / 0.7); box-shadow: 0 10px 24px -8px rgb(255 77 109 / 0.9); }
+:root .tod-heckle.is-spicy .tod-banter { border-color: rgb(255 77 109 / 0.65); background: linear-gradient(160deg, rgb(255 77 109 / 0.24), rgb(255 138 61 / 0.08)); box-shadow: 0 14px 30px -16px rgb(255 77 109 / 0.95); transform-origin: 0 100%; animation: todSpicy 0.6s 0.45s ease-in-out both; }
+:root .tod-heckle.is-spicy .tod-banter::before { background: rgb(66 24 40); border-left-color: rgb(255 77 109 / 0.65); border-bottom-color: rgb(255 77 109 / 0.65); }
+@keyframes todHeckleIn { 0% { opacity: 0; transform: translate3d(-18px, 10px, 0) scale(0.85); } 100% { opacity: 1; transform: none; } }
+@keyframes todFaceWiggle { 0%, 70%, 100% { transform: rotate(0deg); } 76% { transform: rotate(-12deg); } 84% { transform: rotate(10deg); } 92% { transform: rotate(-6deg); } }
+@keyframes todSpicy { 0%, 100% { transform: rotate(0deg); } 25% { transform: rotate(-1.4deg) scale(1.02); } 55% { transform: rotate(1deg); } 80% { transform: rotate(-0.5deg); } }
+
+/* итоги */
+:root .tod-res-hero { display: flex; flex-direction: column; align-items: center; gap: 0.25rem; padding: 1.5rem 1.25rem 1.25rem; border-radius: var(--r-hero); border: 1px solid var(--line-strong); text-align: center; background: radial-gradient(90% 90% at 50% 0%, rgb(255 176 97 / 0.26), transparent 62%), radial-gradient(80% 80% at 100% 100%, rgb(255 77 109 / 0.18), transparent 60%), rgb(255 255 255 / 0.03); }
+:root .tod-res-cup { font-size: 3.25rem; line-height: 1; filter: drop-shadow(0 8px 14px rgb(255 176 97 / 0.5)); animation: todCup 1.1s var(--ease-out) both, todCupGlow 3s 1.2s ease-in-out infinite; }
+@keyframes todCup { 0% { opacity: 0; transform: translate3d(0, 24px, 0) scale(0.4) rotate(-20deg); } 70% { transform: translate3d(0, -4px, 0) scale(1.1) rotate(6deg); } 100% { opacity: 1; transform: none; } }
+@keyframes todCupGlow { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.07) rotate(-3deg); } }
+:root .tod-res-title { font-family: var(--font-display); font-size: 1.75rem; line-height: 1.15; font-weight: 700; color: #fff; }
+:root .tod-res-sub { font-size: 0.9375rem; font-weight: 600; color: var(--text-2); }
+:root .tod-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; width: 100%; margin-top: 0.75rem; }
+:root .tod-stat { display: flex; flex-direction: column; align-items: center; gap: 0.125rem; padding: 0.625rem 0.25rem; border-radius: var(--r-control); border: 1px solid var(--line); background: rgb(255 255 255 / 0.04); }
+:root .tod-stat-v { font-family: var(--font-display); font-size: 1.5rem; line-height: 1.1; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; }
+:root .tod-stat-l { font-size: 0.75rem; line-height: 1.2; color: var(--text-3); }
+:root .tod-podium { display: flex; align-items: flex-end; justify-content: center; gap: 0.625rem; min-height: 15rem; }
+:root .tod-pod { position: relative; flex: 1 1 0; max-width: 7.5rem; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 0.375rem; animation: todPodIn 0.6s var(--ease-out) both; }
+:root .tod-pod-medal { font-size: 1.75rem; line-height: 1; }
+:root .tod-pod-name { max-width: 100%; font-size: 0.9375rem; font-weight: 700; color: #fff; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+:root .tod-pod-bar { width: 100%; height: calc(3.25rem + var(--k, 0.3) * 8rem); display: flex; align-items: flex-start; justify-content: center; padding-top: 0.5rem; border-radius: 14px 14px 6px 6px; border: 1px solid rgb(255 255 255 / 0.2); background: linear-gradient(180deg, rgb(255 255 255 / 0.18), rgb(255 255 255 / 0.04)); transform-origin: 50% 100%; animation: todBar 0.8s 0.25s var(--ease-out) both; }
+:root .tod-pod-bar b { font-family: var(--font-display); font-size: 1.25rem; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; }
+:root .tod-pod-1 .tod-pod-bar { border-color: rgb(255 214 79 / 0.7); background: linear-gradient(180deg, rgb(255 214 79 / 0.4), rgb(255 176 97 / 0.08)); box-shadow: 0 16px 34px -18px rgb(255 214 79 / 0.9); }
+:root .tod-pod-2 .tod-pod-bar { border-color: rgb(208 194 205 / 0.6); background: linear-gradient(180deg, rgb(208 194 205 / 0.3), rgb(208 194 205 / 0.05)); }
+:root .tod-pod-3 .tod-pod-bar { border-color: rgb(255 138 61 / 0.55); background: linear-gradient(180deg, rgb(255 138 61 / 0.3), rgb(255 138 61 / 0.05)); }
+@keyframes todPodIn { from { opacity: 0; transform: translate3d(0, 16px, 0); } to { opacity: 1; transform: none; } }
+@keyframes todBar { from { transform: scaleY(0.1); } to { transform: scaleY(1); } }
+:root .tod-clean { padding: 1rem; border-radius: var(--r-surface); border: 1px solid rgb(74 222 155 / 0.4); background: rgb(74 222 155 / 0.08); font-size: 1rem; line-height: 1.5; color: #d4f8e6; }
+@media (prefers-reduced-motion: reduce) { :root .tod-heckle, :root .tod-heckle-face, :root .tod-heckle .tod-banter, :root .tod-res-cup, :root .tod-pod, :root .tod-pod-bar, :root .room-pips i.on { animation: none !important; } }
+
+/* ═══ Карточка вопроса: появление после перелистывания ═══ */
+:root .game-card { animation: slideUp 0.32s var(--ease-out) forwards; }
+:root [data-enter='right'] > .game-card { animation: cardInNext 0.42s var(--ease-out) both; }
+:root [data-enter='left'] > .game-card { animation: cardInPrev 0.42s var(--ease-out) both; }
+@keyframes cardInNext { from { opacity: 0; transform: translate3d(0, 12px, 0) scale(0.965); } to { opacity: 1; transform: none; } }
+@keyframes cardInPrev { from { opacity: 0; transform: translate3d(-30px, 6px, 0) scale(0.97) rotate(-1.4deg); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { :root [data-enter] > .game-card { animation: none; } }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Десктопная версия (от 1024 px): верхняя панель, колонки, расширенный подвал, эффекты мыши
+   ═══════════════════════════════════════════════════════════════════════ */
+@media (min-width: 1024px) {
+  html[data-nav='1'] .safe-screen { padding-top: 5.5rem; }
+  /* верхняя панель: лёгкая полупрозрачность без сильного затемнения */
+  :root .desk-nav { position: fixed; top: 0; left: 0; right: 0; z-index: 40; height: 4rem; border-bottom: 1px solid var(--line); background: linear-gradient(180deg, rgb(19 13 26 / 0.72), rgb(19 13 26 / 0.5)); backdrop-filter: blur(10px) saturate(1.2); -webkit-backdrop-filter: blur(10px) saturate(1.2); }
+  :root .desk-nav-in { display: flex; align-items: center; gap: 1.5rem; max-width: 80rem; height: 100%; margin: 0 auto; padding: 0 1.5rem; }
+  :root .desk-links { display: flex; align-items: center; gap: 0.25rem; margin-right: auto; }
+  :root .desk-link { position: relative; min-height: var(--ctl-h); padding: 0 1rem; border-radius: 999px; font-size: 0.9375rem; font-weight: 600; color: var(--text-2); white-space: nowrap; cursor: pointer; transition: color 0.2s ease, background-color 0.2s ease; }
+  :root .desk-link:hover { color: #fff; background: rgb(255 255 255 / 0.07); }
+  :root .desk-link.is-on { color: var(--rose-ink); background: rgb(255 77 109 / 0.14); }
+  :root .desk-link.is-on::after { content: ''; position: absolute; left: 1rem; right: 1rem; bottom: 4px; height: 2px; border-radius: 2px; background: var(--rose); }
+  :root .desk-nav-right { display: flex; align-items: center; gap: 0.625rem; flex: 0 0 auto; }
+  :root .desk-players { max-width: 14rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.8125rem; font-weight: 600; color: var(--text-3); }
+
+  /* колонки: содержимое экрана раскладывается в две колонки равной высоты */
+  :root .desk-cols { display: block; column-count: 2; column-gap: 2rem; }
+  :root .desk-cols > * { break-inside: avoid; margin-bottom: 1.5rem; }
+  :root .desk-cols > *:last-child { margin-bottom: 0; }
+
+  /* экран режимов: три карточки в ряд, вертикальные */
+  :root .mode-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.25rem; }
+  :root .mode-grid .opt-card { flex-direction: column; align-items: flex-start; min-height: 15rem; padding: 1.5rem; }
+  :root .mode-grid .opt-card > span:first-child { width: 3.5rem; height: 3.5rem; font-size: 1.75rem; }
+
+  /* карточки выбора: наклон за курсором и блик (переменные ставит DesktopFx) */
+  html[data-fx] .opt-card:not(:disabled) { position: relative; overflow: hidden; transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); transition: transform 0.18s ease-out, background-color 0.2s ease; will-change: transform; }
+  html[data-fx] .opt-card:not(:disabled):active { transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) scale(0.985); }
+  html[data-fx] .opt-card:not(:disabled)::after { content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0; background: radial-gradient(240px circle at var(--gx, 50%) var(--gy, 0%), rgb(255 255 255 / 0.16), transparent 65%); transition: opacity 0.25s ease; }
+  html[data-fx] .opt-card:not(:disabled):hover::after { opacity: 1; }
+  /* прожектор за курсором и параллакс узоров фона */
+  html[data-fx] .bg-room::before { content: ''; position: absolute; inset: 0; background: radial-gradient(560px circle at var(--mx, 50%) var(--my, 30%), rgb(255 77 109 / 0.10), rgb(255 176 97 / 0.04) 45%, transparent 68%); }
+  html[data-fx] .bg-room .motifs { transform: translate3d(calc(var(--px, 0) * -22px), calc(var(--py, 0) * -14px), 0); transition: transform 0.5s ease-out; }
+
+  /* панель «О сессии» в меню */
+  :root .desk-info { display: flex; flex-direction: column; gap: 0.875rem; padding: 1.25rem; border-radius: var(--r-surface); border: 1px solid var(--line-strong); background: rgb(255 255 255 / 0.03); }
+  :root .desk-info-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.5rem; }
+  :root .desk-info-stats li { display: flex; flex-direction: column; gap: 0.125rem; padding: 0.625rem 0.5rem; border-radius: var(--r-control); border: 1px solid var(--line); text-align: center; }
+  :root .desk-info-stats b { font-family: var(--font-display); font-size: 1.375rem; line-height: 1.1; color: #fff; font-variant-numeric: tabular-nums; }
+  :root .desk-info-stats span { font-size: 0.6875rem; line-height: 1.2; color: var(--text-3); }
+  :root .desk-keys { display: flex; flex-direction: column; gap: 0.5rem; }
+  :root .desk-keys > div { display: flex; align-items: center; gap: 0.75rem; font-size: 0.8125rem; color: var(--text-3); }
+  :root .desk-keys dt { display: inline-flex; gap: 4px; min-width: 4.5rem; }
+  :root kbd { display: inline-flex; align-items: center; justify-content: center; min-width: 1.75rem; height: 1.75rem; padding: 0 0.4rem; border-radius: 8px; border: 1px solid var(--line-strong); border-bottom-width: 2px; background: rgb(255 255 255 / 0.06); font-family: var(--font-ui); font-size: 0.8125rem; font-weight: 700; color: var(--text); }
+
+  /* стрелки по бокам карточки вопроса */
+  :root .desk-arrow { position: absolute; top: 50%; z-index: 15; display: inline-flex; align-items: center; justify-content: center; width: 3.25rem; height: 3.25rem; margin-top: -1.625rem; border-radius: 999px; border: 1px solid var(--line-strong); background: rgb(255 255 255 / 0.06); color: var(--text-2); cursor: pointer; transition: transform 0.2s var(--ease-out), background-color 0.2s ease, color 0.2s ease, opacity 0.2s ease; }
+  :root .desk-arrow.is-left { left: -5rem; } :root .desk-arrow.is-right { right: -5rem; }
+  :root .desk-arrow:hover:not(:disabled) { background: rgb(255 77 109 / 0.18); color: #fff; transform: scale(1.08); }
+  :root .desk-arrow:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  /* «Правда или действие»: игра в две колонки (карточка и действия слева, игроки и ведущий справа) */
+  :root .tod-desk { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 1.75rem; align-items: start; }
+  :root .tod-desk-main, :root .tod-desk-side { display: flex; flex-direction: column; gap: 1.25rem; min-width: 0; }
+  :root .tod-desk-side { position: sticky; top: 5.5rem; }
+  :root .tod-roster.is-col { flex-direction: column; overflow: visible; margin: 0; padding: 0; gap: 0.5rem; }
+  :root .tod-roster.is-col .chip { width: 100%; justify-content: flex-start; }
+  :root .tod-roster.is-col .tod-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  :root .tod-title-main { font-size: 2.125rem; }
+  :root .tod-hero { padding: 1.75rem 1.5rem; }
+  :root .tod-podium { min-height: 17rem; }
+
+  /* расширенный подвал */
+  :root .desk-footer { width: 100%; margin-top: auto; padding: 3rem 1.5rem 1.25rem; border-top: 1px solid var(--line); background: linear-gradient(180deg, transparent, rgb(10 7 16 / 0.55)); }
+  :root .desk-footer-in { display: grid; grid-template-columns: 1.6fr 1fr 1fr 1fr; gap: 2.5rem; max-width: 72rem; margin: 0 auto; }
+  :root .desk-fcol { display: flex; flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+  :root .desk-fcol h2 { margin-bottom: 0.25rem; font-size: 0.875rem; font-weight: 700; color: var(--text); }
+  :root .desk-fcol a { display: inline-flex; align-items: center; min-height: 32px; font-size: 0.875rem; color: var(--text-3); text-decoration: none; transition: color 0.2s ease, transform 0.2s var(--ease-out); }
+  :root .desk-fcol a:hover { color: #fff; transform: translateX(3px); }
+  :root .desk-fbrand p { max-width: 22rem; font-size: 0.875rem; line-height: 1.55; color: var(--text-3); }
+  :root .desk-footer-bar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; max-width: 72rem; margin: 2rem auto 0; padding-top: 1.25rem; border-top: 1px solid var(--line); font-size: 0.8125rem; color: var(--text-3); }
+  :root .desk-footer-bar b { color: var(--rose-300); }
+}
+@media (min-width: 1024px) and (prefers-reduced-motion: reduce) { html[data-fx] .opt-card:not(:disabled) { transform: none; } }
+
+/* ═══ Волна 4: спокойнее свечение, крупная карточка в «Правде или действии», компактный «Ход игрока», естественное размытие подложки ═══ */
+/* свечение кнопок и блоков: заметно тише, без пульсации; цвет остаётся акцентом, а не подсветкой */
+:root .btn-primary { box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.18), 0 6px 14px -9px rgb(255 77 109 / 0.35); }
+@media (hover: hover) { :root .btn-primary:not(:disabled):hover { filter: brightness(1.06); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.22), 0 8px 18px -9px rgb(255 77 109 / 0.42); } }
+:root .seg-btn.is-active { box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.18), 0 3px 8px -5px rgb(255 77 109 / 0.4); }
+:root .fx-card.is-on { box-shadow: 0 8px 18px -16px rgb(255 77 109 / 0.35); }
+:root .tod-go { animation: none; box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.18), 0 6px 14px -9px rgb(255 77 109 / 0.4); }
+:root .turn-tag { animation: turnIn 0.55s cubic-bezier(.2,.9,.25,1.15) both; }
+@keyframes turnDot { 0%, 100% { box-shadow: 0 0 0 0 rgb(255 107 136 / 0.4); } 60% { box-shadow: 0 0 0 5px rgb(255 107 136 / 0); } }
+:root .tod-roster .chip.tod-now { box-shadow: 0 0 0 2px rgb(255 77 109 / 0.2); }
+:root .tod-attn { animation: none; box-shadow: 0 0 0 2px rgb(255 176 97 / 0.35); }
+:root .tod-avatar-lg { box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.35), 0 4px 10px -6px hsl(var(--h) 90% 60% / 0.45); }
+:root .tod-heckle-face { box-shadow: 0 4px 10px -7px rgb(201 139 255 / 0.5); }
+:root .tod-heckle .tod-banter { box-shadow: 0 8px 18px -14px rgb(201 139 255 / 0.5); }
+:root .tod-heckle.is-spicy .tod-heckle-face { box-shadow: 0 4px 10px -7px rgb(255 77 109 / 0.55); }
+:root .tod-heckle.is-spicy .tod-banter { box-shadow: 0 8px 18px -14px rgb(255 77 109 / 0.55); }
+:root .tod-res-cup { filter: drop-shadow(0 4px 8px rgb(255 176 97 / 0.25)); animation: todCup 1.1s var(--ease-out) both; }
+:root .tod-pod-1 .tod-pod-bar { box-shadow: 0 8px 18px -14px rgb(255 214 79 / 0.45); }
+:root .toast { box-shadow: 0 14px 34px -12px rgb(0 0 0 / 0.8), 0 0 14px -8px rgb(var(--t-rgb) / 0.3); }
+:root .swipe-glow::before { box-shadow: inset 0 0 0 2px rgb(var(--glow-rgb) / 0.5), 0 0 26px -8px rgb(var(--glow-rgb) / 0.35); }
+:root .tod-hero { background: radial-gradient(90% 80% at 8% 0%, rgb(255 77 109 / 0.16), transparent 62%), radial-gradient(90% 80% at 100% 100%, rgb(255 176 97 / 0.12), transparent 60%), rgb(255 255 255 / 0.03); }
+:root .tod-res-hero { background: radial-gradient(90% 90% at 50% 0%, rgb(255 176 97 / 0.16), transparent 62%), radial-gradient(80% 80% at 100% 100%, rgb(255 77 109 / 0.1), transparent 60%), rgb(255 255 255 / 0.03); }
+:root .about-hero { background: radial-gradient(120% 90% at 0% 0%, rgb(255 77 109 / 0.14), transparent 60%), radial-gradient(90% 80% at 100% 100%, rgb(201 139 255 / 0.09), transparent 60%), rgb(255 255 255 / 0.03); }
+html[data-fx] .bg-room::before { background: radial-gradient(560px circle at var(--mx, 50%) var(--my, 30%), rgb(255 77 109 / 0.07), rgb(255 176 97 / 0.03) 45%, transparent 68%); }
+
+/* карточка с заданием — главный объект экрана: крупная, с большим текстом по центру */
+:root .tod-card { min-height: clamp(15rem, 40dvh, 25rem); padding: 1.5rem 1.5rem 1.75rem; gap: 0.75rem; }
+:root .tod-card .tod-lvl { font-size: 0.9375rem; }
+:root .tod-card p { margin-block: auto; font-size: clamp(1.5rem, 6.2vw, 1.875rem); line-height: 1.25; font-weight: 600; text-wrap: pretty; }
+@media (min-width: 1024px) { :root .tod-card { min-height: 24rem; padding: 2rem 2.25rem 2.25rem; } :root .tod-card p { font-size: 2.125rem; } :root .tod-card .tod-lvl { font-size: 1rem; } }
+/* «Ход игрока»: компактная строка вместо большого блока */
+:root .tod-stage { gap: 0.625rem; padding: 0.5rem 0.75rem; border-radius: var(--r-control); }
+:root .tod-stage .tod-avatar-lg { width: 2.25rem; height: 2.25rem; font-size: 1.15rem; animation: none; }
+:root .tod-turn { font-size: 0.9375rem; line-height: 1.25; }
+:root .tod-burst { left: 1.4rem; }
+
+/* подложка под основной карточкой: целиком размыта (фон, рамка и текст), слой не перерисовывается — меняются только opacity и transform */
+:root .peek-soft { filter: blur(7px) brightness(0.92); backface-visibility: hidden; }
+:root .peek-soft .peek-text { color: rgb(255 255 255 / 0.9); text-shadow: none; }
+:root .peek-dim { filter: blur(5px) brightness(0.8) grayscale(0.45); background: linear-gradient(180deg, #1b1824, #100e16); backface-visibility: hidden; }
+:root .peek-dim .peek-text { color: rgb(255 255 255 / 0.8); }
+
+/* значок или эмодзи рядом с текстом: не сжимаются, не уезжают на другую строку и стоят по центру строки */
+:root :is(.btn-primary, .btn-secondary, .btn-ghost, .btn-accent, .btn-danger, .btn-tile, .btn-dashed, .chip, .tag, .seg-btn) > svg { flex: 0 0 auto; }
+:root :is(.btn-primary, .btn-secondary, .btn-ghost, .btn-accent, .btn-danger, .btn-tile, .btn-dashed, .chip, .tag, .menu-opt, .row) { align-items: center; }
+:root :is(.tag, .chip) > [aria-hidden='true'] { flex: 0 0 auto; line-height: 1; }
+
+/* ═══ История игр сессии ═══ */
+:root .hist-hero { display: flex; flex-direction: column; align-items: center; gap: 0.25rem; padding: 1.5rem 1.25rem 1.25rem; border-radius: var(--r-hero); border: 1px solid var(--line-strong); text-align: center; background: radial-gradient(90% 90% at 50% 0%, rgb(255 77 109 / 0.14), transparent 62%), rgb(255 255 255 / 0.03); }
+:root .hist-hero-n { font-family: var(--font-display); font-size: 3.25rem; line-height: 1; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; }
+:root .hist-hero-l { font-size: 0.9375rem; font-weight: 600; color: var(--text-2); }
+:root .hist-stats { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 0.5rem; width: 100%; margin-top: 0.875rem; }
+:root .hist-stat { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.25rem; min-height: 4.5rem; padding: 0.625rem 0.375rem; border-radius: var(--r-control); border: 1px solid var(--line); background: rgb(255 255 255 / 0.04); }
+:root .hist-stat-v { font-family: var(--font-display); font-size: 1.5rem; line-height: 1.1; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; }
+:root .hist-stat-l { font-size: 0.75rem; line-height: 1.25; color: var(--text-3); text-wrap: balance; }
+:root .hist-day { padding-left: 0.25rem; font-size: 0.875rem; font-weight: 700; color: var(--text-2); }
+
+:root .hist-card { display: flex; flex-direction: column; border-radius: var(--r-surface); border: 1px solid var(--line-strong); background: rgb(255 255 255 / 0.04); overflow: hidden; transition: border-color 0.2s ease, background-color 0.2s ease; }
+:root .hist-card.is-last { border-color: rgb(255 77 109 / 0.5); background: linear-gradient(180deg, rgb(255 77 109 / 0.09), rgb(255 255 255 / 0.03)); }
+@media (hover: hover) { :root .hist-card:hover { background-color: rgb(255 255 255 / 0.07); } }
+:root .hist-card-main { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 0.625rem; width: 100%; padding: 1rem 2.5rem 1rem 1rem; text-align: left; cursor: pointer; }
+:root .hist-card-main:active { background: rgb(255 255 255 / 0.04); }
+:root .hist-card-top { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+:root .hist-time { font-family: var(--font-display); font-size: 1.0625rem; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; }
+:root .hist-names { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.9375rem; font-weight: 600; color: var(--text); }
+:root .hist-prog { display: flex; flex-direction: column; gap: 0.375rem; width: 100%; }
+:root .hist-prog-bar { display: block; height: 6px; border-radius: 999px; background: rgb(255 255 255 / 0.08); overflow: hidden; }
+:root .hist-prog-bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--rose), var(--ember)); }
+:root .hist-prog-txt { font-size: 0.8125rem; color: var(--text-3); font-variant-numeric: tabular-nums; }
+:root .hist-tags { display: flex; flex-wrap: wrap; gap: 0.375rem; }
+:root .hist-chev { position: absolute; right: 1rem; top: 50%; margin-top: -0.75rem; font-size: 1.5rem; line-height: 1.5rem; color: var(--text-3); }
+:root .hist-card-foot { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.75rem 1rem; border-top: 1px solid var(--line); background: rgb(255 77 109 / 0.05); }
+:root .hist-stop { min-width: 0; font-size: 0.8125rem; line-height: 1.35; color: var(--text-2); text-wrap: balance; }
+:root .hist-card-foot .btn-sm { flex: 0 0 auto; }
+
+:root .hist-empty { display: flex; flex-direction: column; align-items: center; gap: 0.75rem; padding: 2rem 1.25rem; border-radius: var(--r-hero); border: 1px dashed var(--line-strong); text-align: center; background: rgb(255 255 255 / 0.02); }
+:root .hist-empty-ico { font-size: 3rem; line-height: 1; }
+:root .hist-empty-h { font-family: var(--font-display); font-size: 1.25rem; line-height: 1.25; font-weight: 700; color: #fff; text-wrap: balance; }
+:root .hist-empty-p { max-width: 22rem; margin-bottom: 0.5rem; font-size: 0.9375rem; line-height: 1.55; color: var(--text-2); text-wrap: pretty; }
+
+:root .hist-view-hero { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 1.5rem 1.25rem; border-radius: var(--r-hero); border: 1px solid var(--line-strong); text-align: center; background: radial-gradient(90% 90% at 50% 0%, rgb(255 77 109 / 0.14), transparent 62%), rgb(255 255 255 / 0.03); }
+:root .hist-view-when { font-size: 0.875rem; font-weight: 700; color: var(--rose-300); }
+:root .hist-view-names { max-width: 100%; font-size: 1.0625rem; font-weight: 700; color: #fff; overflow-wrap: anywhere; text-wrap: balance; }
+:root .hist-badge { display: inline-flex; padding: 0.5rem 1rem; border-radius: 999px; border: 1px solid rgb(255 77 109 / 0.35); background: rgb(255 77 109 / 0.1); font-size: 0.875rem; font-weight: 600; color: var(--rose-ink); }
+:root .hist-players { display: flex; flex-direction: column; border-radius: var(--r-surface); border: 1px solid var(--line); background: rgb(255 255 255 / 0.03); overflow: hidden; }
+:root .hist-player { display: flex; align-items: center; gap: 0.75rem; min-height: 3.5rem; padding: 0.5rem 1rem; }
+:root .hist-player + .hist-player { border-top: 1px solid var(--line); }
+:root .hist-player-ico { flex: 0 0 auto; font-size: 1.25rem; line-height: 1; }
+:root .hist-player-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.9375rem; font-weight: 600; color: #fff; }
+:root .hist-player-n { display: inline-flex; align-items: center; gap: 0.375rem; flex: 0 0 auto; min-width: 2.75rem; justify-content: flex-end; font-size: 0.9375rem; font-weight: 700; color: var(--ok); font-variant-numeric: tabular-nums; }
+:root .hist-player-n.is-skip { color: rgb(var(--lvl-1-rgb)); }
+:root .hist-player-n svg { width: 16px; height: 16px; flex: 0 0 auto; }
+:root .hist-chip-n { margin-left: 0.125rem; font-size: 0.8125rem; font-weight: 700; color: var(--text-3); font-variant-numeric: tabular-nums; }
+
+/* Волна 6: «Ход игрока» на карточке, содержимое карточки по центру; карточки режимов с отступами на телефоне */
+:root .mode-grid { display: flex; flex-direction: column; gap: 1rem; }
+@media (min-width: 1024px) { :root .mode-grid { display: grid; } }
+:root .tod-card { align-items: center; justify-content: center; gap: 1rem; text-align: center; }
+:root .tod-card .tod-lvl { justify-content: center; }
+:root .tod-card p { width: 100%; margin-block: auto; text-align: center; }
+:root .tod-card-turn { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; max-width: 100%; padding: 0.25rem 0.875rem 0.25rem 0.25rem; border-radius: 999px; border: 1px solid var(--line-strong); background: rgb(255 255 255 / 0.06); }
+:root .tod-card-turn .tod-turn { min-width: 0; font-family: var(--font-ui); font-size: 0.9375rem; font-weight: 700; }
+
+/* счётчик вопросов: по центру под карточкой, между ней и нижними кнопками, тихий */
+:root .game-count { margin-top: 2.25rem; font-family: var(--font-display); font-size: 0.8125rem; font-weight: 600; letter-spacing: 0.02em; color: var(--text-3); text-align: center; font-variant-numeric: tabular-nums; }
+:root .game-count span { margin: 0 0.125rem; opacity: 0.6; }

@@ -87,6 +87,16 @@ const open = async (opts) => {
     T('«Управление карточками» открывает админку: адрес и заголовок вкладки', E.D.title === 'Карточки — Правда или действие — ASK ME' && E.w.location.hash === '#/tod/manage');
     const back = E.D.querySelector('button[aria-label="Назад"]'); back.dispatchEvent(new E.w.MouseEvent('click', { bubbles: true })); await sleep(500);
     T('«Назад» из админки возвращает во «Все вопросы» на ту же вкладку «Действие»', E.D.title === 'Все темы — ASK ME' && A.tab('Действие').getAttribute('aria-selected') === 'true' && E.has('Скрытая карточка'));
+    // правка и скрытие прямо в архиве: у каждой карточки «Изменить» и «Скрыть/Показать»
+    const labelBtn = (pre) => E.btns().find(b => (b.getAttribute('aria-label') || '').startsWith(pre));
+    T('владелец: у карточки в архиве есть «Изменить» и «Показать» (для скрытой) с названием карточки в aria-label', !!labelBtn('Изменить: Скрытая карточка') && !!labelBtn('Показать: Скрытая карточка') && E.btns().filter(b => (b.getAttribute('aria-label') || '').startsWith('Изменить: ')).length === 1);
+    labelBtn('Показать: Скрытая карточка').dispatchEvent(new E.w.MouseEvent('click', { bubbles: true })); await sleep(900);
+    T('«Показать» возвращает карточку в игру: в базе isActive true, метка «скрыта» исчезла, кнопка стала «Скрыть»', A.db.tod().td_d1.isActive === true && ![...E.D.querySelectorAll('.tag')].some(t => t.textContent.includes('скрыта')) && !!labelBtn('Скрыть: Скрытая карточка'));
+    labelBtn('Изменить: Скрытая карточка').dispatchEvent(new E.w.MouseEvent('click', { bubbles: true })); await sleep(700);
+    const ta = E.D.querySelector('textarea[aria-label="Текст карточки"]');
+    T('«Изменить» открывает админку сразу с формой этой карточки (текст подставлен)', E.w.location.hash === '#/tod/manage' && !!ta && ta.value === 'Скрытая карточка' && E.has('Редактирование карточки'));
+    const back2 = E.D.querySelector('button[aria-label="Назад"]'); back2.dispatchEvent(new E.w.MouseEvent('click', { bubbles: true })); await sleep(500);
+    T('«Назад» из формы возвращает в архив, а повторное «Управление карточками» открывается без формы', E.D.title === 'Все темы — ASK ME' && (await E.click('Управление карточками', 500), !E.D.querySelector('textarea[aria-label="Текст карточки"]')));
     A.close();
   }
 

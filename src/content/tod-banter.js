@@ -181,7 +181,7 @@ export const TOD_TITLES = [
   { id: 'hard_fold', shame: true, icon: '🏳️', name: 'Пасует перед жёстким', hint: 'Пропустил(а) жёсткую карточку' },
   { id: 'later', shame: true, icon: '⏳', name: 'Вечное «давай потом»', hint: 'Пропусков больше, чем выполненного' },
   { id: 'easy_life', shame: true, icon: '🛋️', name: 'Любитель лёгкой жизни', hint: '80% и больше выборов — «Легко»' },
-  { id: 'afraid_dare', shame: true, icon: '🙈', name: 'Боится действий', hint: 'Ни разу не выбрал(а) «Действие»' },
+  { id: 'afraid_dare', shame: true, icon: '🙈', name: 'Боится действий', hint: 'Брал(а) «Действие» только по принуждению' },
   { id: 'careful', shame: true, icon: '🧯', name: 'Вечный осторожный', hint: 'Жёсткие включены, а «Жёстко» ни разу' },
   { id: 'hero', shame: false, icon: '🦸', name: 'Герой вечера', hint: 'Больше всех выполненных жёстких' },
   { id: 'fearless', shame: false, icon: '🦁', name: 'Бесстрашный', hint: 'Без пропусков, 5 и больше выполненных' },
