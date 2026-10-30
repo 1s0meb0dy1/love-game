@@ -694,7 +694,9 @@ i18nSetLang(readStoredLang());
             return str;
         };
         const liveRoomKey = async (key) => { const h = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode('askme-live-v1:' + key))); return 'l_' + Array.from(h).map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 40); };
-        const makeDeviceId = () => { const rnd = () => Math.random().toString(36).slice(2, 10); try { let v = sessionStorage.getItem('askme_dev_v1'); if (!v) { v = rnd(); sessionStorage.setItem('askme_dev_v1', v); } return v; } catch (e) { return rnd(); } };
+        // короткий випадковий ID з криптографічного генератора (ID пристрою й ходу видно іншим гравцям кімнати)
+        const randId = (n) => Array.from(crypto.getRandomValues(new Uint8Array(n)), b => (b % 36).toString(36)).join('');
+        const makeDeviceId = () => { const rnd = () => randId(8); try { let v = sessionStorage.getItem('askme_dev_v1'); if (!v) { v = rnd(); sessionStorage.setItem('askme_dev_v1', v); } return v; } catch (e) { return rnd(); } };
         const normTurn = (e) => {
             if (!e) return null;
             if (typeof e === 'string') return { cur: e, answered: [], skippedBy: [], skippedAll: false };
@@ -2118,7 +2120,7 @@ i18nSetLang(readStoredLang());
             // сами вопросы и ход игры отправляются, когда к сессии подключится ещё одно устройство (см. liveGoSync)
             const liveStart = (deck, st) => {
                 const room = liveRoomIdRef.current; if (!room || !profile) return false;
-                const me = deviceIdRef.current, t = Date.now(), ver = liveVerStart(me, t), gid = 'g' + t.toString(36) + Math.random().toString(36).slice(2, 5), hs = liveHistStr(st.hist);
+                const me = deviceIdRef.current, t = Date.now(), ver = liveVerStart(me, t), gid = 'g' + t.toString(36) + randId(3), hs = liveHistStr(st.hist);
                 const idsStr = deck.map(q => String(q.id || q.dbKey)).join(',');
                 liveRoomRef.current = room; liveRoleRef.current = 'host'; liveSyncRef.current = false; liveDeckRef.current = idsStr; liveJoiningRef.current = false;
                 liveRef.current = { ver, t, gid, hash: liveHash(st.idx, st.max, hs), spinId: 0, punId: 0, endedSent: false, appliedAt: 0, reassertAt: 0 };
