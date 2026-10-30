@@ -158,4 +158,15 @@ T('about-en: id, значки, групи й числа ті самі, що в a
 const aboutEnCyr = strings(ABOUT_EN).filter(([p, s]) => CYR.test(s));
 T('about-en: в англійському тексті немає кирилиці' + (aboutEnCyr.length ? ' — ' + aboutEnCyr.slice(0, 5).map(([p]) => p).join(', ') : ''), aboutEnCyr.length === 0);
 T('в англійських текстах немає адрес пошти, телефонів і адреси акаунта власника', ![...strings(ABOUT_EN), ...legalEnStr].some(([, s]) => EMAIL.test(s) || PHONE.test(s.replace(/\d{4}-\d{2}-\d{2}/g, '')) || /gmail|yandex\.|mail\.ru|outlook|icloud/i.test(s)));
+
+// --- знайомство-«сторіс» (src/content/intro.js): три мови з однаковою структурою, id історій відомі компоненту ---
+const INTRO = load('intro', 'INTRO'); const LANGS3 = ['uk', 'en', 'ru'];
+const ART_IDS = [...fs.readFileSync(path.join(root, 'src/intro/stories.jsx'), 'utf8').match(/const INTRO_ART = \{([^}]*)\}/)[1].matchAll(/(\w+):/g)].map(m => m[1]);
+T('intro: підписи ui є в усіх трьох мовах з однаковими ключами й без порожніх рядків', LANGS3.every(l => INTRO.ui[l]) && LANGS3.every(l => shape(INTRO.ui[l]) === shape(INTRO.ui.uk)) && strings(INTRO.ui).every(([, x]) => x.trim()));
+T('intro: від 3 до 8 історій, id унікальні й кожна має ілюстрацію в stories.jsx (' + INTRO.slides.map(x => x.id).join(', ') + ')', INTRO.slides.length >= 3 && INTRO.slides.length <= 8 && dup(INTRO.slides.map(x => x.id)).length === 0 && INTRO.slides.every(x => ART_IDS.includes(x.id)));
+T('intro: у кожній історії uk/en/ru з однаковою структурою, є підзаголовок, заголовок і текст', INTRO.slides.every(x => LANGS3.every(l => x[l] && x[l].kicker && x[l].title && x[l].text && shape(x[l]) === shape(x.uk))));
+T('intro: жодного порожнього рядка', strings(INTRO.slides).every(([, x]) => x.trim().length > 0));
+T('intro: в українському тексті немає російських літер ы, э, ъ, ё', !INTRO.slides.some(x => strings(x.uk).some(([, t]) => /[ыэъёЫЭЪЁ]/.test(t))) && !strings(INTRO.ui.uk).some(([, t]) => /[ыэъёЫЭЪЁ]/.test(t)));
+T('intro: в англійському тексті немає кирилиці', !INTRO.slides.some(x => strings(x.en).some(([, t]) => /[а-яіїєґё]/i.test(t))) && !strings(INTRO.ui.en).some(([, t]) => /[а-яіїєґё]/i.test(t)));
+T('intro: заголовок історії — до 40 знаків, текст — до 140 (вміщається на телефоні 320 px)', INTRO.slides.every(x => LANGS3.every(l => x[l].title.length <= 40 && x[l].text.length <= 140)));
 console.log(res.join('\n')); console.log('--- captured runtime errors: 0'); process.exit(0);

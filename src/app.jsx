@@ -24,6 +24,7 @@ import { todTitles } from './tod/titles.js';
 import { TodArchive, TodAdmin, TodLobby, TodGame, TodResults, TodAdultModal } from './tod/screens.jsx';
 import { todChannel } from './tod/channel.js';
 import { aiAsk } from './ai/client.js';
+import { IntroStories, introShouldShow, introMarkSeen, introReplayLabel } from './intro/stories.jsx';
 const ReactDOM = { ...ReactDOMAll, createRoot };
 
 // Рання ініціалізація мови (щоб t() працювала ще до монтування React): вибір людини з localStorage, а на першому вході — мова пристрою.
@@ -1278,6 +1279,9 @@ i18nSetLang(readStoredLang());
             const readInviteFromHash = () => { try { const h = window.location.hash || ''; const hp = hashPath(h); if ((hp !== '#/join' && hp !== '#/welcome') || !hasInviteParams(h)) return null; const r = parseRestoreInput(h); return r.key ? r : null; } catch (e) { return null; } };
             const [joinInvite, setJoinInvite] = useState(readInviteFromHash); const [joinBusy, setJoinBusy] = useState(false); const [joinError, setJoinError] = useState(''); const joinAutoRef = useRef(0);
             const [screen, setScreenState] = useState(() => { const h = window.location.hash, hp = hashPath(h); if (hp === '#/admin') return 'admin_login'; if (hp === '#/join') return 'join'; if (hp === '#/welcome') return (profile && hasInviteParams(h)) ? 'join' : 'onboarding'; const pub = HASH_TO_SCREEN[hp]; if (PUBLIC_SCREENS.includes(pub)) return pub; if (!profile && !isPreviewMode) return 'onboarding'; if (pub && RELOAD_TO_MENU.includes(pub)) { try { window.history.replaceState(null, '', window.location.pathname + window.location.search + '#/'); } catch (e) {} return 'menu'; } return pub || 'menu'; });
+            // знайомство-«сторіс»: лише новому гостю без сесії на привітанні (не за запрошенням); хто вже має сесію — більше не побачить
+            const [introOpen, setIntroOpen] = useState(() => introShouldShow({ hasProfile: !!profile, screen, hash: window.location.hash }));
+            useEffect(() => { if (profile) introMarkSeen(); }, [!!profile]);
             const navigate = (nextScreen) => { setScreenState(nextScreen); const targetHash = SCREEN_TO_HASH[nextScreen] || '#/'; if (window.location.hash !== targetHash) { window.history.pushState(null, '', targetHash); } window.scrollTo(0, 0); };
             useEffect(() => { if (joinInvite && (screen === 'join')) { try { window.history.replaceState(null, '', window.location.pathname + window.location.search + '#/join'); } catch (e) {} } }, []);
             useEffect(() => { const onHashChange = () => { const h = window.location.hash || '#/', hp = hashPath(h); if (hp === '#/admin') { setScreenState('admin_login'); return; } if (hp === '#/join' || (hp === '#/welcome' && profile && hasInviteParams(h))) { const inv = readInviteFromHash(); if (inv) { setJoinInvite(inv); setJoinError(''); try { window.history.replaceState(null, '', window.location.pathname + window.location.search + '#/join'); } catch (e) {} } setScreenState('join'); return; } if (hp === '#/welcome') { setScreenState('onboarding'); return; } const mapped = HASH_TO_SCREEN[hp]; if (PUBLIC_SCREENS.includes(mapped)) { setScreenState(mapped); return; } if (!profile && !isPreviewMode) { setScreenState('onboarding'); return; } if (mapped) setScreenState(mapped); }; window.addEventListener('hashchange', onHashChange); window.addEventListener('popstate', onHashChange); return () => { window.removeEventListener('hashchange', onHashChange); window.removeEventListener('popstate', onHashChange); }; }, [profile, isPreviewMode]);
@@ -2811,6 +2815,10 @@ i18nSetLang(readStoredLang());
                 }
                 return shell(<LegalPage docId={screen} onBack={pageBack} />, false);
             }
+            if (introOpen && screen === 'onboarding' && !profile) {
+                const closeIntro = (why) => { introMarkSeen(); setIntroOpen(false); if (why === 'start') setAuthTab('create'); window.scrollTo(0, 0); };
+                return <IntroStories lang={lang} onLang={changeLang} onClose={closeIntro} ui={{ AskMeLogo, LangMenu, Icons, SoundFX, portal: (el) => ReactDOM.createPortal(el, document.body) }} />;
+            }
             if (screen === 'invite' && profile) {
                 return (
                     <div className="safe-screen w-full flex flex-col items-center slide-up relative z-10">
@@ -2906,6 +2914,7 @@ i18nSetLang(readStoredLang());
                                     </form>
                                 )}
                                 {!isStandalonePWA && ( <button type="button" onClick={handleInstallPwaClick} className="btn-accent btn-sm"> <Icons.DownloadApp /> {tr("Скачать на устройство")} </button> )}
+                                <button type="button" onClick={() => { SoundFX.click(); setIntroOpen(true); }} className="btn-text muted intro-replay gap-1.5"><Icons.Play /> {introReplayLabel(lang)}</button>
                                 {profile && ( <button type="button" onClick={() => { SoundFX.click(); navigate('menu'); }} className="btn-text muted underline underline-offset-4"> {tr("Вернуться в текущую сессию")} </button> )}
                             </div>
                         </div>
