@@ -694,6 +694,7 @@ input[aria-invalid='true'], textarea[aria-invalid='true'] { border-color: var(--
   :root .desk-wide.safe-screen > header { padding-bottom: 1.25rem; border-bottom: 1px solid var(--line); }
   :root .desk-wide.safe-screen > header h2 { font-size: 2rem; line-height: 1.15; font-weight: 800; letter-spacing: -0.01em; }
   :root .desk-sec-t { font-size: 1.125rem; font-weight: 700; color: #fff; }
+  :root .page-head ~ main.tod-lobby-main { padding-top: 1.5rem; }
 
   /* «Игроки и сессия»: имена слева, ID, вход в другую сессию и выход справа */
   :root .page-head ~ main.profile-page { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); grid-template-rows: auto 1fr; column-gap: 3.5rem; row-gap: 1.5rem; align-items: start; margin-top: 1.5rem; margin-bottom: auto; }
