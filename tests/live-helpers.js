@@ -19,7 +19,7 @@ const chip = (E) => { const el = E.D.querySelector('[aria-label^="Устройс
 // закрыть окно рулетки, если оно открыто
 // (кнопка «К вопросу» неактивна, пока крутится рулетка, — ждём, пока станет доступной)
 const closeRoulette = async (E, wait = 400) => { if (!E.has('К вопросу')) return; await waitFor(() => E.btns().some(x => x.textContent.includes('К вопросу') && !x.disabled), 7000); await E.click('К вопросу', wait); };
-// через меню в игре: «Для всех» (завершить у всех) или «Выйти, остальные продолжат»
+// через меню в игре: «Для всех» (завершить у всех) или «Поставить на паузу»
 const openGameMenu = async (E) => { const b = E.btns().find(x => /Меню/.test(x.textContent) && /btn-sm/.test(x.className)); b.dispatchEvent(new E.w.MouseEvent('click', { bubbles: true })); await sleep(400); };
 
 // «Присоединиться»: подключение занимает несколько секунд (хозяин, пока он один, присылает вопросы, только увидев нас) — ждём, пока откроется игра

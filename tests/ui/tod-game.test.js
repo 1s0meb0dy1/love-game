@@ -45,8 +45,8 @@ const play = async (A, tone = 'Мягкий') => { await A.toLobby(); const b = 
     A = await boot(); await play(A, 'Выкл');
     await A.press('Правда', 450);
     T('реплики нет при тоне «Выкл»', A.banter() === null && !!A.cardBody());
-    await A.sleep(550); await A.press('Меню', 350); await A.press('Выйти, остальные продолжат', 500);
-    T('«Меню» -> «Выйти, остальные продолжат» ведёт в меню приложения (#/more), партия остаётся незавершённой', A.hashNow() === '#/more' && !A.text().includes('Ход игрока'));
+    await A.sleep(550); await A.press('Меню', 350); await A.press('Поставить на паузу', 500);
+    T('«Меню» -> «Поставить на паузу» ведёт на главную (#/), партия остаётся на паузе и не завершена', A.hashNow() === '#/' && !A.text().includes('Ход игрока') && !!A.w.localStorage.getItem('askme_tod_pause_v1') && A.text().includes('Продолжить игру'));
     done(A);
 
     // карточки нет у устройства: игра началась по кэшу, а потом пришёл ответ базы без этих карточек — id в колоде есть, текста нет
@@ -63,11 +63,13 @@ const play = async (A, tone = 'Мягкий') => { await A.toLobby(); const b = 
     A = await boot(); await play(A, 'Мягкий');
     const truthBtn = () => A.btns().find(b => b.className.includes('tod-pick-truth'));
     const lockedNow = () => !!truthBtn() && truthBtn().getAttribute('aria-disabled') === 'true';
-    T('в начале хода правда открыта, подсказка про лимит видна', !lockedNow() && A.text().includes('Правда — не больше 3 раз подряд'));
+    T('в начале хода правда открыта, постоянного блока про лимит на экране нет', !lockedNow() && !A.D.querySelector('.tod-ruleline') && !A.text().includes('Правда — не больше 3 раз подряд'));
     for (let i = 0; i < 3; i++) { await A.sleep(550); await A.press('Правда', 450); await A.sleep(550); await A.press('Пропустить', 450); }
-    T('после 3 правд подряд кнопка «Правда» заперта (aria-disabled), показано объяснение, у «Действия» акцент', lockedNow() && A.text().includes('Макс, ты уже 3 раза подряд выбирал(а) правду') && !!A.D.querySelector('.tod-pick-dare.tod-attn') && A.heading() === 'Ход игрока: Макс');
+    T('после 3 правд подряд кнопка «Правда» заперта (aria-disabled), блока с объяснением нет, у «Действия» акцент', lockedNow() && !A.D.querySelector('.tod-ruleline') && !!A.D.querySelector('.tod-pick-dare.tod-attn') && A.heading() === 'Ход игрока: Макс');
     await A.sleep(550); await A.tap(truthBtn(), 450);
     T('нажатие на запертую «Правду» ничего не выбирает: карточки нет, ход тот же', !A.cardBody() && A.heading() === 'Ход игрока: Макс' && lockedNow());
+    const toast = A.D.querySelector('.toast');
+    T('при этом всплывает уведомление: «Макс, три «Правды» подряд — теперь только «Действие»»', !!toast && /Макс, три «Правды» подряд — теперь только «Действие»/.test(toast.textContent));
     await A.sleep(550); await A.press('Действие', 450); await A.sleep(550); await A.tap(A.btns().find(b => b.textContent.includes('Легко') && b.className.includes('tod-lvl')), 450); await A.sleep(550); await A.press('Пропустить', 450);
     T('после «Действия» правда снова открыта', !lockedNow());
     done(A);
@@ -90,9 +92,9 @@ const play = async (A, tone = 'Мягкий') => { await A.toLobby(); const b = 
     T('карточка действия: метка уровня тоже с точками без эмодзи', !!A.D.querySelector('.tod-card .tod-lvl-dots') && !/[🟢🟡🔴]/u.test(A.D.querySelector('.tod-card').textContent));
     // «Назад» тоже спрашивает подтверждение и ведёт в лобби
     await A.sleep(550); await A.tap(A.D.querySelector('header button[aria-label="Назад"]'), 350);
-    T('«Назад» открывает вопрос «Вы действительно хотите закончить игру?» с тремя вариантами', A.text().includes('Вы действительно хотите закончить игру?') && !!A.btn('Завершить для всех') && !!A.btn('Выйти, остальные продолжат') && !!A.btn('Вернуться в игру'));
-    await A.press('Выйти, остальные продолжат', 600);
-    T('выход через «Назад» ведёт в лобби (#/tod), а не в меню', A.hashNow() === '#/tod' && !!A.btn('Начать игру'));
+    T('«Назад» открывает вопрос «Вы действительно хотите закончить игру?» с тремя вариантами', A.text().includes('Вы действительно хотите закончить игру?') && !!A.btn('Завершить для всех') && !!A.btn('Поставить на паузу') && !!A.btn('Вернуться в игру'));
+    await A.press('Поставить на паузу', 600);
+    T('пауза через «Назад» тоже ведёт на главную, где «Продолжить игру» стоит над «Начать новую игру»', A.hashNow() === '#/' && A.btns().findIndex(b => b.textContent.includes('Продолжить игру')) >= 0 && A.btns().findIndex(b => b.textContent.includes('Продолжить игру')) < A.btns().findIndex(b => b.textContent.includes('Начать новую игру')));
     done(A);
 
     const tricky = '{name}<b>Я</b>{a|b}';
