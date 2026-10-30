@@ -5,10 +5,10 @@ const fs = require('fs'); const path = require('path');
 const { loadTod } = require('../tod-load.js'); const { makeRules } = require('../rules-eval.js'); const makeDb = require('../fake-rtdb.js');
 const res = []; const T = (n, c) => res.push((c ? 'PASS ' : 'FAIL ') + n);
 const finish = () => { console.log(res.join('\n')); console.log('--- captured runtime errors: 0'); process.exit(res.some(l => l.startsWith('FAIL')) ? 1 : 0); };
-const NAMES = ['TOD_STARTER', 'TOD_CACHE_KEY', 'todCleanCard', 'todCleanList', 'todReadCache', 'todWriteCache', 'todLoadCards', 'todSaveCard', 'todSeedStarter', 'todActive'];
+const NAMES = ['TOD_STARTER', 'TOD_CACHE_KEY', 'todCleanCard', 'todCleanList', 'todReadCache', 'todWriteCache', 'todLoadCards', 'todSaveCard', 'todSeedStarter', 'todActive', 'todFillLangs'];
 let M = null;
 try { M = loadTod(['content/tod-cards.js', 'tod/model.js', 'tod/cards.js'], NAMES); } catch (e) { T('модуль src/tod/cards.js загружается: ' + (e && e.message), false); finish(); }
-const { TOD_STARTER, TOD_CACHE_KEY, todCleanCard, todCleanList, todReadCache, todWriteCache, todLoadCards, todSaveCard, todSeedStarter, todActive } = M;
+const { TOD_STARTER, TOD_CACHE_KEY, todCleanCard, todCleanList, todReadCache, todWriteCache, todLoadCards, todSaveCard, todSeedStarter, todActive, todFillLangs } = M;
 
 const rules = makeRules(JSON.parse(fs.readFileSync(path.join(__dirname, '../fixtures/tod-rules.json'), 'utf8')));
 const passesRules = (c) => rules.check('PUT', ['tod', c.id], { uid: 'OWNER_UID' }, c) === null;
@@ -38,6 +38,25 @@ const rejects = async (p) => { try { await p; return null; } catch (e) { return 
   // --- константы и стартовый набор ---
   T('TOD_CACHE_KEY = askme_tod_cards_v1', TOD_CACHE_KEY === 'askme_tod_cards_v1');
   T('стартовый набор: 120 карточек', Array.isArray(TOD_STARTER) && TOD_STARTER.length === 120);
+
+  // --- украинский текст стартового набора для карточек базы без text_uk ---
+  {
+    const s1 = TOD_STARTER[0]; const s2 = TOD_STARTER[1];
+    const old = { ...s1 }; delete old.text_uk; // так набор лежал в базе до появления перевода
+    const edited = { ...s2, text: 'Переписанный владельцем вопрос?' }; delete edited.text_uk;
+    const own = card({ id: 'td_own', text: 'Своя?' });
+    const db = asMap([old, edited, own]);
+    const r = await todLoadCards(mkEnv(async () => reply(200, db)));
+    const byId = (id) => r.list.find(c => c.id === id);
+    T('uk-подстановка: карточке набора без text_uk достаётся перевод из набора', byId(s1.id).text_uk === s1.text_uk && byId(s1.id).text === s1.text);
+    T('uk-подстановка: переписанная владельцем карточка остаётся без перевода', !byId(s2.id).text_uk);
+    T('uk-подстановка: своя карточка не трогается', same(byId('td_own'), own));
+    const st = mkStorage({ [TOD_CACHE_KEY]: JSON.stringify([old]) });
+    const rc = await todLoadCards(mkEnv(async () => { throw new Error('offline'); }, st));
+    T('uk-подстановка: и для списка из кэша', rc.source === 'cache' && rc.list[0].text_uk === s1.text_uk);
+    T('uk-подстановка: готовый text_uk не перезаписывается', todFillLangs([{ ...s1, text_uk: 'Свій переклад?' }], TOD_STARTER)[0].text_uk === 'Свій переклад?');
+    T('uk-подстановка: мусор на входе — пустой список', same(todFillLangs(null, TOD_STARTER), []));
+  }
 
   // --- загрузка из базы ---
   {

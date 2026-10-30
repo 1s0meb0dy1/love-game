@@ -19,14 +19,14 @@ export const todWriteCache = (storage, list) => {
   try { storage.setItem(TOD_CACHE_KEY, JSON.stringify(todCleanList(list))); } catch (e) {}
 };
 
-// переводы из стартового набора: карточке базы без text_uk / text_en подставляется перевод карточки набора с тем же id и тем же русским текстом
-// (карточки, загруженные в базу до появления переводов, их не содержат). Исходные объекты не меняются.
+// переклади зі стартового набору для карток бази без text_uk / text_en (набір залили в базу раніше, ніж у ньому з'явилися переклади).
+// Беруться, лише якщо id збігається і російський текст власник не змінював: переписана картка без перекладу лишається російською.
 export const todFillLangs = (list, starter) => {
-  const byId = new Map(todCleanList(starter).map(c => [c.id, c]));
+  const src = new Map(todCleanList(starter).map(c => [c.id, c]));
   return (Array.isArray(list) ? list : []).map(c => {
-    const s = c && byId.get(c.id); if (!s || s.text !== c.text) return c;
-    const out = { ...c }; if (!out.text_uk && s.text_uk) out.text_uk = s.text_uk; if (!out.text_en && s.text_en) out.text_en = s.text_en;
-    return out;
+    const s = c && src.get(c.id); if (!s || s.text !== c.text) return c;
+    const add = {}; if (!c.text_uk && s.text_uk) add.text_uk = s.text_uk; if (!c.text_en && s.text_en) add.text_en = s.text_en;
+    return Object.keys(add).length ? todCleanCard({ ...c, ...add }) : c;
   });
 };
 

@@ -114,7 +114,9 @@ const boot = async (hash, withProfile) => {
     const okOthers = others.length === LEGAL.order.length - 1 && !others.includes(ids[id]) && LEGAL.order.filter(x => x !== id).every(x => others.includes(ids[x]));
     T('«' + doc.title + '»: заголовок, ' + doc.sections.length + ' разделов, дата, без служебных заготовок, звёздочек в заголовках и адресов почты; ссылки на остальные документы', okTitle && okSec && noJunk && okOthers);
   }
+  const scrolls = []; A.w.scrollTo = (x, y) => { scrolls.push([x, y]); };
   await A.go('#/privacy'); const links = [...D.querySelectorAll('main.legal-doc a.legal-link')];
+  T('переход по ссылке на юридическую страницу поднимает прокрутку к шапке (scrollTo(0, 0))', scrolls.some(p => p[0] === 0 && p[1] === 0));
   T('контакт — публичная страница обращений GitHub; ссылка открывается в новой вкладке безопасно', links.length >= 1 && links.every(x => x.getAttribute('href') === LEGAL.contact.url && x.target === '_blank' && /noopener/.test(x.rel)) && /^https:\/\/github\.com\//.test(LEGAL.contact.url));
   T('название оператора подставлено в текст политики', norm(D.querySelector('main.legal-doc').textContent).includes(LEGAL.operator));
   const firstOther = D.querySelector('nav.legal-others a'); const wantHash = firstOther.getAttribute('href'); await c(firstOther, 500);
