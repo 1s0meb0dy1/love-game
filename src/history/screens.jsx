@@ -30,7 +30,7 @@ export const HistList = ({ ui, history, onOpen, onResume, onStart, onBack, topic
     <div className="safe-screen w-full flex flex-col items-center slide-up relative z-10">
       <header className="page-head w-full max-w-md lg:max-w-3xl flex items-center gap-3 pt-2">
         <button type="button" aria-label={tr('Назад')} onClick={() => { ui.SoundFX.click(); onBack(); }} className="btn-icon flex-shrink-0"><ui.Icons.Back /></button>
-        <h1 className="page-title flex-1 text-center pr-11 text-lg font-bold text-white">{tr('Прошлые игры')}</h1>
+        <h1 className="page-title flex-1 text-center text-lg font-bold text-white">{tr('Прошлые игры')}</h1>
       </header>
       <main className={`w-full max-w-md lg:max-w-3xl flex flex-col gap-6 pt-6 pb-8 ${list.length ? 'hist-page' : 'hist-page is-empty'}`}>
         {list.length === 0 ? (
@@ -111,7 +111,7 @@ export const HistView = ({ ui, rec, onBack, onResume, onPlay, topicInfo }) => {
     <div className="safe-screen w-full flex flex-col items-center slide-up relative z-10">
       <header className="page-head w-full max-w-md lg:max-w-3xl flex items-center gap-3 pt-2">
         <button type="button" aria-label={tr('К списку игр')} onClick={() => { ui.SoundFX.click(); onBack(); }} className="btn-icon flex-shrink-0"><ui.Icons.Back /></button>
-        <h1 className="page-title flex-1 text-center pr-11 text-lg font-bold text-white">{tr('Итоги игры')}</h1>
+        <h1 className="page-title flex-1 text-center text-lg font-bold text-white">{tr('Итоги игры')}</h1>
       </header>
       <main className="w-full max-w-md lg:max-w-3xl flex flex-col gap-6 pt-6 pb-8 desk-cols">
         <section className="hist-view-hero">

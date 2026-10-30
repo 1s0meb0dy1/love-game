@@ -70,6 +70,7 @@ const sameCard = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
   // форма: пустой текст
   await A.press(A.btnText('+ Новая карточка'));
+  T('«+ Новая карточка» открывает отдельную страницу #/tod/edit с заголовком «Новая карточка»', E.w.location.hash === '#/tod/edit' && E.D.querySelector('h1').textContent === 'Новая карточка');
   await A.press(A.btnText('Сохранить'));
   T('пустой текст -> «Введите текст карточки», в базу ничего не ушло, форма открыта', E.has('Введите текст карточки') && A.puts() === 0 && !!A.q('textarea[aria-label="Текст карточки"]'));
 
@@ -101,7 +102,7 @@ const sameCard = (a, b) => JSON.stringify(a) === JSON.stringify(b);
   const before = A.lastTod();
   await A.press(A.byLabel('Изменить: Вопрос про лето?'), 300);
   const ta = A.q('textarea[aria-label="Текст карточки"]');
-  T('«Изменить»: форма открыта и заполнена текущим текстом', !!ta && ta.value === 'Вопрос про лето?' && E.has('Редактирование карточки'));
+  T('«Изменить»: открыта отдельная страница правки (#/tod/edit), текст подставлен', !!ta && ta.value === 'Вопрос про лето?' && E.has('Редактирование') && E.w.location.hash === '#/tod/edit');
   await A.press(A.btnText('Сохранить'), 600);
   T('сохранение без изменений не считается повтором самой себя', !E.has('Такая карточка уже есть') && !A.q('textarea[aria-label="Текст карточки"]'));
   await A.press(A.byLabel('Изменить: Вопрос про лето?'), 300); A.setText('Вопрос про зиму?'); await sleep(100); await A.press(A.btnText('Сохранить'), 700);

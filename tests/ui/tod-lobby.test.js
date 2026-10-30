@@ -71,7 +71,7 @@ const done = (A) => { errs.push(...A.errors); A.close(); };
     T('блок состава тише кнопки «Поделиться»: у него нет класса btn-* и фон прозрачнее, а сама кнопка заметна', !strip.className.includes('btn-') && shareB.className.includes('btn-secondary'));
 
     T('лобби: блок «Правила» с правилом про 3 правды подряд и «Пропуск — это позор»', A.text().includes('«Правда» — не больше 3 раз подряд') && A.text().includes('Пропуск — это позор') && !!A.D.querySelector('.tod-lockdemo'));
-    T('виньетка фона не затемняет верх экрана, в установленном приложении её нет', /\.bg-room::after \{[^}]*at 50% 0%, transparent/.test(A.html) && /display-mode: standalone[^{]*\{ \.bg-room::after \{ content: none; \}/.test(A.html) && /html\.is-app \.bg-room::after \{ content: none; \}/.test(A.html));
+    T('виньетки фона нет совсем: ни .bg-room::after, ни тёмной заливки сверху', !/\.bg-room::after \{[^}]*rgb\(5 3 8/.test(A.html) && /\.bg-room \{[^}]*background: var\(--night\)/.test(A.html));
     T('лобби: «В колоде» считает карточки по текущим настройкам (без жёстких: 7 правд · 7 действий)', A.text().includes('В колоде: 7 правд · 7 действий'));
     const face = A.D.querySelector('.tod-face-truth'); await A.tap(face, 400);
     const faceQ = A.D.querySelector('.tod-face-truth .tod-face-q');

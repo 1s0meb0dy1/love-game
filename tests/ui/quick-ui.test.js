@@ -14,7 +14,7 @@ const btn = (t) => [...D.querySelectorAll('button')].find(b => b.textContent.rep
 const exact = (t) => [...D.querySelectorAll('button')].find(b => b.textContent.replace(/\s+/g, ' ').trim() === t);
 const go = async (hash, ms = 500) => { w.location.hash = hash; w.dispatchEvent(new w.HashChangeEvent('hashchange')); await sleep(ms); };
 const startBtn = () => [...D.querySelectorAll('button')].find(b => /^\s*Начать (новую )?игру\s*$/.test(b.textContent));
-const rows = () => (D.body.textContent.match(/№ \d+\./g) || []).length;
+const rows = () => D.querySelectorAll('.q-grid > div').length;
 const h3s = () => [...D.querySelectorAll('main h3, .flex-1 h3')].map(h => h.textContent.replace(/\s+/g, ' ').trim());
 (async () => { try {
   w.eval(code); await sleep(1800);
@@ -43,20 +43,28 @@ const h3s = () => [...D.querySelectorAll('main h3, .flex-1 h3')].map(h => h.text
 
     // ---------- 1: фильтр по глубине на странице темы ----------
     await go('#/topics', 600); await clickEl(btn('Семья'), 700);
-    const tabs = () => [...D.querySelectorAll('[role="tablist"][aria-label="Сортировка по глубине"] [role="tab"]')];
-    const tl = tabs().map(t => t.textContent.replace(/\s+/g, ' ').trim());
+    // фильтр уровня — выпадающий список со значком фильтра; по умолчанию выбрано «Все вопросы»
+    const fbtn = () => D.querySelector('button[aria-label="Фильтр по сложности"]');
+    const opts = () => [...D.querySelectorAll('.menu-pop .menu-opt')];
+    const optTexts = () => opts().map(t => t.textContent.replace(/\s+/g, ' ').trim());
+    const shownLabel = () => fbtn().textContent.replace(/\s+/g, ' ').trim();
+    const pickOpt = async (i) => { if (!opts().length) await clickEl(fbtn(), 250); await clickEl(opts()[i], 300); };
     const total = famBy('Простые') + famBy('Средние') + famBy('Глубокие');
-    T('страница темы: быстрые вкладки «Все / Легкие / Средние / Глубокие» со счётчиками', tabs().length === 4 && tl[0] === 'Все ' + total && tl[1] === 'Легкие ' + famBy('Простые') && tl[2] === 'Средние ' + famBy('Средние') && tl[3] === 'Глубокие ' + famBy('Глубокие'));
-    T('по умолчанию выбрано «Все», показаны все три уровня', tabs()[0].getAttribute('aria-selected') === 'true' && h3s().filter(h => /^(Легкие|Средние|Глубокие)/.test(h)).length === 3);
-    await clickEl(tabs()[3], 300);
-    T('«Глубокие»: остался только этот уровень и ровно его вопросы (' + famBy('Глубокие') + ')', tabs()[3].getAttribute('aria-selected') === 'true' && h3s().filter(h => /^(Легкие|Средние|Глубокие)/.test(h)).length === 1 && /^Глубокие/.test(h3s()[0]) && rows() === famBy('Глубокие'));
-    await clickEl(tabs()[2], 300);
+    T('страница темы: переключатель сложности — выпадающий список со значком фильтра, без вкладок', !!fbtn() && !!fbtn().querySelector('svg') && !D.querySelector('[role="tablist"][aria-label="Сортировка по глубине"]'));
+    T('по умолчанию выбрано «Все вопросы» (со счётчиком), показаны все три уровня', shownLabel() === 'Все вопросы · ' + total && h3s().filter(h => /^(Легкие|Средние|Глубокие)/.test(h)).length === 3);
+    await clickEl(fbtn(), 250); const ol = optTexts();
+    T('в списке: «Все вопросы / Легкие / Средние / Глубокие» со счётчиками', ol.length === 4 && ol[0] === 'Все вопросы · ' + total && ol[1] === 'Легкие · ' + famBy('Простые') && ol[2] === 'Средние · ' + famBy('Средние') && ol[3] === 'Глубокие · ' + famBy('Глубокие'));
+    await pickOpt(3);
+    T('«Глубокие»: остался только этот уровень и ровно его вопросы (' + famBy('Глубокие') + ')', /^Глубокие/.test(shownLabel()) && h3s().filter(h => /^(Легкие|Средние|Глубокие)/.test(h)).length === 1 && /^Глубокие/.test(h3s()[0]) && rows() === famBy('Глубокие'));
+    await pickOpt(2);
     T('«Средние»: только средние вопросы (' + famBy('Средние') + ')', h3s().filter(h => /^(Легкие|Средние|Глубокие)/.test(h)).length === 1 && /^Средние/.test(h3s()[0]) && rows() === famBy('Средние'));
-    await clickEl(tabs()[1], 300);
+    await pickOpt(1);
     T('«Легкие»: показаны первые 60 из ' + famBy('Простые') + ' и кнопка «Показать ещё 60 из ' + (famBy('Простые') - 60) + '»', rows() === 60 && !!btn('Показать ещё 60 из ' + (famBy('Простые') - 60)));
     await click('Показать ещё', 300); T('«Показать ещё» добавляет следующие 60 (120)', rows() === 120 && !!btn('Показать ещё 27 из 27'));
     await click('Показать ещё', 300); T('и до конца: все ' + famBy('Простые') + ' вопросов, кнопки больше нет', rows() === famBy('Простые') && !btn('Показать ещё'));
-    await clickEl(tabs()[0], 300); T('«Все» возвращает все уровни; у игрока нет кнопки «Новый вопрос»', h3s().filter(h => /^(Легкие|Средние|Глубокие)/.test(h)).length === 3 && !btn('Новый вопрос'));
+    await pickOpt(0); T('«Все вопросы» возвращает все уровни; у игрока нет кнопки «Новый вопрос»', h3s().filter(h => /^(Легкие|Средние|Глубокие)/.test(h)).length === 3 && !btn('Новый вопрос'));
+    const hd = D.querySelector('header.page-head');
+    T('заголовок страницы темы стоит в центре шапки: «назад», заголовок, пустая колонка справа', !!hd && /page-title/.test(hd.querySelector('h2').className) && hd.querySelector('h2').textContent === 'Семья');
     await go('#/', 600);
 
     // ---------- 9, 11: игра, «Продолжить» и «Начать новую игру» ----------

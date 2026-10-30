@@ -89,3 +89,14 @@ export const todNewId = (now = Date.now(), rnd = Math.random) => {
 
 // текст карточки на языке интерфейса: для 'uk' — text_uk, для 'en' — text_en, если он есть, иначе русский text
 export const todCardText = (card, lang) => (card ? ((lang === 'uk' && card.text_uk) ? card.text_uk : (lang === 'en' && card.text_en) ? card.text_en : card.text) : '');
+
+// номер карточки в своём типе («Правда № 5», «Действие № 12») -> { <id>: число }. Сначала идут карточки стартового набора (по id), затем созданные владельцем (по id:
+// он растёт со временем, поэтому новая карточка всегда получает следующий номер). Скрытые тоже считаются: скрытие карточки не сдвигает номера остальных
+export const todNumbers = (cards, starterIds) => {
+  const first = new Set(Array.isArray(starterIds) ? starterIds : []);
+  const out = {}; const seen = { truth: 0, dare: 0 };
+  const list = (Array.isArray(cards) ? cards : []).filter(c => c && typeof c.id === 'string' && TOD_TYPES.includes(c.type));
+  list.sort((a, b) => (first.has(a.id) === first.has(b.id) ? (a.id < b.id ? -1 : a.id > b.id ? 1 : 0) : first.has(a.id) ? -1 : 1));
+  list.forEach(c => { if (!(c.id in out)) out[c.id] = ++seen[c.type]; });
+  return out;
+};
