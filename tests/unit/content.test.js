@@ -22,7 +22,7 @@ T('about: все заготовки {…} известны приложению 
 T('about: у заготовок со склонением ровно три формы через запятую', ph.filter(([, f]) => f).every(([, f]) => f.split(',').length === 3 && f.split(',').every(x => x.trim())));
 T('about: цифры в блоке «в цифрах» используют заготовки или числа, а запасное значение для вопросов задано', ABOUT.numbers.length >= 3 && ABOUT.numbers.every(n => n.value && n.label) && !!ABOUT.fallbackNumbers.questions);
 T('about: версия и дата страницы заполнены, дата в формате ГГГГ-ММ-ДД и не из будущего', /^\d+(\.\d+)*$/.test(ABOUT.version) && /^\d{4}-\d{2}-\d{2}$/.test(ABOUT.updated) && ABOUT.updated <= new Date(Date.now() + 864e5).toISOString().slice(0, 10));
-T('about: у шагов, «Чем отличается» и FAQ нет пропущенных частей', ABOUT.steps.every(s => s.title && s.text) && ABOUT.unique.items.every(s => s.title && s.text) && ABOUT.faq.every(s => s.q && s.a) && dup(ABOUT.faq.map(f => f.q)).length === 0);
+T('about: у шагов, «Чем отличается» и FAQ нет пропущенных частей', ABOUT.steps.every(s => s.title && s.text) && ABOUT.unique.items.every(s => s.icon && s.title && s.text) && ABOUT.faq.every(s => s.q && s.a) && dup(ABOUT.faq.map(f => f.q)).length === 0);
 
 T('legal: порядок документов совпадает с набором docs, id не повторяются', LEGAL.order.length === Object.keys(LEGAL.docs).length && LEGAL.order.every(id => LEGAL.docs[id]) && dup(LEGAL.order).length === 0);
 T('legal: у каждого документа название, название для меню, вводный абзац и разделы с заголовком и текстом', LEGAL.order.every(id => { const d = LEGAL.docs[id]; return d.title && d.menu && d.lead && d.sections.length >= 2 && d.sections.every(s => s.h && ((s.p && s.p.length) || (s.list && s.list.length) || (s.table && s.table.length))); }));

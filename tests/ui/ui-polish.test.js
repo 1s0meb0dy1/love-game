@@ -23,6 +23,14 @@ const toast = () => D.querySelector('.toast-layer .toast');
   T('ID сессии: единственный на экране, показывает ID профиля', D.body.textContent.split('ID сессии:').length === 2 && id.textContent.includes(JSON.parse(w.localStorage.getItem('askme_device_profile_v4')).sessionId));
   T('главная: линия над подвалом есть, она шире на компьютере (is-wide)', rules() === 1 && D.querySelector('.footer-rule').className.includes('is-wide') && /@media \(min-width: 1024px\) \{ :root \.footer-rule\.is-wide/.test(css));
 
+  // ---------- «Для кого»: над темами, выбранная кнопка выделена ----------
+  const h2s = [...D.querySelectorAll('h2')].map(h => h.textContent.trim());
+  T('«Для кого» стоит над «Темы вопросов»', h2s.indexOf('Для кого') >= 0 && h2s.indexOf('Для кого') < h2s.indexOf('Темы вопросов'));
+  const aud = (t) => [...D.querySelectorAll('button.btn-tile')].find(b => b.textContent.includes(t));
+  await click('Компания', 300);
+  T('выбранная кнопка «Для кого» выделена (is-on, aria-pressed), вторая — нет', /\bis-on\b/.test(aud('Компания').className) && aud('Компания').getAttribute('aria-pressed') === 'true' && !/\bis-on\b/.test(aud('Пара').className) && aud('Пара').getAttribute('aria-pressed') === 'false');
+  T('стиль выделения перебивает базовый .btn-tile (селектор :root .btn-tile.is-on)', /:root \.topic-pill-active, :root \.btn-tile\.is-on \{/.test(html));
+  await click('Пара', 300);
   // ---------- названия тем ----------
   const names = [...D.querySelectorAll('.tile span.truncate')].map(s => s.className);
   T('названия тем на главной — 13 px (text-[13px]), число вопросов и значок не сжимаются', names.length === 14 && names.every(c => c.includes('text-[13px]')) && [...D.querySelectorAll('.tile')].every(t => t.querySelector('span.flex-shrink-0')));
