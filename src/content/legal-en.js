@@ -167,6 +167,7 @@ export const LEGAL_EN = {
           ['askme_deleted_<ID>', 'A session deletion marker so that other tabs do not load it again', 'Until the site storage is cleared'],
           ['askme_seen_topics_v1, askme_punish_templates_v1, askme_tod_cards_v1, askme_*_cache_*', 'Which topics you have already seen; a copy of questions, topics, penalty templates and Truth or Dare cards for a quick start', 'Until the cache is cleared'],
           ['askme_tod_mine_v1', 'Your own Truth or Dare cards: stored only on this device and never sent to the server', 'Until you delete them or clear the site data'],
+          ['askme_tod_pause_v1', 'A paused Truth or Dare round: the deck and state stay only on this device and are never sent to the server', 'Until you continue or end the round, for up to a month'],
           ['askme_dev_v1 (sessionStorage)', 'A random device ID for playing on several phones', 'While the tab is open'],
           ['Other askme_* entries', 'Technical interface markers and service settings, including the chosen language; they contain no personal data', 'Until data is deleted'],
           ['App cache', 'Game files for a quick start and installing to the home screen', 'Until the cache is cleared'],

@@ -70,7 +70,7 @@ const h3s = () => [...D.querySelectorAll('main h3, .flex-1 h3')].map(h => h.text
     T('при смене хода плашка пересоздаётся (анимация проигрывается заново) с новым именем', !!tag1 && tag1 !== tag && tag1.querySelector('.turn-name').textContent !== name0);
     await go('#/', 700);
     const cont = btn('Продолжить игру');
-    T('есть сохранённая партия: «Продолжить игру» — контурная (ghost), «Начать игру» стала «Начать новую игру» с заливкой', !!cont && /btn-ghost/.test(cont.className) && !!startBtn() && /Начать новую игру/.test(startBtn().textContent) && /btn-primary/.test(startBtn().className) && !/Начать игру/.test(startBtn().textContent));
+    T('есть сохранённая партия: «Продолжить игру» — контурная (secondary), «Начать игру» стала «Начать новую игру» с заливкой', !!cont && /btn-secondary/.test(cont.className) && !!startBtn() && /Начать новую игру/.test(startBtn().textContent) && /btn-primary/.test(startBtn().className) && !/Начать игру/.test(startBtn().textContent));
     await clickEl(startBtn(), 400);
     const pop = D.querySelector('.viewport-popup-box');
     T('«Начать новую игру» просит подтверждение: вопрос и пояснение про сброс прогресса', !!pop && /Вы точно хотите начать новую игру\?/.test(pop.textContent) && /прогресс/i.test(pop.textContent) && /сбросится/.test(pop.textContent) && /вопрос \d+ из \d+/.test(pop.textContent));
@@ -145,13 +145,13 @@ const h3s = () => [...D.querySelectorAll('main h3, .flex-1 h3')].map(h => h.text
     await go('#/', 600); await click('Начать игру', 700); await click('Тестовый режим', 1500);
     T('тестовый режим открыт', D.title === 'Игра — ASK ME');
     const edit = byLabel('Редактировать вопрос'), hide = byLabel('Скрыть вопрос для всех');
-    T('в шапке тестовой игры у владельца есть «Редактировать» и «Скрыть для всех»', !!edit && !!hide && !!hide.closest('header'));
+    T('под шапкой тестовой игры у владельца есть «Редактировать» и «Скрыть для всех»', !!edit && !!hide && !!hide.closest('.game-subhead'));
     const n0 = patches.length; await clickEl(hide, 600);
     const p = patches[n0];
     T('«Скрыть для всех» отправляет в базу {hidden:true} для текущего вопроса', !!p && /\/questions\/\w+\.json/.test(p.url) && p.body.hidden === true && typeof p.body.hiddenAt === 'number');
-    T('после скрытия: метка «Скрыт» в шапке и кнопка «Вернуть вопрос всем»', !!byLabel('Вернуть вопрос всем') && [...D.querySelectorAll('header .tag')].some(t => /Скрыт/.test(t.textContent)));
+    T('после скрытия: метка «Скрыт» под шапкой и кнопка «Вернуть вопрос всем»', !!byLabel('Вернуть вопрос всем') && [...D.querySelectorAll('.game-subhead .tag')].some(t => /Скрыт/.test(t.textContent)));
     await clickEl(byLabel('Вернуть вопрос всем'), 600);
-    const p2 = patches[n0 + 1]; T('«Вернуть вопрос всем» снимает скрытие ({hidden:null}); метка пропала', !!p2 && p2.body.hidden === null && !!byLabel('Скрыть вопрос для всех') && ![...D.querySelectorAll('header .tag')].some(t => /Скрыт/.test(t.textContent)));
+    const p2 = patches[n0 + 1]; T('«Вернуть вопрос всем» снимает скрытие ({hidden:null}); метка пропала', !!p2 && p2.body.hidden === null && !!byLabel('Скрыть вопрос для всех') && ![...D.querySelectorAll('.game-subhead .tag')].some(t => /Скрыт/.test(t.textContent)));
     await clickEl(byLabel('Редактировать вопрос'), 600);
     const hb = btn('Скрыть для всех');
     T('на странице «Редактирование» тоже есть «Скрыть для всех» с пояснением', D.title === 'Редактирование вопроса — ASK ME' && !!hb && /Игроки перестанут видеть вопрос/.test(D.body.textContent));

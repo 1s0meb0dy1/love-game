@@ -46,9 +46,9 @@ const noTruth = (E) => { const base = E.w.fetch; E.w.fetch = async (url, init) =
     await waitFor(() => hasBanner(C), 8000); await joinTod(C); await sleep(1200);
     T('третье устройство сверх числа игроков не пускают, видно сообщение про число устройств', !onPlay(C) && /В игре уже 2 устройства/.test(txt(C)));
     // B уходит, A продолжает
-    await sleep(600); await press(B, 'Меню', 400); await press(B, 'Выйти, остальные продолжат', 900);
+    await sleep(600); await press(B, 'Меню', 400); await press(B, 'Поставить на паузу', 900);
     const p = db.todRoom().p;
-    T('«Выйти, остальные продолжат» на B не прерывает игру A, в p остаётся только отметка A', B.w.location.hash === '#/more' && onPlay(A) && db.todRoom().status === 'active' && Object.keys(p).length === 1 && !!p[devId(A)]);
+    T('«Поставить на паузу» на B не прерывает игру A, в p остаётся только отметка A', B.w.location.hash === '#/' && onPlay(A) && db.todRoom().status === 'active' && Object.keys(p).length === 1 && !!p[devId(A)]);
     B.w.location.hash = '#/'; await sleep(600); // приглашение показывают главная, режимы и лобби, а не меню приложения
     await waitFor(() => hasBanner(B), 8000); await joinTod(B); await waitFor(() => onPlay(B), 10000); await sleep(800);
     await press(A, 'Действие', 650); await press(A, 'Легко', 400); await sleep(700); await press(A, 'Выполнено', 900);

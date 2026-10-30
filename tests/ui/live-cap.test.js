@@ -16,7 +16,7 @@ const { joinGame, boot, waitFor, sleep, who, inGame, devId, chip, closeRoulette,
     T('третье устройство не пускают: «В игре уже 2 устройства — по числу игроков в сессии», игра не открылась', C.has('В игре уже 2 устройства') && C.has('по числу игроков') && !inGame(C));
     T('в сообщении подсказано, как увеличить лимит: добавить игроков в «Игроки и сессия»', C.has('добавьте игроков'));
     T('отметка отказавшегося устройства в комнату не попала', Object.keys((db.room() || {}).p || {}).length === 2 && !((db.room() || {}).p || {})[devId(C)]);
-    await openGameMenu(B); await B.click('Выйти, остальные продолжат', 1500);
+    await openGameMenu(B); await B.click('Поставить на паузу', 1500);
     await waitFor(() => C.has('1 устройство'), 12000); await sleep(500);
     await joinGame(C); await closeRoulette(C, 300);
     T('когда второе устройство вышло, место освободилось: третье входит в игру', inGame(C) && inGame(A));

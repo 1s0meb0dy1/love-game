@@ -11,7 +11,7 @@ const { joinGame, startGame, boot, waitFor, sleep, qn, pos, who, inGame, onSumma
   const r0 = db.room(), gid0 = r0.gid, dk0 = r0.dk;
 
   // хозяин выходит и начинает новую партию — остальные автоматически переходят на неё
-  await openGameMenu(A); await A.click('Выйти, остальные продолжат', 1800);
+  await openGameMenu(A); await A.click('Поставить на паузу', 1800);
   T('A вышел на главную, игра у B и C идёт дальше', onMenu(A) && inGame(B) && inGame(C) && db.room().status === 'active');
   await startGame(A, 700); await A.click('Обычный режим', 300);
   const sawB = await waitFor(() => B.has('Запущена новая игра'), 10000), sawC = await waitFor(() => C.has('Запущена новая игра'), 10000);

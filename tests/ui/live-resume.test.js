@@ -3,7 +3,7 @@ const { joinGame, boot, waitFor, sleep, pos, who, qn, inGame, onSummary, closeRo
 (async () => { const S = await boot(2, { latency: () => 20 + Math.random() * 100 }); const { devs, db, T } = S; const [A, B] = devs;
  try {
   const onMenu = (E) => E.D.title.startsWith('ASK ME —');
-  const leave = async (E) => { await openGameMenu(E); await E.click('Выйти, остальные продолжат', 1500); };
+  const leave = async (E) => { await openGameMenu(E); await E.click('Поставить на паузу', 1500); };
   await A.click('Начать игру', 700); await A.click('Обычный режим', 4200); await closeRoulette(A, 500);
   await waitFor(() => B.has('Присоединиться'), 9000); await joinGame(B); await closeRoulette(B, 300);
   await B.click('Далее', 2500);
