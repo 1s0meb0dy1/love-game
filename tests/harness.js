@@ -15,7 +15,7 @@ module.exports = (opts = {}) => {
   // раскрываются так же (каждый файл один раз, зависимость раньше зависимого), поэтому app.jsx не обязан импортировать то, что нужно только модулю.
   const seen = new Set();
   const inline = (src, dir) => src.replace(/^import \{[^}]*\} from '(\.{1,2}\/[\w\/-]+\.jsx?)';[ \t]*$/gm, (m, rel) => {
-    const file = path.resolve(dir, rel); if (!/[\\/]src[\\/](content|tod|ai|history)[\\/][\w-]+\.jsx?$/.test(file)) return m; // остальные импорты убираются ниже
+    const file = path.resolve(dir, rel); if (!/[\\/]src[\\/](content|tod|ai|history|intro)[\\/][\w-]+\.jsx?$/.test(file)) return m; // остальные импорты убираются ниже
     if (seen.has(file)) return ''; seen.add(file);
     return inline(fs.readFileSync(file, 'utf8'), path.dirname(file)).replace(/^export /gm, '');
   });
@@ -31,6 +31,7 @@ module.exports = (opts = {}) => {
   const dom = new JSDOM('<!DOCTYPE html><html><body><div id="root"></div></body></html>', { url: 'https://example.test/love-game/', pretendToBeVisual: true, runScripts: 'outside-only' });
   const w = dom.window; const errors = [];
   try { w.localStorage.setItem('askme_lang_v1', opts.lang || 'ru'); } catch (e) {} // існуючі тести очікують російський UI; продукт за замовчуванням — українська
+  if (!opts.intro) { try { w.localStorage.setItem('askme_intro_seen_v1', '1'); } catch (e) {} } // знайомство-«сторіс» показується лише новому гравцю; існуючі тести починають одразу з привітання
   w.addEventListener('error', e => errors.push('window.onerror: ' + (e.message || e.error))); w.addEventListener('unhandledrejection', e => errors.push('unhandled: ' + e.reason));
   w.console.error = (...a) => { const m = a.map(String).join(' '); if (!/act\(|Warning: /.test(m)) errors.push('console.error: ' + m.slice(0, 200)); };
   Object.defineProperty(w, 'crypto', { value: require('crypto').webcrypto }); w.TextEncoder = TextEncoder; w.TextDecoder = TextDecoder;
