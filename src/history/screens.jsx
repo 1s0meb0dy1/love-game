@@ -28,11 +28,11 @@ export const HistList = ({ ui, history, onOpen, onResume, onStart, onBack, topic
   const stat = (v, label) => <li className="hist-stat"><span className="hist-stat-v">{v}</span><span className="hist-stat-l">{label}</span></li>;
   return (
     <div className="safe-screen w-full flex flex-col items-center slide-up relative z-10">
-      <header className="w-full max-w-md lg:max-w-3xl flex items-center gap-3 pt-2">
+      <header className="page-head w-full max-w-md lg:max-w-3xl flex items-center gap-3 pt-2">
         <button type="button" aria-label={tr('Назад')} onClick={() => { ui.SoundFX.click(); onBack(); }} className="btn-icon flex-shrink-0"><ui.Icons.Back /></button>
-        <h1 className="flex-1 text-center pr-11 text-lg font-bold text-white">{tr('Прошлые игры')}</h1>
+        <h1 className="page-title flex-1 text-center pr-11 text-lg font-bold text-white">{tr('Прошлые игры')}</h1>
       </header>
-      <main className="w-full max-w-md lg:max-w-3xl flex flex-col gap-6 pt-6 pb-8">
+      <main className={`w-full max-w-md lg:max-w-3xl flex flex-col gap-6 pt-6 pb-8 ${list.length ? 'hist-page' : 'hist-page is-empty'}`}>
         {list.length === 0 ? (
           <section className="hist-empty">
             <span aria-hidden="true" className="hist-empty-ico">🎲</span>
@@ -51,10 +51,11 @@ export const HistList = ({ ui, history, onOpen, onResume, onStart, onBack, topic
                 {top ? stat(<span aria-hidden="true">{top.icon}</span>, top.name) : null}
               </ul>
             </section>
+            <div className="hist-feed">
             {groups.map(grp => (
               <section key={grp.label} className="flex flex-col gap-3" aria-label={grp.label}>
                 <h2 className="hist-day">{grp.label}</h2>
-                <ul className="flex flex-col gap-3">
+                <ul className="hist-list flex flex-col gap-3">
                   {grp.items.map(g => {
                     const isLast = g.id === list[0].id; const pct = g.n > 0 ? Math.min(100, Math.round((g.a / g.n) * 100)) : 0;
                     return (
@@ -92,6 +93,7 @@ export const HistList = ({ ui, history, onOpen, onResume, onStart, onBack, topic
               </section>
             ))}
             <p className="ui-hint text-center">{tf('Здесь хранятся последние {v0} игр сессии.', { v0: HIST_MAX })}</p>
+            </div>
           </>
         )}
       </main>
@@ -107,9 +109,9 @@ export const HistView = ({ ui, rec, onBack, onResume, onPlay, topicInfo }) => {
   const topics = (rec.tc || []).map(([id, n]) => ({ n, info: typeof topicInfo === 'function' ? topicInfo(id) : null })).filter(x => x.info);
   return (
     <div className="safe-screen w-full flex flex-col items-center slide-up relative z-10">
-      <header className="w-full max-w-md lg:max-w-3xl flex items-center gap-3 pt-2">
+      <header className="page-head w-full max-w-md lg:max-w-3xl flex items-center gap-3 pt-2">
         <button type="button" aria-label={tr('К списку игр')} onClick={() => { ui.SoundFX.click(); onBack(); }} className="btn-icon flex-shrink-0"><ui.Icons.Back /></button>
-        <h1 className="flex-1 text-center pr-11 text-lg font-bold text-white">{tr('Итоги игры')}</h1>
+        <h1 className="page-title flex-1 text-center pr-11 text-lg font-bold text-white">{tr('Итоги игры')}</h1>
       </header>
       <main className="w-full max-w-md lg:max-w-3xl flex flex-col gap-6 pt-6 pb-8 desk-cols">
         <section className="hist-view-hero">
