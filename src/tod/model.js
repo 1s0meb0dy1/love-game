@@ -2,7 +2,7 @@
 // Чистый модуль: без React и без зависимостей от app.jsx (в тестах и в общей сборке все верхнеуровневые имена с префиксом tod/Tod/TOD_).
 // Ограничения те же, что в правилах Firebase для узла tod (копия — tests/fixtures/tod-rules.json; меняете одно — меняйте и другое):
 //   id — строка, не длиннее 16 знаков (и годится как ключ Firebase); type — truth | dare; difficulty — easy | medium | hard;
-//   text — строка 1–300 знаков (русский текст); text_uk — строка до 300 знаков, необязательно (украинский текст);
+//   text — строка 1–300 знаков (русский текст); text_uk / text_en — строки до 300 знаков, необязательно (украинский / английский текст);
 //   isActive — boolean; updatedAt — число, необязательно; других полей нет.
 
 export const TOD_TYPES = ['truth', 'dare'];
@@ -24,7 +24,7 @@ const todCleanText = (s) => String(s)
   .replace(/[\uD800-\uDBFF]$/, '')
   .trim();
 
-// карточка из базы, кэша или формы -> чистая карточка { id, type, difficulty, text, text_uk?, isActive, updatedAt? } или null.
+// карточка из базы, кэша или формы -> чистая карточка { id, type, difficulty, text, text_uk?, text_en?, isActive, updatedAt? } или null.
 // Неверное значение любого поля — null (как отказ правил); текст чистится и обрезается; лишние поля отбрасываются; исходный объект не меняется.
 export const todCleanCard = (raw) => {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
@@ -39,6 +39,8 @@ export const todCleanCard = (raw) => {
   const card = { id, type, difficulty, text };
   const textUk = typeof raw.text_uk === 'string' ? todCleanText(raw.text_uk) : '';
   if (textUk) card.text_uk = textUk;
+  const textEn = typeof raw.text_en === 'string' ? todCleanText(raw.text_en) : '';
+  if (textEn) card.text_en = textEn;
   card.isActive = isActive;
   if (hasTime) card.updatedAt = updatedAt;
   return card;
@@ -85,5 +87,5 @@ export const todNewId = (now = Date.now(), rnd = Math.random) => {
   return 'td_' + time + tail;
 };
 
-// текст карточки на языке интерфейса: для 'uk' — text_uk, если он есть, иначе русский text
-export const todCardText = (card, lang) => (card ? (lang === 'uk' && card.text_uk ? card.text_uk : card.text) : '');
+// текст карточки на языке интерфейса: для 'uk' — text_uk, для 'en' — text_en, если он есть, иначе русский text
+export const todCardText = (card, lang) => (card ? ((lang === 'uk' && card.text_uk) ? card.text_uk : (lang === 'en' && card.text_en) ? card.text_en : card.text) : '');

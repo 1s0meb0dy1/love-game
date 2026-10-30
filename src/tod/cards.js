@@ -19,13 +19,14 @@ export const todWriteCache = (storage, list) => {
   try { storage.setItem(TOD_CACHE_KEY, JSON.stringify(todCleanList(list))); } catch (e) {}
 };
 
-// украинский текст из стартового набора для карточек, у которых его нет (в базу набор загрузили раньше, чем в нём появился text_uk).
-// Берётся, только если id совпадает и русский текст не менялся владельцем: переписанная карточка без перевода остаётся на русском.
-export const todFillUk = (list, starter) => {
-  const src = new Map(todCleanList(starter).filter(c => c.text_uk).map(c => [c.id, c]));
+// переклади зі стартового набору для карток бази без text_uk / text_en (набір залили в базу раніше, ніж у ньому з'явилися переклади).
+// Беруться, лише якщо id збігається і російський текст власник не змінював: переписана картка без перекладу лишається російською.
+export const todFillLangs = (list, starter) => {
+  const src = new Map(todCleanList(starter).map(c => [c.id, c]));
   return (Array.isArray(list) ? list : []).map(c => {
-    const s = !c.text_uk && src.get(c.id);
-    return s && s.text === c.text ? todCleanCard({ ...c, text_uk: s.text_uk }) : c;
+    const s = c && src.get(c.id); if (!s || s.text !== c.text) return c;
+    const add = {}; if (!c.text_uk && s.text_uk) add.text_uk = s.text_uk; if (!c.text_en && s.text_en) add.text_en = s.text_en;
+    return Object.keys(add).length ? todCleanCard({ ...c, ...add }) : c;
   });
 };
 
@@ -36,11 +37,11 @@ export const todLoadCards = async (env) => {
   try {
     const res = await env.fetch(`${env.baseUrl}/tod.json?t=${Date.now()}`, {}, TOD_FETCH_MS);
     if (res && res.ok) {
-      const list = todFillUk(todCleanList(await res.json()), env.starter);
+      const list = todFillLangs(todCleanList(await res.json()), env.starter);
       if (list.length) { todWriteCache(env.storage, list); return { list, source: 'db' }; }
     }
   } catch (e) {}
-  const cached = todFillUk(todReadCache(env.storage), env.starter);
+  const cached = todFillLangs(todReadCache(env.storage), env.starter);
   if (cached.length) return { list: cached, source: 'cache' };
   return { list: todCleanList(env.starter), source: 'starter' };
 };

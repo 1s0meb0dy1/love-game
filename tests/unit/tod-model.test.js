@@ -114,4 +114,5 @@ T('todPoolOf: неверная карточка -> null', [null, undefined, {}, 
 
 T('text_uk: сохраняется очищенным, пустой или не строка — отбрасывается', todCleanCard(card({ text_uk: '  <Питання?> ' })).text_uk === 'Питання?' && !('text_uk' in todCleanCard(card({ text_uk: '   ' }))) && !('text_uk' in todCleanCard(card({ text_uk: 7 }))));
 T('todCardText: uk берёт text_uk, без него и для ru — text', todCardText(card({ text_uk: 'Питання?' }), 'uk') === 'Питання?' && todCardText(card({ text_uk: 'Питання?' }), 'ru') === 'Вопрос?' && todCardText(card(), 'uk') === 'Вопрос?' && todCardText(null, 'uk') === '');
+T('text_en: сохраняется очищенным, пустой — отбрасывается; todCardText(en) берёт text_en, без него — text', todCleanCard(card({ text_en: ' <Question?> ' })).text_en === 'Question?' && !('text_en' in todCleanCard(card({ text_en: ' ' }))) && todCardText(card({ text_en: 'Question?' }), 'en') === 'Question?' && todCardText(card({ text_uk: 'Питання?' }), 'en') === 'Вопрос?' && todCardText(card({ text_en: 'Question?' }), 'uk') === 'Вопрос?');
 finish();

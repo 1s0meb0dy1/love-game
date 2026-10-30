@@ -4,13 +4,15 @@ import { createRoot } from 'react-dom/client';
 import qrcode from 'qrcode-generator';
 import { ABOUT } from './content/about.js';
 import { ABOUT_UK } from './content/about-uk.js';
+import { ABOUT_EN } from './content/about-en.js';
 import { LEGAL } from './content/legal.js';
 import { LEGAL_UK } from './content/legal-uk.js';
+import { LEGAL_EN } from './content/legal-en.js';
 import { createSessionTasks, createSessionStore, createLiveWriter, mergeTurnHistories } from './session-io.js';
-import { t as tr, tf, setLang as i18nSetLang, getLang, catName as catLabel, diffName as diffLabel, audienceLabel, AUDIENCE_LABELS, CATEGORY_UK, DIFFICULTY_UK, SUPPORTED_LANGS, DEFAULT_LANG, LANG_STORAGE_KEY } from './i18n.js';
+import { t as tr, tf, setLang as i18nSetLang, getLang, catName as catLabel, diffName as diffLabel, audienceLabel, AUDIENCE_LABELS, CATEGORY_UK, DIFFICULTY_UK, SUPPORTED_LANGS, DEFAULT_LANG, LANG_STORAGE_KEY, detectLang, pickText, dateLocale } from './i18n.js';
 import { TOD_STARTER } from './content/tod-cards.js';
 import { todCleanList, todCleanCard, todCardText } from './tod/model.js';
-import { todLoadCards, todSaveCard, todSeedStarter, todActive, todReadCache, todWriteCache, todFillUk } from './tod/cards.js';
+import { todLoadCards, todSaveCard, todSeedStarter, todActive, todReadCache, todWriteCache, todFillLangs } from './tod/cards.js';
 import { todMineRead, todMineWrite, todMineAdd, todMineRemove, todIsMine } from './tod/mine.js';
 import { histClean, histMerge, histAdd, histMarkContinued, histBuild } from './history/model.js';
 import { HistList, HistView, histDayLabel } from './history/screens.jsx';
@@ -25,8 +27,9 @@ import { aiAsk } from './ai/client.js';
 import { IntroStories, introShouldShow, introMarkSeen, introReplayLabel } from './intro/stories.jsx';
 const ReactDOM = { ...ReactDOMAll, createRoot };
 
-// Рання ініціалізація мови з localStorage (щоб t() працювала ще до монтування React).
-const readStoredLang = () => { try { const v = localStorage.getItem(LANG_STORAGE_KEY); return SUPPORTED_LANGS.includes(v) ? v : DEFAULT_LANG; } catch (e) { return DEFAULT_LANG; } };
+// Рання ініціалізація мови (щоб t() працювала ще до монтування React): вибір людини з localStorage, а на першому вході — мова пристрою.
+const deviceLangs = () => { try { const n = window.navigator || {}; return (n.languages && n.languages.length) ? Array.from(n.languages) : [n.language]; } catch (e) { return []; } };
+const readStoredLang = () => { try { const v = localStorage.getItem(LANG_STORAGE_KEY); if (SUPPORTED_LANGS.includes(v)) return v; } catch (e) {} return detectLang(deviceLangs()); };
 i18nSetLang(readStoredLang());
 
         const { useState, useEffect, useRef, useMemo } = React;
@@ -39,6 +42,7 @@ i18nSetLang(readStoredLang());
 
         const declOfNum = (number, titles) => {
             const cases = [2, 0, 1, 1, 1, 2];
+            if (getLang() === 'en') return tr(titles[Math.abs(number) === 1 ? 0 : 2]);
             return tr(titles[ (number%100>4 && number%100<20)? 2 : cases[(number%10<5)?number%10:5] ]);
         };
 
@@ -395,8 +399,8 @@ i18nSetLang(readStoredLang());
         };
 
         // Вибір мови: кнопка розміру «назад» (btn-icon) у правому куті шапки, список мов — спливне меню menu-pop.
-        const LANG_NAMES = { uk: 'Українська', ru: 'Русский' };
-        const LANG_CODES = { uk: 'UA', ru: 'RU' };
+        const LANG_NAMES = { uk: 'Українська', en: 'English', ru: 'Русский' };
+        const LANG_CODES = { uk: 'UA', en: 'EN', ru: 'RU' };
         const LangMenu = ({ lang, onChange }) => {
             const [open, setOpen] = useState(false); const ref = useRef(null);
             useEffect(() => {
@@ -414,7 +418,6 @@ i18nSetLang(readStoredLang());
                             {SUPPORTED_LANGS.map(l => (
                                 <button key={l} type="button" role="menuitemradio" aria-checked={l === lang} lang={l} onClick={() => { if (l !== lang) { SoundFX.toggle(true); onChange(l); } setOpen(false); }} className={`menu-opt ${l === lang ? 'is-on' : ''}`}><span>{LANG_NAMES[l]}</span><span className="text-xs font-bold text-zinc-500">{LANG_CODES[l]}</span></button>
                             ))}
-                            <button type="button" role="menuitemradio" aria-checked="false" aria-disabled="true" disabled lang="en" className="menu-opt"><span>English</span><span className="text-xs font-bold text-zinc-500">{tr("Скоро")}</span></button>
                         </div>
                     )}
                 </div>
@@ -603,7 +606,7 @@ i18nSetLang(readStoredLang());
             );
         };
         const fmtDur = (sec) => { sec = Math.round(sec || 0); if (sec < 60) return sec + ' ' + tr('с'); const m = Math.floor(sec / 60); return m + ' ' + tr('мин') + (sec % 60 ? ' ' + (sec % 60) + ' ' + tr('с') : ''); };
-        const fmtDate = (ts) => { try { return new Date(ts).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }); } catch (e) { return ''; } };
+        const fmtDate = (ts) => { try { return new Date(ts).toLocaleString(dateLocale(getLang()), { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }); } catch (e) { return ''; } };
         const gamesOf = (rec) => Object.values((rec && rec.games) || {}).filter(g => g && typeof g === 'object').sort((a, b) => (b.startedAt || 0) - (a.startedAt || 0));
         // Порог аналитики: в сводку идут игры, где отвечено не меньше AN_MIN вопросов, и все полностью пройденные колоды. Задаёт владелец.
         const SESSION_PAYLOAD_MAX = 59000; // правило базы для sessions/$sid/payload: короче 60000 знаков (копия правила: tests/fixtures/sessions-rules.json). Поднимаете правило — поднимите и это число (на 1000 меньше)
@@ -909,18 +912,21 @@ i18nSetLang(readStoredLang());
 
         // Визначити, чи текст українською (за специфічними літерами).
         const looksUkrainian = (s) => /[іїєґІЇЄҐ]|ʼ/.test(String(s || ''));
-        // Автопереклад короткого тексту (через src/ai/client.js: проксі → Pollinations). target: 'uk' | 'ru'. Повертає переклад або "".
+        // Текст англійською: є латинські літери й жодної кирилиці.
+        const looksEnglish = (s) => /[A-Za-z]/.test(String(s || '')) && !/[А-Яа-яЁёІіЇїЄєҐґ]/.test(String(s || ''));
+        // Автопереклад короткого тексту (через src/ai/client.js: проксі → Pollinations). target: 'uk' | 'en' | 'ru'. Повертає переклад або "".
         const translateText = async (text, target) => {
             const clean = String(text || '').replace(/^№\s*\d+\.\s*/, '').trim();
             if (!clean) return '';
             const { text: out } = await aiAsk({ type: 'translate', text: clean, to: target, lang: target });
             return out ? out.replace(/^\s*\d+[\.\)]\s*/, '').replace(/^["'«»\s]+|["'«»\s]+$/g, '').trim() : '';
         };
-        // Побудувати пару {ru, uk} з уведеного адміном тексту (мова визначається автоматично).
+        // Побудувати версії {ru, uk, en} з уведеного адміном тексту (мова визначається автоматично, решту перекладаємо паралельно).
         const buildBilingual = async (typed) => {
             const clean = String(typed || '').replace(/^№\s*\d+\.\s*/, '').trim();
-            if (looksUkrainian(clean)) { const ru = await translateText(clean, 'ru'); return { ru: ru || clean, uk: clean }; }
-            const uk = await translateText(clean, 'uk'); return { ru: clean, uk: uk || '' };
+            if (looksUkrainian(clean)) { const [ru, en] = await Promise.all([translateText(clean, 'ru'), translateText(clean, 'en')]); return { ru: ru || clean, uk: clean, en: en || '' }; }
+            if (looksEnglish(clean)) { const [ru, uk] = await Promise.all([translateText(clean, 'ru'), translateText(clean, 'uk')]); return { ru: ru || clean, uk: uk || '', en: clean }; }
+            const [uk, en] = await Promise.all([translateText(clean, 'uk'), translateText(clean, 'en')]); return { ru: clean, uk: uk || '', en: en || '' };
         };
 
         // «Ситуація» / «Порада»: питання й тема — мовою інтерфейсу, імена гравців не передаються (лише кількість); onChunk — текст потоком
@@ -948,7 +954,7 @@ i18nSetLang(readStoredLang());
         // ============ Страницы: «Об игре», юридические документы, приглашение и быстрое подключение ============
         // Текст «Об игре» и документов лежит в src/content/*.js. Подстановки: {questions}, {topics#форма1,форма2,форма3}, {players}, {devices}.
         // текст «Об игре» за поточною мовою (uk — about-uk.js, ru — about.js)
-        const aboutDoc = () => (getLang() === 'uk' ? ABOUT_UK : ABOUT);
+        const aboutDoc = () => (getLang() === 'uk' ? ABOUT_UK : getLang() === 'en' ? ABOUT_EN : ABOUT);
         const aboutFill = (str, nums) => String(str).replace(/\{(\w+)(?:#([^}]+))?\}/g, (m, k, forms) => {
             if (nums[k] === undefined) return m; const v = String(nums[k]);
             if (!forms) return v; const f = forms.split(',').map(x => x.trim());
@@ -979,7 +985,7 @@ i18nSetLang(readStoredLang());
         };
 
         // ---- юридические страницы ----
-        const legalDoc = () => (getLang() === 'uk' ? LEGAL_UK : LEGAL);
+        const legalDoc = () => (getLang() === 'uk' ? LEGAL_UK : getLang() === 'en' ? LEGAL_EN : LEGAL);
         const LegalRich = ({ text }) => { const L = legalDoc(); return String(text).split(/(\{contact\}|\{operator\})/).map((part, i) => part === '{contact}'
             ? <a key={i} className="legal-link" href={L.contact.url} target="_blank" rel="noopener noreferrer">{L.contact.label}</a>
             : part === '{operator}' ? L.operator : part); };
@@ -1177,8 +1183,8 @@ i18nSetLang(readStoredLang());
             // Перемикання мови: оновлюємо модуль-дзеркало (для t()), стан (для ререндера), localStorage та <html lang>.
             const changeLang = (next) => { const l = SUPPORTED_LANGS.includes(next) ? next : DEFAULT_LANG; i18nSetLang(l); setLangState(l); try { localStorage.setItem(LANG_STORAGE_KEY, l); } catch (e) {} try { document.documentElement.lang = l; } catch (e) {} };
             useEffect(() => { try { document.documentElement.lang = lang; } catch (e) {} }, [lang]);
-            // Показ тексту питання за поточною мовою: укр — cleanTextUk з м'яким фолбеком на рос.
-            const qDisplay = (q) => { if (!q) return ''; const ru = q.cleanText || String(q.text || '').replace(/^№\s*\d+\.\s*/, ''); if (lang === 'uk') return (q.cleanTextUk && q.cleanTextUk.trim()) ? q.cleanTextUk : ru; return ru; };
+            // Показ тексту питання за поточною мовою: uk — cleanTextUk, en — cleanTextEn, з м'яким фолбеком на рос.
+            const qDisplay = (q) => { if (!q) return ''; const ru = q.cleanText || String(q.text || '').replace(/^№\s*\d+\.\s*/, ''); return pickText(lang, ru, q.cleanTextUk, q.cleanTextEn); };
 
             const [isStandalonePWA, setIsStandalonePWA] = useState(() => { try { return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true; } catch (e) { return false; } });
             const [deferredPwaPrompt, setDeferredPwaPrompt] = useState(null); const [showPwaModal, setShowPwaModal] = useState(false); const [pwaPlatformTab, setPwaPlatformTab] = useState(() => { const ua = navigator.userAgent || ""; return /iPad|iPhone|iPod/i.test(ua) ? 'ios' : 'android'; });
@@ -1232,7 +1238,7 @@ i18nSetLang(readStoredLang());
             const [punishTemplates, setPunishTemplates] = useState(readPunishCache);
             const allPunishments = useMemo(() => [...punishTemplates.filter(t => !(settings.hiddenTemplates || []).includes(t.id)), ...settings.punishments], [punishTemplates, settings.hiddenTemplates, settings.punishments]);
             // карточки режима «Правда или действие»: сначала кэш устройства (или стартовый набор), затем эффект ниже подменяет их данными из базы; source — откуда сейчас список: 'db' | 'cache' | 'starter'
-            const [todBoot] = useState(() => { const cached = todFillUk(todReadCache(todCardsEnv.storage), TOD_STARTER); return cached.length ? { list: cached, source: 'cache' } : { list: todCleanList(TOD_STARTER), source: 'starter' }; });
+            const [todBoot] = useState(() => { const cached = todFillLangs(todReadCache(todCardsEnv.storage), TOD_STARTER); return cached.length ? { list: cached, source: 'cache' } : { list: todCleanList(TOD_STARTER), source: 'starter' }; });
             const [todCards, setTodCards] = useState(todBoot.list); const [todSource, setTodSource] = useState(todBoot.source);
             const todCardsRef = useRef(todBoot.list); // всегда последний список: обработчики записи не должны работать с устаревшим
             const [todMine, setTodMineState] = useState(() => todMineRead(todCardsEnv.storage)); const todMineRef = useRef(todMine); todMineRef.current = todMine; // свои карточки: только на этом устройстве
@@ -1567,13 +1573,15 @@ i18nSetLang(readStoredLang());
             // Дозаповнення українських перекладів для всіх наявних питань (переклад у браузері — Pollinations тут стабільний).
             const handleTranslateAll = async () => {
                 if (!isAdmin || syncBusy) return; if (!Auth.hasOwner()) { SoundFX.warn(); showToast(tr('Увійдіть як власник'), 2600, 'warn'); return; }
-                const pending = db.filter(q => !(q.cleanTextUk && q.cleanTextUk.trim()));
+                const pending = db.filter(q => !(q.cleanTextUk && q.cleanTextUk.trim()) || !(q.cleanTextEn && q.cleanTextEn.trim()));
                 if (!pending.length) { showToast(tr('Усі питання вже перекладені')); return; }
                 SoundFX.click(); setSyncBusy(true); let okN = 0;
                 try {
                     for (let i = 0; i < pending.length; i++) {
-                        const q = pending[i]; const uk = await translateText(q.cleanText, 'uk');
-                        if (uk) { await fetchWithTimeout(`${FIREBASE_BASE_URL}${dbSubPath}/${q.dbKey}.json`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text_uk: uk }) }).catch(() => {}); setDb(prev => prev.map(x => x.dbKey === q.dbKey ? { ...x, cleanTextUk: uk } : x)); okN++; }
+                        const q = pending[i]; const patch = {};
+                        if (!(q.cleanTextUk && q.cleanTextUk.trim())) { const uk = await translateText(q.cleanText, 'uk'); if (uk) patch.text_uk = uk; }
+                        if (!(q.cleanTextEn && q.cleanTextEn.trim())) { const en = await translateText(q.cleanText, 'en'); if (en) patch.text_en = en; }
+                        if (Object.keys(patch).length) { await fetchWithTimeout(`${FIREBASE_BASE_URL}${dbSubPath}/${q.dbKey}.json`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch) }).catch(() => {}); setDb(prev => prev.map(x => x.dbKey === q.dbKey ? { ...x, ...(patch.text_uk ? { cleanTextUk: patch.text_uk } : {}), ...(patch.text_en ? { cleanTextEn: patch.text_en } : {}) } : x)); okN++; }
                         if ((i + 1) % 15 === 0) showToast(`${tr('Перекладаю')} ${i + 1}/${pending.length}`, 1500);
                     }
                     SoundFX.success(); showToast(`${tr('Перекладено')}: ${okN}/${pending.length}`, 3000);
@@ -1582,7 +1590,7 @@ i18nSetLang(readStoredLang());
 
             const parseDatabaseObject = (rawObj) => {
                 const entries = Object.entries(rawObj); const parsed = [];
-                for (let i = 0; i < entries.length; i++) { const [dbKey, item] = entries[i]; if (!item || typeof item !== 'object' || !item.text) continue; if (item.categoryId === "_session" || String(dbKey).startsWith("sess_")) continue; const matchNum = String(item.text).match(/^№\s*(\d+)\.\s*(.*)/s); const cleanText = matchNum ? matchNum[2].trim() : String(item.text).trim(); parsed.push({ dbKey: String(dbKey), id: item.id || `q_${i + 1}`, origNum: item.num ? Number(item.num) : (matchNum ? Number(matchNum[1]) : i + 1), categoryId: item.categoryId || "family", level: item.level || "Простые", cleanText: cleanText, cleanTextUk: (item.text_uk ? String(item.text_uk).replace(/^№\s*\d+\.\s*/, '').trim() : ""), audience: (item.audience === 'couple' || item.audience === 'group') ? item.audience : 'both', targetId: item.targetId || "", hidden: item.hidden === true }); }
+                for (let i = 0; i < entries.length; i++) { const [dbKey, item] = entries[i]; if (!item || typeof item !== 'object' || !item.text) continue; if (item.categoryId === "_session" || String(dbKey).startsWith("sess_")) continue; const matchNum = String(item.text).match(/^№\s*(\d+)\.\s*(.*)/s); const cleanText = matchNum ? matchNum[2].trim() : String(item.text).trim(); parsed.push({ dbKey: String(dbKey), id: item.id || `q_${i + 1}`, origNum: item.num ? Number(item.num) : (matchNum ? Number(matchNum[1]) : i + 1), categoryId: item.categoryId || "family", level: item.level || "Простые", cleanText: cleanText, cleanTextUk: (item.text_uk ? String(item.text_uk).replace(/^№\s*\d+\.\s*/, '').trim() : ""), cleanTextEn: (item.text_en ? String(item.text_en).replace(/^№\s*\d+\.\s*/, '').trim() : ""), audience: (item.audience === 'couple' || item.audience === 'group') ? item.audience : 'both', targetId: item.targetId || "", hidden: item.hidden === true }); }
                 parsed.sort((a, b) => a.origNum - b.origNum); return reindexSequential(parsed);
             };
 
@@ -2126,12 +2134,12 @@ i18nSetLang(readStoredLang());
             // typed: текст набран в форме админки на любом из языков — вторую версию дописываем переводом (если текст не менялся — берём прежнюю)
             const todBilingual = async (card) => {
                 const typed = sanitizeInput(card.text, 300); const prev = todCardsRef.current.find(c => c.id === card.id);
-                if (prev && (prev.text === typed || prev.text_uk === typed)) return { text: prev.text, text_uk: prev.text_uk || '' };
-                const pair = await buildBilingual(typed); return { text: pair.ru || typed, text_uk: pair.uk || '' };
+                if (prev && (prev.text === typed || prev.text_uk === typed || prev.text_en === typed)) return { text: prev.text, text_uk: prev.text_uk || '', text_en: prev.text_en || '' };
+                const pair = await buildBilingual(typed); return { text: pair.ru || typed, text_uk: pair.uk || '', text_en: pair.en || '' };
             };
             const todSave = async (card) => {
                 const { typed, ...rest } = card || {};
-                const texts = typed ? await todBilingual(rest) : { text: sanitizeInput(rest.text, 300), text_uk: rest.text_uk ? sanitizeInput(rest.text_uk, 300) : '' };
+                const texts = typed ? await todBilingual(rest) : { text: sanitizeInput(rest.text, 300), text_uk: rest.text_uk ? sanitizeInput(rest.text_uk, 300) : '', text_en: rest.text_en ? sanitizeInput(rest.text_en, 300) : '' };
                 const saved = await todSaveCard(todCardsEnv, { ...rest, ...texts });
                 const merged = todCleanList([...todCardsRef.current.filter(c => c.id !== saved.id), saved]);
                 if (todSource === 'db') { todSetList(merged, 'db', true); return saved; }
@@ -2729,7 +2737,7 @@ i18nSetLang(readStoredLang());
                 SoundFX.magic(); setAiType(type); setAiContent(tr('Готовлю подсказку…')); setIsAiTyping(true); navigate('ai_response');
                 // Начало эффекта нового экрана не меняет id; cleanup старого экрана отменяет только свою работу.
                 try {
-                    const qText = (lang === 'uk' && q.cleanTextUk) ? q.cleanTextUk : (q.cleanText || q.text);
+                    const qText = pickText(lang, q.cleanText || q.text, q.cleanTextUk, q.cleanTextEn);
                     const onChunk = (t) => { if (!controller.signal.aborted && aiRequestRef.current.id === id && t) setAiContent(String(t).slice(0, 12000)); };
                     const response = await fetchFromAI(type, qText, q.categoryId, (profile?.players || []).length, controller.signal, onChunk);
                     if (controller.signal.aborted || aiRequestRef.current.id !== id) return;
@@ -2739,16 +2747,16 @@ i18nSetLang(readStoredLang());
             };
 
             const handleGenerateQuestionAI = async () => { if (!isAdmin || isGeneratingQuestion || !ActionGuard.canProceed(800)) return; SoundFX.magic(); setIsGeneratingQuestion(true); try { const randomCat = CATEGORIES[Math.floor(Math.random() * CATEGORIES.length)]; const randomDiff = DIFFICULTIES[Math.floor(Math.random() * DIFFICULTIES.length)]; const generatedText = await generateUniqueQuestionAI(randomCat, randomDiff, db); if (generatedText) { SoundFX.success(); setAddForm({ text: generatedText, cat: randomCat.id, diff: randomDiff.id, targetId: '', aud: 'both' }); } } catch (err) {} finally { setIsGeneratingQuestion(false); } };
-            const openEditScreen = (questionObj, fromScreen) => { if (!isAdmin) return; SoundFX.click(); setEditingQuestion(questionObj); setEditForm({ text: (lang === 'uk' && questionObj.cleanTextUk) ? questionObj.cleanTextUk : (questionObj.cleanText || questionObj.text.replace(/^№\s*\d+\.\s*/, '')), cat: questionObj.categoryId, diff: questionObj.level, targetId: String(questionObj.targetId || '').startsWith('aud_') ? '' : questionObj.targetId || '', savedTarget: String(questionObj.targetId || '').startsWith('aud_') ? questionObj.targetId : '', aud: questionObj.audience || 'both' }); setReturnScreen(fromScreen); setConfirmModal(null); setResultModal(null); navigate('edit_q'); };
+            const openEditScreen = (questionObj, fromScreen) => { if (!isAdmin) return; SoundFX.click(); setEditingQuestion(questionObj); setEditForm({ text: pickText(lang, questionObj.cleanText || questionObj.text.replace(/^№\s*\d+\.\s*/, ''), questionObj.cleanTextUk, questionObj.cleanTextEn), cat: questionObj.categoryId, diff: questionObj.level, targetId: String(questionObj.targetId || '').startsWith('aud_') ? '' : questionObj.targetId || '', savedTarget: String(questionObj.targetId || '').startsWith('aud_') ? questionObj.targetId : '', aud: questionObj.audience || 'both' }); setReturnScreen(fromScreen); setConfirmModal(null); setResultModal(null); navigate('edit_q'); };
 
-            // Фоновий автопереклад: не блокує збереження. Рахує пару ru/uk і дописує text_uk у Firebase + локально.
+            // Фоновий автопереклад: не блокує збереження. Рахує версії ru/uk/en і дописує text_uk, text_en у Firebase + локально.
             const bgTranslateQuestion = (dbKey, typed) => {
                 (async () => {
                     try {
                         const bi = await buildBilingual(typed);
-                        if (!bi || (!bi.ru && !bi.uk)) return;
-                        await fetchWithTimeout(`${FIREBASE_BASE_URL}${dbSubPath}/${dbKey}.json`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: bi.ru, text_uk: bi.uk }) }).catch(() => {});
-                        const apply = (q) => q.dbKey === dbKey ? { ...q, cleanText: bi.ru, cleanTextUk: bi.uk, text: `№ ${q.num}. ${bi.ru}` } : q;
+                        if (!bi || (!bi.ru && !bi.uk && !bi.en)) return;
+                        await fetchWithTimeout(`${FIREBASE_BASE_URL}${dbSubPath}/${dbKey}.json`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: bi.ru, text_uk: bi.uk, text_en: bi.en }) }).catch(() => {});
+                        const apply = (q) => q.dbKey === dbKey ? { ...q, cleanText: bi.ru, cleanTextUk: bi.uk, cleanTextEn: bi.en, text: `№ ${q.num}. ${bi.ru}` } : q;
                         setDb(prev => { const next = prev.map(apply); try { localStorage.setItem(OFFLINE_DB_CACHE_KEY, JSON.stringify(next)); } catch (e) {} return next; });
                         setGameQuestions(prev => prev.map(apply));
                     } catch (e) {}
@@ -2759,12 +2767,12 @@ i18nSetLang(readStoredLang());
                 try {
                     const cleanInput = sanitizeInput(addForm.text.replace(/^№\s*\d+\.\s*/, ''), 500); if (!cleanInput) throw new Error(tr("Пустой текст")); const nextNum = db.length + 1; const numericKeys = db.map(item => Number(item.dbKey)).filter(n => !isNaN(n)); const nextDbKey = "q_" + Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b => b.toString(16).padStart(2, "0")).join(""); const newId = `v_db_${nextNum}_${Math.random().toString(36).substring(2, 6)}`;
                     // Зберігаємо одразу (не чекаємо на переклад), українську версію допише фоновий автопереклад.
-                    const typedUk = looksUkrainian(cleanInput);
+                    const typedUk = looksUkrainian(cleanInput); const typedEn = looksEnglish(cleanInput);
                     const aud = (addForm.aud === 'couple' || addForm.aud === 'group') ? addForm.aud : 'both';
-                    const payload = { id: newId, num: nextNum, categoryId: addForm.cat, level: addForm.diff, text: cleanInput, text_uk: typedUk ? cleanInput : '', audience: aud, targetId: await questionTarget(addForm.targetId, profile) };
+                    const payload = { id: newId, num: nextNum, categoryId: addForm.cat, level: addForm.diff, text: cleanInput, text_uk: typedUk ? cleanInput : '', text_en: typedEn ? cleanInput : '', audience: aud, targetId: await questionTarget(addForm.targetId, profile) };
                     const res = await fetchWithTimeout(`${FIREBASE_BASE_URL}${dbSubPath}/${nextDbKey}.json`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
                     if (!res.ok) throw new Error(tf("Код: {v0}", { v0: res.status }));
-                    const createdQuestion = { ...payload, dbKey: nextDbKey, cleanText: cleanInput, cleanTextUk: typedUk ? cleanInput : '', audience: aud, text: `№ ${nextNum}. ${cleanInput}` };
+                    const createdQuestion = { ...payload, dbKey: nextDbKey, cleanText: cleanInput, cleanTextUk: typedUk ? cleanInput : '', cleanTextEn: typedEn ? cleanInput : '', audience: aud, text: `№ ${nextNum}. ${cleanInput}` };
                     SoundFX.success(); setDb(prev => { const nextDb = reindexSequential([...prev, createdQuestion]); try { localStorage.setItem(OFFLINE_DB_CACHE_KEY, JSON.stringify(nextDb)); } catch (e) {} return nextDb; });
                     setAddStatus({ ok: true, msg: tf("Вопрос сохранен!", {  }), id: newId });
                     bgTranslateQuestion(nextDbKey, cleanInput);
@@ -2774,13 +2782,13 @@ i18nSetLang(readStoredLang());
                 if (!isAdmin || !editingQuestion || isSaving) return; SoundFX.click(); setIsSaving(true); setConfirmModal(null);
                 const cleanUpdatedText = sanitizeInput(editForm.text.replace(/^№\s*\d+\.\s*/, ''), 500);
                 // Зберігаємо текст як ввели; протилежну мовну версію перерахує фоновий автопереклад.
-                const typedUkE = looksUkrainian(cleanUpdatedText);
+                const typedUkE = looksUkrainian(cleanUpdatedText); const typedEnE = looksEnglish(cleanUpdatedText);
                 const audE = (editForm.aud === 'couple' || editForm.aud === 'group') ? editForm.aud : 'both';
                 try {
-                    const updatedPayload = { id: editingQuestion.id, num: editingQuestion.num, categoryId: editForm.cat, level: editForm.diff, text: cleanUpdatedText, text_uk: typedUkE ? cleanUpdatedText : '', audience: audE, targetId: await questionTarget(editForm.targetId, profile, editForm.savedTarget) };
+                    const updatedPayload = { id: editingQuestion.id, num: editingQuestion.num, categoryId: editForm.cat, level: editForm.diff, text: cleanUpdatedText, text_uk: typedUkE ? cleanUpdatedText : '', text_en: typedEnE ? cleanUpdatedText : '', audience: audE, targetId: await questionTarget(editForm.targetId, profile, editForm.savedTarget) };
                     const res = await fetchWithTimeout(`${FIREBASE_BASE_URL}${dbSubPath}/${editingQuestion.dbKey}.json`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(updatedPayload) });
                     if (!res.ok) throw new Error(tf("Код {v0}", { v0: res.status }));
-                    const updatedObj = { ...editingQuestion, categoryId: editForm.cat, level: editForm.diff, cleanText: cleanUpdatedText, cleanTextUk: typedUkE ? cleanUpdatedText : '', audience: audE, text: `№ ${editingQuestion.num}. ${cleanUpdatedText}`, targetId: updatedPayload.targetId };
+                    const updatedObj = { ...editingQuestion, categoryId: editForm.cat, level: editForm.diff, cleanText: cleanUpdatedText, cleanTextUk: typedUkE ? cleanUpdatedText : '', cleanTextEn: typedEnE ? cleanUpdatedText : '', audience: audE, text: `№ ${editingQuestion.num}. ${cleanUpdatedText}`, targetId: updatedPayload.targetId };
                     bgTranslateQuestion(editingQuestion.dbKey, cleanUpdatedText);
                     SoundFX.success(); setDb(prev => { const nextDb = prev.map(q => q.dbKey === editingQuestion.dbKey ? updatedObj : q); try { localStorage.setItem(OFFLINE_DB_CACHE_KEY, JSON.stringify(nextDb)); } catch (e) {} return nextDb; }); setGameQuestions(prev => prev.map(q => q.dbKey === editingQuestion.dbKey ? updatedObj : q)); setEditingQuestion(updatedObj); setResultModal({ ok: true, msg: tf("Успешно обновлен!", {  }), afterCloseScreen: returnScreen });
                 } catch (err) { SoundFX.warn(); setResultModal({ ok: false, msg: tf("Не удалось: {v0}", { v0: err.message }) }); } finally { setIsSaving(false); }
@@ -3716,7 +3724,7 @@ if (screen === 'mode_select') {
                         <header className="w-full max-w-2xl mx-auto flex items-center justify-between py-2 flex-shrink-0"> <button aria-label={tr("Назад")} onClick={() => { SoundFX.click(); navigate('game'); }} className="btn-icon flex-shrink-0"><Icons.Back /></button> <AskMeLogo size="xs" /> <span className="text-xs font-bold text-zinc-500">№ {currentQ?.num}</span> </header>
                         <main className="flex-1 flex flex-col items-center py-6 pb-28 overflow-y-auto no-scrollbar">
                             <div className="w-full max-w-xl flex flex-col items-center slide-up gap-6">
-                                <div className="text-center space-y-2"> <span className="text-xs font-bold text-rose-400">{isSituation ? tr("Моделирование ситуации") : tr("Совет от ИИ")}</span> <p className="text-base font-medium text-zinc-200 px-2">«{currentQ?.cleanText || currentQ?.text}»</p> </div>
+                                <div className="text-center space-y-2"> <span className="text-xs font-bold text-rose-400">{isSituation ? tr("Моделирование ситуации") : tr("Совет от ИИ")}</span> <p className="text-base font-medium text-zinc-200 px-2">«{qDisplay(currentQ)}»</p> </div>
                                 <div className="hairline-divider"></div>
                                 <div className={`w-full text-left text-zinc-200 text-[15px] md:text-base leading-relaxed whitespace-pre-wrap ${isAiTyping ? 'ai-cursor' : ''}`}>{aiContent}</div>
                                 {!isAiTyping && aiContent && <p className="ui-hint text-center">{tr("Текст создал искусственный интеллект. Он может ошибаться и не заменяет специалиста.")}</p>}

@@ -52,6 +52,9 @@ const aiRemember = (r, text) => { const k = aiKey(r); const list = (aiRecent.get
 // локальна заготовка, коли мережа й усі сервіси недоступні: корисна сама по собі, мовою інтерфейсу
 export const aiLocalFallback = (r) => {
   const q = r.question; const uk = r.lang !== 'ru';
+  if (r.lang === 'en') return r.type === 'situation'
+    ? `🎬 Setting the scene:\nIt's evening, we're in no rush, phones are put away. I catch your eye, pause for a second and ask with real curiosity: “${q}”\n\n👩👨 How people usually answer:\n• Some answer right away with a joke: it makes it easier to start.\n• Some take a pause and remember a specific story: that's where the conversation gets deeper.\n\n(Offline tip: share your own story instead of a general answer.)`
+    : `🧠 How to talk about it:\nStart with an example from your own life, not a judgment. “${q}” is easier to discuss when everyone talks about themselves.\n\n🔗 How it affects the relationship:\nAn honest answer without judgment builds trust, even when your views differ.\n\n🛠️ Tip for today:\nAfter the answer, ask one follow-up question and simply listen.\n\n(Offline tip.)`;
   if (r.type === 'situation') return uk
     ? `🎬 Моделювання ситуації:\nВечір, ми нікуди не поспішаємо, телефони відкладені. Я ловлю твій погляд, роблю паузу й з цікавістю питаю: «${q}»\n\n👩👨 Як зазвичай відповідають:\n• Хтось відповідає одразу й жартома — так легше почати.\n• Хтось бере паузу й згадує конкретну історію — з неї розмова стає глибшою.\n\n(Підказка без мережі: розкажіть свою історію замість загальної відповіді.)`
     : `🎬 Моделирование ситуации:\nВечер, мы никуда не спешим, телефоны отложены. Я ловлю твой взгляд, делаю паузу и с интересом спрашиваю: «${q}»\n\n👩👨 Как обычно отвечают:\n• Кто-то отвечает сразу и в шутку — так легче начать.\n• Кто-то берёт паузу и вспоминает конкретную историю — с неё разговор становится глубже.\n\n(Подсказка без сети: расскажите свою историю вместо общего ответа.)`;
