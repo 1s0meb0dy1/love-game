@@ -362,12 +362,12 @@ export const TodLobby = ({ ui, players, cfg, setCfg, deviceCount, block, onStart
   const di = deckInfo || null;
   return (
     <div className="safe-screen w-full flex flex-col items-center slide-up relative z-10">
-      <header className="w-full max-w-md flex items-center gap-3 pt-2">
+      <header className="w-full max-w-md lg:max-w-5xl flex items-center gap-3 pt-2">
         <button type="button" aria-label={todTx(ui, 'Назад')} onClick={() => { ui.SoundFX.click(); onBack(); }} className="btn-icon flex-shrink-0"><ui.Icons.Back /></button>
         <h1 className="flex-1 text-center text-lg font-bold text-white">{todTx(ui, 'Правда или действие')}</h1>
         <button type="button" aria-label={todTx(ui, 'Поделиться сессией')} title={todTx(ui, 'Поделиться сессией')} onClick={onShare} className="btn-icon flex-shrink-0"><ui.Icons.Share /></button>
       </header>
-      <main className="w-full max-w-md flex flex-col gap-6 pt-6 pb-8">
+      <main className="w-full max-w-md lg:max-w-5xl flex flex-col gap-6 pt-6 pb-8 desk-cols">
         {banner}
         <section className="tod-hero" aria-label={todTx(ui, 'Правда или действие')}>
           <div className="tod-fan">
@@ -400,16 +400,16 @@ export const TodLobby = ({ ui, players, cfg, setCfg, deviceCount, block, onStart
           <p className="ui-hint">{todTx(ui, 'Кнопки хода можно нажимать с любого устройства сессии.')}</p>
         </section>
         <section className="flex flex-col gap-4 rounded-[20px] border border-white/10 bg-white/[0.04] p-4">
-          <div className="flex items-center justify-between gap-4">
-            <span className="flex flex-col gap-0.5"><span className="text-sm font-bold text-white">{todTx(ui, 'Жёсткие 18+')}</span><span className="ui-hint">{todTx(ui, 'Откровенные карточки уровня «Жёстко»')}</span></span>
-            <ui.SettingSwitch on={!!cfg.hard} label={todTx(ui, 'Жёсткие 18+')} onChange={() => { ui.SoundFX.toggle && ui.SoundFX.toggle(!cfg.hard); setCfg({ ...cfg, hard: !cfg.hard }); }} />
-          </div>
           <div className="flex flex-col gap-2">
             <span className="text-sm font-bold text-white">{todTx(ui, 'Подколки')}</span>
             <div className="seg" role="group" aria-label={todTx(ui, 'Подколки')}>
               {TOD_TONES.map(([tone, label]) => <button key={tone} type="button" aria-pressed={cfg.tone === tone} onClick={() => { ui.SoundFX.click(); setCfg({ ...cfg, tone }); }} className={`seg-btn ${cfg.tone === tone ? 'is-active' : ''}`}>{todTx(ui, label)}</button>)}
             </div>
             <span className="ui-hint">{cfg.tone === 2 ? todTx(ui, 'Острый: лёгкая вульгарность, чёрный юмор и сатира на государство-агрессора. 18+') : cfg.tone === 1 ? todTx(ui, 'Мягкий: игривые подколки без грубостей.') : todTx(ui, 'Без подколок под карточкой.')}</span>
+          </div>
+          <div className="flex items-center justify-between gap-4">
+            <span className="flex flex-col gap-0.5"><span className="text-sm font-bold text-white">{todTx(ui, 'Жёсткие 18+')}</span><span className="ui-hint">{todTx(ui, 'Откровенные карточки уровня «Жёстко»')}</span></span>
+            <ui.SettingSwitch on={!!cfg.hard} label={todTx(ui, 'Жёсткие 18+')} onChange={() => { ui.SoundFX.toggle && ui.SoundFX.toggle(!cfg.hard); setCfg({ ...cfg, hard: !cfg.hard }); }} />
           </div>
           {Array.isArray(mine) && mine.length > 0 && (
             <div className="flex items-center justify-between gap-4">
@@ -454,7 +454,7 @@ const TodHeckle = ({ text, ev, tone }) => (
 
 // игровой экран #/tod/play. Действия отдаются без seq (его подставляет приложение); banter — уже выбранная реплика (или '').
 // «Назад» и «Меню» перед уходом спрашивают подтверждение; onLeave(куда) — 'back' (в лобби) или 'menu' (в меню приложения)
-export const TodGame = ({ ui, state, banter, cardText, levelAvail, onAction, onEnd, onLeave }) => {
+export const TodGame = ({ ui, state, banter, cardText, levelAvail, onAction, onEnd, onLeave, desktop }) => {
   const [ask, setAsk] = React.useState(''); const [shake, setShake] = React.useState(0); // ask: '' — окно закрыто, иначе куда идёт игрок
   const st = state; const me = st.pl[st.turn] || { name: '' };
   const locked = todTruthLocked(st); const run = todTruthRun(st);
@@ -470,15 +470,81 @@ export const TodGame = ({ ui, state, banter, cardText, levelAvail, onAction, onE
   const close = () => { ui.SoundFX.click(); setAsk(''); };
   return (
     <div className="safe-screen w-full flex flex-col items-center fade-in relative z-10">
-      <header className="w-full max-w-md flex items-center justify-between gap-3 pt-2">
+      <header className={`w-full max-w-md flex items-center justify-between gap-3 pt-2 ${desktop ? 'lg:max-w-5xl' : ''}`}>
         <button type="button" aria-label={todTx(ui, 'Назад')} onClick={() => { ui.SoundFX.click(); setAsk('back'); }} className="btn-icon flex-shrink-0"><ui.Icons.Back /></button>
         <button type="button" onClick={() => { ui.SoundFX.click(); setAsk('menu'); }} aria-label={todTx(ui, 'Открыть меню')} className="btn-secondary btn-sm flex-shrink-0"><span>{todTx(ui, 'Меню')}</span><span aria-hidden="true" className="text-lg leading-none">☰</span></button>
       </header>
-      <main className="w-full max-w-md flex flex-col gap-5 pt-4 pb-8">
+      <main className={`w-full max-w-md flex flex-col gap-5 pt-4 pb-8 ${desktop ? 'lg:max-w-5xl' : ''}`}>
         <div className="tod-titlebar">
           <h1 className="tod-title-main">{todTx(ui, 'Правда или действие')}</h1>
           <p className="tod-title-sub">{tf("Круг {v0}", { v0: round })}</p>
         </div>
+        {desktop ? (
+          <div className="tod-desk">
+            <div className="tod-desk-main">
+        {st.phase === 'choose' && (
+          <div className="flex flex-col gap-3">
+            <div className="grid grid-cols-2 gap-3">
+              <button type="button" onClick={pickTruth} aria-disabled={locked ? 'true' : undefined} className={`opt-card opt-brand tod-pick tod-pick-truth ${locked ? 'is-locked' : ''} ${shake ? 'tod-nope' : ''}`} key={'t' + shake}>
+                <span aria-hidden="true" className="tod-pick-ico">{locked ? '🔒' : '💬'}</span>
+                <span className="font-bold text-white text-lg">{todTx(ui, 'Правда')}</span>
+                <span className="tod-pick-sub">{locked ? todTx(ui, 'Закрыта: три раза подряд') : todTx(ui, 'Ответь честно')}</span>
+                <TodPips run={run} locked={locked} />
+              </button>
+              <button type="button" onClick={() => act({ t: 'choose', type: 'dare' })} className={`opt-card opt-ember tod-pick tod-pick-dare ${locked ? 'tod-attn' : ''}`}>
+                <span aria-hidden="true" className="tod-pick-ico">🎯</span>
+                <span className="font-bold text-white text-lg">{todTx(ui, 'Действие')}</span>
+                <span className="tod-pick-sub">{locked ? todTx(ui, 'Теперь только оно') : todTx(ui, 'Выполни задание')}</span>
+              </button>
+            </div>
+            <p className={`tod-ruleline ${locked ? 'is-hot' : ''}`} role={locked ? 'alert' : undefined}>
+              <span aria-hidden="true">{locked ? '🔒' : 'ℹ️'}</span>
+              <span>{locked ? tf("{v0}, ты уже {v1} раза подряд выбирал(а) правду — теперь только «Действие»!", { v0: me.name, v1: TOD_TRUTH_LIMIT }) : tf("Правда — не больше {v0} раз подряд: потом обязательно «Действие». Подряд сейчас: {v1} из {v0}", { v0: TOD_TRUTH_LIMIT, v1: run })}</span>
+            </p>
+          </div>
+        )}
+        {st.phase === 'level' && (
+          <div className="flex flex-col gap-3" role="group" aria-label={todTx(ui, 'Уровень действия')}>
+            {TOD_LEVELS.map(lv => {
+              const on = !!(levelAvail && levelAvail[lv]);
+              return (
+                <button key={lv} type="button" disabled={!on} onClick={() => act({ t: 'level', diff: lv })} className={`btn-tile tod-lvl tod-lvl-${lv} tod-heat w-full justify-between`}>
+                  <span className="flex items-center gap-3"><TodDots lv={lv} /><span>{todTx(ui, TOD_LEVEL_WORD[lv])}</span></span>
+                  <span className="text-xs text-zinc-400 font-semibold">{on ? todTx(ui, TOD_LEVEL_HINT[lv]) : todTx(ui, 'пока пусто')}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+        {st.phase === 'card' && st.card && (
+          <div className="tod-flip">
+            <div key={st.card.id + ':' + st.seq} className={`tod-flip-in tod-card tod-card-${st.card.lv} rounded-[24px] border border-white/10 bg-white/[0.05] p-6 min-h-[180px] flex flex-col gap-3`}>
+              <span className={`tod-lvl tod-lvl-${st.card.lv}`}><TodDots lv={st.card.lv} /><span>{todTx(ui, st.card.pool === 'truth' ? tr("Правда") : tr("Действие"))} · {todTx(ui, TOD_LEVEL_WORD[st.card.lv])}</span></span>
+              <p className="text-xl leading-snug text-white break-words">{text === null ? todTx(ui, 'Карточка недоступна') : text === undefined ? todTx(ui, 'Загружаем карточку…') : text}</p>
+            </div>
+          </div>
+        )}
+        <div className="tod-stage">
+          <TodAvatar p={me} i={st.turn} big />
+          <h2 key={st.turn + ':' + st.seq} className="tod-turn break-words" aria-live="polite">{todTx(ui, 'Ход игрока:')} {me.name}</h2>
+          {win && <TodBurst key={'b' + st.seq} />}
+          {flop && <span key={'f' + st.seq} className="tod-egg" aria-hidden="true">🐔</span>}
+        </div>
+        {st.phase === 'card' && st.card && (
+          <div className="flex flex-col gap-3">
+            <button type="button" onClick={() => act({ t: 'done' })} className="btn-primary w-full"><ui.Icons.Check /> {todTx(ui, st.card.pool === 'truth' ? tr("Ответил(а)") : tr("Выполнено"))}</button>
+            <button type="button" onClick={() => act({ t: 'skip' })} className="btn-secondary w-full"><span aria-hidden="true">🐔</span> {todTx(ui, 'Пропустить')}</button>
+          </div>
+        )}
+            </div>
+            <aside className="tod-desk-side">
+        <ul className="tod-roster is-col" aria-label={todTx(ui, 'Игроки')}>
+          {st.pl.map((p, i) => <li key={p.id || i} className={`chip ${i === st.turn ? 'is-on tod-now' : ''}`} aria-current={i === st.turn ? 'true' : undefined}><TodAvatar p={p} i={i} /><span className="tod-name">{p.name}</span><span className="tod-chicken">🐔 {todSkips(st.stat[i])}</span></li>)}
+        </ul>
+        {banter && <TodHeckle text={banter} ev={st.ev} tone={st.opts.tone} />}
+            </aside>
+          </div>
+        ) : (<>
         <ul className="tod-roster" aria-label={todTx(ui, 'Игроки')}>
           {st.pl.map((p, i) => <li key={p.id || i} className={`chip ${i === st.turn ? 'is-on tod-now' : ''}`} aria-current={i === st.turn ? 'true' : undefined}><TodAvatar p={p} i={i} /><span className="tod-name">{p.name}</span><span className="tod-chicken">🐔 {todSkips(st.stat[i])}</span></li>)}
         </ul>
@@ -537,6 +603,7 @@ export const TodGame = ({ ui, state, banter, cardText, levelAvail, onAction, onE
             <button type="button" onClick={() => act({ t: 'skip' })} className="btn-secondary w-full"><span aria-hidden="true">🐔</span> {todTx(ui, 'Пропустить')}</button>
           </div>
         )}
+        </>)}
       </main>
       <ui.PopupModal isOpen={!!ask} onClose={close}>
         <div className="flex flex-col gap-3 pt-1 text-left">
@@ -573,7 +640,7 @@ export const TodResults = ({ ui, state, titles, onAgain, onMenu, banner }) => {
   return (
     <div className="safe-screen w-full flex flex-col items-center slide-up relative z-10">
       {maxDone > 0 && <div className="confetti-layer absolute inset-0 overflow-hidden pointer-events-none z-0" aria-hidden="true">{Array.from({ length: 16 }, (_, k) => <span key={k} className="confetti-piece" style={{ left: ((k * 37) % 100) + '%', fontSize: (16 + (k % 4) * 4) + 'px', '--dx': (((k % 5) - 2) * 18) + 'px', '--dur': (5 + (k % 5)) + 's', '--delay': ((k % 7) * 0.35) + 's' }}>{['🎉', '✨', '🔥', '🎊'][k % 4]}</span>)}</div>}
-      <main className="w-full max-w-md flex flex-col gap-6 pt-6 pb-10 relative z-10">
+      <main className="w-full max-w-md lg:max-w-5xl flex flex-col gap-6 pt-6 pb-10 relative z-10 desk-cols">
         <header className="tod-res-hero">
           <span aria-hidden="true" className="tod-res-cup">🏆</span>
           <h1 className="tod-res-title">{todTx(ui, 'Итоги')}</h1>

@@ -784,14 +784,108 @@ i18nSetLang(readStoredLang());
             return ( <div onClick={onClick} className={`inline-flex flex-col items-center select-none ${onClick ? 'cursor-pointer' : ''}`}> <div className="flex items-center gap-3.5"> <div className="w-11 h-11 md:w-12 md:h-12 rounded-xl bg-gradient-to-br from-rose-500 to-rose-700 flex items-center justify-center shadow-[0_8px_28px_rgba(225,29,72,0.4)] pulse-soft"> <svg className="w-5 h-5 md:w-6 md:h-6 text-white" viewBox="0 0 24 24" fill="currentColor"> <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/> </svg> </div> <div className="font-display text-[32px] md:text-5xl font-extrabold tracking-[0.05em] text-white leading-none flex items-center"> <span>ASK</span> <span className="text-rose-500 ml-2">ME</span> </div> </div> </div> );
         };
 
+        // ---- Десктопная версия (от 1024 px): верхняя панель, расширенный подвал и «живые» эффекты; на телефоне и в тестах ничего этого нет ----
+        const DESK_MQ = '(min-width: 1024px)';
+        const useIsDesktop = () => {
+            const read = () => { try { return !!(window.matchMedia && window.matchMedia(DESK_MQ).matches); } catch (e) { return false; } };
+            const [on, setOn] = useState(read);
+            useEffect(() => {
+                let mq = null; try { mq = window.matchMedia(DESK_MQ); } catch (e) { return undefined; }
+                if (!mq || typeof mq.addEventListener !== 'function') return undefined;
+                const h = () => setOn(!!mq.matches); h(); mq.addEventListener('change', h);
+                return () => mq.removeEventListener('change', h);
+            }, []);
+            return on;
+        };
+        // верхняя панель живёт в отдельном корне (#desk-root), поэтому состояние приложения передаётся ей через маленькое хранилище: приложение кладёт значения, панель подписана
+        const deskStore = { s: { screen: '', hasProfile: false, sessionId: '', sessionKey: '', players: [], muted: false, lang: 'uk' }, subs: new Set(), api: {} };
+        deskStore.set = (patch) => {
+            if (Object.keys(patch).every(k => Object.is(deskStore.s[k], patch[k]))) return;
+            deskStore.s = { ...deskStore.s, ...patch }; deskStore.subs.forEach(f => f());
+        };
+        const useDeskState = () => { const [, bump] = useState(0); useEffect(() => { const f = () => bump(n => n + 1); deskStore.subs.add(f); return () => { deskStore.subs.delete(f); }; }, []); return deskStore.s; };
+        const DESK_HIDE = ['game', 'ai_response', 'summary', 'tod_play', 'tod_results']; // экраны партии: панели нет, чтобы не уйти из игры случайным нажатием
+        const DESK_GROUPS = { home: ['menu', 'profile_page'], play: ['mode_select', 'game_setup', 'tod_lobby'], questions: ['cat_list', 'q_list', 'archive_page', 'add_q', 'edit_q', 'hidden_q'], about: ['about'] };
+        const DesktopNav = () => {
+            const desk = useIsDesktop(); const st = useDeskState();
+            const show = desk && !!st.screen && !DESK_HIDE.includes(st.screen);
+            useEffect(() => { const root = document.documentElement; if (show) root.dataset.nav = '1'; else delete root.dataset.nav; return () => { delete root.dataset.nav; }; }, [show]);
+            if (!show) return null;
+            const api = deskStore.api; const go = (id) => { SoundFX.click(); if (api.navigate) api.navigate(id); };
+            const on = (g) => DESK_GROUPS[g].includes(st.screen);
+            const link = (g, id, label) => <li key={g}><button type="button" onClick={() => go(id)} aria-current={on(g) ? 'page' : undefined} className={`desk-link ${on(g) ? 'is-on' : ''}`}>{label}</button></li>;
+            return (
+                <nav className="desk-nav" aria-label={tr("Основная навигация")}>
+                    <div className="desk-nav-in">
+                        <AskMeLogo size="md" onClick={() => go(st.hasProfile ? 'menu' : 'about')} />
+                        <ul className="desk-links">
+                            {st.hasProfile && link('home', 'menu', tr("Главная"))}
+                            {st.hasProfile && link('play', 'mode_select', tr("Играть"))}
+                            {st.hasProfile && link('questions', 'cat_list', tr("Вопросы"))}
+                            {link('about', 'about', tr("Об игре"))}
+                        </ul>
+                        <div className="desk-nav-right">
+                            {st.hasProfile && st.players.length > 0 && <span className="desk-players" title={st.players.map(p => p.name).join(', ')}>{st.players.map(p => p.name).join(' · ')}</span>}
+                            {st.hasProfile && <SessionIdBadge sessionId={st.sessionId} sessionKey={st.sessionKey} onCopy={api.showToast} />}
+                            <button type="button" onClick={() => api.toggleMute && api.toggleMute()} aria-label={st.muted ? tr("Включить звук") : tr("Выключить звук")} title={st.muted ? tr("Включить звук") : tr("Выключить звук")} className="btn-icon">{st.muted ? <Icons.SoundOff /> : <Icons.SoundOn />}</button>
+                            <LangMenu lang={st.lang} onChange={(l) => api.changeLang && api.changeLang(l)} />
+                            {st.hasProfile && <button type="button" onClick={() => go('app_menu')} className="btn-secondary btn-sm"><span>{tr("Меню")}</span><Icons.Menu /></button>}
+                        </div>
+                    </div>
+                </nav>
+            );
+        };
+        // эффекты мыши только на компьютере с точным указателем: мягкий прожектор света за курсором, лёгкий параллакс узоров фона, наклон карточек выбора
+        const DesktopFx = () => {
+            const desk = useIsDesktop();
+            useEffect(() => {
+                if (!desk) return undefined;
+                let fine = false; try { fine = window.matchMedia('(hover: hover) and (pointer: fine)').matches; } catch (e) {}
+                const reduce = (() => { try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } })();
+                if (!fine || reduce) return undefined;
+                const root = document.documentElement; root.dataset.fx = '1';
+                const bg = document.querySelector('.bg-room'); let raf = 0, mx = 0, my = 0, tiltEl = null;
+                const paint = () => { raf = 0; if (!bg) return; bg.style.setProperty('--mx', mx + 'px'); bg.style.setProperty('--my', my + 'px'); bg.style.setProperty('--px', (mx / window.innerWidth - 0.5).toFixed(3)); bg.style.setProperty('--py', (my / window.innerHeight - 0.5).toFixed(3)); };
+                const reset = (el) => { if (!el) return; ['--rx', '--ry', '--gx', '--gy'].forEach(k => el.style.removeProperty(k)); };
+                const move = (e) => {
+                    mx = e.clientX; my = e.clientY; if (!raf) raf = requestAnimationFrame(paint);
+                    const t = e.target && e.target.closest ? e.target.closest('.opt-card:not(:disabled)') : null;
+                    if (t !== tiltEl) { reset(tiltEl); tiltEl = t; }
+                    if (t) { const r = t.getBoundingClientRect(); const px = (e.clientX - r.left) / Math.max(r.width, 1), py = (e.clientY - r.top) / Math.max(r.height, 1); t.style.setProperty('--ry', ((px - 0.5) * 7).toFixed(2) + 'deg'); t.style.setProperty('--rx', ((0.5 - py) * 5).toFixed(2) + 'deg'); t.style.setProperty('--gx', (px * 100).toFixed(1) + '%'); t.style.setProperty('--gy', (py * 100).toFixed(1) + '%'); }
+                };
+                const leave = () => { reset(tiltEl); tiltEl = null; };
+                document.addEventListener('pointermove', move, { passive: true }); document.documentElement.addEventListener('pointerleave', leave);
+                return () => { document.removeEventListener('pointermove', move); document.documentElement.removeEventListener('pointerleave', leave); cancelAnimationFrame(raf); reset(tiltEl); delete root.dataset.fx; };
+            }, [desk]);
+            return null;
+        };
+
         // divider: тонкая линия над подвалом (на «Меню» и экранах начала игры не нужна); wide — под широкую вёрстку главной на компьютере
-        const AppFooter = ({ noLinks = false, divider = true, wide = false }) => (
+        const AppFooter = ({ noLinks = false, divider = true, wide = false }) => {
+            const desk = useIsDesktop();
+            if (desk) return (
+                <footer className="desk-footer select-none z-10">
+                    <div className="desk-footer-in">
+                        <div className="desk-fcol desk-fbrand">
+                            <AskMeLogo size="md" />
+                            <p>{tr("Откровенные разговоры для двоих и компании. Играйте по взаимному согласию и берегите чужие границы.")}</p>
+                            <span className="tag tag-rose">18+</span>
+                        </div>
+                        <nav className="desk-fcol" aria-label={tr("Игра")}><h2>{tr("Игра")}</h2><a href="#/">{tr("Главная")}</a><a href="#/topics">{tr("Все вопросы")}</a><a href="#/archive">{tr("Архив")}</a><a href="#/about">{tr("Об игре")}</a></nav>
+                        <nav className="desk-fcol" aria-label={tr("Режимы")}><h2>{tr("Режимы")}</h2><a href="#/mode">{tr("Выберите режим")}</a><a href="#/setup">{tr("Усложнённый режим")}</a><a href="#/tod">{tr("Правда или действие")}</a><a href="#/invite">{tr("Пригласить игроков")}</a></nav>
+                        <nav className="desk-fcol" aria-label={tr("Документы")}><h2>{tr("Документы")}</h2><a href="#/privacy">{tr("Конфиденциальность")}</a><a href="#/terms">{tr("Соглашение")}</a><a href="#/cookies">{tr("Cookies")}</a><a href="#/age">{tr("Возраст 18+")}</a><a href="#/copyright">{tr("© Авторские права")}</a></nav>
+                    </div>
+                    <div className="desk-footer-bar"><span>by <b>yedvinn</b></span><span>{tr("Подсказка: листать вопросы можно стрелками ← → на клавиатуре")}</span></div>
+                </footer>
+            );
+            return (
             <footer className="w-full py-6 flex flex-col items-center justify-center gap-3 select-none z-10">
                 {divider && <div aria-hidden="true" className={`footer-rule mb-3 ${wide ? 'is-wide' : ''}`}></div>}
                 <div className="flex items-center justify-center gap-3 opacity-60 hover:opacity-100 transition-opacity"> <AskMeLogo size="xs" /> <span className="text-white/20 text-xs">•</span> <span className="text-xs text-zinc-400 font-semibold"> by <span className="text-rose-400">yedvinn</span> </span> </div>
                 {!noLinks && <nav aria-label={tr("Информация")} className="footer-links"><a href="#/about">{tr("Об игре")}</a><a href="#/privacy">{tr("Конфиденциальность")}</a><a href="#/terms">{tr("Соглашение")}</a><a href="#/copyright">{tr("© Авторские права")}</a></nav>}
             </footer>
-        );
+            );
+        };
 
         // Состав сессии: имена игроков и устройства в комнате (первое — это устройство, остальные подключены). Спокойный блок, заметно тише кнопки «Поделиться»:
         // имена устройств в базе не хранятся, поэтому показываем игроков сессии и число устройств
@@ -1397,6 +1491,11 @@ i18nSetLang(readStoredLang());
 
             const handleShareGame = async () => { SoundFX.click(); const shareUrl = `${window.location.origin}${window.location.pathname}#/welcome`; if (navigator.share) { try { await navigator.share({ title: tr("ASK ME — Игра"), text: tr("Откровенные разговоры ❤️"), url: shareUrl }); return; } catch (e) { if (e.name === 'AbortError') return; } } await copyTextToClipboard(shareUrl); showToast(tr("Ссылка на игру скопирована!")); };
             const toggleMute = () => { const nextState = !isMuted; setIsMuted(nextState); SoundFX.muted = nextState; if (!nextState) SoundFX.click(); };
+            const desk = useIsDesktop(); // компьютер (от 1024 px): другая вёрстка экранов, верхняя панель и расширенный подвал
+            useEffect(() => {
+                Object.assign(deskStore.api, { navigate, toggleMute, changeLang, showToast });
+                deskStore.set({ screen, hasProfile: !!profile, sessionId: profile ? profile.sessionId : '', sessionKey: profile ? profile.sessionKey : '', players: profile ? profile.players : [], muted: isMuted, lang });
+            });
             const handleLogoSecretTap = () => { const nextCount = logoTapCount + 1; setLogoTapCount(nextCount); if (nextCount >= 5) { SoundFX.magic(); setLogoTapCount(0); setAdminPinError(''); navigate('admin_login'); } };
 
             const useCloudProfile = async () => {
@@ -1606,13 +1705,14 @@ i18nSetLang(readStoredLang());
             const [swipeHint, setSwipeHint] = useState('');
             useEffect(() => () => clearTimeout(swipeTimerRef.current), []);
             const SWIPE_EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
+            // карточка под основной (следующая или предыдущая): проявляется и «поднимается» по мере того, как основную уводят в сторону; только opacity и transform
             const applyPeek = (dx, mode) => {
                 const p = Math.min(1, Math.abs(dx) / 110);
-                const tr = mode === 'out' ? 'opacity 300ms ease-out, transform 340ms cubic-bezier(0.22, 1, 0.36, 1)' : mode === 'spring' ? 'opacity 260ms ease-out, transform 420ms ease-out' : 'none';
+                const tr = mode === 'out' ? 'opacity 260ms ease-out, transform 300ms cubic-bezier(0.22, 1, 0.36, 1)' : mode === 'spring' ? 'opacity 240ms ease-out, transform 380ms cubic-bezier(0.22, 1, 0.36, 1)' : 'none';
                 [[peekNextRef.current, dx > 0], [peekPrevRef.current, dx < 0]].forEach(([el, on]) => {
                     if (!el) return;
                     const q = on ? (mode === 'out' ? 1 : p) : 0;
-                    el.style.transition = tr; el.style.opacity = String(q); el.style.transform = `scale(${0.94 + 0.06 * q})`;
+                    el.style.transition = tr; el.style.opacity = String(q); el.style.transform = `translate3d(0,${((1 - q) * 14).toFixed(1)}px,0) scale(${(0.92 + 0.08 * q).toFixed(3)})`;
                 });
             };
             // світіння краю картки під час перетягування: сторона — напрям, колір — можна (rose) чи ні (amber); відблиск їде слідом за пальцем
@@ -1627,9 +1727,10 @@ i18nSetLang(readStoredLang());
             };
             const applySwipe = (dx, mode, scale = 1) => {
                 const el = cardRef.current; if (!el) return;
-                el.style.transition = mode === 'out' ? `transform 340ms ${SWIPE_EASE}, opacity 300ms ease-out` : mode === 'spring' ? 'transform 460ms cubic-bezier(0.34, 1.45, 0.64, 1), opacity 260ms ease-out' : mode === 'enter' ? `transform 420ms ${SWIPE_EASE}, opacity 320ms ease-out` : 'none';
+                // уход: ускоряется (как брошенная карточка), прозрачность гаснет чуть позже старта; возврат — мягкая пружина без сильного «перелёта»
+                el.style.transition = mode === 'out' ? 'transform 300ms cubic-bezier(0.45, 0, 0.9, 0.6), opacity 220ms ease-in 70ms' : mode === 'spring' ? 'transform 420ms cubic-bezier(0.22, 1.25, 0.36, 1), opacity 200ms ease-out' : mode === 'enter' ? `transform 380ms ${SWIPE_EASE}, opacity 300ms ease-out` : 'none';
                 el.style.transformOrigin = '50% 115%';
-                el.style.transform = `translate3d(${dx}px,0,0) rotate(${dx * 0.045}deg) scale(${scale})`;
+                el.style.transform = `translate3d(${dx}px,0,0) rotate(${(dx * 0.045).toFixed(2)}deg) scale(${scale})`;
                 el.style.opacity = String(mode === 'out' ? 0 : 1);
                 applyPeek(mode === 'enter' ? 0 : dx, mode === 'enter' ? 'none' : mode);
                 applyGlow(mode === 'enter' || mode === 'spring' ? 0 : dx, mode);
@@ -1677,16 +1778,39 @@ i18nSetLang(readStoredLang());
                 const dir = dx > 0 ? 'right' : 'left';
                 const far = Math.abs(dx) >= Math.min(110, w * 0.25) || (Math.abs(s.vx) > 0.5 && Math.abs(dx) > 36);
                 if (!far || !swipeAllowed(dir)) { if (far) SoundFX.warn(); applySwipe(0, 'spring'); return; }
+                commitSwipe(dir);
+            };
+            // уход карточки и смена вопроса: карточка улетает (300 мс), потом меняется вопрос, а новая карточка проявляется уже на месте.
+            // Смену вопроса замечает layout-эффект ниже (до отрисовки кадра), поэтому между «улетела» и «появилась» нет вспышки старой карточки
+            const swipePendingRef = useRef('');
+            const commitSwipe = (dir) => {
                 SoundFX.flip(dir); SoundFX.skipNextFlip = true;
-                applySwipe(dir === 'right' ? 560 : -560, 'out', 0.96);
+                swipePendingRef.current = dir;
+                applySwipe(dir === 'right' ? 520 : -520, 'out', 0.94);
                 clearTimeout(swipeTimerRef.current);
                 swipeTimerRef.current = setTimeout(() => {
                     performSwipe(dir); SoundFX.skipNextFlip = false;
-                    applySwipe(dir === 'right' ? -56 : 56, 'none', 0.95); applyPeek(0, 'none');
-                    if (cardRef.current) cardRef.current.style.opacity = '0';
-                    requestAnimationFrame(() => requestAnimationFrame(() => applySwipe(0, 'enter', 1)));
-                }, 260);
+                    // вопрос не сменился (например, ход перешёл к следующему игроку на той же карточке): карточка возвращается на место сама
+                    swipeTimerRef.current = setTimeout(() => {
+                        if (!swipePendingRef.current) return;
+                        swipePendingRef.current = '';
+                        applySwipe(dir === 'right' ? -40 : 40, 'none', 0.96); if (cardRef.current) cardRef.current.style.opacity = '0';
+                        requestAnimationFrame(() => requestAnimationFrame(() => applySwipe(0, 'enter', 1)));
+                    }, 120);
+                }, 300);
             };
+            // смена вопроса (свайп, клавиши, кнопки или другое устройство): направление остаётся на слое до следующей смены, чтобы анимация не запускалась повторно
+            const prevIdxRef = useRef(currentIndex);
+            React.useLayoutEffect(() => {
+                const prev = prevIdxRef.current; prevIdxRef.current = currentIndex; if (prev === currentIndex) return;
+                const el = cardRef.current; const pend = swipePendingRef.current; const dir = pend || (currentIndex > prev ? 'right' : 'left');
+                if (pend) {
+                    swipePendingRef.current = ''; clearTimeout(swipeTimerRef.current);
+                    applySwipe(0, 'none', 1); // новая карточка уже в DOM: основной слой на месте, без перехода
+                    [peekNextRef.current, peekPrevRef.current].forEach(pe => { if (pe) { pe.style.transition = 'opacity 260ms ease-out'; pe.style.opacity = '0'; } });
+                }
+                if (el) el.dataset.enter = dir; // CSS (.game-card) проявляет новую карточку
+            }, [currentIndex]);
             const onSwipeCancel = (e) => { if (swipeRef.current.id === e.pointerId) { swipeRef.current = { id: null, x0: 0, y0: 0, locked: null, lx: 0, lt: 0, vx: 0 }; setSwipeHint(''); applySwipe(0, 'spring'); } };
             useEffect(() => {
                 if (screen !== 'game') return;
@@ -1696,7 +1820,7 @@ i18nSetLang(readStoredLang());
                     const wantNext = e.key === 'ArrowRight';
                                         if (swipeBusy()) return;
                     const dir = wantNext ? 'right' : 'left';
-                    if (swipeAllowed(dir)) performSwipe(dir);
+                    if (swipeAllowed(dir)) commitSwipe(dir);
                 };
                 window.addEventListener('keydown', onKey);
                 return () => window.removeEventListener('keydown', onKey);
@@ -2797,12 +2921,12 @@ if (screen === 'app_menu') {
                 return (
                     <div className="safe-screen w-full flex flex-col items-center slide-up relative z-10">
                         <PwaInstallModal {...pwaModalProps} /> {exitConfirmPopup}
-                        <header className="w-full max-w-md flex items-center gap-3 pt-2">
+                        <header className="w-full max-w-md lg:max-w-5xl flex items-center gap-3 pt-2">
                             <button type="button" onClick={() => { SoundFX.click(); navigate('menu'); }} aria-label={tr("Назад")} className="btn-icon flex-shrink-0"><Icons.Back /></button>
                             <h1 className="flex-1 text-center text-lg font-bold text-white">{tr('Меню')}</h1>
-                            <LangMenu lang={lang} onChange={changeLang} />
+                            {desk ? <span aria-hidden="true" className="w-11 flex-shrink-0"></span> : <LangMenu lang={lang} onChange={changeLang} />}
                         </header>
-                        <main className="w-full max-w-md flex flex-col gap-6 pt-6 pb-6">
+                        <main className="w-full max-w-md lg:max-w-5xl flex flex-col gap-6 pt-6 pb-6 desk-cols">
                             {profile && (
                                 <section className="flex flex-col gap-2.5">
                                     <SessionIdBadge sessionKey={profile.sessionKey} sessionId={profile.sessionId} onCopy={showToast} size="lg" />
@@ -2819,6 +2943,22 @@ if (screen === 'app_menu') {
                                 <section aria-label={tr("Только для владельца")} className="owner-zone flex flex-col gap-2.5">
                                     <h2 className="px-1 text-xs font-bold text-amber-300/90 flex items-center gap-1.5"><Icons.Lock /> {tr("Только для владельца")} <span className="owner-zone-note">{tr("видите только вы")}</span></h2>
                                     <div className="owner-zone-box divide-y divide-amber-200/10 overflow-hidden">{renderMenuItems(ownerItems)}</div>
+                                </section>
+                            )}
+                            {desk && profile && (
+                                <section className="desk-info" aria-label={tr("О сессии")}>
+                                    <h2 className="text-sm font-bold text-white">{tr("О сессии")}</h2>
+                                    <ul className="desk-info-stats">
+                                        <li><b>{profile.players.length}</b><span>{declOfNum(profile.players.length, ['игрок', 'игрока', 'игроков'])}</span></li>
+                                        <li><b>{CATEGORIES.length}</b><span>{declOfNum(CATEGORIES.length, ['тема', 'темы', 'тем'])}</span></li>
+                                        <li><b>{stats.availableActive}</b><span>{tr("новых вопросов")}</span></li>
+                                        <li><b>{stats.archivedList.length}</b><span>{tr("в архиве")}</span></li>
+                                    </ul>
+                                    <ul className="room-strip-names">{profile.players.map(p => <li key={p.id}><span>{p.name}</span></li>)}</ul>
+                                    <dl className="desk-keys">
+                                        <div><dt><kbd>←</kbd><kbd>→</kbd></dt><dd>{tr("листать вопросы в игре")}</dd></div>
+                                        <div><dt><kbd>Esc</kbd></dt><dd>{tr("закрыть окно")}</dd></div>
+                                    </dl>
                                 </section>
                             )}
                             <section className="rounded-[20px] border border-rose-500/25 bg-gradient-to-br from-rose-500/[0.12] to-transparent p-5 flex flex-col gap-3">
@@ -2970,7 +3110,7 @@ if (screen === 'app_menu') {
             if (screen === 'tod_play' && todGame) {
                 const lvAvail = { easy: !!todNext(todDeck, todGame.cur, 'dare.easy'), medium: !!todNext(todDeck, todGame.cur, 'dare.medium'), hard: !!todNext(todDeck, todGame.cur, 'dare.hard') };
                 if (todGame.phase === 'ended') return <TodResults ui={todUi} state={todGame} titles={todTitles(todGame, TOD_TITLES)} onAgain={todAgain} onMenu={() => navigate('menu')} banner={todInviteBanner} />;
-                return <TodGame ui={todUi} state={todGame} banter={todPickBanter(todGame, TOD_BANTER, tr)} cardText={todTextOf} levelAvail={lvAvail} onAction={todDispatch}
+                return <TodGame ui={todUi} desktop={desk} state={todGame} banter={todPickBanter(todGame, TOD_BANTER, tr)} cardText={todTextOf} levelAvail={lvAvail} onAction={todDispatch}
                     onEnd={() => { todTapRef.current = 0; if (todDispatch({ t: 'end' })) navigate('tod_results'); }} onLeave={(to) => { todLeave(); setTodGame(null); navigate(to === 'menu' ? 'app_menu' : 'tod_lobby'); }} />;
             }
             if (screen === 'tod_results' && todGame) {
@@ -3183,15 +3323,16 @@ const liveInviteBanner = liveInvite ? (
 if (screen === 'mode_select') {
                 return (
                     <div className="safe-screen w-full flex flex-col items-center slide-up relative z-10">
-                        <header className="w-full max-w-md flex items-center gap-3 pt-2">
+                        <header className="w-full max-w-md lg:max-w-5xl flex items-center gap-3 pt-2">
                             <button aria-label={tr("Назад")} onClick={() => { SoundFX.click(); navigate('menu'); }} className="btn-icon flex-shrink-0"><Icons.Back /></button>
                             <h1 className="flex-1 text-center text-lg font-bold text-white">{tr("Выберите режим")}</h1>
                             <button type="button" onClick={() => openInvite('mode_select')} aria-label={tr("Пригласить игроков")} title={tr("Пригласить игроков")} className="btn-icon flex-shrink-0"><Icons.Share /></button>
                         </header>
-                        <main className="w-full max-w-md flex flex-col gap-4 pt-6 pb-8">
+                        <main className="w-full max-w-md lg:max-w-5xl flex flex-col gap-4 pt-6 pb-8">
                             {liveInviteBanner}
                             {todInviteBanner}
                             {lobbyStrip}
+                            <div className="mode-grid">
                             <button disabled={stats.availableActive === 0} onClick={() => { SoundFX.click(); setHardMode(false); startWithMode('normal', { hard: false }); }} className="opt-card opt-brand">
                                 <span aria-hidden="true" className="w-12 h-12 rounded-xl bg-rose-500/20 flex items-center justify-center text-2xl flex-shrink-0">💬</span>
                                 <span className="flex-1 min-w-0 flex flex-col gap-1.5">
@@ -3214,6 +3355,7 @@ if (screen === 'mode_select') {
                                     <span className="text-xs text-zinc-300 leading-relaxed">{tr("Для компании и пар: правда, действие и позор за пропуск. 18+")}</span>
                                 </span>
                             </button>
+                            </div>
                             <p className="px-2 text-xs text-zinc-400 leading-relaxed text-center">{tr("👥 Если к сессии подключатся другие устройства, игра сама синхронизируется — до")} {profile ? deviceCap(profile) : MAX_PLAYERS} {tr("одновременно (по числу игроков): вопросы, очередь, рулетка")}{'\u00A0'}{tr("и таймер")}{'\u00A0'}{tr("у всех одинаковые. Пока вы играете одни, ничего не отправляется. Пригласить игроков можно кнопкой в шапке.")}</p>
                             {isAdmin && (
                                 <button onClick={() => { SoundFX.click(); setHardMode(false); startWithMode('test'); }} className="opt-card">
@@ -3259,10 +3401,10 @@ if (screen === 'mode_select') {
                 return (
                     <div className="safe-screen w-full flex flex-col items-center justify-between slide-up relative z-10">
                         {exitConfirmPopup} {newGameConfirmPopup} <PwaInstallModal {...pwaModalProps} />
-                        <div className="w-full max-w-md lg:max-w-4xl mx-auto flex flex-col gap-7 pt-1">
+                        <div className="w-full max-w-md lg:max-w-6xl mx-auto flex flex-col gap-7 pt-1">
                             {liveInviteBanner}
                             {todInviteBanner}
-                            <header className="w-full flex items-center justify-between gap-3">
+                            {!desk && <header className="w-full flex items-center justify-between gap-3">
                                 <button onClick={() => { if(profile) { SoundFX.click(); setPlayersForm(profile.players); navigate('profile_page'); } else navigate('onboarding'); }} className="btn-secondary btn-sm min-w-0">
                                     <Icons.User /> <span className="truncate">{profile ? tr("Игроки") : tr("Гость")}</span> {isAdmin && <span className="text-rose-400 text-xs">●</span>}
                                 </button>
@@ -3272,7 +3414,7 @@ if (screen === 'mode_select') {
                                         <span>{tr('Меню')}</span><span aria-hidden="true" className="text-lg leading-none">☰</span>
                                     </button>
                                 </div>
-                            </header>
+                            </header>}
 
                             <div className="flex flex-col items-center text-center gap-3 py-1">
                                 <AskMeLogo size="lg" onClick={handleLogoSecretTap} />
@@ -3310,7 +3452,7 @@ if (screen === 'mode_select') {
                                     </div>
                                     <div className="space-y-4">
                                         <div className="flex items-center justify-between"><h2 className="text-xs font-bold text-zinc-400">{tr("Темы вопросов")}</h2><button onClick={() => { SoundFX.click(); const allActiveIds = CATEGORIES.filter(c => stats.activeByCat[c.id] > 0).map(c => c.id); setSelectedCats(allActiveIds.every(id => selectedCats.includes(id)) ? [] : allActiveIds); }} className="btn-text">{CATEGORIES.filter(c => stats.activeByCat[c.id] > 0).every(c => selectedCats.includes(c.id)) ? tr("Снять все") : tr("Выбрать все")}</button></div>
-                                        <div className="grid grid-cols-2 gap-2.5">
+                                        <div className="grid grid-cols-2 xl:grid-cols-3 gap-2.5">
                                             {CATEGORIES.map(cat => {
                                                 const catActiveCount = stats.activeByCat[cat.id] || 0; const isEmpty = catActiveCount === 0; const isSelected = selectedCats.includes(cat.id) && !isEmpty;
                                                 return ( <button key={cat.id} disabled={isEmpty} onClick={() => toggleCategory(cat.id)} className={`tile ${ isEmpty ? 'opacity-30 border border-white/10 text-zinc-500' : isSelected ? 'topic-pill-active' : 'topic-pill-inactive' }`} > <div className="flex items-center gap-2 min-w-0"><span className="text-base flex-shrink-0 max-[340px]:hidden">{cat.icon}</span><span className="text-[13px] truncate">{catLabel(cat.id, cat.name)}</span></div> <span className={`text-xs font-bold flex-shrink-0 ${isSelected ? 'text-rose-400' : 'text-zinc-500'}`}>{catActiveCount}</span> </button> );
@@ -3319,7 +3461,7 @@ if (screen === 'mode_select') {
                                     </div>
                                 </div>
 
-                                <div className="lg:col-span-5 flex flex-col gap-7 lg:pl-6 lg:border-l lg:border-white/10">
+                                <div className="lg:col-span-5 flex flex-col gap-7 lg:sticky lg:top-24 lg:p-6 lg:rounded-[28px] lg:border lg:border-white/10 lg:bg-white/[0.03] lg:shadow-[0_30px_70px_-40px_rgba(0,0,0,0.9)]">
                                     <div className="lg:hidden hairline-divider"></div>
                                     <div className="space-y-3.5">
                                         <div className="flex items-center justify-between"><h2 className="text-xs font-bold text-zinc-400">{tr("Список вопросов")}</h2><span className="text-xs text-zinc-500">{tr("В архиве:")} <b className="text-zinc-300">{stats.archivedList.length}</b></span></div>
@@ -3371,7 +3513,7 @@ if (screen === 'mode_select') {
                 const peekBody = (q) => {
                     const c = CATEGORIES.find(x => x.id === q.categoryId) || CATEGORIES[0];
                     const t = q.cleanText || q.text.replace(/^№\s*\d+\.\s*/, '');
-                    return ( <><div className="flex items-center gap-2 text-xs font-bold text-zinc-200 mb-6"><span>{c.icon}</span><span>{catLabel(c.id, c.name)}</span></div><div className="text-[24px] sm:text-[29px] font-medium leading-[1.18] text-white px-2">{t}</div></> );
+                    return ( <><div className="flex items-center gap-2 text-xs font-bold text-zinc-200 mb-6"><span>{c.icon}</span><span>{catLabel(c.id, c.name)}</span></div><div className="peek-text text-[24px] sm:text-[29px] font-medium leading-[1.18] text-white px-2">{t}</div></> );
                 };
 
                 return (
@@ -3395,15 +3537,17 @@ if (screen === 'mode_select') {
                         </header>
 
                         <main className="flex-1 flex flex-col items-center justify-center py-6 pb-28 select-none" style={{ touchAction: 'pan-y' }} onPointerDown={onSwipeStart} onPointerMove={onSwipeMove} onPointerUp={onSwipeEnd} onPointerCancel={onSwipeCancel}>
-                            <div className="relative w-full max-w-lg">
+                            <div className="relative w-full max-w-lg lg:max-w-2xl">
+                            {desk && <button type="button" onClick={() => { if (!swipeBusy() && swipeAllowed('left')) commitSwipe('left'); else SoundFX.warn(); }} aria-label={tr("Предыдущий вопрос")} title={tr("Предыдущий вопрос")} disabled={currentIndex === 0} className="desk-arrow is-left"><Icons.Back /></button>}
+                            {desk && <button type="button" onClick={() => { if (!swipeBusy() && swipeAllowed('right')) commitSwipe('right'); else SoundFX.warn(); }} aria-label={tr("Следующий вопрос")} title={tr("Следующий вопрос")} className="desk-arrow is-right"><Icons.Next /></button>}
                             <div aria-hidden="true" className="absolute inset-x-9 top-9 bottom-[-26px] rounded-[28px] border border-white/10 bg-[#0f0d15] pointer-events-none"></div>
                             <div aria-hidden="true" className="absolute inset-x-5 top-5 bottom-[-14px] rounded-[28px] border border-white/10 bg-[#141119] pointer-events-none"></div>
-                            {showNextPeek && ( <div ref={peekNextRef} aria-hidden="true" data-peek="next" className="absolute inset-0 z-[5] rounded-[28px] border border-white/10 bg-gradient-to-b from-[#1b1824] to-[#100e16] px-6 pt-9 pb-6 flex flex-col items-center justify-center text-center pointer-events-none select-none overflow-hidden" style={{ opacity: 0, filter: 'blur(11px) brightness(0.9)', willChange: 'transform, opacity' }}>{peekBody(nextQ)}</div> )}
-                            {showPrevPeek && ( <div ref={peekPrevRef} aria-hidden="true" data-peek="prev" className="absolute inset-0 z-[5] rounded-[28px] border border-white/10 bg-gradient-to-b from-[#1b1824] to-[#100e16] px-6 pt-9 pb-6 flex flex-col items-center justify-center text-center pointer-events-none select-none overflow-hidden" style={{ opacity: 0, filter: 'grayscale(0.75) brightness(0.82)', willChange: 'transform, opacity' }}>{peekBody(prevQ)}</div> )}
+                            {showNextPeek && ( <div ref={peekNextRef} aria-hidden="true" data-peek="next" className="peek-soft absolute inset-0 z-[5] rounded-[28px] border border-white/10 bg-gradient-to-b from-[#1b1824] to-[#100e16] px-6 pt-9 pb-6 flex flex-col items-center justify-center text-center pointer-events-none select-none overflow-hidden" style={{ opacity: 0, willChange: 'transform, opacity' }}>{peekBody(nextQ)}</div> )}
+                            {showPrevPeek && ( <div ref={peekPrevRef} aria-hidden="true" data-peek="prev" className="peek-dim absolute inset-0 z-[5] rounded-[28px] border border-white/10 bg-gradient-to-b from-[#1b1824] to-[#100e16] px-6 pt-9 pb-6 flex flex-col items-center justify-center text-center pointer-events-none select-none overflow-hidden" style={{ opacity: 0, willChange: 'transform, opacity' }}>{peekBody(prevQ)}</div> )}
                             <div ref={cardRef} className="relative z-10 w-full" style={{ willChange: 'transform, opacity', touchAction: 'pan-y' }}>
                             <div ref={glowRef} aria-hidden="true" className="swipe-glow" data-side="right" data-ok="yes"><span className="swipe-shine"></span></div>
                             {swipeHint && ( <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10 px-3 py-1 rounded-full text-xs font-bold bg-white/[0.10] border border-white/[0.16] text-zinc-100 pointer-events-none fade-in">{swipeHint}</div> )}
-                            <div className="relative w-full flex flex-col items-center justify-center slide-up rounded-[28px] border border-white/10 bg-gradient-to-b from-[#1b1824] to-[#100e16] px-6 pt-7 pb-6 sm:px-8 shadow-[0_32px_64px_-24px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.07)]" style={{ minHeight: 'min(60dvh, 540px)' }} key={currentQ.dbKey + '_' + currentIndex}>
+                            <div className="game-card relative w-full flex flex-col items-center justify-center rounded-[28px] border border-white/10 bg-gradient-to-b from-[#1b1824] to-[#100e16] px-6 pt-7 pb-6 sm:px-8 shadow-[0_32px_64px_-24px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.07)]" style={{ minHeight: 'min(60dvh, 540px)' }} key={currentQ.dbKey + '_' + currentIndex}>
                                 <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 h-7 rounded-full bg-[#1b1824] border border-white/[0.16] flex items-center gap-2 text-xs font-bold text-zinc-300 whitespace-nowrap">{tr("Вопрос №")} {currentQ.num} {gameMode === 'test' && currentQ.archived && ( <span className="text-xs px-1.5 rounded bg-white/[0.10] text-zinc-300">{tr("В архиве")}</span> )}</div>
                                 <div className="flex flex-col items-center gap-1.5 mb-6 pt-2">
                                     
@@ -3601,7 +3745,7 @@ if (screen === 'summary') {
 
             if (screen === 'cat_list') {
                 return (
-                    <div className="safe-screen w-full flex flex-col fade-in max-w-md lg:max-w-3xl mx-auto relative z-10">
+                    <div className="safe-screen w-full flex flex-col fade-in max-w-md lg:max-w-5xl mx-auto relative z-10">
                         <header className="flex items-center justify-between gap-4 mb-6 pt-2">
                             <div className="flex items-center gap-3.5"><button aria-label={tr("Назад")} onClick={() => { SoundFX.click(); navigate('menu'); }} className="btn-icon flex-shrink-0"><Icons.Back /></button><div><h2 className="text-2xl font-bold text-white">{tr("Все вопросы")}</h2><p className="text-xs text-zinc-500 mt-0.5">{todTab === 'classic' ? `${tr('Активно:')} ${db.length - stats.archivedList.length - stats.disabledCount} ${tr('из')} ${db.length}` : tr('Правда или действие')}</p></div></div>
                         </header>
@@ -3617,7 +3761,7 @@ if (screen === 'summary') {
                         ) : (<>
                         <div className="flex-1 flex flex-col gap-8 pb-24">
                             {isAdmin && ( <button type="button" onClick={() => { SoundFX.click(); setTopicDraft(CATEGORIES.map(c => c.id)); setTopicErr(''); navigate('topics_admin'); }} className="btn-secondary w-full flex items-center justify-center gap-2.5">{tr("⚙ Управление темами")}</button> )}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 divide-y md:divide-y-0 border-y border-white/10 divide-white/[0.08]">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 divide-y md:divide-y-0 border-y border-white/10 divide-white/[0.08]">
                                 {CATEGORIES.map(cat => (
                                     <button key={cat.id} onClick={() => { SoundFX.click(); setViewCategory(cat.id); setVisibleLimit(60); navigate('q_list'); }} className="row justify-between md:border-b md:border-white/10">
                                         <div className="flex items-center gap-3.5"><span className="text-2xl">{cat.icon}</span><div><div className="font-semibold text-base text-white">{catLabel(cat.id, cat.name)}</div><div className="text-xs text-zinc-500">{tr("Активных:")} <span className="text-zinc-300 font-semibold">{stats.activeByCat[cat.id] || 0}</span> {tr("из")} {stats.totalByCat[cat.id] || 0}</div></div></div><span className="text-zinc-500"><Icons.Next /></span>
@@ -3725,4 +3869,6 @@ if (screen === 'summary') {
         root.render(<App />);
         const toastRoot = document.createElement('div'); toastRoot.id = 'toast-root'; document.body.appendChild(toastRoot);
         ReactDOM.createRoot(toastRoot).render(<ToastHost />);
+        const deskRoot = document.createElement('div'); deskRoot.id = 'desk-root'; document.body.insertBefore(deskRoot, document.getElementById('root'));
+        ReactDOM.createRoot(deskRoot).render(<><DesktopNav /><DesktopFx /></>);
     

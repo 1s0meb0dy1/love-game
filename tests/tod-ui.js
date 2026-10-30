@@ -19,8 +19,10 @@ const DEFAULT_DB = (() => {
 const profileOf = (names) => ({ sessionId: 'SID_TOD', sessionKey: 'KEY_TOD', players: names.map((n, i) => ({ id: 'p' + (i + 1), name: n, gender: i % 2 ? 'girl' : 'guy' })), archivedIds: [], disabledIds: [], savedGame: null, updatedAt: Date.now() });
 
 // cache — список карточек в кэше устройства; todDelay — задержка ответа базы на /tod (мс): приложение сначала играет кэшем
-const boot = async ({ names = ['Макс', 'Аня'], seed = DEFAULT_DB, hash = '#/mode', lang = 'ru', cache = null, todDelay = 0 } = {}) => {
+const boot = async ({ names = ['Макс', 'Аня'], seed = DEFAULT_DB, hash = '#/mode', lang = 'ru', cache = null, todDelay = 0, desktop = false } = {}) => {
   const E = makeEnv({ lang }); const db = makeDb({ ownerToken: 'owner-tok' }); db.attach(E); if (seed) db.seedTod(seed);
+  // desktop: окно шире 1024 px (запрос min-width: 1024px отвечает «да»); наведение мыши и тонкий указатель — нет, поэтому эффекты мыши не включаются
+  if (desktop) E.w.matchMedia = (q) => ({ matches: /min-width:\s*1024px/.test(String(q)), media: String(q), addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} });
   if (cache) E.w.localStorage.setItem('askme_tod_cards_v1', JSON.stringify(cache));
   if (todDelay) { const base = E.w.fetch; E.w.fetch = async (url, init) => { if (/\/tod[/.]/.test(String(url))) await E.sleep(todDelay); return base(url, init); }; }
   E.w.localStorage.setItem('askme_device_profile_v4', JSON.stringify(profileOf(names)));

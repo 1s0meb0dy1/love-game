@@ -255,6 +255,9 @@ input[aria-invalid='true'], textarea[aria-invalid='true'] { border-color: var(--
 @media (prefers-reduced-motion: reduce) { .reveal { animation: none; opacity: 1; } .confetti-layer { display: none; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; } .bg-room .motifs, .bg-room .embers { display: none; } }
 
+/* компьютер: «телефонные» колонки шире (28rem -> 40rem); экраны со своей раскладкой задают lg:max-w-* и перебивают это правило */
+@media (min-width: 1024px) { :where(main, header).max-w-md { max-width: 40rem; } }
+
 @tailwind components;
 @tailwind utilities;
 
@@ -574,3 +577,91 @@ input[aria-invalid='true'], textarea[aria-invalid='true'] { border-color: var(--
 @keyframes todBar { from { transform: scaleY(0.1); } to { transform: scaleY(1); } }
 :root .tod-clean { padding: 1rem; border-radius: var(--r-surface); border: 1px solid rgb(74 222 155 / 0.4); background: rgb(74 222 155 / 0.08); font-size: 1rem; line-height: 1.5; color: #d4f8e6; }
 @media (prefers-reduced-motion: reduce) { :root .tod-heckle, :root .tod-heckle-face, :root .tod-heckle .tod-banter, :root .tod-res-cup, :root .tod-pod, :root .tod-pod-bar, :root .room-pips i.on { animation: none !important; } }
+
+/* ═══ Карточка вопроса: появление после перелистывания ═══ */
+:root .game-card { animation: slideUp 0.32s var(--ease-out) forwards; }
+:root [data-enter='right'] > .game-card { animation: cardInNext 0.42s var(--ease-out) both; }
+:root [data-enter='left'] > .game-card { animation: cardInPrev 0.42s var(--ease-out) both; }
+@keyframes cardInNext { from { opacity: 0; transform: translate3d(0, 12px, 0) scale(0.965); } to { opacity: 1; transform: none; } }
+@keyframes cardInPrev { from { opacity: 0; transform: translate3d(-30px, 6px, 0) scale(0.97) rotate(-1.4deg); } to { opacity: 1; transform: none; } }
+/* карточки-подсказки под основной: вместо тяжёлого blur() на всём слое размывается только текст (text-shadow), слой двигается лишь через transform и opacity */
+:root .peek-soft .peek-text { color: transparent; text-shadow: 0 0 14px rgb(255 255 255 / 0.55); }
+:root .peek-dim { filter: none; background: linear-gradient(180deg, #14111b, #0d0b12); }
+:root .peek-dim .peek-text { color: rgb(255 255 255 / 0.55); }
+@media (prefers-reduced-motion: reduce) { :root [data-enter] > .game-card { animation: none; } }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Десктопная версия (от 1024 px): верхняя панель, колонки, расширенный подвал, эффекты мыши
+   ═══════════════════════════════════════════════════════════════════════ */
+@media (min-width: 1024px) {
+  html[data-nav='1'] .safe-screen { padding-top: 5.5rem; }
+  /* верхняя панель: лёгкая полупрозрачность без сильного затемнения */
+  :root .desk-nav { position: fixed; top: 0; left: 0; right: 0; z-index: 40; height: 4rem; border-bottom: 1px solid var(--line); background: linear-gradient(180deg, rgb(19 13 26 / 0.72), rgb(19 13 26 / 0.5)); backdrop-filter: blur(10px) saturate(1.2); -webkit-backdrop-filter: blur(10px) saturate(1.2); }
+  :root .desk-nav-in { display: flex; align-items: center; gap: 1.5rem; max-width: 80rem; height: 100%; margin: 0 auto; padding: 0 1.5rem; }
+  :root .desk-links { display: flex; align-items: center; gap: 0.25rem; margin-right: auto; }
+  :root .desk-link { position: relative; min-height: var(--ctl-h); padding: 0 1rem; border-radius: 999px; font-size: 0.9375rem; font-weight: 600; color: var(--text-2); white-space: nowrap; cursor: pointer; transition: color 0.2s ease, background-color 0.2s ease; }
+  :root .desk-link:hover { color: #fff; background: rgb(255 255 255 / 0.07); }
+  :root .desk-link.is-on { color: var(--rose-ink); background: rgb(255 77 109 / 0.14); }
+  :root .desk-link.is-on::after { content: ''; position: absolute; left: 1rem; right: 1rem; bottom: 4px; height: 2px; border-radius: 2px; background: var(--rose); }
+  :root .desk-nav-right { display: flex; align-items: center; gap: 0.625rem; flex: 0 0 auto; }
+  :root .desk-players { max-width: 14rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.8125rem; font-weight: 600; color: var(--text-3); }
+
+  /* колонки: содержимое экрана раскладывается в две колонки равной высоты */
+  :root .desk-cols { display: block; column-count: 2; column-gap: 2rem; }
+  :root .desk-cols > * { break-inside: avoid; margin-bottom: 1.5rem; }
+  :root .desk-cols > *:last-child { margin-bottom: 0; }
+
+  /* экран режимов: три карточки в ряд, вертикальные */
+  :root .mode-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.25rem; }
+  :root .mode-grid .opt-card { flex-direction: column; align-items: flex-start; min-height: 15rem; padding: 1.5rem; }
+  :root .mode-grid .opt-card > span:first-child { width: 3.5rem; height: 3.5rem; font-size: 1.75rem; }
+
+  /* карточки выбора: наклон за курсором и блик (переменные ставит DesktopFx) */
+  html[data-fx] .opt-card:not(:disabled) { position: relative; overflow: hidden; transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); transition: transform 0.18s ease-out, background-color 0.2s ease; will-change: transform; }
+  html[data-fx] .opt-card:not(:disabled):active { transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) scale(0.985); }
+  html[data-fx] .opt-card:not(:disabled)::after { content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0; background: radial-gradient(240px circle at var(--gx, 50%) var(--gy, 0%), rgb(255 255 255 / 0.16), transparent 65%); transition: opacity 0.25s ease; }
+  html[data-fx] .opt-card:not(:disabled):hover::after { opacity: 1; }
+  /* прожектор за курсором и параллакс узоров фона */
+  html[data-fx] .bg-room::before { content: ''; position: absolute; inset: 0; background: radial-gradient(560px circle at var(--mx, 50%) var(--my, 30%), rgb(255 77 109 / 0.10), rgb(255 176 97 / 0.04) 45%, transparent 68%); }
+  html[data-fx] .bg-room .motifs { transform: translate3d(calc(var(--px, 0) * -22px), calc(var(--py, 0) * -14px), 0); transition: transform 0.5s ease-out; }
+
+  /* панель «О сессии» в меню */
+  :root .desk-info { display: flex; flex-direction: column; gap: 0.875rem; padding: 1.25rem; border-radius: var(--r-surface); border: 1px solid var(--line-strong); background: rgb(255 255 255 / 0.03); }
+  :root .desk-info-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.5rem; }
+  :root .desk-info-stats li { display: flex; flex-direction: column; gap: 0.125rem; padding: 0.625rem 0.5rem; border-radius: var(--r-control); border: 1px solid var(--line); text-align: center; }
+  :root .desk-info-stats b { font-family: var(--font-display); font-size: 1.375rem; line-height: 1.1; color: #fff; font-variant-numeric: tabular-nums; }
+  :root .desk-info-stats span { font-size: 0.6875rem; line-height: 1.2; color: var(--text-3); }
+  :root .desk-keys { display: flex; flex-direction: column; gap: 0.5rem; }
+  :root .desk-keys > div { display: flex; align-items: center; gap: 0.75rem; font-size: 0.8125rem; color: var(--text-3); }
+  :root .desk-keys dt { display: inline-flex; gap: 4px; min-width: 4.5rem; }
+  :root kbd { display: inline-flex; align-items: center; justify-content: center; min-width: 1.75rem; height: 1.75rem; padding: 0 0.4rem; border-radius: 8px; border: 1px solid var(--line-strong); border-bottom-width: 2px; background: rgb(255 255 255 / 0.06); font-family: var(--font-ui); font-size: 0.8125rem; font-weight: 700; color: var(--text); }
+
+  /* стрелки по бокам карточки вопроса */
+  :root .desk-arrow { position: absolute; top: 50%; z-index: 15; display: inline-flex; align-items: center; justify-content: center; width: 3.25rem; height: 3.25rem; margin-top: -1.625rem; border-radius: 999px; border: 1px solid var(--line-strong); background: rgb(255 255 255 / 0.06); color: var(--text-2); cursor: pointer; transition: transform 0.2s var(--ease-out), background-color 0.2s ease, color 0.2s ease, opacity 0.2s ease; }
+  :root .desk-arrow.is-left { left: -5rem; } :root .desk-arrow.is-right { right: -5rem; }
+  :root .desk-arrow:hover:not(:disabled) { background: rgb(255 77 109 / 0.18); color: #fff; transform: scale(1.08); }
+  :root .desk-arrow:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  /* «Правда или действие»: игра в две колонки (карточка и действия слева, игроки и ведущий справа) */
+  :root .tod-desk { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 1.75rem; align-items: start; }
+  :root .tod-desk-main, :root .tod-desk-side { display: flex; flex-direction: column; gap: 1.25rem; min-width: 0; }
+  :root .tod-desk-side { position: sticky; top: 5.5rem; }
+  :root .tod-roster.is-col { flex-direction: column; overflow: visible; margin: 0; padding: 0; gap: 0.5rem; }
+  :root .tod-roster.is-col .chip { width: 100%; justify-content: flex-start; }
+  :root .tod-roster.is-col .tod-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  :root .tod-title-main { font-size: 2.125rem; }
+  :root .tod-hero { padding: 1.75rem 1.5rem; }
+  :root .tod-podium { min-height: 17rem; }
+
+  /* расширенный подвал */
+  :root .desk-footer { width: 100%; margin-top: auto; padding: 3rem 1.5rem 1.25rem; border-top: 1px solid var(--line); background: linear-gradient(180deg, transparent, rgb(10 7 16 / 0.55)); }
+  :root .desk-footer-in { display: grid; grid-template-columns: 1.6fr 1fr 1fr 1fr; gap: 2.5rem; max-width: 72rem; margin: 0 auto; }
+  :root .desk-fcol { display: flex; flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+  :root .desk-fcol h2 { margin-bottom: 0.25rem; font-size: 0.875rem; font-weight: 700; color: var(--text); }
+  :root .desk-fcol a { display: inline-flex; align-items: center; min-height: 32px; font-size: 0.875rem; color: var(--text-3); text-decoration: none; transition: color 0.2s ease, transform 0.2s var(--ease-out); }
+  :root .desk-fcol a:hover { color: #fff; transform: translateX(3px); }
+  :root .desk-fbrand p { max-width: 22rem; font-size: 0.875rem; line-height: 1.55; color: var(--text-3); }
+  :root .desk-footer-bar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; max-width: 72rem; margin: 2rem auto 0; padding-top: 1.25rem; border-top: 1px solid var(--line); font-size: 0.8125rem; color: var(--text-3); }
+  :root .desk-footer-bar b { color: var(--rose-300); }
+}
+@media (min-width: 1024px) and (prefers-reduced-motion: reduce) { html[data-fx] .opt-card:not(:disabled) { transform: none; } }
