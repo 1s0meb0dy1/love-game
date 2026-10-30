@@ -5,6 +5,7 @@ import qrcode from 'qrcode-generator';
 import { ABOUT } from './content/about.js';
 import { ABOUT_UK } from './content/about-uk.js';
 import { LEGAL } from './content/legal.js';
+import { LEGAL_UK } from './content/legal-uk.js';
 import { createSessionTasks, createSessionStore, createLiveWriter, mergeTurnHistories } from './session-io.js';
 import { t as tr, tf, setLang as i18nSetLang, getLang, catName as catLabel, diffName as diffLabel, audienceLabel, AUDIENCE_LABELS, CATEGORY_UK, DIFFICULTY_UK, SUPPORTED_LANGS, DEFAULT_LANG, LANG_STORAGE_KEY } from './i18n.js';
 import { TOD_STARTER } from './content/tod-cards.js';
@@ -17,6 +18,7 @@ import { todPickBanter } from './tod/talk.js';
 import { todTitles } from './tod/titles.js';
 import { TodArchive, TodAdmin, TodLobby, TodGame, TodResults, TodAdultModal } from './tod/screens.jsx';
 import { todChannel } from './tod/channel.js';
+import { aiAsk } from './ai/client.js';
 const ReactDOM = { ...ReactDOMAll, createRoot };
 
 // Рання ініціалізація мови з localStorage (щоб t() працювала ще до монтування React).
@@ -266,10 +268,10 @@ i18nSetLang(readStoredLang());
             { id: "Глубокие", name: "Глубокие", classText: "diff-text-3", classBg: "diff-pill-3" }
         ];
 
-        const SCREEN_TO_HASH = { onboarding: '#/welcome', session_created: '#/session-ready', menu: '#/', app_menu: '#/more', game_setup: '#/setup', topics_admin: '#/topics/manage', punish_admin: '#/punishments/manage', tod_admin: '#/tod/manage', tod_lobby: '#/tod', tod_play: '#/tod/play', tod_results: '#/tod/results', analytics: '#/analytics', analytics_sessions: '#/analytics/sessions', hidden_q: '#/questions/hidden', profile_page: '#/profile', admin_login: '#/admin', mode_select: '#/mode', game: '#/play', ai_response: '#/ai', summary: '#/summary', cat_list: '#/topics', q_list: '#/questions', archive_page: '#/archive', add_q: '#/add', edit_q: '#/edit', invite: '#/invite', join: '#/join', about: '#/about', privacy: '#/privacy', terms: '#/terms', cookies: '#/cookies', age: '#/age' };
-        const HASH_TO_SCREEN = { '#/welcome': 'onboarding', '#/session-ready': 'session_created', '#/': 'menu', '#/menu': 'menu', '#/profile': 'profile_page', '#/more': 'app_menu', '#/setup': 'game_setup', '#/topics/manage': 'topics_admin', '#/punishments/manage': 'punish_admin', '#/tod/manage': 'tod_admin', '#/tod': 'tod_lobby', '#/tod/play': 'tod_play', '#/tod/results': 'tod_results', '#/analytics': 'analytics', '#/analytics/sessions': 'analytics_sessions', '#/questions/hidden': 'hidden_q', '#/admin': 'admin_login', '#/mode': 'mode_select', '#/play': 'game', '#/ai': 'ai_response', '#/summary': 'summary', '#/topics': 'cat_list', '#/questions': 'q_list', '#/archive': 'archive_page', '#/add': 'add_q', '#/edit': 'edit_q', '#/invite': 'invite', '#/join': 'join', '#/about': 'about', '#/privacy': 'privacy', '#/terms': 'terms', '#/cookies': 'cookies', '#/age': 'age' };
+        const SCREEN_TO_HASH = { onboarding: '#/welcome', session_created: '#/session-ready', menu: '#/', app_menu: '#/more', game_setup: '#/setup', topics_admin: '#/topics/manage', punish_admin: '#/punishments/manage', tod_admin: '#/tod/manage', tod_lobby: '#/tod', tod_play: '#/tod/play', tod_results: '#/tod/results', analytics: '#/analytics', analytics_sessions: '#/analytics/sessions', hidden_q: '#/questions/hidden', profile_page: '#/profile', admin_login: '#/admin', mode_select: '#/mode', game: '#/play', ai_response: '#/ai', summary: '#/summary', cat_list: '#/topics', q_list: '#/questions', archive_page: '#/archive', add_q: '#/add', edit_q: '#/edit', invite: '#/invite', join: '#/join', about: '#/about', privacy: '#/privacy', terms: '#/terms', cookies: '#/cookies', age: '#/age', copyright: '#/copyright' };
+        const HASH_TO_SCREEN = { '#/welcome': 'onboarding', '#/session-ready': 'session_created', '#/': 'menu', '#/menu': 'menu', '#/profile': 'profile_page', '#/more': 'app_menu', '#/setup': 'game_setup', '#/topics/manage': 'topics_admin', '#/punishments/manage': 'punish_admin', '#/tod/manage': 'tod_admin', '#/tod': 'tod_lobby', '#/tod/play': 'tod_play', '#/tod/results': 'tod_results', '#/analytics': 'analytics', '#/analytics/sessions': 'analytics_sessions', '#/questions/hidden': 'hidden_q', '#/admin': 'admin_login', '#/mode': 'mode_select', '#/play': 'game', '#/ai': 'ai_response', '#/summary': 'summary', '#/topics': 'cat_list', '#/questions': 'q_list', '#/archive': 'archive_page', '#/add': 'add_q', '#/edit': 'edit_q', '#/invite': 'invite', '#/join': 'join', '#/about': 'about', '#/privacy': 'privacy', '#/terms': 'terms', '#/cookies': 'cookies', '#/age': 'age', '#/copyright': 'copyright' };
         // страницы, которые открываются без сессии (по общей ссылке): «Об игре», юридические, быстрое подключение
-        const PUBLIC_SCREENS = ['about', 'privacy', 'terms', 'cookies', 'age', 'join'];
+        const PUBLIC_SCREENS = ['about', 'privacy', 'terms', 'cookies', 'age', 'copyright', 'join'];
         // экраны, которые после перезагрузки страницы нечем наполнить (итоги и разбор опираются на данные партии в памяти): открываем меню
         const RELOAD_TO_MENU = ['ai_response', 'summary'];
         const hashPath = (h) => String(h || '').split('?')[0];
@@ -661,7 +663,7 @@ i18nSetLang(readStoredLang());
             }
             return deck;
         };
-        const SCREEN_TITLES = { hidden_q: 'Скрытые вопросы — ASK ME', analytics: 'Аналитика — ASK ME', analytics_sessions: 'Сессии — Аналитика — ASK ME', app_menu: 'Меню — ASK ME', game_setup: 'Усложнённый режим — ASK ME', topics_admin: 'Управление темами — ASK ME', punish_admin: 'Шаблоны наказаний — ASK ME', tod_admin: 'Карточки — Правда или действие — ASK ME', tod_lobby: 'Правда или действие — ASK ME', tod_play: 'Игра — Правда или действие — ASK ME', tod_results: 'Итоги — Правда или действие — ASK ME', onboarding: 'ASK ME — начните игру', session_created: 'Сессия создана — ASK ME', menu: 'ASK ME — откровенные разговоры для двоих и компании', profile_page: 'Игроки и сессия — ASK ME', admin_login: 'Вход для владельца — ASK ME', mode_select: 'Режим игры — ASK ME', game: 'Игра — ASK ME', ai_response: 'Совет и ситуация — ASK ME', summary: 'Итоги игры — ASK ME', cat_list: 'Все темы — ASK ME', q_list: 'Вопросы — ASK ME', archive_page: 'Архив вопросов — ASK ME', add_q: 'Новый вопрос — ASK ME', edit_q: 'Редактирование вопроса — ASK ME', invite: 'Пригласить игроков — ASK ME', join: 'Присоединиться к игре — ASK ME', about: 'Об игре — ASK ME', privacy: 'Политика конфиденциальности — ASK ME', terms: 'Пользовательское соглашение — ASK ME', cookies: 'Cookies и локальное хранилище — ASK ME', age: 'Возраст и откровенный контент — ASK ME' };
+        const SCREEN_TITLES = { hidden_q: 'Скрытые вопросы — ASK ME', analytics: 'Аналитика — ASK ME', analytics_sessions: 'Сессии — Аналитика — ASK ME', app_menu: 'Меню — ASK ME', game_setup: 'Усложнённый режим — ASK ME', topics_admin: 'Управление темами — ASK ME', punish_admin: 'Шаблоны наказаний — ASK ME', tod_admin: 'Карточки — Правда или действие — ASK ME', tod_lobby: 'Правда или действие — ASK ME', tod_play: 'Игра — Правда или действие — ASK ME', tod_results: 'Итоги — Правда или действие — ASK ME', onboarding: 'ASK ME — начните игру', session_created: 'Сессия создана — ASK ME', menu: 'ASK ME — откровенные разговоры для двоих и компании', profile_page: 'Игроки и сессия — ASK ME', admin_login: 'Вход для владельца — ASK ME', mode_select: 'Режим игры — ASK ME', game: 'Игра — ASK ME', ai_response: 'Совет и ситуация — ASK ME', summary: 'Итоги игры — ASK ME', cat_list: 'Все темы — ASK ME', q_list: 'Вопросы — ASK ME', archive_page: 'Архив вопросов — ASK ME', add_q: 'Новый вопрос — ASK ME', edit_q: 'Редактирование вопроса — ASK ME', invite: 'Пригласить игроков — ASK ME', join: 'Присоединиться к игре — ASK ME', about: 'Об игре — ASK ME', privacy: 'Политика конфиденциальности — ASK ME', terms: 'Пользовательское соглашение — ASK ME', cookies: 'Cookies и локальное хранилище — ASK ME', age: 'Возраст и откровенный контент — ASK ME', copyright: 'Авторские права — ASK ME' };
         const GROUP_EMOJIS = ['😈', '🤫', '😋', '🤔', '🤪', '😏', '😱', '🫣'];
         const MAX_PLAYERS = 10;
         const LIVE_POLL_MS = 1000, LIVE_INVITE_MS = 3000, LIVE_BEAT_MS = 8000, LIVE_ALIVE_MS = 30000, LIVE_STALE_MS = 120000, LIVE_TAKEOVER_S = 6, LIVE_TAKEOVER_STEP_S = 4, LIVE_TAP_GUARD_MS = 500, LIVE_SOLO_MS = 2000, LIVE_JOIN_WAIT_MS = 15000, LIVE_MAX_DEVICES = MAX_PLAYERS;
@@ -692,7 +694,9 @@ i18nSetLang(readStoredLang());
             return str;
         };
         const liveRoomKey = async (key) => { const h = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode('askme-live-v1:' + key))); return 'l_' + Array.from(h).map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 40); };
-        const makeDeviceId = () => { const rnd = () => Math.random().toString(36).slice(2, 10); try { let v = sessionStorage.getItem('askme_dev_v1'); if (!v) { v = rnd(); sessionStorage.setItem('askme_dev_v1', v); } return v; } catch (e) { return rnd(); } };
+        // короткий випадковий ID з криптографічного генератора (ID пристрою й ходу видно іншим гравцям кімнати)
+        const randId = (n) => Array.from(crypto.getRandomValues(new Uint8Array(n)), b => (b % 36).toString(36)).join('');
+        const makeDeviceId = () => { const rnd = () => randId(8); try { let v = sessionStorage.getItem('askme_dev_v1'); if (!v) { v = rnd(); sessionStorage.setItem('askme_dev_v1', v); } return v; } catch (e) { return rnd(); } };
         const normTurn = (e) => {
             if (!e) return null;
             if (typeof e === 'string') return { cur: e, answered: [], skippedBy: [], skippedAll: false };
@@ -783,28 +787,18 @@ i18nSetLang(readStoredLang());
             <footer className="w-full py-6 flex flex-col items-center justify-center gap-3 select-none z-10">
                 {divider && <div aria-hidden="true" className={`footer-rule mb-3 ${wide ? 'is-wide' : ''}`}></div>}
                 <div className="flex items-center justify-center gap-3 opacity-60 hover:opacity-100 transition-opacity"> <AskMeLogo size="xs" /> <span className="text-white/20 text-xs">•</span> <span className="text-xs text-zinc-400 font-semibold"> by <span className="text-rose-400">yedvinn</span> </span> </div>
-                {!noLinks && <nav aria-label={tr("Информация")} className="footer-links"><a href="#/about">{tr("Об игре")}</a><a href="#/privacy">{tr("Конфиденциальность")}</a><a href="#/terms">{tr("Соглашение")}</a></nav>}
+                {!noLinks && <nav aria-label={tr("Информация")} className="footer-links"><a href="#/about">{tr("Об игре")}</a><a href="#/privacy">{tr("Конфиденциальность")}</a><a href="#/terms">{tr("Соглашение")}</a><a href="#/copyright">{tr("© Авторские права")}</a></nav>}
             </footer>
         );
 
-        const callNeuralNet = async (systemPrompt, userPrompt, maxTokens = 900, signal) => {
-            const randomSeed = Math.floor(Math.random() * 10000000);
-            try { const response = await fetchWithTimeout("https://text.pollinations.ai/openai", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: "openai", max_tokens: maxTokens, seed: randomSeed, temperature: 0.92, messages: [ { role: "system", content: systemPrompt }, { role: "user", content: userPrompt } ] }), signal }); if (response.ok) { const data = await response.json(); const content = data?.choices?.[0]?.message?.content; if (content) return content.trim(); } } catch (e) {}
-            return null;
-        };
-
         // Визначити, чи текст українською (за специфічними літерами).
-        const looksUkrainian = (s) => /[іїєґІЇЄҐ]|ʼ|ʼ/.test(String(s || ''));
-        // Автопереклад короткого тексту через Pollinations. target: 'uk' | 'ru'. Повертає переклад або "".
+        const looksUkrainian = (s) => /[іїєґІЇЄҐ]|ʼ/.test(String(s || ''));
+        // Автопереклад короткого тексту (через src/ai/client.js: проксі → Pollinations). target: 'uk' | 'ru'. Повертає переклад або "".
         const translateText = async (text, target) => {
             const clean = String(text || '').replace(/^№\s*\d+\.\s*/, '').trim();
             if (!clean) return '';
-            const sys = target === 'uk'
-                ? "Ти професійний перекладач з російської на українську. Виводь ЛИШЕ переклад, природною грамотною українською, звертання на 'ти'. Якщо є форми роду '(а)','(ла)' — передай українськими відповідниками для обох родів. Без пояснень і лапок навколо."
-                : "Ты профессиональный переводчик с украинского на русский. Выводи ТОЛЬКО перевод, естественным грамотным русским, обращение на 'ты'. Если есть формы рода '(а)','(ла)' — сохрани их. Без пояснений и кавычек вокруг.";
-            const out = await callNeuralNet(sys, "Переклади / Переведи:\n" + clean, 400);
-            if (!out) return '';
-            return out.replace(/^\s*\d+[\.\)]\s*/, '').replace(/^["'«»\s]+|["'«»\s]+$/g, '').trim();
+            const { text: out } = await aiAsk({ type: 'translate', text: clean, to: target, lang: target });
+            return out ? out.replace(/^\s*\d+[\.\)]\s*/, '').replace(/^["'«»\s]+|["'«»\s]+$/g, '').trim() : '';
         };
         // Побудувати пару {ru, uk} з уведеного адміном тексту (мова визначається автоматично).
         const buildBilingual = async (typed) => {
@@ -813,32 +807,22 @@ i18nSetLang(readStoredLang());
             const uk = await translateText(clean, 'uk'); return { ru: clean, uk: uk || '' };
         };
 
-        const synthesizeSmartFallback = (promptType, cleanQuestion, catId, p1Name, p2Name) => {
-            const catObj = CATEGORIES.find(c => c.id === catId) || CATEGORIES[0];
-            const settings = [ `Поздний вечер, за окном мягко светятся огни ночного города, а мы сидим в полумраке с чашками горячего чая`, `Мы едем в машине по ночной трассе, играет тихий плейлист, и атмосфера располагает к откровенности` ];
-            const chosenSetting = settings[Math.floor(Math.random() * settings.length)];
-
-            if (promptType === "situation") { return `🎬 Моделирование ситуации:\n${chosenSetting}. Я ловлю твой взгляд, делаю паузу и с искренним любопытством спрашиваю: «${cleanQuestion}»\n\n👩👨 Как бы ответили большинство:\n• Для большинства это вопрос про эмоциональный подтекст, чувство безопасности и доверие.\n• Кто-то склонен воспринимать такой вопрос более прямолинейно и практично.`; }
-            return `Сервис подсказок сейчас недоступен.\n\nОбсудите вопрос «${cleanQuestion}» в своём темпе: что вы чувствуете, чего хотите и какие границы важны. Это общая подсказка для разговора.`;
+        // «Ситуація» / «Порада»: питання й тема — мовою інтерфейсу, імена гравців не передаються (лише кількість); onChunk — текст потоком
+        const fetchFromAI = async (promptType, questionText, catId, playersCount, signal, onChunk) => {
+            const cleanQuestion = String(questionText || '').replace(/^№\s*\d+\.\s*/, '').trim(); const catObj = CATEGORIES.find(c => c.id === catId);
+            const { text } = await aiAsk({ type: promptType === 'situation' ? 'situation' : 'advice', lang: getLang(), question: cleanQuestion, category: catObj ? catLabel(catObj.id, catObj.name) : '', players: playersCount }, { signal, onChunk });
+            return text;
         };
 
-        const fetchFromAI = async (promptType, questionText, catId, pNames, signal) => {
-            const cleanQuestion = questionText.replace(/^№\s*\d+\.\s*/, '').trim(); const catObj = CATEGORIES.find(c => c.id === catId); const catName = catObj ? catObj.name : "Отношения"; const randomSeed = Math.floor(Math.random() * 999999);
-            let systemPrompt = "", userPrompt = "";
-            if (promptType === "situation") { systemPrompt = "Ты креативный сценарист и психолог отношений. Пиши живо, реалистично, без шаблонов."; userPrompt = `Мы играем (${pNames}). Вопрос из темы "${catName}": "${cleanQuestion}". Сгенерируй новый ответ (код ${randomSeed}) из 2 блоков:\n\n🎬 Моделирование ситуации:\n(1 реалистичная жизненная ситуация из 3 предложений, которая происходит с нами сейчас и подводит к вопросу "${cleanQuestion}". От первого лица "мы").\n\n👩👨 Как бы ответили большинство девушек и парней:\n(Как на этот вопрос обычно отвечают).`; }
-            else { systemPrompt = "Ты практикующий семейный психотерапевт и сексолог."; userPrompt = `Разбери вопрос для игроков (${pNames}) из темы "${catName}": "${cleanQuestion}" (код ${randomSeed}) строго по 6 пунктам:\n\n🧠 Как лучше поступить в этой ситуации:\n👩👨 Как обычно отвечают большинство девушек и парней:\n💡 Интересные факты:\n📊 Статистика:\n🔗 Как это влияет на отношения:\n🛠️ Психологические советы:`; }
-            if (getLang() === 'uk') systemPrompt += " Відповідай українською мовою, зберігаючи ці самі emoji-заголовки блоків.";
-            const netResponse = await callNeuralNet(systemPrompt, userPrompt, 950, signal);
-            if (netResponse) return netResponse; return synthesizeSmartFallback(promptType, cleanQuestion, catId, pNames);
-        };
-
-        const generateUniqueQuestionAI = async (targetCat, targetDiff, allExistingQuestions, pNames) => {
-            const existingSet = new Set(allExistingQuestions.map(q => (q.cleanText || "").toLowerCase().trim()));
-            const diffDesc = targetDiff.id === "Простые" ? "Легкий (прямой, жизненный или пикантный вопрос)" : targetDiff.id === "Средние" ? "Средний (вопрос про личный опыт, желания или отношения)" : "Глубокий (максимально откровенный, психологический или провокационный вопрос)";
-            const systemPrompt = "Ты автор глубоких и острых игр."; const userPrompt = `Придумай ОДИН совершенно новый, уникальный вопрос для игроков (${pNames}). Тема: "${targetCat.name}". Сложность: "${targetDiff.name}" — ${diffDesc}. Код вариации: ${Math.floor(Math.random() * 999999)}. Выведи ТОЛЬКО чистый текст самого вопроса на русском языке на "ты" без кавычек и без номера.`;
-            const aiResult = await callNeuralNet(systemPrompt, userPrompt, 150);
-            if (aiResult) { const cleaned = aiResult.replace(/^["«№\d\.\-\s]+|["»]+$/g, '').trim(); if (cleaned.length > 10 && !existingSet.has(cleaned.toLowerCase())) return cleaned; }
-            return "Какой совет об отношениях ты считаешь самым устаревшим и неправильным?";
+        // нове питання для адмінки: текст мовою інтерфейсу, без повторів наявних
+        const generateUniqueQuestionAI = async (targetCat, targetDiff, allExistingQuestions) => {
+            const existingSet = new Set(allExistingQuestions.flatMap(q => [q.cleanText, q.cleanTextUk]).filter(Boolean).map(x => x.toLowerCase().trim()));
+            for (let i = 0; i < 2; i++) {
+                const { text } = await aiAsk({ type: 'question', lang: getLang(), category: catLabel(targetCat.id, targetCat.name), text: diffLabel(targetDiff.id, targetDiff.name) });
+                const cleaned = String(text || '').replace(/^["«№\d\.\-\s]+|["»]+$/g, '').trim();
+                if (cleaned.length > 10 && !existingSet.has(cleaned.toLowerCase())) return cleaned;
+            }
+            return '';
         };
 
         const reindexSequential = (items) => { return items.map((item, idx) => { const seqNum = idx + 1; const clean = item.cleanText || String(item.text || '').replace(/^№\s*\d+\.\s*/, '').trim(); return { ...item, num: seqNum, cleanText: clean, text: `№ ${seqNum}. ${clean}` }; }); };
@@ -879,11 +863,12 @@ i18nSetLang(readStoredLang());
         };
 
         // ---- юридические страницы ----
-        const LegalRich = ({ text }) => String(text).split(/(\{contact\}|\{operator\})/).map((part, i) => part === '{contact}'
-            ? <a key={i} className="legal-link" href={LEGAL.contact.url} target="_blank" rel="noopener noreferrer">{LEGAL.contact.label}</a>
-            : part === '{operator}' ? LEGAL.operator : part);
+        const legalDoc = () => (getLang() === 'uk' ? LEGAL_UK : LEGAL);
+        const LegalRich = ({ text }) => { const L = legalDoc(); return String(text).split(/(\{contact\}|\{operator\})/).map((part, i) => part === '{contact}'
+            ? <a key={i} className="legal-link" href={L.contact.url} target="_blank" rel="noopener noreferrer">{L.contact.label}</a>
+            : part === '{operator}' ? L.operator : part); };
         const LegalPage = ({ docId, onBack }) => {
-            const doc = LEGAL.docs[docId]; if (!doc) return null;
+            const LEGAL = legalDoc(); const doc = LEGAL.docs[docId]; if (!doc) return null;
             return (<>
                 <PageHeader title={doc.title} onBack={onBack} />
                 <main className="w-full max-w-md flex flex-col gap-5 pt-5 pb-4 legal-doc">
@@ -2135,7 +2120,7 @@ i18nSetLang(readStoredLang());
             // сами вопросы и ход игры отправляются, когда к сессии подключится ещё одно устройство (см. liveGoSync)
             const liveStart = (deck, st) => {
                 const room = liveRoomIdRef.current; if (!room || !profile) return false;
-                const me = deviceIdRef.current, t = Date.now(), ver = liveVerStart(me, t), gid = 'g' + t.toString(36) + Math.random().toString(36).slice(2, 5), hs = liveHistStr(st.hist);
+                const me = deviceIdRef.current, t = Date.now(), ver = liveVerStart(me, t), gid = 'g' + t.toString(36) + randId(3), hs = liveHistStr(st.hist);
                 const idsStr = deck.map(q => String(q.id || q.dbKey)).join(',');
                 liveRoomRef.current = room; liveRoleRef.current = 'host'; liveSyncRef.current = false; liveDeckRef.current = idsStr; liveJoiningRef.current = false;
                 liveRef.current = { ver, t, gid, hash: liveHash(st.idx, st.max, hs), spinId: 0, punId: 0, endedSent: false, appliedAt: 0, reassertAt: 0 };
@@ -2560,15 +2545,16 @@ i18nSetLang(readStoredLang());
                 SoundFX.magic(); setAiType(type); setAiContent(tr('Готовлю подсказку…')); setIsAiTyping(true); navigate('ai_response');
                 // Начало эффекта нового экрана не меняет id; cleanup старого экрана отменяет только свою работу.
                 try {
-                    const names = (profile?.players || []).map((p, i) => 'Игрок ' + (i + 1)).join(' и ');
-                    const response = await fetchFromAI(type, q.cleanText || q.text, q.categoryId, names, controller.signal);
+                    const qText = (lang === 'uk' && q.cleanTextUk) ? q.cleanTextUk : (q.cleanText || q.text);
+                    const onChunk = (t) => { if (!controller.signal.aborted && aiRequestRef.current.id === id && t) setAiContent(String(t).slice(0, 12000)); };
+                    const response = await fetchFromAI(type, qText, q.categoryId, (profile?.players || []).length, controller.signal, onChunk);
                     if (controller.signal.aborted || aiRequestRef.current.id !== id) return;
                     setAiContent(String(response).slice(0, 12000));
                 } catch (error) { if (!controller.signal.aborted && aiRequestRef.current.id === id) setAiContent(tr('Подсказка недоступна. Попробуйте ещё раз')); }
                 finally { if (aiRequestRef.current.id === id) setIsAiTyping(false); }
             };
 
-            const handleGenerateQuestionAI = async () => { if (!isAdmin || isGeneratingQuestion || !ActionGuard.canProceed(800)) return; SoundFX.magic(); setIsGeneratingQuestion(true); try { const randomCat = CATEGORIES[Math.floor(Math.random() * CATEGORIES.length)]; const randomDiff = DIFFICULTIES[Math.floor(Math.random() * DIFFICULTIES.length)]; const pNames = (profile?.players || []).map((p, i) => "Игрок " + (i + 1)).join(" и ") || tr("Пара"); const generatedText = await generateUniqueQuestionAI(randomCat, randomDiff, db, pNames); if (generatedText) { SoundFX.success(); setAddForm({ text: generatedText, cat: randomCat.id, diff: randomDiff.id, targetId: '', aud: 'both' }); } } catch (err) {} finally { setIsGeneratingQuestion(false); } };
+            const handleGenerateQuestionAI = async () => { if (!isAdmin || isGeneratingQuestion || !ActionGuard.canProceed(800)) return; SoundFX.magic(); setIsGeneratingQuestion(true); try { const randomCat = CATEGORIES[Math.floor(Math.random() * CATEGORIES.length)]; const randomDiff = DIFFICULTIES[Math.floor(Math.random() * DIFFICULTIES.length)]; const generatedText = await generateUniqueQuestionAI(randomCat, randomDiff, db); if (generatedText) { SoundFX.success(); setAddForm({ text: generatedText, cat: randomCat.id, diff: randomDiff.id, targetId: '', aud: 'both' }); } } catch (err) {} finally { setIsGeneratingQuestion(false); } };
             const openEditScreen = (questionObj, fromScreen) => { if (!isAdmin) return; SoundFX.click(); setEditingQuestion(questionObj); setEditForm({ text: (lang === 'uk' && questionObj.cleanTextUk) ? questionObj.cleanTextUk : (questionObj.cleanText || questionObj.text.replace(/^№\s*\d+\.\s*/, '')), cat: questionObj.categoryId, diff: questionObj.level, targetId: String(questionObj.targetId || '').startsWith('aud_') ? '' : questionObj.targetId || '', savedTarget: String(questionObj.targetId || '').startsWith('aud_') ? questionObj.targetId : '', aud: questionObj.audience || 'both' }); setReturnScreen(fromScreen); setConfirmModal(null); setResultModal(null); navigate('edit_q'); };
 
             // Фоновий автопереклад: не блокує збереження. Рахує пару ru/uk і дописує text_uk у Firebase + локально.
@@ -2809,7 +2795,7 @@ if (screen === 'app_menu') {
                             </section>
                             {profile && ( <button type="button" onClick={() => { SoundFX.warn(); setShowExitConfirm(true); }} className="btn-danger w-full flex items-center justify-center gap-2"><Icons.Logout /> {tr('Выйти из сессии')}</button> )}
                             <nav aria-label={tr("Документы")} className="legal-links-row">
-                                {LEGAL.order.map(id => <a key={id} href={SCREEN_TO_HASH[id]}>{LEGAL.docs[id].menu}</a>)}
+                                {legalDoc().order.map(id => <a key={id} href={SCREEN_TO_HASH[id]}>{legalDoc().docs[id].menu}</a>)}
                             </nav>
                         </main>
                         <AppFooter noLinks divider={false} />
@@ -3517,9 +3503,10 @@ if (screen === 'mode_select') {
                         <header className="w-full max-w-2xl mx-auto flex items-center justify-between py-2 flex-shrink-0"> <button aria-label={tr("Назад")} onClick={() => { SoundFX.click(); navigate('game'); }} className="btn-icon flex-shrink-0"><Icons.Back /></button> <AskMeLogo size="xs" /> <span className="text-xs font-bold text-zinc-500">№ {currentQ?.num}</span> </header>
                         <main className="flex-1 flex flex-col items-center py-6 pb-28 overflow-y-auto no-scrollbar">
                             <div className="w-full max-w-xl flex flex-col items-center slide-up gap-6">
-                                <div className="text-center space-y-2"> <span className="text-xs font-bold text-rose-400">{isSituation ? tr("Моделирование ситуации") : tr("Разбор психолога")}</span> <p className="text-base font-medium text-zinc-200 px-2">«{currentQ?.cleanText || currentQ?.text}»</p> </div>
+                                <div className="text-center space-y-2"> <span className="text-xs font-bold text-rose-400">{isSituation ? tr("Моделирование ситуации") : tr("Совет от ИИ")}</span> <p className="text-base font-medium text-zinc-200 px-2">«{currentQ?.cleanText || currentQ?.text}»</p> </div>
                                 <div className="hairline-divider"></div>
                                 <div className={`w-full text-left text-zinc-200 text-[15px] md:text-base leading-relaxed whitespace-pre-wrap ${isAiTyping ? 'ai-cursor' : ''}`}>{aiContent}</div>
+                                {!isAiTyping && aiContent && <p className="ui-hint text-center">{tr("Текст создал искусственный интеллект. Он может ошибаться и не заменяет специалиста.")}</p>}
                             </div>
                         </main>
                         <div className="fixed bottom-0 left-0 right-0 p-4 sm:p-6 z-20 bg-gradient-to-t from-[#0a0710] via-[#0a0710]/90 to-transparent"> <div className="max-w-xl mx-auto"> <button onClick={() => { SoundFX.click(); navigate('game'); }} className="btn-primary w-full flex items-center justify-center">{tr("К вопросу")}</button> </div> </div>

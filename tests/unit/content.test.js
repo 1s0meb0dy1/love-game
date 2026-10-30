@@ -37,6 +37,17 @@ T('legal: в документе «Cookies» перечислены все клю
   const pats = [...text.matchAll(/askme_[A-Za-z0-9_*<>]+/g)].filter(m => m[0] !== 'askme_*').map(m => new RegExp('^' + m[0].replace(/<ID>/g, '.*').replace(/\*/g, '.*') + '$')); // в таблице допустимы шаблоны: askme_*_cache_*, askme_sess_<ID>
   const miss = keys.filter(k => !skip.includes(k) && !text.includes(k) && !pats.some(r => r.test(k))); if (miss.length) console.log('не описаны в cookies:', miss.join(', ')); return miss.length === 0; })());
 
+// --- украинская версия юридических страниц (src/content/legal-uk.js): та же структура, текст на украинском ---
+const LEGAL_UK = load('legal-uk', 'LEGAL_UK'); const legalUkStr = strings(LEGAL_UK);
+const legalShape = (d) => JSON.stringify(d.order.map(id => [id, d.docs[id].sections.map(sec => [!!sec.p && sec.p.length, !!sec.list && sec.list.length, !!sec.table && sec.table.length, !!sec.after, /\*$/.test(sec.h)])]));
+T('legal-uk: те же документы, разделы и число абзацев/пунктов/строк, что в legal.js', legalShape(LEGAL_UK) === legalShape(LEGAL));
+T('legal-uk: тот же контакт и дата; заготовки {contact}/{operator} стоят там же', LEGAL_UK.contact.url === LEGAL.contact.url && LEGAL_UK.updated === LEGAL.updated && JSON.stringify(legalUkStr.map(([p, s]) => p + ':' + (s.match(/\{\w+\}/g) || []).join())) === JSON.stringify(legalStr.map(([p, s]) => p + ':' + (s.match(/\{\w+\}/g) || []).join())));
+T('legal-uk: дата по-украински совпадает (' + LEGAL_UK.updatedHuman + ')', (() => { const [y, m, d] = LEGAL_UK.updated.split('-').map(Number); return LEGAL_UK.updatedHuman === d + ' ' + ['січня', 'лютого', 'березня', 'квітня', 'травня', 'червня', 'липня', 'серпня', 'вересня', 'жовтня', 'листопада', 'грудня'][m - 1] + ' ' + y; })());
+const ukRu = legalUkStr.filter(([, s]) => /[ыэъё]/i.test(s)); if (ukRu.length) console.log('русские буквы в legal-uk:', ukRu.slice(0, 5).map(([p]) => p).join(', '));
+T('legal-uk: нет русских букв (ы, э, ъ, ё) и пустых строк', ukRu.length === 0 && legalUkStr.every(([, s]) => s.trim().length > 0));
+T('legal-uk: таблица cookies — те же ключи хранилища, что в русской версии', JSON.stringify(LEGAL_UK.docs.cookies.sections.find(x => x.table).table.slice(0, -2).map(r => r[0])) === JSON.stringify(LEGAL.docs.cookies.sections.find(x => x.table).table.slice(0, -2).map(r => r[0])));
+T('legal: страница «Авторские права» с © и псевдонимом, сторонние лицензии перечислены', ['copyright'].every(id => [LEGAL, LEGAL_UK].every(L => L.docs[id] && /© 20\d\d yedvinn/.test(L.docs[id].lead) && /MIT/.test(JSON.stringify(L.docs[id])) && /Open Font License/.test(JSON.stringify(L.docs[id])))));
+
 // --- стартовый набор «Правда или действие» (src/content/tod-cards.js): загружается так же, как about; карточки проверяет та же модель, что и приложение ---
 {
   let TOD_STARTER = null, todCleanCard = null;
@@ -124,9 +135,9 @@ T('legal: в документе «Cookies» перечислены все клю
     T('tod-titles: 12 титулов, id по таблице, shame у первых 7', Array.isArray(TOD_TITLES) && TOD_TITLES.length === 12 && TOD_TITLES.every((t, i) => t.id === IDS[i] && t.shame === (i < 7) && t.icon && t.name && t.hint));
   }
 }
-const pii = [...aboutStr, ...legalStr].filter(([, s]) => EMAIL.test(s) || PHONE.test(s.replace(/\d{4}-\d{2}-\d{2}/g, '')));
+const pii = [...aboutStr, ...legalStr, ...strings(LEGAL_UK)].filter(([, s]) => EMAIL.test(s) || PHONE.test(s.replace(/\d{4}-\d{2}-\d{2}/g, '')));
 T('в текстах нет адресов почты и номеров телефона' + (pii.length ? ' — найдено: ' + pii.map(x => x[0]).join(', ') : ''), pii.length === 0);
-T('в обоих файлах не светится адрес владельца аккаунта (gmail и подобные)', ![...aboutStr, ...legalStr].some(([, s]) => /gmail|yandex\.|mail\.ru|outlook|icloud/i.test(s)));
+T('в обоих файлах не светится адрес владельца аккаунта (gmail и подобные)', ![...aboutStr, ...legalStr, ...strings(LEGAL_UK)].some(([, s]) => /gmail|yandex\.|mail\.ru|outlook|icloud/i.test(s)));
 
 const shape = (o) => Array.isArray(o) ? '[' + o.map(shape).join(',') + ']' : (o && typeof o === 'object') ? '{' + Object.keys(o).map(k => k + ':' + shape(o[k])).join(',') + '}' : typeof o;
 T('about-uk: структура совпадает с about.js (те же ключи, длины списков и типы)', shape(ABOUT) === shape(ABOUT_UK));
