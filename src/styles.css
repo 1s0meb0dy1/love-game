@@ -84,7 +84,7 @@ html:not([data-heat='mid']):not([data-heat='deep']) .bg-room .h-easy, html[data-
 .bg-room .embers { position: absolute; inset: 0; }
 .bg-room .embers b { position: absolute; left: var(--x); bottom: -3vh; width: var(--s); height: var(--s); border-radius: 50%; opacity: 0; background: radial-gradient(circle, #ffe2b8 0%, rgb(255 176 97 / 0.85) 38%, transparent 72%); animation: ember var(--d) linear var(--l) infinite; }
 .bg-room .grain { position: absolute; inset: 0; opacity: 0.07; background-size: 180px 180px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 0.9 0 0 0 0 0.95 0 0 0 0.9 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
-.bg-room::after { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 90% 70% at 50% 45%, transparent 55%, rgb(5 3 8 / 0.55) 100%); }
+.bg-room::after { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 100% 80% at 50% 40%, transparent 62%, rgb(5 3 8 / 0.28) 100%); }
 /* слои свечения вдвое меньше и растянуты scale(2): растр в 4 раза меньше, радиальный градиент от этого не теряет вид */
 @keyframes glowA { from { transform: translate3d(-4vmax, 0, 0) scale(2); } to { transform: translate3d(5vmax, 6vmax, 0) scale(2.2); } }
 @keyframes glowB { from { transform: translate3d(0, 0, 0) scale(2.1); } to { transform: translate3d(-8vmax, -5vmax, 0) scale(1.88); } }
@@ -196,7 +196,10 @@ html[data-screen='game'] .bg-room .motifs { opacity: 0.55; }
 @media (hover: hover) { :root .field-btn:not(.is-open):hover { border-color: rgb(255 226 238 / 0.36); } }
 :root .menu-pop { position: absolute; top: 100%; margin-top: 0.5rem; z-index: 50; max-height: 15rem; overflow-y: auto; padding: 0.375rem; background: var(--pop); border: 1px solid var(--line-strong); border-radius: var(--r-surface); box-shadow: 0 20px 50px rgba(0,0,0,0.85); scrollbar-width: none; }
 :root .menu-pop::-webkit-scrollbar { display: none; }
-:root .btn-icon.lang-btn { font-size: 0.8125rem; font-weight: 800; letter-spacing: 0.04em; color: var(--text); }
+:root .btn-secondary.lang-btn { gap: 0.25rem; padding: 0 0.75rem 0 0.875rem; font-size: 0.8125rem; font-weight: 800; letter-spacing: 0.04em; color: var(--text); }
+:root .lang-chev { display: inline-flex; color: var(--text-3); transition: transform 0.2s var(--ease-out), color 0.2s ease; }
+:root .lang-chev.is-open { transform: rotate(180deg); color: var(--rose); }
+:root .btn-secondary.lang-btn.is-on { border-color: rgb(255 77 109 / 0.6); background: rgb(255 77 109 / 0.14); }
 :root .menu-opt { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; width: 100%; min-height: var(--ctl-h); padding: 0.5rem 0.875rem; border-radius: var(--r-inner); text-align: left; font-size: 0.9375rem; font-weight: 500; color: var(--text-2); cursor: pointer; transition: background-color 0.15s ease, color 0.15s ease; }
 :root .menu-opt.is-on { color: var(--rose-ink); font-weight: 600; background: rgb(255 77 109 / 0.15); }
 @media (hover: hover) { :root .menu-opt:not(.is-on):hover { background: rgb(255 255 255 / 0.07); color: var(--text); } }
@@ -205,6 +208,11 @@ html[data-screen='game'] .bg-room .motifs { opacity: 0.55; }
 :root .switch.is-on { border-color: rgb(255 255 255 / 0.18); background: linear-gradient(180deg, var(--rose-fill-a) 0%, var(--rose-fill-b) 100%); }
 :root .switch-knob { position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 999px; background: #fff; box-shadow: 0 2px 6px rgb(0 0 0 / 0.35); transition: transform 0.22s var(--ease-out); }
 :root .switch.is-on .switch-knob { transform: translateX(20px); }
+
+/* названия кнопок всегда в одну строку: если не помещаются — шрифт чуть меньше на узких экранах, а длинные подписи сокращаются в тексте */
+:root .btn-primary, :root .btn-secondary, :root .btn-ghost, :root .btn-accent, :root .btn-danger, :root .btn-tile { white-space: nowrap; max-width: 100%; }
+:root .btn-tile { padding: 0 0.75rem; }
+@media (max-width: 359px) { :root .btn-primary, :root .btn-secondary, :root .btn-ghost, :root .btn-accent, :root .btn-danger { padding: 0 0.875rem; font-size: 0.9375rem; } :root .btn-sm { font-size: 0.875rem; padding: 0 0.75rem; } }
 
 /* ── 6. Поля ввода и списки ─────────────────────────────────────────────── */
 input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, textarea { box-sizing: border-box; background-color: rgb(255 255 255 / 0.045); border: 1px solid var(--line-field); border-radius: var(--r-control); color: var(--text); padding-left: 1rem; padding-right: 1rem; font-family: var(--font-ui); font-size: 1rem; line-height: 1.3; transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease; }
@@ -408,3 +416,102 @@ input[aria-invalid='true'], textarea[aria-invalid='true'] { border-color: var(--
 :root .swipe-glow[data-ok='yes'] { --glow-rgb: 255 77 109; } :root .swipe-glow[data-ok='no'] { --glow-rgb: 255 176 97; }
 :root .swipe-shine { position: absolute; top: -20%; bottom: -20%; left: 35%; width: 30%; background: linear-gradient(105deg, transparent, rgb(255 255 255 / 0.10), transparent); will-change: transform; }
 @media (prefers-reduced-motion: reduce) { :root .swipe-shine { display: none; } }
+
+/* ═══ «Правда или действие»: лобби, ход, итоги ═══════════════════════════════ */
+/* аватар игрока: цветная подложка (оттенок --h от номера в очереди) со значком пола */
+:root .tod-avatar { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; width: 1.75rem; height: 1.75rem; border-radius: 999px; font-size: 0.95rem; line-height: 1; background: linear-gradient(145deg, hsl(var(--h) 90% 66%), hsl(calc(var(--h) + 38) 80% 52%)); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.35); }
+:root .tod-avatar-lg { width: 3.5rem; height: 3.5rem; font-size: 1.75rem; box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.4), 0 10px 26px -8px hsl(var(--h) 90% 60% / 0.8); }
+:root .tod-pop { animation: todPop 0.45s var(--ease-out) both; }
+@keyframes todPop { from { opacity: 0; transform: scale(0.7) translate3d(0, 8px, 0); } to { opacity: 1; transform: none; } }
+
+/* герой лобби: веер из двух карточек, которые покачиваются и по нажатию переворачиваются */
+:root .tod-hero { position: relative; overflow: hidden; padding: 1.25rem 1.1rem 1.25rem; border-radius: var(--r-hero); border: 1px solid var(--line-strong); text-align: center; background: radial-gradient(90% 80% at 8% 0%, rgb(255 77 109 / 0.26), transparent 62%), radial-gradient(90% 80% at 100% 100%, rgb(255 176 97 / 0.22), transparent 60%), rgb(255 255 255 / 0.03); }
+:root .tod-fan { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; max-width: 19rem; margin: 0.25rem auto 1rem; perspective: 1000px; }
+:root .tod-face { position: relative; display: block; width: 100%; aspect-ratio: 3 / 4; padding: 0; border: 0; background: none; cursor: pointer; transform: rotate(var(--rot, 0deg)); animation: todSway 5.6s ease-in-out infinite; -webkit-tap-highlight-color: transparent; }
+:root .tod-face-truth { --rot: -5deg; --fa: #ff4d6d; --fb: #b8173f; }
+:root .tod-face-dare { --rot: 5deg; --fa: #ffb061; --fb: #d9692a; animation-delay: -2.8s; }
+@keyframes todSway { 0%, 100% { transform: rotate(var(--rot)) translate3d(0, 0, 0); } 50% { transform: rotate(calc(var(--rot) * -0.35)) translate3d(0, -7px, 0); } }
+:root .tod-face:active { animation-play-state: paused; }
+:root .tod-face-in { position: absolute; inset: 0; transform-style: preserve-3d; transition: transform 0.7s var(--ease-out); }
+:root .tod-face.is-flipped .tod-face-in { transform: rotateY(180deg); }
+:root .tod-face-front, :root .tod-face-back { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.4rem; padding: 0.75rem; border-radius: 20px; backface-visibility: hidden; -webkit-backface-visibility: hidden; border: 1px solid rgb(255 255 255 / 0.22); box-shadow: 0 18px 36px -16px rgb(0 0 0 / 0.8), inset 0 1px 0 rgb(255 255 255 / 0.3); }
+:root .tod-face-front { background: radial-gradient(120% 90% at 20% 0%, rgb(255 255 255 / 0.28), transparent 55%), linear-gradient(160deg, var(--fa), var(--fb)); color: #fff; overflow: hidden; }
+:root .tod-face-front::after { content: ''; position: absolute; top: -20%; bottom: -20%; left: -60%; width: 40%; background: linear-gradient(105deg, transparent, rgb(255 255 255 / 0.35), transparent); transform: skewX(-18deg); animation: todShine 5.6s ease-in-out infinite; }
+:root .tod-face-dare .tod-face-front::after { animation-delay: 2s; }
+@keyframes todShine { 0%, 62% { left: -60%; } 100% { left: 140%; } }
+:root .tod-face-ico { font-size: 2.6rem; line-height: 1; filter: drop-shadow(0 4px 8px rgb(0 0 0 / 0.35)); }
+:root .tod-face-name { font-family: var(--font-display); font-size: 1.05rem; font-weight: 700; letter-spacing: -0.01em; text-shadow: 0 2px 8px rgb(0 0 0 / 0.35); }
+:root .tod-face-hint { font-size: 0.75rem; font-weight: 600; color: rgb(255 255 255 / 0.85); }
+:root .tod-face-back { transform: rotateY(180deg); background: linear-gradient(160deg, rgb(32 21 44), rgb(20 13 28)); border-color: rgb(var(--tod-bc, 255 77 109) / 0.6); justify-content: flex-start; text-align: left; align-items: stretch; gap: 0.5rem; }
+:root .tod-face-dare .tod-face-back { --tod-bc: 255 176 97; }
+:root .tod-face-back-t { font-size: 0.75rem; font-weight: 800; color: rgb(var(--tod-bc, 255 77 109)); }
+:root .tod-face-q { font-size: 0.8125rem; line-height: 1.35; color: var(--text); font-weight: 600; display: -webkit-box; -webkit-line-clamp: 7; -webkit-box-orient: vertical; overflow: hidden; }
+:root .tod-hero-title { font-family: var(--font-display); font-size: 1.15rem; line-height: 1.25; font-weight: 700; color: #fff; text-wrap: balance; }
+:root .tod-hero-meta { margin-top: 0.5rem; font-size: 0.8125rem; color: var(--text-3); font-variant-numeric: tabular-nums; }
+
+/* правила */
+:root .tod-rules { display: flex; flex-direction: column; gap: 0.5rem; }
+:root .tod-rule { display: flex; align-items: flex-start; gap: 0.875rem; padding: 0.875rem 1rem; border-radius: var(--r-surface); border: 1px solid var(--line); background: rgb(255 255 255 / 0.03); }
+:root .tod-rule-lock { border-color: rgb(255 77 109 / 0.4); background: linear-gradient(160deg, rgb(255 77 109 / 0.12), rgb(255 255 255 / 0.02)); }
+:root .tod-rule-ico { flex: 0 0 auto; display: flex; align-items: center; justify-content: center; width: 2.5rem; height: 2.5rem; border-radius: 999px; background: rgb(255 255 255 / 0.07); font-size: 1.25rem; }
+:root .tod-rule-lock .tod-rule-ico { width: 3.5rem; border-radius: 14px; background: rgb(255 77 109 / 0.16); }
+/* анимация-подсказка: три точки заполняются, и «Правда» запирается */
+:root .tod-lockdemo { position: relative; display: inline-flex; align-items: center; gap: 4px; }
+:root .tod-lockdemo i { width: 8px; height: 8px; border-radius: 999px; border: 1.5px solid var(--rose-300); background: transparent; animation: todFill 4.8s linear infinite; }
+:root .tod-lockdemo i:nth-child(2) { animation-delay: 0.5s; } :root .tod-lockdemo i:nth-child(3) { animation-delay: 1s; }
+:root .tod-lockdemo b { position: absolute; inset: -6px -4px; display: flex; align-items: center; justify-content: center; font-size: 1.15rem; opacity: 0; background: rgb(40 16 30 / 0.92); border-radius: 12px; animation: todLock 4.8s linear infinite; }
+@keyframes todFill { 0%, 6% { background: transparent; } 12%, 78% { background: var(--rose); border-color: var(--rose); } 90%, 100% { background: transparent; border-color: var(--rose-300); } }
+@keyframes todLock { 0%, 40% { opacity: 0; transform: scale(0.6); } 48% { opacity: 1; transform: scale(1.12); } 54%, 78% { opacity: 1; transform: scale(1); } 90%, 100% { opacity: 0; transform: scale(0.9); } }
+
+/* свои карточки */
+:root .tod-mine-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; width: 100%; min-height: var(--ctl-h); text-align: left; cursor: pointer; }
+:root .tod-chev { display: inline-flex; color: var(--text-3); transition: transform 0.2s var(--ease-out); }
+:root .tod-chev.is-open { transform: rotate(180deg); color: var(--rose); }
+
+/* кнопка старта: мягкое «дыхание» свечения, чтобы глаз шёл к главному действию */
+:root .tod-go { animation: todGo 2.8s ease-in-out infinite; }
+@keyframes todGo { 0%, 100% { box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.22), 0 10px 28px -8px rgb(255 77 109 / 0.55); } 50% { box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.22), 0 14px 38px -6px rgb(255 77 109 / 0.85); } }
+
+/* ход: игроки в ряд, сцена с аватаром, выбор правды/действия */
+:root .tod-roster { display: flex; gap: 0.5rem; overflow-x: auto; padding: 2px 2px 6px; margin: 0 -2px; scrollbar-width: none; scroll-snap-type: x proximity; }
+:root .tod-roster::-webkit-scrollbar { display: none; }
+:root .tod-roster .chip { flex: 0 0 auto; scroll-snap-align: center; }
+:root .tod-roster .chip.tod-now { box-shadow: 0 0 0 3px rgb(255 77 109 / 0.22), 0 8px 22px -8px rgb(255 77 109 / 0.7); }
+:root .tod-stage { position: relative; display: flex; align-items: center; gap: 0.875rem; padding: 0.875rem 1rem; border-radius: var(--r-surface); border: 1px solid var(--line-strong); background: linear-gradient(135deg, rgb(255 255 255 / 0.06), rgb(255 255 255 / 0.02)); overflow: hidden; }
+:root .tod-stage .tod-avatar-lg { animation: todBob 3.2s ease-in-out infinite; }
+@keyframes todBob { 0%, 100% { transform: translate3d(0, 0, 0); } 50% { transform: translate3d(0, -4px, 0); } }
+:root .tod-turn { min-width: 0; font-family: var(--font-display); font-size: 1.2rem; line-height: 1.2; font-weight: 700; color: #fff; animation: todTurnIn 0.5s var(--ease-out) both; }
+@keyframes todTurnIn { from { opacity: 0; transform: translate3d(14px, 0, 0); } to { opacity: 1; transform: none; } }
+:root .tod-pick { position: relative; overflow: hidden; }
+:root .tod-pick::before { content: ''; position: absolute; inset: 0; background: radial-gradient(70% 60% at 50% 0%, rgb(255 255 255 / 0.14), transparent 70%); opacity: 0; transition: opacity 0.25s ease; pointer-events: none; }
+@media (hover: hover) { :root .tod-pick:not(.is-locked):hover { transform: translate3d(0, -3px, 0); } :root .tod-pick:not(.is-locked):hover::before { opacity: 1; } }
+:root .tod-pick-ico { font-size: 2.25rem; line-height: 1; transition: transform 0.3s var(--ease-out); }
+@media (hover: hover) { :root .tod-pick:not(.is-locked):hover .tod-pick-ico { transform: scale(1.15) rotate(-6deg); } }
+:root .tod-pick-sub { font-size: 0.8125rem; line-height: 1.3; color: var(--text-2); }
+:root .tod-pick.is-locked { cursor: not-allowed; filter: saturate(0.5); border-style: dashed; background: rgb(255 255 255 / 0.03); }
+:root .tod-pick.is-locked .tod-pick-ico { animation: todLockPop 0.5s var(--ease-out) both; }
+@keyframes todLockPop { from { transform: scale(0.4) rotate(-20deg); } to { transform: none; } }
+:root .tod-attn { animation: todAttn 1.6s ease-in-out infinite; border-color: rgb(255 176 97 / 0.9); }
+@keyframes todAttn { 0%, 100% { box-shadow: 0 0 0 0 rgb(255 176 97 / 0.5); } 60% { box-shadow: 0 0 0 10px rgb(255 176 97 / 0); } }
+:root .tod-nope { animation: shakeX 0.4s cubic-bezier(.36,.07,.19,.97) both; }
+:root .tod-pips { display: inline-flex; gap: 5px; margin-top: 0.15rem; }
+:root .tod-pips i { width: 9px; height: 9px; border-radius: 999px; border: 1.5px solid var(--rose-300); box-sizing: border-box; transition: background-color 0.25s ease, transform 0.25s var(--ease-out); }
+:root .tod-pips i.on { background: var(--rose); border-color: var(--rose); transform: scale(1.1); }
+:root .tod-pips.is-locked i.on { background: var(--danger); border-color: var(--danger); }
+:root .tod-ruleline { display: flex; align-items: flex-start; gap: 0.5rem; padding: 0.625rem 0.875rem; border-radius: var(--r-control); border: 1px solid var(--line); background: rgb(255 255 255 / 0.03); font-size: 0.8125rem; line-height: 1.4; color: var(--text-2); }
+:root .tod-ruleline.is-hot { border-color: rgb(255 77 109 / 0.55); background: rgb(255 77 109 / 0.1); color: var(--rose-ink); animation: errIn 0.28s var(--ease-out) both; }
+:root .tod-heat { transition: transform 0.16s var(--ease-out), background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.25s ease; }
+@media (hover: hover) { :root .tod-heat:not(:disabled):hover { box-shadow: 0 10px 26px -12px rgb(var(--tod-c) / 0.9); background: rgb(var(--tod-c) / 0.1); } }
+/* карточка с заданием: цветная кромка по уровню и один блик при появлении */
+:root .tod-card { position: relative; overflow: hidden; border-top: 3px solid rgb(var(--tod-c, 255 255 255) / 0.9); }
+:root .tod-card::after { content: ''; position: absolute; top: 0; bottom: 0; left: -60%; width: 40%; background: linear-gradient(105deg, transparent, rgb(255 255 255 / 0.12), transparent); transform: skewX(-18deg); animation: todSheen 0.9s 0.35s ease-out both; pointer-events: none; }
+@keyframes todSheen { from { left: -60%; } to { left: 140%; } }
+:root .tod-card-easy { --tod-c: var(--tod-easy-rgb); } :root .tod-card-medium { --tod-c: var(--tod-medium-rgb); } :root .tod-card-hard { --tod-c: var(--tod-hard-rgb); }
+/* искры после выполненного задания и падающая курица после пропуска */
+:root .tod-burst { position: absolute; left: 1.75rem; top: 50%; width: 0; height: 0; pointer-events: none; }
+:root .tod-burst i { position: absolute; left: -3px; top: -3px; width: 6px; height: 6px; border-radius: 999px; background: var(--c); animation: todSpark 0.9s var(--ease-out) both; }
+@keyframes todSpark { from { opacity: 1; transform: rotate(var(--a)) translate3d(0, 0, 0) scale(1); } to { opacity: 0; transform: rotate(var(--a)) translate3d(var(--d), 0, 0) scale(0.3); } }
+:root .tod-egg { position: absolute; right: 1rem; top: -2rem; font-size: 1.75rem; pointer-events: none; animation: todDrop 1.1s cubic-bezier(.3,.6,.4,1) both; }
+@keyframes todDrop { 0% { opacity: 0; transform: translate3d(0, 0, 0) rotate(-20deg); } 20% { opacity: 1; } 70% { opacity: 1; transform: translate3d(0, 4.5rem, 0) rotate(12deg); } 100% { opacity: 0; transform: translate3d(0, 5rem, 0) rotate(0deg); } }
+:root .tod-title-ico { display: inline-block; animation: todPop 0.6s 0.2s var(--ease-out) both; }
+@media (prefers-reduced-motion: reduce) { :root .tod-face, :root .tod-stage .tod-avatar-lg, :root .tod-go, :root .tod-attn, :root .tod-lockdemo i, :root .tod-lockdemo b, :root .tod-face-front::after, :root .tod-card::after { animation: none !important; } :root .tod-lockdemo b { opacity: 1; background: transparent; inset: auto; position: static; } }

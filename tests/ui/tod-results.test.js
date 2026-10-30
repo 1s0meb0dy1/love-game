@@ -10,9 +10,10 @@ const finishGame = async (A) => { await step(A, 'Завершить'); await A.p
     let A = await boot(); await A.toLobby();
     await A.tap(A.btns().find(b => b.textContent.trim() === 'Острый' && b.hasAttribute('aria-pressed')));
     await A.startGame();
-    for (let i = 0; i < 3; i++) { await step(A, 'Правда'); await step(A, 'Пропустить'); }
-    await step(A, 'Правда'); await step(A, 'Ответил(а) — передать ход');
-    await step(A, 'Действие'); await step(A, 'Средне'); await step(A, 'Выполнено — передать ход');
+    for (let i = 0; i < 2; i++) { await step(A, 'Правда'); await step(A, 'Пропустить'); }
+    await step(A, 'Действие'); await step(A, 'Легко'); await step(A, 'Пропустить'); // третий пропуск подряд: дальше «Правда» не больше трёх раз подряд
+    await step(A, 'Правда'); await step(A, 'Ответил(а)');
+    await step(A, 'Действие'); await step(A, 'Средне'); await step(A, 'Выполнено');
     await finishGame(A);
     const txt = A.text();
     const shame = [...A.D.querySelectorAll('.tod-title-shame')].map(x => x.textContent);

@@ -49,7 +49,12 @@ const rk = todTitles(run(start(3), [...DONE(), ...SKIP, ...DONE(), ...DONE(), ..
 T('rank упорядочен: больше выполнено выше, при равенстве меньше пропусков', same(rk.map(r => r.p), [0, 2, 1]) && rk[0].done === 2 && rk[1].skips === 0 && rk[2].skips === 1);
 const easyLife = todTitles(run(start(2), [...DONE('easy'), ...DONE('easy'), ...DONE('easy'), ...DONE('easy'), ...DONE('easy'), ...DONE('easy'), ...DONE('easy'), ...DONE('easy')]), TOD_TITLES);
 T('4 выбора «Легко» из 4 -> easy_life; при включённых жёстких — и careful (не больше двух)', same(idsOf(easyLife.shame, 0), ['easy_life', 'careful']));
-const fear = todTitles(run(start(2), [...TRUTH_DONE, ...TRUTH_DONE, ...TRUTH_DONE, ...TRUTH_DONE, ...TRUTH_DONE, ...TRUTH_DONE, ...TRUTH_DONE, ...TRUTH_DONE, ...TRUTH_DONE, ...TRUTH_DONE]), TOD_TITLES);
-T('5 «Правд» без пропусков -> afraid_dare (позор) и добрый титул; у кого больше жёстких — «Герой вечера», у второго — fearless', fear.clean && [0, 1].every(p => idsOf(fear.shame, p)[0] === 'afraid_dare' && idsOf(fear.cheer, p).length === 1) && fear.cheer.filter(x => x.id === 'hero').length === 1 && fear.cheer.some(x => x.id === 'fearless'));
+// «Правда» не больше 3 раз подряд: по три правды у каждого (больше без «Действия» подряд не бывает) -> afraid_dare; по два + свободное «Действие» -> нет
+const fear = todTitles(run(start(2), [...TRUTH_DONE, ...TRUTH_DONE, ...TRUTH_DONE, ...TRUTH_DONE, ...TRUTH_DONE, ...TRUTH_DONE]), TOD_TITLES);
+T('3 «Правды» подряд у каждого без «Действий» -> afraid_dare (позор) у обоих', fear.clean && [0, 1].every(p => idsOf(fear.shame, p)[0] === 'afraid_dare'));
+const brave = todTitles(run(start(2), [...TRUTH_DONE, ...TRUTH_DONE, ...DONE('easy'), ...DONE('easy'), ...TRUTH_DONE, ...TRUTH_DONE]), TOD_TITLES);
+T('«Действие» выбрано по своей воле (2 правды, 1 действие) -> afraid_dare нет', [0, 1].every(p => !idsOf(brave.shame, p).includes('afraid_dare')));
+const forced = todTitles(run(start(2), [...TRUTH_DONE, ...TRUTH_DONE, ...TRUTH_DONE, ...TRUTH_DONE, ...TRUTH_DONE, ...TRUTH_DONE, ...DONE('easy'), ...DONE('easy')]), TOD_TITLES);
+T('«Действие» только после трёх правд подряд (принуждение) -> afraid_dare остаётся', [0, 1].every(p => idsOf(forced.shame, p).includes('afraid_dare')));
 
 finish();

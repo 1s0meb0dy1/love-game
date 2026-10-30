@@ -2,10 +2,10 @@
 const { loadTod } = require('../tod-load.js');
 const res = []; const T = (n, c) => res.push((c ? 'PASS ' : 'FAIL ') + n);
 const finish = () => { console.log(res.join('\n')); console.log('--- captured runtime errors: 0'); process.exit(res.some(l => l.startsWith('FAIL')) ? 1 : 0); };
-const NAMES = ['todBuildDeck', 'todStart', 'todApply', 'todSanitize', 'todStStr'];
+const NAMES = ['todBuildDeck', 'todStart', 'todApply', 'todSanitize', 'todStStr', 'todTruthLocked', 'todTruthRun', 'TOD_TRUTH_LIMIT'];
 let M = null;
 try { M = loadTod(['tod/model.js', 'tod/deck.js', 'tod/engine.js'], NAMES); } catch (e) { T('модуль src/tod/engine.js загружается: ' + (e && e.message), false); finish(); }
-const { todBuildDeck, todStart, todApply, todSanitize, todStStr } = M;
+const { todBuildDeck, todStart, todApply, todSanitize, todStStr, todTruthLocked, todTruthRun, TOD_TRUTH_LIMIT } = M;
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
 // 30 карточек: по 5 на «правду» каждого уровня и на каждый уровень «действия»
@@ -63,6 +63,19 @@ const cyc = run(s0, [...lvlEasy, ...lvlEasy, ...lvlEasy, ...lvlEasy, ...lvlEasy,
 T('круг колоды: после исчерпания пула событие deck_cycle', !cyc.fail && cyc.evs[16] === 'deck_cycle' && !cyc.evs.slice(0, 16).includes('deck_cycle') && cyc.st.cur['dare.easy'].round === 1);
 const tr3 = run(start(), [{ t: 'choose', type: 'truth' }, { t: 'skip' }, { t: 'choose', type: 'truth' }, { t: 'skip' }, { t: 'choose', type: 'truth' }]);
 T('3 выбора «правда» подряд одним игроком -> same_type_streak на третьем', tr3.evs[0] === 'chose_truth' && tr3.evs[2] === 'chose_truth' && tr3.evs[4] === 'same_type_streak');
+// «Правда» не больше трёх раз подряд: четвёртая отклоняется, «Действие» сбрасывает серию
+const truthSkip = [{ t: 'choose', type: 'truth' }, { t: 'skip' }];
+const tl = run(start(), [...truthSkip, ...truthSkip, ...truthSkip]);
+const tl4 = todApply(tl.st, { t: 'choose', type: 'truth', seq: tl.st.seq }, ctxH);
+T('лимит правды: после 3 правд подряд todTruthLocked, 4-я правда отклонена с причиной locked, состояние не меняется', TOD_TRUTH_LIMIT === 3 && todTruthRun(tl.st) === 3 && todTruthLocked(tl.st) && !tl4.ok && tl4.reason === 'locked' && same(tl4.state, tl.st));
+const tlDare = run(tl.st, [{ t: 'choose', type: 'dare' }, { t: 'level', diff: 'easy' }, { t: 'skip' }]);
+T('после «Действия» серия правды сброшена: todTruthRun 0, правда снова доступна', !tlDare.fail && todTruthRun(tlDare.st) === 0 && !todTruthLocked(tlDare.st) && todApply(tlDare.st, { t: 'choose', type: 'truth', seq: tlDare.st.seq }, ctxH).ok);
+const lvlOnly = todApply(run(start(), [{ t: 'choose', type: 'truth' }]).st, { t: 'choose', type: 'truth', seq: 1 }, ctxH);
+T('lock считается только в фазе выбора: повторный choose в фазе card отклонён как phase, а не locked', !lvlOnly.ok && lvlOnly.reason === 'phase');
+const pass3 = [{ t: 'choose', type: 'truth' }, { t: 'done' }, { t: 'choose', type: 'dare' }, { t: 'level', diff: 'easy' }, { t: 'done' }];
+const tp = run(start(), [...pass3, ...pass3, ...pass3]);
+T('лимит у каждого игрока свой: у Макса 3 правды подряд -> заперто, у Ани (выбирает действия) нет', !tp.fail && tp.st.turn === 0 && todTruthLocked(tp.st) && todTruthRun(tp.st) === 3 && !todTruthLocked({ ...tp.st, turn: 1 }));
+T('todSanitize сохраняет серию: после круглой передачи через строку lock тот же', (() => { const back = todSanitize(JSON.parse(todStStr(tp.st)), deckHard); return !!back && todTruthLocked(back); })());
 const ez3 = run(start(), [{ t: 'choose', type: 'dare' }, { t: 'level', diff: 'easy' }, { t: 'skip' }, { t: 'choose', type: 'dare' }, { t: 'level', diff: 'easy' }, { t: 'skip' }, { t: 'choose', type: 'truth' }, { t: 'skip' }, { t: 'choose', type: 'dare' }, { t: 'level', diff: 'easy' }]);
 T('3 уровня easy подряд -> easy_only', ez3.evs[9] === 'easy_only' && ez3.st.stat[0].re === 3);
 

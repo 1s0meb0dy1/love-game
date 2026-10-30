@@ -62,12 +62,38 @@ const done = (A) => { errs.push(...A.errors); A.close(); };
     T('адрес #/tod/play без партии (перезагрузка) -> главная', A.hashNow() === '#/' && !A.text().includes('Ход игрока'));
     done(A);
 
+    // новое лобби: правила, перевороты карточек, свои карточки на устройстве
+    A = await boot(); await A.toLobby();
+    T('лобби: блок «Правила» с правилом про 3 правды подряд и «Пропуск — это позор»', A.text().includes('«Правда» — не больше 3 раз подряд') && A.text().includes('Пропуск — это позор') && !!A.D.querySelector('.tod-lockdemo'));
+    T('лобби: «В колоде» считает карточки по текущим настройкам (без жёстких: 7 правд · 7 действий)', A.text().includes('В колоде: 7 правд · 7 действий'));
+    const face = A.D.querySelector('.tod-face-truth'); await A.tap(face, 400);
+    const faceQ = A.D.querySelector('.tod-face-truth .tod-face-q');
+    T('нажатие на карточку «Правда» переворачивает её и показывает пример из базы (не жёсткий)', face.classList.contains('is-flipped') && !!faceQ && /^Правда (лёгкая|средняя)/.test(faceQ.textContent) && face.getAttribute('aria-pressed') === 'true');
+    await A.tap(face, 300); T('второе нажатие возвращает карточку лицом', !face.classList.contains('is-flipped'));
+    const hardSw = A.D.querySelector('button[role="switch"][aria-label="Жёсткие 18+"]'); await A.tap(hardSw, 300);
+    T('«Жёсткие 18+» добавляют в колоду жёсткие карточки: 9 правд · 9 действий', A.text().includes('В колоде: 9 правд · 9 действий')); await A.tap(hardSw, 300);
+    T('свои карточки: переключателя нет, пока карточек нет', !A.D.querySelector('button[role="switch"][aria-label="Добавить мои карточки"]') && A.text().includes('Свои карточки · 0'));
+    await A.press('Свои карточки', 300);
+    const setArea = (v) => { const ta = A.D.querySelector('textarea[aria-label="Текст карточки"]'); Object.getOwnPropertyDescriptor(A.w.HTMLTextAreaElement.prototype, 'value').set.call(ta, v); ta.dispatchEvent(new A.w.Event('input', { bubbles: true })); };
+    await A.press('Добавить карточку', 300);
+    T('пустой текст не добавляется: показана ошибка', A.text().includes('Введите текст карточки') && A.text().includes('Свои карточки · 0'));
+    setArea('Какой у тебя самый странный страх?'); await A.press('Добавить карточку', 400);
+    T('своя «Правда» добавлена: счётчик 1, текст в списке, ключ хранилища заполнен, колода 8 правд', A.text().includes('Свои карточки · 1') && A.text().includes('Какой у тебя самый странный страх?') && /странный страх/.test(A.w.localStorage.getItem('askme_tod_mine_v1') || '') && A.text().includes('В колоде: 8 правд · 7 действий'));
+    T('после добавления появился переключатель «Добавить мои карточки» и он включён', (() => { const m = A.D.querySelector('button[role="switch"][aria-label="Добавить мои карточки"]'); return !!m && m.getAttribute('aria-checked') === 'true'; })());
+    setArea('  какой у тебя самый   странный страх?  '); await A.press('Добавить карточку', 400);
+    T('повтор (без учёта регистра и пробелов) отклонён', A.text().includes('Такая карточка у вас уже есть') && A.text().includes('Свои карточки · 1'));
+    const m = A.D.querySelector('button[role="switch"][aria-label="Добавить мои карточки"]'); await A.tap(m, 300);
+    T('выключенный переключатель убирает свои карточки из колоды: снова 7 правд', A.text().includes('В колоде: 7 правд · 7 действий')); await A.tap(m, 300);
+    await A.tap(A.btns().find(b => (b.getAttribute('aria-label') || '').startsWith('Удалить: Какой у тебя')), 300);
+    T('удаление своей карточки: счётчик 0, переключатель исчез, хранилище пустое', A.text().includes('Свои карточки · 0') && !A.D.querySelector('button[role="switch"][aria-label="Добавить мои карточки"]') && A.w.localStorage.getItem('askme_tod_mine_v1') === '[]');
+    done(A);
+
     A = await boot({ lang: 'uk' });
     T('украинский интерфейс: карточка режима на экране режимов переведена', !!A.btn('Правда чи дія') && A.text().includes('сором за пропуск'));
     await A.press('Правда чи дія', 500);
     T('украинский интерфейс: лобби и кнопка старту переведены', A.hashNow() === '#/tod' && !!A.btn('Почати гру') && A.text().includes('Підколки') && !A.text().includes('Начать игру'));
     await A.press('Почати гру', 500); await A.sleep(520); await A.press('Правда', 450);
-    T('украинский интерфейс: экран ходу и подколка переведены', A.heading().startsWith('Хід гравця:') && !!A.btn('Відповів(ла) — передати хід') && !!A.banter() && !/[ыэъё]/i.test(A.banter()));
+    T('украинский интерфейс: экран ходу и подколка переведены', A.heading().startsWith('Хід гравця:') && !!A.btn('Відповів(ла)') && !!A.banter() && !/[ыэъё]/i.test(A.banter()));
     done(A);
   } catch (e) { T('сценарий выполнился без исключений: ' + (e && e.message), false); }
   console.log(res.join('\n')); console.log('--- captured runtime errors: ' + errs.length); errs.slice(0, 5).forEach(e => console.log(e));

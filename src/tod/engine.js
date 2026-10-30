@@ -8,6 +8,11 @@ const TOD_PHASES = ['choose', 'level', 'card', 'ended'];
 const todEvKeys = ['turn_start', 'chose_truth', 'chose_dare', 'level_easy', 'level_medium', 'level_hard', 'done', 'done_hard', 'skip_1', 'skip_2', 'skip_3', 'skip_hard', 'redeem', 'same_type_streak', 'easy_only', 'deck_cycle', 'game_end'];
 const todLv = ['easy', 'medium', 'hard'];
 
+// «Правда» подряд: после TOD_TRUTH_LIMIT выборов правды одним игроком четвёртая правда недоступна — обязательно «Действие» (серия сбрасывается выбором действия)
+export const TOD_TRUTH_LIMIT = 3;
+export const todTruthRun = (st) => { const s = st && Array.isArray(st.stat) ? st.stat[st.turn] : null; return s && Array.isArray(s.rt) && s.rt[0] === 0 ? s.rt[1] : 0; };
+export const todTruthLocked = (st) => !!st && st.phase === 'choose' && todTruthRun(st) >= TOD_TRUTH_LIMIT;
+
 // нулевая статистика игрока: d/s — выполнено/пропущено по TOD_POOLS, dh/sh — жёстких, c — выборы [правда, действие], l — выборы уровня,
 // ms — максимум пропусков подряд, rd — выполнено после 2+ пропусков, rt — серия одинаковых выборов [тип|-1, n], re — серия «Легко» подряд
 const todZeroStat = () => ({ d: [0, 0, 0, 0], s: [0, 0, 0, 0], dh: 0, sh: 0, c: [0, 0], l: [0, 0, 0], ms: 0, rd: 0, rt: [-1, 0], re: 0 });
@@ -37,6 +42,7 @@ export const todApply = (state, action, ctx) => {
   if (action.t === 'choose') {
     if (st.phase !== 'choose' || !['truth', 'dare'].includes(action.type)) return todNo(state, 'phase');
     const ti = action.type === 'truth' ? 0 : 1;
+    if (ti === 0 && todTruthLocked(st)) return todNo(state, 'locked');
     let cycled = false;
     if (ti === 0) {
       const r = todNext(deck, st.cur, 'truth'); if (!r) return todNo(state, 'empty');
