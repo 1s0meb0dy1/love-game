@@ -3336,7 +3336,7 @@ if (screen === 'mode_select') {
                             <button disabled={stats.availableActive === 0} onClick={() => { SoundFX.click(); setHardMode(false); startWithMode('normal', { hard: false }); }} className="opt-card opt-brand">
                                 <span aria-hidden="true" className="w-12 h-12 rounded-xl bg-rose-500/20 flex items-center justify-center text-2xl flex-shrink-0">💬</span>
                                 <span className="flex-1 min-w-0 flex flex-col gap-1.5">
-                                    <span className="flex items-center justify-between gap-2"><span className="font-bold text-sm text-white">{tr("Обычный режим")}</span> <span className="text-xs font-bold px-2.5 py-0.5 rounded-lg bg-rose-500/25 text-rose-200">{stats.availableActive} {tr("вопр.")}</span></span>
+                                    <span className="flex items-center justify-between gap-2"><span className="font-bold text-sm text-white">{tr("Обычный режим")}</span> <span className="flex-shrink-0 whitespace-nowrap text-xs font-bold px-2.5 py-0.5 rounded-lg bg-rose-500/25 text-rose-200">{stats.availableActive} {tr("вопр.")}</span></span>
                                     <span className="text-xs text-zinc-300 leading-relaxed">{tr("Без лишних настроек: жребий определяет, кто отвечает первым. Пройденные вопросы уходят в Архив.")}</span>
                                 </span>
                             </button>
@@ -3361,7 +3361,7 @@ if (screen === 'mode_select') {
                                 <button onClick={() => { SoundFX.click(); setHardMode(false); startWithMode('test'); }} className="opt-card">
                                     <span aria-hidden="true" className="w-12 h-12 rounded-xl bg-white/[0.07] flex items-center justify-center text-2xl flex-shrink-0">🧪</span>
                                     <span className="flex-1 min-w-0 flex flex-col gap-1.5">
-                                        <span className="flex items-center justify-between gap-2"><span className="font-bold text-sm text-zinc-200">{tr("Тестовый режим")}</span> <span className="text-xs font-bold px-2.5 py-0.5 rounded-lg bg-white/[0.10] text-zinc-300">{stats.availableTotal > 0 ? stats.availableTotal : db.length} {tr("вопр.")}</span></span>
+                                        <span className="flex items-center justify-between gap-2"><span className="font-bold text-sm text-zinc-200">{tr("Тестовый режим")}</span> <span className="flex-shrink-0 whitespace-nowrap text-xs font-bold px-2.5 py-0.5 rounded-lg bg-white/[0.10] text-zinc-300">{stats.availableTotal > 0 ? stats.availableTotal : db.length} {tr("вопр.")}</span></span>
                                         <span className="text-xs text-zinc-400 leading-relaxed">{tr("Для владельца: все вопросы (включая Архив) и редактирование карточек.")}</span>
                                     </span>
                                 </button>
@@ -3418,7 +3418,7 @@ if (screen === 'mode_select') {
 
                             <div className="flex flex-col items-center text-center gap-3 py-1">
                                 <AskMeLogo size="lg" onClick={handleLogoSecretTap} />
-                                <p className="text-rose-400 text-xs sm:text-xs font-extrabold mt-0.5 drop-shadow-[0_0_14px_rgba(244,63,94,0.45)]">
+                                <p className="text-rose-400 text-xs sm:text-xs font-extrabold mt-0.5">
                                     {!profile ? tr("Откровенные разговоры для пар и компаний") : isGroup ? tr("Откровенные разговоры для компании") : tr("Откровенные разговоры для двоих")}
                                 </p>
                                 {profile ? (
@@ -3546,7 +3546,7 @@ if (screen === 'mode_select') {
                             {showPrevPeek && ( <div ref={peekPrevRef} aria-hidden="true" data-peek="prev" className="peek-dim absolute inset-0 z-[5] rounded-[28px] border border-white/10 bg-gradient-to-b from-[#1b1824] to-[#100e16] px-6 pt-9 pb-6 flex flex-col items-center justify-center text-center pointer-events-none select-none overflow-hidden" style={{ opacity: 0, willChange: 'transform, opacity' }}>{peekBody(prevQ)}</div> )}
                             <div ref={cardRef} className="relative z-10 w-full" style={{ willChange: 'transform, opacity', touchAction: 'pan-y' }}>
                             <div ref={glowRef} aria-hidden="true" className="swipe-glow" data-side="right" data-ok="yes"><span className="swipe-shine"></span></div>
-                            {swipeHint && ( <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10 px-3 py-1 rounded-full text-xs font-bold bg-white/[0.10] border border-white/[0.16] text-zinc-100 pointer-events-none fade-in">{swipeHint}</div> )}
+                            {swipeHint && ( <div className="absolute -top-11 left-1/2 -translate-x-1/2 z-10 px-3 py-1 rounded-full text-xs font-bold bg-white/[0.10] border border-white/[0.16] text-zinc-100 pointer-events-none fade-in">{swipeHint}</div> )}
                             <div className="game-card relative w-full flex flex-col items-center justify-center rounded-[28px] border border-white/10 bg-gradient-to-b from-[#1b1824] to-[#100e16] px-6 pt-7 pb-6 sm:px-8 shadow-[0_32px_64px_-24px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.07)]" style={{ minHeight: 'min(60dvh, 540px)' }} key={currentQ.dbKey + '_' + currentIndex}>
                                 <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 h-7 rounded-full bg-[#1b1824] border border-white/[0.16] flex items-center gap-2 text-xs font-bold text-zinc-300 whitespace-nowrap">{tr("Вопрос №")} {currentQ.num} {gameMode === 'test' && currentQ.archived && ( <span className="text-xs px-1.5 rounded bg-white/[0.10] text-zinc-300">{tr("В архиве")}</span> )}</div>
                                 <div className="flex flex-col items-center gap-1.5 mb-6 pt-2">

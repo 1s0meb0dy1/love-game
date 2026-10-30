@@ -584,10 +584,6 @@ input[aria-invalid='true'], textarea[aria-invalid='true'] { border-color: var(--
 :root [data-enter='left'] > .game-card { animation: cardInPrev 0.42s var(--ease-out) both; }
 @keyframes cardInNext { from { opacity: 0; transform: translate3d(0, 12px, 0) scale(0.965); } to { opacity: 1; transform: none; } }
 @keyframes cardInPrev { from { opacity: 0; transform: translate3d(-30px, 6px, 0) scale(0.97) rotate(-1.4deg); } to { opacity: 1; transform: none; } }
-/* карточки-подсказки под основной: вместо тяжёлого blur() на всём слое размывается только текст (text-shadow), слой двигается лишь через transform и opacity */
-:root .peek-soft .peek-text { color: transparent; text-shadow: 0 0 14px rgb(255 255 255 / 0.55); }
-:root .peek-dim { filter: none; background: linear-gradient(180deg, #14111b, #0d0b12); }
-:root .peek-dim .peek-text { color: rgb(255 255 255 / 0.55); }
 @media (prefers-reduced-motion: reduce) { :root [data-enter] > .game-card { animation: none; } }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -665,3 +661,50 @@ input[aria-invalid='true'], textarea[aria-invalid='true'] { border-color: var(--
   :root .desk-footer-bar b { color: var(--rose-300); }
 }
 @media (min-width: 1024px) and (prefers-reduced-motion: reduce) { html[data-fx] .opt-card:not(:disabled) { transform: none; } }
+
+/* ═══ Волна 4: спокойнее свечение, крупная карточка в «Правде или действии», компактный «Ход игрока», естественное размытие подложки ═══ */
+/* свечение кнопок и блоков: заметно тише, без пульсации; цвет остаётся акцентом, а не подсветкой */
+:root .btn-primary { box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.18), 0 6px 14px -9px rgb(255 77 109 / 0.35); }
+@media (hover: hover) { :root .btn-primary:not(:disabled):hover { filter: brightness(1.06); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.22), 0 8px 18px -9px rgb(255 77 109 / 0.42); } }
+:root .seg-btn.is-active { box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.18), 0 3px 8px -5px rgb(255 77 109 / 0.4); }
+:root .fx-card.is-on { box-shadow: 0 8px 18px -16px rgb(255 77 109 / 0.35); }
+:root .tod-go { animation: none; box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.18), 0 6px 14px -9px rgb(255 77 109 / 0.4); }
+:root .turn-tag { animation: turnIn 0.55s cubic-bezier(.2,.9,.25,1.15) both; }
+@keyframes turnDot { 0%, 100% { box-shadow: 0 0 0 0 rgb(255 107 136 / 0.4); } 60% { box-shadow: 0 0 0 5px rgb(255 107 136 / 0); } }
+:root .tod-roster .chip.tod-now { box-shadow: 0 0 0 2px rgb(255 77 109 / 0.2); }
+:root .tod-attn { animation: none; box-shadow: 0 0 0 2px rgb(255 176 97 / 0.35); }
+:root .tod-avatar-lg { box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.35), 0 4px 10px -6px hsl(var(--h) 90% 60% / 0.45); }
+:root .tod-heckle-face { box-shadow: 0 4px 10px -7px rgb(201 139 255 / 0.5); }
+:root .tod-heckle .tod-banter { box-shadow: 0 8px 18px -14px rgb(201 139 255 / 0.5); }
+:root .tod-heckle.is-spicy .tod-heckle-face { box-shadow: 0 4px 10px -7px rgb(255 77 109 / 0.55); }
+:root .tod-heckle.is-spicy .tod-banter { box-shadow: 0 8px 18px -14px rgb(255 77 109 / 0.55); }
+:root .tod-res-cup { filter: drop-shadow(0 4px 8px rgb(255 176 97 / 0.25)); animation: todCup 1.1s var(--ease-out) both; }
+:root .tod-pod-1 .tod-pod-bar { box-shadow: 0 8px 18px -14px rgb(255 214 79 / 0.45); }
+:root .toast { box-shadow: 0 14px 34px -12px rgb(0 0 0 / 0.8), 0 0 14px -8px rgb(var(--t-rgb) / 0.3); }
+:root .swipe-glow::before { box-shadow: inset 0 0 0 2px rgb(var(--glow-rgb) / 0.5), 0 0 26px -8px rgb(var(--glow-rgb) / 0.35); }
+:root .tod-hero { background: radial-gradient(90% 80% at 8% 0%, rgb(255 77 109 / 0.16), transparent 62%), radial-gradient(90% 80% at 100% 100%, rgb(255 176 97 / 0.12), transparent 60%), rgb(255 255 255 / 0.03); }
+:root .tod-res-hero { background: radial-gradient(90% 90% at 50% 0%, rgb(255 176 97 / 0.16), transparent 62%), radial-gradient(80% 80% at 100% 100%, rgb(255 77 109 / 0.1), transparent 60%), rgb(255 255 255 / 0.03); }
+:root .about-hero { background: radial-gradient(120% 90% at 0% 0%, rgb(255 77 109 / 0.14), transparent 60%), radial-gradient(90% 80% at 100% 100%, rgb(201 139 255 / 0.09), transparent 60%), rgb(255 255 255 / 0.03); }
+html[data-fx] .bg-room::before { background: radial-gradient(560px circle at var(--mx, 50%) var(--my, 30%), rgb(255 77 109 / 0.07), rgb(255 176 97 / 0.03) 45%, transparent 68%); }
+
+/* карточка с заданием — главный объект экрана: крупная, с большим текстом по центру */
+:root .tod-card { min-height: clamp(15rem, 40dvh, 25rem); padding: 1.5rem 1.5rem 1.75rem; gap: 0.75rem; }
+:root .tod-card .tod-lvl { font-size: 0.9375rem; }
+:root .tod-card p { margin-block: auto; font-size: clamp(1.5rem, 6.2vw, 1.875rem); line-height: 1.25; font-weight: 600; text-wrap: pretty; }
+@media (min-width: 1024px) { :root .tod-card { min-height: 24rem; padding: 2rem 2.25rem 2.25rem; } :root .tod-card p { font-size: 2.125rem; } :root .tod-card .tod-lvl { font-size: 1rem; } }
+/* «Ход игрока»: компактная строка вместо большого блока */
+:root .tod-stage { gap: 0.625rem; padding: 0.5rem 0.75rem; border-radius: var(--r-control); }
+:root .tod-stage .tod-avatar-lg { width: 2.25rem; height: 2.25rem; font-size: 1.15rem; animation: none; }
+:root .tod-turn { font-size: 0.9375rem; line-height: 1.25; }
+:root .tod-burst { left: 1.4rem; }
+
+/* подложка под основной карточкой: целиком размыта (фон, рамка и текст), слой не перерисовывается — меняются только opacity и transform */
+:root .peek-soft { filter: blur(7px) brightness(0.92); backface-visibility: hidden; }
+:root .peek-soft .peek-text { color: rgb(255 255 255 / 0.9); text-shadow: none; }
+:root .peek-dim { filter: blur(5px) brightness(0.8) grayscale(0.45); background: linear-gradient(180deg, #1b1824, #100e16); backface-visibility: hidden; }
+:root .peek-dim .peek-text { color: rgb(255 255 255 / 0.8); }
+
+/* значок или эмодзи рядом с текстом: не сжимаются, не уезжают на другую строку и стоят по центру строки */
+:root :is(.btn-primary, .btn-secondary, .btn-ghost, .btn-accent, .btn-danger, .btn-tile, .btn-dashed, .chip, .tag, .seg-btn) > svg { flex: 0 0 auto; }
+:root :is(.btn-primary, .btn-secondary, .btn-ghost, .btn-accent, .btn-danger, .btn-tile, .btn-dashed, .chip, .tag, .menu-opt, .row) { align-items: center; }
+:root :is(.tag, .chip) > [aria-hidden='true'] { flex: 0 0 auto; line-height: 1; }
