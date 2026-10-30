@@ -1,10 +1,12 @@
 // ASK ME — проксі ШІ-підказок на Cloudflare Workers.
 // Ключ Gemini зберігається тут як секрет (wrangler secret put GEMINI_API_KEY) і ніколи не потрапляє в браузер.
-// Відповідь іде потоком (text/plain), тож гравець бачить текст за ~1 с. Порядок: моделі з GEMINI_MODELS по черзі → Pollinations
-// (якщо задано POLLINATIONS_KEY) → кеш попередніх відповідей на це ж питання. Вміст запитів не логуються.
+// Відповідь іде потоком (text/plain), тож гравець бачить текст за ~1 с. Порядок: моделі з GEMINI_MODELS по черзі → Groq (якщо задано
+// GROQ_API_KEY) → Workers AI (прив'язка AI) → Pollinations (якщо задано POLLINATIONS_KEY) → кеш попередніх відповідей на це ж питання. Вміст запитів не логуються.
 import { buildPrompt, cleanAiRequest } from '../../../src/ai/prompts.js';
 
 const DEFAULT_MODELS = 'gemini-3.6-flash,gemini-3.5-flash-lite,gemini-flash-latest';
+const DEFAULT_GROQ = 'openai/gpt-oss-120b';
+const DEFAULT_WORKERS_AI = '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
 const FIRST_BYTE_MS = 9000;   // скільки чекати першого шматка від моделі, перш ніж іти до наступної
 const TOTAL_MS = 30000;       // стеля на одну модель
 const CACHE_SLOTS = 4;        // скільки різних відповідей на одне питання тримаємо про запас
@@ -32,12 +34,31 @@ const geminiStream = async (env, model, p, signal) => {
   out.info = info; return out;
 };
 
-const pollinationsStream = async (env, p, signal) => {
-  if (!env.POLLINATIONS_KEY) throw new Error('no pollinations key');
-  const res = await fetch('https://gen.pollinations.ai/v1/chat/completions', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + env.POLLINATIONS_KEY }, signal,
-    body: JSON.stringify({ model: 'openai', stream: true, max_tokens: p.maxTokens + 600, messages: [{ role: 'system', content: p.system }, { role: 'user', content: p.user }] }) });
-  if (!res.ok || !res.body) throw new Error('pollinations ' + res.status);
+// OpenAI-сумісний потік (Groq, Pollinations): data: {choices:[{delta:{content}}]}
+const openAiStream = async (label, url, key, body, signal) => {
+  const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + String(key).trim() }, signal, body: JSON.stringify({ ...body, stream: true }) });
+  if (!res.ok || !res.body) { let why = ''; try { const m = (await res.text()).match(/"message"\s*:\s*"([^"]{0,100})/); if (m) why = ' ' + m[1]; } catch (e) {} throw new Error(label + ' ' + res.status + why); }
   return sseToText(res.body, (j) => (j && j.choices && j.choices[0] && j.choices[0].delta && j.choices[0].delta.content) || '');
+};
+const chat = (p) => [{ role: 'system', content: p.system }, { role: 'user', content: p.user }];
+
+// Groq: безкоштовний ключ (console.groq.com), дуже швидкі відкриті моделі, зокрема gpt-oss від OpenAI
+const groqStream = (env, p, signal) => {
+  if (!env.GROQ_API_KEY) throw new Error('no key');
+  const model = env.GROQ_MODEL || DEFAULT_GROQ;
+  return openAiStream('groq', 'https://api.groq.com/openai/v1/chat/completions', env.GROQ_API_KEY, { model, max_tokens: p.maxTokens + 600, messages: chat(p), ...(/gpt-oss/.test(model) ? { reasoning_effort: 'low', include_reasoning: false } : {}) }, signal);
+};
+
+// Workers AI: вбудований у Cloudflare, без ключа (прив'язка [ai] у wrangler.toml), безкоштовна денна квота
+const workersAiStream = async (env, p) => {
+  if (!env.AI) throw new Error('no binding');
+  const stream = await env.AI.run(env.WORKERS_AI_MODEL || DEFAULT_WORKERS_AI, { messages: chat(p), max_tokens: p.maxTokens + 400, stream: true });
+  return sseToText(stream, (j) => (j && typeof j.response === 'string' ? j.response : ''));
+};
+
+const pollinationsStream = (env, p, signal) => {
+  if (!env.POLLINATIONS_KEY) throw new Error('no key');
+  return openAiStream('pollinations', 'https://gen.pollinations.ai/v1/chat/completions', env.POLLINATIONS_KEY, { model: 'openai', max_tokens: p.maxTokens + 600, messages: chat(p) }, signal);
 };
 
 // SSE (data: {...}) -> потік тексту. Google розділяє рядки \r\n, тому ділимо по /\r?\n/ і дочитуємо хвіст у flush
@@ -73,8 +94,10 @@ export default {
     const headers = { ...cors, 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' };
 
     const models = String(env.GEMINI_MODELS || DEFAULT_MODELS).split(',').map(s => s.trim()).filter(Boolean);
-    const attempts = [...(env.GEMINI_API_KEY ? models.map(m => (signal) => geminiStream(env, m, p, signal)) : []), (signal) => pollinationsStream(env, p, signal)];
-    const labels = [...(env.GEMINI_API_KEY ? models : []), 'pollinations'];
+    const gemini = env.GEMINI_API_KEY ? models.map(m => [m, (signal) => geminiStream(env, m, p, signal)]) : [];
+    // запасні безкоштовні ШІ: пропускаються без затримки, якщо ключа чи прив'язки немає
+    const chain = [...gemini, ['groq', (signal) => groqStream(env, p, signal)], ['workers-ai', () => workersAiStream(env, p)], ['pollinations', (signal) => pollinationsStream(env, p, signal)]];
+    const attempts = chain.map(c => c[1]); const labels = chain.map(c => c[0]);
     const fails = []; // коди помилок без вмісту запиту — для заголовка X-AI-Fail (діагностика)
     for (const [i, attempt] of attempts.entries()) {
       const ac = new AbortController(); const kill = setTimeout(() => ac.abort(), TOTAL_MS);
