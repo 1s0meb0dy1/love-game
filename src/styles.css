@@ -755,3 +755,16 @@ html[data-fx] .bg-room::before { background: radial-gradient(560px circle at var
 :root .hist-player-n.is-skip { color: rgb(var(--lvl-1-rgb)); }
 :root .hist-player-n svg { width: 16px; height: 16px; flex: 0 0 auto; }
 :root .hist-chip-n { margin-left: 0.125rem; font-size: 0.8125rem; font-weight: 700; color: var(--text-3); font-variant-numeric: tabular-nums; }
+
+/* Волна 6: «Ход игрока» на карточке, содержимое карточки по центру; карточки режимов с отступами на телефоне */
+:root .mode-grid { display: flex; flex-direction: column; gap: 1rem; }
+@media (min-width: 1024px) { :root .mode-grid { display: grid; } }
+:root .tod-card { align-items: center; justify-content: center; gap: 1rem; text-align: center; }
+:root .tod-card .tod-lvl { justify-content: center; }
+:root .tod-card p { width: 100%; margin-block: auto; text-align: center; }
+:root .tod-card-turn { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; max-width: 100%; padding: 0.25rem 0.875rem 0.25rem 0.25rem; border-radius: 999px; border: 1px solid var(--line-strong); background: rgb(255 255 255 / 0.06); }
+:root .tod-card-turn .tod-turn { min-width: 0; font-family: var(--font-ui); font-size: 0.9375rem; font-weight: 700; }
+
+/* счётчик вопросов: по центру под карточкой, между ней и нижними кнопками, тихий */
+:root .game-count { margin-top: 2.25rem; font-family: var(--font-display); font-size: 0.8125rem; font-weight: 600; letter-spacing: 0.02em; color: var(--text-3); text-align: center; font-variant-numeric: tabular-nums; }
+:root .game-count span { margin: 0 0.125rem; opacity: 0.6; }

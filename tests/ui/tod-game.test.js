@@ -77,8 +77,10 @@ const play = async (A, tone = 'Мягкий') => { await A.toLobby(); const b = 
     const hdr = A.D.querySelector('header'); const h1 = A.D.querySelector('main h1');
     T('шапка игры: слева «Назад», справа «Меню ☰», кнопки «Завершить» в шапке нет; заголовок h1 «Правда или действие» под шапкой и подпись «Круг 1»', !!hdr.querySelector('button[aria-label="Назад"]') && hdr.textContent.includes('Меню') && !hdr.textContent.includes('Завершить') && !!h1 && h1.textContent === 'Правда или действие' && !hdr.contains(h1) && A.text().includes('Круг 1'));
     await A.press('Правда', 450);
-    const flipEl = A.D.querySelector('.tod-flip'); const stage = A.D.querySelector('.tod-stage'); const act = A.btn('Ответил(а)');
-    T('«Ход игрока» стоит под выпавшей карточкой, а кнопки «Ответил(а)» и «Пропустить» — под ним', !!flipEl && !!stage && !!(flipEl.compareDocumentPosition(stage) & 4) && !!(stage.compareDocumentPosition(act) & 4) && /Ход игрока: Макс/.test(stage.textContent));
+    const flipEl = A.D.querySelector('.tod-flip'); const act = A.btn('Ответил(а)'); const turnIn = flipEl && flipEl.querySelector('.tod-card-turn h2');
+    T('«Ход игрока» стоит прямо на карточке (в начале), без отдельного блока; кнопки «Ответил(а)» и «Пропустить» — под карточкой', !!flipEl && !!turnIn && /Ход игрока: Макс/.test(turnIn.textContent) && !A.D.querySelector('.tod-stage') && !!(flipEl.compareDocumentPosition(act) & 4) && A.heading() === 'Ход игрока: Макс');
+    const cardEl = flipEl.querySelector('.tod-card'); const cardKids = [...cardEl.children].map(c => c.className);
+    T('на карточке по порядку: «Ход игрока», уровень, текст; карточка выровнена по центру (классы tod-card, flex-col)', cardEl.className.includes('tod-card') && cardKids[0].includes('tod-card-turn') && cardKids[1].includes('tod-lvl') && cardEl.querySelector('p') !== null);
     const heckle = A.D.querySelector('.tod-heckle');
     T('подколка оформлена как реплика ведущего: лицо-эмодзи + пузырь .tod-banter, при тоне «Острый» класс is-spicy', !!heckle && !!heckle.querySelector('.tod-heckle-face') && !!heckle.querySelector('.tod-banter') && heckle.classList.contains('is-spicy'));
     await A.sleep(550); await A.press('Пропустить', 450); await A.sleep(550); await A.press('Действие', 450);

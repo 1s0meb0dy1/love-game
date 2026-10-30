@@ -1066,6 +1066,14 @@ i18nSetLang(readStoredLang());
                         </div>
                     </section>
 
+                    <section aria-labelledby="about-tod" className="flex flex-col gap-3">
+                        <h2 id="about-tod" className="about-h2">{aboutDoc().todSection.title}</h2>
+                        <p className="about-lead">{F(aboutDoc().todSection.lead)}</p>
+                        <div className="flex flex-col gap-2.5">
+                            {aboutDoc().todSection.items.map((u, i) => (<div key={i} className="about-card has-ico"><span className="about-card-ico" aria-hidden="true">{u.icon}</span><div><h3>{F(u.title)}</h3><p>{F(u.text)}</p></div></div>))}
+                        </div>
+                    </section>
+
                     <section aria-labelledby="about-uniq" className="flex flex-col gap-3">
                         <h2 id="about-uniq" className="about-h2">{aboutDoc().unique.title}</h2>
                         <div className="flex flex-col gap-2.5">
@@ -1869,7 +1877,7 @@ i18nSetLang(readStoredLang());
                 setNewPunish(''); setPunishErr(''); setShowAddPunish(false);
             };
             const chip = "px-3 py-1.5 rounded-full border border-white/12 bg-white/[0.04] text-zinc-200";
-            const pregameContent = (
+            const renderPregame = (strip) => (
                 <div className="flex flex-col gap-5 text-left">
                         <div className="text-center">
                             <h3 className="text-lg font-bold text-white">{tr("Усложнённый режим")}</h3>
@@ -1930,6 +1938,7 @@ i18nSetLang(readStoredLang());
                                 </section>
                             </div>
                         )}
+                        {strip}
                         <div className="flex flex-col gap-2">
                             <button type="button" disabled={!(settings.timerOn || settings.punishOn)} onClick={startFromPregame} className="btn-primary w-full">{tr("Начать игру")}</button>
                             {!(settings.timerOn || settings.punishOn) && <p role="alert" className="inline-error"><span aria-hidden="true" className="inline-error-i">!</span><span>{tr("Включите хотя бы одно усложнение: таймер или наказания.")}</span></p>}
@@ -3000,7 +3009,7 @@ if (screen === 'app_menu') {
                             <h1 className="flex-1 text-center text-lg font-bold text-white">{tr("Усложнённый режим")}</h1>
                             <button type="button" onClick={() => openInvite('game_setup')} aria-label={tr("Пригласить игроков")} title={tr("Пригласить игроков")} className="btn-icon flex-shrink-0"><Icons.Share /></button>
                         </header>
-                        <main className="w-full max-w-md flex flex-col gap-6 py-6">{lobbyStrip}{pregameContent}</main>
+                        <main className="w-full max-w-md flex flex-col gap-6 py-6">{renderPregame(lobbyStrip)}</main>
                         <AppFooter divider={false} />
                     </div>
                 );
@@ -3352,14 +3361,14 @@ if (screen === 'mode_select') {
                                 <span aria-hidden="true" className="w-12 h-12 rounded-xl bg-rose-500/20 flex items-center justify-center text-2xl flex-shrink-0">💬</span>
                                 <span className="flex-1 min-w-0 flex flex-col gap-1.5">
                                     <span className="flex items-center justify-between gap-2"><span className="font-bold text-sm text-white">{tr("Обычный режим")}</span> <span className="flex-shrink-0 whitespace-nowrap text-xs font-bold px-2.5 py-0.5 rounded-lg bg-rose-500/25 text-rose-200">{stats.availableActive} {tr("вопр.")}</span></span>
-                                    <span className="text-xs text-zinc-300 leading-relaxed">{tr("Без лишних настроек: жребий определяет, кто отвечает первым. Пройденные вопросы уходят в Архив.")}</span>
+                                    <span className="text-xs text-zinc-300 leading-relaxed">{tr("Жребий решает, кто отвечает первым. Пройденное уходит в Архив.")}</span>
                                 </span>
                             </button>
                             <button disabled={stats.availableActive === 0} onClick={() => { SoundFX.click(); navigate('game_setup'); }} className="opt-card opt-ember">
                                 <span aria-hidden="true" className="w-12 h-12 rounded-xl bg-amber-400/15 flex items-center justify-center text-2xl flex-shrink-0">🔥</span>
                                 <span className="flex-1 min-w-0 flex flex-col gap-2">
                                     <span className="font-bold text-sm text-white">{tr("Усложнённый режим")}</span>
-                                    <span className="text-xs text-zinc-300 leading-relaxed">{tr("Больше азарта: добавьте таймер на ответ и наказания за пропуск. Нужно выбрать хотя бы одно усложнение.")}</span>
+                                    <span className="text-xs text-zinc-300 leading-relaxed">{tr("Таймер на ответ и наказания за пропуск. Включите хотя бы одно.")}</span>
                                     <span className="flex flex-wrap gap-1.5 text-xs font-bold text-amber-100/90"><span className="px-2.5 py-1 rounded-full bg-white/[0.07]">{tr("⏱ Таймер")}</span><span className="px-2.5 py-1 rounded-full bg-white/[0.07]">{tr("🎭 Наказания")}</span></span>
                                 </span>
                             </button>
@@ -3367,11 +3376,11 @@ if (screen === 'mode_select') {
                                 <span aria-hidden="true" className="w-12 h-12 rounded-xl bg-white/[0.07] flex items-center justify-center text-2xl flex-shrink-0">🎲</span>
                                 <span className="flex-1 min-w-0 flex flex-col gap-1.5">
                                     <span className="font-bold text-sm text-white">{tr("Правда или действие")}</span>
-                                    <span className="text-xs text-zinc-300 leading-relaxed">{tr("Для компании и пар: правда, действие и позор за пропуск. 18+")}</span>
+                                    <span className="text-xs text-zinc-300 leading-relaxed">{tr("Правда, действие и позор за пропуск. 18+")}</span>
                                 </span>
                             </button>
                             </div>
-                            <p className="px-2 text-xs text-zinc-400 leading-relaxed text-center">{tr("👥 Если к сессии подключатся другие устройства, игра сама синхронизируется — до")} {profile ? deviceCap(profile) : MAX_PLAYERS} {tr("одновременно (по числу игроков): вопросы, очередь, рулетка")}{'\u00A0'}{tr("и таймер")}{'\u00A0'}{tr("у всех одинаковые. Пока вы играете одни, ничего не отправляется. Пригласить игроков можно кнопкой в шапке.")}</p>
+                            <p className="px-2 text-xs text-zinc-400 leading-relaxed text-center">{tf("👥 К игре можно подключить до {v0} устройств (по числу игроков): вопросы, очередь и таймер будут общими. Пригласить — кнопкой в шапке.", { v0: profile ? deviceCap(profile) : MAX_PLAYERS })}</p>
                             {isAdmin && (
                                 <button onClick={() => { SoundFX.click(); setHardMode(false); startWithMode('test'); }} className="opt-card">
                                     <span aria-hidden="true" className="w-12 h-12 rounded-xl bg-white/[0.07] flex items-center justify-center text-2xl flex-shrink-0">🧪</span>
@@ -3537,7 +3546,6 @@ if (screen === 'mode_select') {
 
                         <header className="w-full max-w-xl mx-auto flex justify-between items-center py-2 flex-shrink-0 gap-2">
                             <div className="flex items-center gap-2">
-                                <div className="px-3.5 py-1.5 rounded-full border border-white/[0.16] text-white font-display font-bold text-xs "> {currentIndex + 1} <span className="text-zinc-500">/</span> {gameQuestions.length} </div>
                                 {live.room && liveCount > 1 && ( <div className="tag" role="status" aria-label={tf("Устройств в игре: {v0}", { v0: liveCount })}><span aria-hidden="true">👥</span> {liveCount}</div> )}
                                 {isAdmin && gameMode === 'test' && ( <>
                                     <button type="button" onClick={() => openEditScreen(currentQ, 'game')} className="btn-icon" aria-label={tr("Редактировать вопрос")} title={tr("Редактировать")}><Icons.Edit /></button>
@@ -3600,6 +3608,7 @@ if (screen === 'mode_select') {
                                 )}
                                 {currentIndex === 0 && ( <p className="mt-6 text-xs text-zinc-500 text-center">{tr("Листайте карточки свайпами или кнопками")}</p> )}
                             </div></div></div>
+                            <p className="game-count" role="status" aria-label={tf("Вопрос {v0} из {v1}", { v0: currentIndex + 1, v1: gameQuestions.length })}>{currentIndex + 1} <span aria-hidden="true">/</span> {gameQuestions.length}</p>
                         </main>
 
                         <div className="fixed bottom-0 left-0 right-0 p-4 sm:p-6 z-20 bg-gradient-to-t from-[#0a0710] via-[#0a0710]/90 to-transparent" style={{ paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom))' }}>

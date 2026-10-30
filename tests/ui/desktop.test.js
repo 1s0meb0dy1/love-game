@@ -29,7 +29,7 @@ const done = (A) => { errs.push(...A.errors); A.close(); };
     T('экран игры: верхней панели нет (чтобы не уйти из партии случайно), раскладка .tod-desk в две колонки', A.hashNow() === '#/tod/play' && !A.D.querySelector('.desk-nav') && !!A.D.querySelector('.tod-desk .tod-desk-main') && !!A.D.querySelector('.tod-desk .tod-desk-side'));
     T('справа: игроки столбиком (.tod-roster.is-col), слева выбор «Правда/Действие» и блок «Ход игрока»', !!A.D.querySelector('.tod-desk-side .tod-roster.is-col') && !!A.D.querySelector('.tod-desk-main .tod-pick-truth') && !!A.D.querySelector('.tod-desk-main .tod-stage') && A.heading() === 'Ход игрока: Макс');
     await A.press('Правда', 500);
-    T('после выбора: карточка и «Ход игрока» слева (карточка выше), подколка справа', !!A.D.querySelector('.tod-desk-main .tod-flip') && !!(A.D.querySelector('.tod-desk-main .tod-flip').compareDocumentPosition(A.D.querySelector('.tod-desk-main .tod-stage')) & 4) && !!A.D.querySelector('.tod-desk-side .tod-heckle') && !!A.btn('Ответил(а)'));
+    T('после выбора: карточка с «Ходом игрока» на ней слева, подколка справа', !!A.D.querySelector('.tod-desk-main .tod-flip .tod-card-turn') && !A.D.querySelector('.tod-stage') && !!A.D.querySelector('.tod-desk-side .tod-heckle') && !!A.btn('Ответил(а)'));
     done(A);
   } catch (e) { T('сценарий выполнился без исключений: ' + (e && e.stack), false); }
   console.log(res.join('\n')); console.log('--- captured runtime errors: ' + errs.length); errs.slice(0, 5).forEach(e => console.log(e));

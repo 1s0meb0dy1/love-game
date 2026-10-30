@@ -70,7 +70,8 @@ const boot = async (hash, withProfile) => {
   await c(featRows()[0], 150); await c(featRows()[1], 150); T('одновременно раскрыта только одна возможность', D.querySelectorAll('[aria-labelledby="about-feat"] .about-more').length === 1);
   const faqRows = () => [...D.querySelectorAll('[aria-labelledby="about-faq"] .row')]; const nFaq = faqRows().length; await c(faqRows()[0], 200); const fa = D.querySelector('[aria-labelledby="about-faq"] .about-more');
   T('FAQ: ' + ABOUT.faq.length + ' вопросов, ответ раскрывается по нажатию', nFaq === ABOUT.faq.length && !!fa && norm(fa.textContent).length > 5 && !/\{/.test(fa.textContent));
-  T('блок «Чем отличается» показывает все пункты', D.querySelectorAll('.about-card').length === ABOUT.unique.items.length);
+  T('блок «Режим «Правда или действие»» показывает все пункты, а «Чем отличается» — свои', D.querySelectorAll('section[aria-labelledby="about-tod"] .about-card').length === ABOUT.todSection.items.length && has(ABOUT.todSection.title));
+  T('блок «Чем отличается» показывает все пункты', D.querySelectorAll('section[aria-labelledby="about-uniq"] .about-card').length === ABOUT.unique.items.length);
   T('внизу видна версия и дата страницы из файла', has('Версия страницы ' + ABOUT.version) && has(ABOUT.updated));
 
   // поделиться

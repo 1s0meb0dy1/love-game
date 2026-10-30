@@ -79,7 +79,7 @@ const h3s = () => [...D.querySelectorAll('main h3, .flex-1 h3')].map(h => h.text
     await clickEl(startBtn(), 400); await clickEl([...D.querySelectorAll('.viewport-popup-box button')].find(b => b.textContent.trim() === 'Начать новую'), 900);
     T('подтверждение ведёт к выбору режима', D.title === 'Режим игры — ASK ME');
     await click('Обычный режим', 3800); await click('К вопросу', 600);
-    const posEl = [...D.querySelectorAll('header div')].find(x => /^\s*\d+\s*\/\s*\d+\s*$/.test(x.textContent));
+    const posEl = D.querySelector('.game-count'); // счётчик вопросов по центру под карточкой
     T('новая игра началась с первого вопроса', !!posEl && /^\s*1\s*\//.test(posEl.textContent));
 
     // ---------- 10: итоги, «Пропущено» ----------

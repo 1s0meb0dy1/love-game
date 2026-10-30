@@ -7,7 +7,8 @@ const txt = (E) => E.D.body.textContent.replace(/\s+/g, ' ');
 const qn = (E) => { const m = txt(E).match(/Вопрос № (\d+)/); return m ? +m[1] : null; };
 // кто сейчас отвечает — читаем с метки на карточке, а не из окна рулетки
 // номер вопроса в колоде партии («5 / 120» в шапке игры) — в отличие от «Вопрос № …» это порядок в колоде, а не номер в базе
-const pos = (E) => { const d = [...E.D.querySelectorAll('header div')].find(x => /^\s*\d+\s*\/\s*\d+\s*$/.test(x.textContent)); return d ? +d.textContent.split('/')[0] : null; };
+// счётчик вопросов — по центру под карточкой (p.game-count), а не в шапке
+const pos = (E) => { const d = E.D.querySelector('.game-count'); return d && /^\s*\d+\s*\/\s*\d+\s*$/.test(d.textContent) ? +d.textContent.split('/')[0] : null; };
 const who = (E) => { const t = [...E.D.querySelectorAll('.tag')].map(x => x.textContent.trim()).find(x => x.startsWith('Отвечает:')); return t ? t.replace('Отвечает:', '').trim() : null; };
 const inGame = (E) => E.D.title === 'Игра — ASK ME';
 const onSummary = (E) => E.D.title === 'Итоги игры — ASK ME';

@@ -6,7 +6,7 @@ const { boot, waitFor, sleep, inGame, who, pos, closeRoulette } = require('../li
 const b64u = (buf) => Buffer.from(buf).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); const unb64u = (s) => Buffer.from(s.replace(/-/g, '+').replace(/_/g, '/'), 'base64');
 const encrypt = async (obj, key) => { const iv = webcrypto.getRandomValues(new Uint8Array(12)); const k = await webcrypto.subtle.importKey('raw', unb64u(key), { name: 'AES-GCM' }, false, ['encrypt']); const ct = new Uint8Array(await webcrypto.subtle.encrypt({ name: 'AES-GCM', iv }, k, new TextEncoder().encode(JSON.stringify(obj)))); return b64u(Buffer.concat([Buffer.from(iv), Buffer.from(ct)])); };
 const dbKey = (key) => 's_' + nodeCrypto.createHash('sha256').update('askme-session-v1:' + key).digest('hex');
-const total = (E) => { const d = [...E.D.querySelectorAll('header div')].find(x => /^\s*\d+\s*\/\s*\d+\s*$/.test(x.textContent)); return d ? +d.textContent.split('/')[1] : null; };
+const total = (E) => { const d = E.D.querySelector('.game-count'); return d && /^\s*\d+\s*\/\s*\d+\s*$/.test(d.textContent) ? +d.textContent.split('/')[1] : null; };
 
 (async () => { const BIG = 2000; const S = await boot(1, {}, { env: { bigDb: BIG } }); const { devs, db, T } = S; const [A] = devs; let B;
  try {
