@@ -6,7 +6,7 @@ import { buildPrompt, cleanAiRequest } from './prompts.js';
 
 // адреса воркера worker/ai-proxy після `wrangler deploy` (порожньо — проксі ще не розгорнутий, працює запасний шлях)
 export const AI_PROXY_URL = 'https://askme-ai.yedvinn.workers.dev';
-const AI_PROXY_FIRST_MS = 10000, AI_PROXY_TOTAL_MS = 35000, AI_POLL_MS = 25000;
+const AI_PROXY_FIRST_MS = 12000, AI_PROXY_TOTAL_MS = 35000, AI_POLL_MS = 25000;
 const aiRecent = new Map(); // ключ запиту -> останні відповіді (до 3), живе до перезавантаження сторінки
 
 const aiTimeout = (ms, outer) => {

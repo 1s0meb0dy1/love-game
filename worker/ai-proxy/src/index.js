@@ -7,7 +7,8 @@ import { buildPrompt, cleanAiRequest } from '../../../src/ai/prompts.js';
 const DEFAULT_MODELS = 'gemini-3.6-flash,gemini-3.5-flash-lite,gemini-flash-latest';
 const DEFAULT_GROQ = 'openai/gpt-oss-120b';
 const DEFAULT_WORKERS_AI = '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
-const FIRST_BYTE_MS = 9000;   // скільки чекати першого шматка від моделі, перш ніж іти до наступної
+const FIRST_BYTE_MS = 5000;   // скільки чекати першого шматка від моделі, перш ніж іти до наступної
+const DEADLINE_MS = 9000;     // за цей час проксі має почати відповідь (браузер чекає 12 с), інакше віддає кеш
 const TOTAL_MS = 30000;       // стеля на одну модель
 const CACHE_SLOTS = 4;        // скільки різних відповідей на одне питання тримаємо про запас
 
@@ -61,6 +62,18 @@ const pollinationsStream = (env, p, signal) => {
   return openAiStream('pollinations', 'https://gen.pollinations.ai/v1/chat/completions', env.POLLINATIONS_KEY, { model: 'openai', max_tokens: p.maxTokens + 600, messages: chat(p) }, signal);
 };
 
+// «Запобіжник»: сервіс, що вичерпав ліміт або зламався, якийсь час не пробуємо першим — наступні запити одразу йдуть
+// до живого. Пам'ять живе в екземплярі воркера (секунди–хвилини), цього досить, щоб не витрачати час на мертві сервіси.
+export const cooldown = new Map();
+const pauseFor = (msg) => {
+  const code = Number((String(msg).match(/\b([45]\d\d)\b/) || [])[1]);
+  if (code === 429 || code === 402 || /quota|rate|limit|exhaust/i.test(msg)) return 60000; // ліміт — хвилину
+  if (code === 401 || code === 403) return 600000;                                          // ключ не підходить — 10 хв
+  if (/no key|no binding/.test(msg)) return 0;                                              // не налаштовано — пропуск і так миттєвий
+  return 20000;                                                                             // збій чи мовчання — 20 с
+};
+const byHealth = (chain, now) => chain.map((c, i) => [c, (cooldown.get(c[0]) || 0) > now ? 1 : 0, i]).sort((a, b) => a[1] - b[1] || a[2] - b[2]).map(x => x[0]);
+
 // SSE (data: {...}) -> потік тексту. Google розділяє рядки \r\n, тому ділимо по /\r?\n/ і дочитуємо хвіст у flush
 const sseToText = (body, pickText) => {
   const dec = new TextDecoder(); const enc = new TextEncoder(); let buf = '';
@@ -97,17 +110,26 @@ export default {
     const gemini = env.GEMINI_API_KEY ? models.map(m => [m, (signal) => geminiStream(env, m, p, signal)]) : [];
     // запасні безкоштовні ШІ: пропускаються без затримки, якщо ключа чи прив'язки немає
     const chain = [...gemini, ['groq', (signal) => groqStream(env, p, signal)], ['workers-ai', () => workersAiStream(env, p)], ['pollinations', (signal) => pollinationsStream(env, p, signal)]];
-    const attempts = chain.map(c => c[1]); const labels = chain.map(c => c[0]);
+    const started = Date.now();
     const fails = []; // коди помилок без вмісту запиту — для заголовка X-AI-Fail (діагностика)
-    for (const [i, attempt] of attempts.entries()) {
+    for (const [label, attempt] of byHealth(chain, started)) {
+      const left = DEADLINE_MS - (Date.now() - started);
+      if (left < 700) { fails.push('deadline'); break; }
       const ac = new AbortController(); const kill = setTimeout(() => ac.abort(), TOTAL_MS);
       try {
-        const stream = await withFirstChunk(await attempt(ac.signal), FIRST_BYTE_MS);
+        // заголовки й перший шматок мають прийти за відведений час, інакше обриваємо запит і йдемо далі
+        const budget = Math.min(FIRST_BYTE_MS, left); const hdr = setTimeout(() => ac.abort(), budget);
+        const stream = await withFirstChunk(await attempt(ac.signal), budget).finally(() => clearTimeout(hdr));
+        cooldown.delete(label);
         const [toClient, toCache] = stream.tee();
         // повну відповідь кладемо в кеш (випадковий слот) — запас на випадок, коли всі моделі недоступні
         ctx.waitUntil(new Response(toCache).text().then(t => { clearTimeout(kill); if (t.trim().length > 20) return caches.default.put(cacheUrl(key, Math.floor(Math.random() * CACHE_SLOTS)), new Response(t, { headers: { 'Cache-Control': 'max-age=2592000' } })); }).catch(() => {}));
-        return new Response(toClient, { headers: { ...headers, 'X-AI-Source': 'live' } });
-      } catch (e) { clearTimeout(kill); ac.abort(); fails.push(labels[i] + ':' + String(e && e.message || e).replace(/[^\w .:-]/g, '').slice(0, 110)); }
+        return new Response(toClient, { headers: { ...headers, 'X-AI-Source': 'live', 'X-AI-Model': label } });
+      } catch (e) {
+        clearTimeout(kill); ac.abort(); const msg = String(e && e.message || e);
+        const pause = pauseFor(msg); if (pause) cooldown.set(label, Date.now() + pause);
+        fails.push(label + ':' + msg.replace(/[^\w .:-]/g, '').slice(0, 110));
+      }
     }
     const off = Math.floor(Math.random() * CACHE_SLOTS); // зсув один на весь цикл, інакше слоти перевіряються не всі
     for (let i = 0; i < CACHE_SLOTS; i++) { const hit = await caches.default.match(cacheUrl(key, (i + off) % CACHE_SLOTS)); if (hit) return new Response(hit.body, { headers: { ...headers, 'X-AI-Source': 'cache' } }); }
