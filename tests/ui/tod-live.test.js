@@ -46,12 +46,12 @@ const noTruth = (E) => { const base = E.w.fetch; E.w.fetch = async (url, init) =
     await waitFor(() => hasBanner(C), 8000); await joinTod(C); await sleep(1200);
     T('третье устройство сверх числа игроков не пускают, видно сообщение про число устройств', !onPlay(C) && /В игре уже 2 устройства/.test(txt(C)));
     // B уходит, A продолжает
-    await sleep(600); await press(B, 'Завершить', 400); await press(B, 'Выйти, остальные продолжат', 900);
+    await sleep(600); await press(B, 'Меню', 400); await press(B, 'Выйти, остальные продолжат', 900);
     const p = db.todRoom().p;
-    T('«Выйти, остальные продолжат» на B не прерывает игру A, в p остаётся только отметка A', B.w.location.hash === '#/' && onPlay(A) && db.todRoom().status === 'active' && Object.keys(p).length === 1 && !!p[devId(A)]);
+    T('«Выйти, остальные продолжат» на B не прерывает игру A, в p остаётся только отметка A', B.w.location.hash === '#/more' && onPlay(A) && db.todRoom().status === 'active' && Object.keys(p).length === 1 && !!p[devId(A)]);
     await waitFor(() => hasBanner(B), 8000); await joinTod(B); await waitFor(() => onPlay(B), 10000); await sleep(800);
     await press(A, 'Действие', 650); await press(A, 'Легко', 400); await sleep(700); await press(A, 'Выполнено', 900);
-    await press(A, 'Завершить', 400); await press(A, 'Завершить для всех', 900);
+    await press(A, 'Меню', 400); await press(A, 'Завершить для всех', 900);
     const res = await waitFor(() => onResults(B), 6000);
     const table = (E) => [...E.D.querySelectorAll('table td, .tod-table td')].map(x => norm(x.textContent)).join('|');
     T('«Завершить для всех» на A: у B открылись итоги с теми же числами', onResults(A) && res && table(A) !== '' && table(A) === table(B) && db.todRoom().status === 'ended');

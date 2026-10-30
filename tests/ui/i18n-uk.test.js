@@ -35,7 +35,7 @@ const scan = (where) => {
   for (const h of pages) { await go(h); scan(h); }
   await go('#/mode'); await click('Звичайний режим', 1500); scan('#/play');
   await go('#/tod', 800); await click('Почати гру', 1200); if (has('Нам є 18')) await click('Нам є 18', 1200); scan('#/tod/play');
-  await click('Правда', 900); scan('#/tod/play (картка)'); await click('Завершити', 600); scan('#/tod/play (завершення)');
+  await click('Правда', 900); scan('#/tod/play (картка)'); await click('Меню', 600); scan('#/tod/play (завершення)');
   await click('Завершити для всіх', 1200); scan('#/tod/results'); T('обхід дійшов до підсумків «Правди чи дії»', /Підсумки/.test(D.title));
   T('мова інтерфейсу — українська (html lang)', D.documentElement.lang === 'uk');
   T('на екранах немає російського тексту' + (leaks.size ? ': ' + [...leaks].slice(0, 40).map(([s, h]) => `${h} «${s}»`).join('; ') : ''), leaks.size === 0);

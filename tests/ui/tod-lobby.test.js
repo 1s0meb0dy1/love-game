@@ -64,6 +64,12 @@ const done = (A) => { errs.push(...A.errors); A.close(); };
 
     // новое лобби: правила, перевороты карточек, свои карточки на устройстве
     A = await boot(); await A.toLobby();
+    const shareB = A.btns().find(b => b.textContent.includes('Поделиться сессией')); const startB = A.btn('Начать игру');
+    T('кнопка «Поделиться сессией» стоит прямо над «Начать игру»', !!shareB && !!startB && !!(shareB.compareDocumentPosition(startB) & 4) && shareB.parentElement === startB.parentElement.parentElement);
+    const strip = A.D.querySelector('.room-strip');
+    T('блок состава сессии: имена игроков, одно устройство «Пока только это устройство», метка устройства одна', !!strip && strip.textContent.includes('Макс') && strip.textContent.includes('Аня') && strip.textContent.includes('Пока только это устройство') && strip.querySelectorAll('.room-pips i').length === 1);
+    T('блок состава тише кнопки «Поделиться»: у него нет класса btn-* и фон прозрачнее, а сама кнопка заметна', !strip.className.includes('btn-') && shareB.className.includes('btn-secondary'));
+
     T('лобби: блок «Правила» с правилом про 3 правды подряд и «Пропуск — это позор»', A.text().includes('«Правда» — не больше 3 раз подряд') && A.text().includes('Пропуск — это позор') && !!A.D.querySelector('.tod-lockdemo'));
     T('лобби: «В колоде» считает карточки по текущим настройкам (без жёстких: 7 правд · 7 действий)', A.text().includes('В колоде: 7 правд · 7 действий'));
     const face = A.D.querySelector('.tod-face-truth'); await A.tap(face, 400);

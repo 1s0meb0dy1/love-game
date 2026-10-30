@@ -409,6 +409,7 @@ i18nSetLang(readStoredLang());
                             {SUPPORTED_LANGS.map(l => (
                                 <button key={l} type="button" role="menuitemradio" aria-checked={l === lang} lang={l} onClick={() => { if (l !== lang) { SoundFX.toggle(true); onChange(l); } setOpen(false); }} className={`menu-opt ${l === lang ? 'is-on' : ''}`}><span>{LANG_NAMES[l]}</span><span className="text-xs font-bold text-zinc-500">{LANG_CODES[l]}</span></button>
                             ))}
+                            <button type="button" role="menuitemradio" aria-checked="false" aria-disabled="true" disabled lang="en" className="menu-opt"><span>English</span><span className="text-xs font-bold text-zinc-500">{tr("Скоро")}</span></button>
                         </div>
                     )}
                 </div>
@@ -791,6 +792,21 @@ i18nSetLang(readStoredLang());
                 {!noLinks && <nav aria-label={tr("Информация")} className="footer-links"><a href="#/about">{tr("Об игре")}</a><a href="#/privacy">{tr("Конфиденциальность")}</a><a href="#/terms">{tr("Соглашение")}</a><a href="#/copyright">{tr("© Авторские права")}</a></nav>}
             </footer>
         );
+
+        // Состав сессии: имена игроков и устройства в комнате (первое — это устройство, остальные подключены). Спокойный блок, заметно тише кнопки «Поделиться»:
+        // имена устройств в базе не хранятся, поэтому показываем игроков сессии и число устройств
+        const RoomStrip = ({ players, devices }) => {
+            const list = Array.isArray(players) ? players : []; const n = Math.max(1, Math.min(Number(devices) || 1, MAX_PLAYERS));
+            return (
+                <div className="room-strip" role="group" aria-label={tr("Состав сессии")}>
+                    <ul className="room-strip-names">{list.map((p, i) => <li key={(p && p.id) || i}><span>{p && p.name}</span></li>)}</ul>
+                    <div className="room-strip-dev">
+                        <span className="room-pips" aria-hidden="true">{Array.from({ length: n }, (_, i) => <i key={i} className={i === 0 ? 'me' : 'on'}></i>)}</span>
+                        <span>{n === 1 ? tr("Пока только это устройство") : tf("В игре {v0} {v1}", { v0: n, v1: declOfNum(n, ['устройство', 'устройства', 'устройств']) })}</span>
+                    </div>
+                </div>
+            );
+        };
 
         // Визначити, чи текст українською (за специфічними літерами).
         const looksUkrainian = (s) => /[іїєґІЇЄҐ]|ʼ/.test(String(s || ''));
@@ -1894,7 +1910,7 @@ i18nSetLang(readStoredLang());
             };
             // ---- режим «Правда или действие»: запись карточек из админки ----
             const todSetList = (list, source, writeCache) => { todCardsRef.current = list; setTodCards(list); setTodSource(source); if (writeCache) todWriteCache(todCardsEnv.storage, list); };
-            const todUi = { Icons, SoundFX, AppFooter, showToast, showError: showErrorPopup, navigate, SettingSwitch, PopupModal, tr };
+            const todUi = { Icons, SoundFX, AppFooter, showToast, showError: showErrorPopup, navigate, SettingSwitch, PopupModal, RoomStrip, tr };
             // ---- режим «Правда или действие»: партия на одном устройстве ----
             const todCardOf = (id) => todCardsRef.current.find(x => x.id === id) || (todIsMine(id) ? todMineRef.current.find(x => x.id === id) : undefined) || todExtraRef.current[id]; // null в todExtra — карточки нет в базе
             const todLevelOf = (id) => { const c = todCardOf(id); return c ? c.difficulty : null; };
@@ -2819,6 +2835,8 @@ if (screen === 'app_menu') {
                 );
             }
 
+            // состав сессии на экранах выбора режима: игроки и устройства, которые уже в идущей игре (иначе только это устройство)
+            const lobbyStrip = profile ? <RoomStrip players={profile.players} devices={1 + Math.max(liveInvite ? liveInvite.count : 0, todInvite ? todInvite.count : 0)} /> : null;
             if (screen === 'game_setup') {
                 return (
                     <div className="safe-screen w-full flex flex-col items-center slide-up relative z-10">
@@ -2827,7 +2845,7 @@ if (screen === 'app_menu') {
                             <h1 className="flex-1 text-center text-lg font-bold text-white">{tr("Усложнённый режим")}</h1>
                             <button type="button" onClick={() => openInvite('game_setup')} aria-label={tr("Пригласить игроков")} title={tr("Пригласить игроков")} className="btn-icon flex-shrink-0"><Icons.Share /></button>
                         </header>
-                        <main className="w-full max-w-md flex flex-col gap-6 py-6">{pregameContent}</main>
+                        <main className="w-full max-w-md flex flex-col gap-6 py-6">{lobbyStrip}{pregameContent}</main>
                         <AppFooter divider={false} />
                     </div>
                 );
@@ -2953,7 +2971,7 @@ if (screen === 'app_menu') {
                 const lvAvail = { easy: !!todNext(todDeck, todGame.cur, 'dare.easy'), medium: !!todNext(todDeck, todGame.cur, 'dare.medium'), hard: !!todNext(todDeck, todGame.cur, 'dare.hard') };
                 if (todGame.phase === 'ended') return <TodResults ui={todUi} state={todGame} titles={todTitles(todGame, TOD_TITLES)} onAgain={todAgain} onMenu={() => navigate('menu')} banner={todInviteBanner} />;
                 return <TodGame ui={todUi} state={todGame} banter={todPickBanter(todGame, TOD_BANTER, tr)} cardText={todTextOf} levelAvail={lvAvail} onAction={todDispatch}
-                    onEnd={() => { todTapRef.current = 0; if (todDispatch({ t: 'end' })) navigate('tod_results'); }} onLeave={() => { todLeave(); setTodGame(null); navigate('menu'); }} />;
+                    onEnd={() => { todTapRef.current = 0; if (todDispatch({ t: 'end' })) navigate('tod_results'); }} onLeave={(to) => { todLeave(); setTodGame(null); navigate(to === 'menu' ? 'app_menu' : 'tod_lobby'); }} />;
             }
             if (screen === 'tod_results' && todGame) {
                 return <TodResults ui={todUi} state={todGame} titles={todTitles(todGame, TOD_TITLES)} onAgain={todAgain} onMenu={() => navigate('menu')} banner={todInviteBanner} />;
@@ -3173,6 +3191,7 @@ if (screen === 'mode_select') {
                         <main className="w-full max-w-md flex flex-col gap-4 pt-6 pb-8">
                             {liveInviteBanner}
                             {todInviteBanner}
+                            {lobbyStrip}
                             <button disabled={stats.availableActive === 0} onClick={() => { SoundFX.click(); setHardMode(false); startWithMode('normal', { hard: false }); }} className="opt-card opt-brand">
                                 <span aria-hidden="true" className="w-12 h-12 rounded-xl bg-rose-500/20 flex items-center justify-center text-2xl flex-shrink-0">💬</span>
                                 <span className="flex-1 min-w-0 flex flex-col gap-1.5">

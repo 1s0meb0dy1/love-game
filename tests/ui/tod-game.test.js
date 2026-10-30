@@ -33,20 +33,20 @@ const play = async (A, tone = 'Мягкий') => { await A.toLobby(); const b = 
     const again = A.btn('Выполнено') || A.btn('Ответил(а)'); if (again) again.dispatchEvent(new A.w.MouseEvent('click', { bubbles: true }));
     await A.sleep(400);
     T('два быстрых нажатия «Ответил(а)» (в пределах 500 мс) -> ход передан один раз', A.heading() === 'Ход игрока: Макс' && !A.btn('Пропустить'));
-    T('кнопки хода — классы btn-* или opt-card (не меньше 44 px по дизайн-системе)', [A.btn('Правда'), A.btn('Действие'), A.btn('Завершить')].every(b => b && /\b(btn-[a-z]+|opt-card)\b/.test(b.className)));
-    await A.sleep(550); await A.press('Завершить', 350);
-    T('«Завершить» просит подтверждения', A.text().includes('Завершить игру?') && !!A.btn('Завершить для всех') && A.btn('Завершить для всех').className.includes('btn-danger'));
-    await A.press('Отмена', 350);
-    T('«Отмена» возвращает в игру', !A.text().includes('Завершить игру?') && A.hashNow() === '#/tod/play' && A.heading() === 'Ход игрока: Макс');
-    await A.press('Завершить', 350); await A.press('Завершить для всех', 500);
+    T('кнопки хода — классы btn-* или opt-card (не меньше 44 px по дизайн-системе)', [A.btn('Правда'), A.btn('Действие'), A.btn('Меню')].every(b => b && /\b(btn-[a-z]+|opt-card)\b/.test(b.className)));
+    await A.sleep(550); await A.press('Меню', 350);
+    T('«Завершить» просит подтверждения', A.text().includes('Вы действительно хотите закончить игру?') && !!A.btn('Завершить для всех') && A.btn('Завершить для всех').className.includes('btn-danger'));
+    await A.press('Вернуться в игру', 350);
+    T('«Вернуться в игру» возвращает в игру', !A.text().includes('Вы действительно хотите закончить игру?') && A.hashNow() === '#/tod/play' && A.heading() === 'Ход игрока: Макс');
+    await A.press('Меню', 350); await A.press('Завершить для всех', 500);
     T('«Завершить для всех» открывает итоги (#/tod/results)', A.hashNow() === '#/tod/results' && A.D.title === 'Итоги — Правда или действие — ASK ME' && A.text().includes('Зал позора'));
     done(A);
 
     A = await boot(); await play(A, 'Выкл');
     await A.press('Правда', 450);
     T('реплики нет при тоне «Выкл»', A.banter() === null && !!A.cardBody());
-    await A.sleep(550); await A.press('Завершить', 350); await A.press('Выйти, остальные продолжат', 500);
-    T('«Выйти, остальные продолжат» ведёт на главную, партия остаётся незавершённой', A.hashNow() === '#/' && !A.text().includes('Ход игрока'));
+    await A.sleep(550); await A.press('Меню', 350); await A.press('Выйти, остальные продолжат', 500);
+    T('«Меню» -> «Выйти, остальные продолжат» ведёт в меню приложения (#/more), партия остаётся незавершённой', A.hashNow() === '#/more' && !A.text().includes('Ход игрока'));
     done(A);
 
     // карточки нет у устройства: игра началась по кэшу, а потом пришёл ответ базы без этих карточек — id в колоде есть, текста нет
@@ -70,6 +70,27 @@ const play = async (A, tone = 'Мягкий') => { await A.toLobby(); const b = 
     T('нажатие на запертую «Правду» ничего не выбирает: карточки нет, ход тот же', !A.cardBody() && A.heading() === 'Ход игрока: Макс' && lockedNow());
     await A.sleep(550); await A.press('Действие', 450); await A.sleep(550); await A.tap(A.btns().find(b => b.textContent.includes('Легко') && b.className.includes('tod-lvl')), 450); await A.sleep(550); await A.press('Пропустить', 450);
     T('после «Действия» правда снова открыта', !lockedNow());
+    done(A);
+
+    // шапка и порядок блоков: «Назад» и «Меню», заголовок по центру под шапкой, «Ход игрока» под карточкой, подколка-пузырь, уровни без эмодзи
+    A = await boot(); await play(A, 'Острый');
+    const hdr = A.D.querySelector('header'); const h1 = A.D.querySelector('main h1');
+    T('шапка игры: слева «Назад», справа «Меню ☰», кнопки «Завершить» в шапке нет; заголовок h1 «Правда или действие» под шапкой и подпись «Круг 1»', !!hdr.querySelector('button[aria-label="Назад"]') && hdr.textContent.includes('Меню') && !hdr.textContent.includes('Завершить') && !!h1 && h1.textContent === 'Правда или действие' && !hdr.contains(h1) && A.text().includes('Круг 1'));
+    await A.press('Правда', 450);
+    const flipEl = A.D.querySelector('.tod-flip'); const stage = A.D.querySelector('.tod-stage'); const act = A.btn('Ответил(а)');
+    T('«Ход игрока» стоит под выпавшей карточкой, а кнопки «Ответил(а)» и «Пропустить» — под ним', !!flipEl && !!stage && !!(flipEl.compareDocumentPosition(stage) & 4) && !!(stage.compareDocumentPosition(act) & 4) && /Ход игрока: Макс/.test(stage.textContent));
+    const heckle = A.D.querySelector('.tod-heckle');
+    T('подколка оформлена как реплика ведущего: лицо-эмодзи + пузырь .tod-banter, при тоне «Острый» класс is-spicy', !!heckle && !!heckle.querySelector('.tod-heckle-face') && !!heckle.querySelector('.tod-banter') && heckle.classList.contains('is-spicy'));
+    await A.sleep(550); await A.press('Пропустить', 450); await A.sleep(550); await A.press('Действие', 450);
+    const lvBtns = A.btns().filter(b => b.className.includes('tod-lvl') && b.className.includes('tod-heat'));
+    T('выбор уровня: три кнопки только с точками, эмодзи 🟢🟡🔴 нет', lvBtns.length === 3 && lvBtns.every(b => b.querySelectorAll('.tod-lvl-dots i').length === 3 && !/[🟢🟡🔴]/u.test(b.textContent)));
+    await A.sleep(550); await A.tap(lvBtns[0], 450);
+    T('карточка действия: метка уровня тоже с точками без эмодзи', !!A.D.querySelector('.tod-card .tod-lvl-dots') && !/[🟢🟡🔴]/u.test(A.D.querySelector('.tod-card').textContent));
+    // «Назад» тоже спрашивает подтверждение и ведёт в лобби
+    await A.sleep(550); await A.tap(A.D.querySelector('header button[aria-label="Назад"]'), 350);
+    T('«Назад» открывает вопрос «Вы действительно хотите закончить игру?» с тремя вариантами', A.text().includes('Вы действительно хотите закончить игру?') && !!A.btn('Завершить для всех') && !!A.btn('Выйти, остальные продолжат') && !!A.btn('Вернуться в игру'));
+    await A.press('Выйти, остальные продолжат', 600);
+    T('выход через «Назад» ведёт в лобби (#/tod), а не в меню', A.hashNow() === '#/tod' && !!A.btn('Начать игру'));
     done(A);
 
     const tricky = '{name}<b>Я</b>{a|b}';

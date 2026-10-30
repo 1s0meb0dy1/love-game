@@ -253,7 +253,6 @@ export const TodAdmin = ({ ui, cards, source, isAdmin, onSave, onSeed, onBack, i
 // Тексты интерфейса проходят через ui.tr (словарь src/i18n.js: ключ — русский текст), имена игроков и тексты карточек выводятся как есть.
 
 const TOD_TONES = [[0, 'Выкл'], [1, 'Мягкий'], [2, 'Острый']];
-const TOD_LEVEL_ICON = { easy: '🟢', medium: '🟡', hard: '🔴' };
 const TOD_LEVEL_WORD = { easy: 'Легко', medium: 'Средне', hard: 'Жёстко' };
 const TOD_LEVEL_HINT = { easy: 'Разминка', medium: 'Погорячее', hard: 'На грани' };
 const TOD_HUES = [345, 28, 275, 160, 200, 50, 310, 120, 15, 240]; // оттенок аватара игрока по его номеру: соседи по очереди не похожи
@@ -333,9 +332,9 @@ const TodMine = ({ ui, list, onAdd, onDel }) => {
   );
 };
 
-// лобби #/tod: «веер» из двух карточек (по нажатию переворачиваются и показывают пример), правила, игроки, настройки, свои карточки, «Начать игру».
-// block — причина, по которой старт невозможен; deckInfo = { truth, dare } — сколько карточек в колоде при текущих настройках;
-// peek(type) -> пример текста для обратной стороны веера; mine/onMineAdd/onMineDel — свои карточки устройства
+// лобби #/tod: «веер» из двух карточек (по нажатию переворачиваются и показывают пример), правила, состав сессии (игроки и устройства), настройки, свои карточки,
+// «Поделиться сессией» и под ней «Начать игру». block — причина, по которой старт невозможен; deckInfo = { truth, dare } — сколько карточек в колоде при текущих настройках;
+// peek(type) -> пример текста для обратной стороны веера; mine/onMineAdd/onMineDel — свои карточки устройства; deviceCount — устройств в сессии (с этим)
 export const TodLobby = ({ ui, players, cfg, setCfg, deviceCount, block, onStart, onShare, onBack, banner, deckInfo, peek, mine, onMineAdd, onMineDel }) => {
   const [warn, setWarn] = React.useState(false); const [busy, setBusy] = React.useState(false);
   const [flip, setFlip] = React.useState({ truth: '', dare: '' }); // текст на обороте веера; '' — карточка лицом
@@ -397,11 +396,8 @@ export const TodLobby = ({ ui, players, cfg, setCfg, deviceCount, block, onStart
         </section>
         <section className="flex flex-col gap-3">
           <h2 className="text-sm font-bold text-zinc-300">{todTx(ui, 'Игроки')} · {list.length}</h2>
-          <ul className="flex flex-wrap gap-2">
-            {list.map((p, i) => <li key={(p && p.id) || i} className="chip tod-pop" style={{ animationDelay: (i * 60) + 'ms' }}><TodAvatar p={p} i={i} /><span>{p && p.name}</span></li>)}
-          </ul>
-          <p className="ui-hint">{todTx(ui, 'Устройств в игре:')} {deviceCount || 1}. {todTx(ui, 'Кнопки хода можно нажимать с любого устройства сессии.')}</p>
-          <button type="button" onClick={onShare} className="btn-secondary w-full"><ui.Icons.Share /> {todTx(ui, 'Поделиться сессией')}</button>
+          <ui.RoomStrip players={list} devices={deviceCount || 1} />
+          <p className="ui-hint">{todTx(ui, 'Кнопки хода можно нажимать с любого устройства сессии.')}</p>
         </section>
         <section className="flex flex-col gap-4 rounded-[20px] border border-white/10 bg-white/[0.04] p-4">
           <div className="flex items-center justify-between gap-4">
@@ -423,9 +419,12 @@ export const TodLobby = ({ ui, players, cfg, setCfg, deviceCount, block, onStart
           )}
         </section>
         {typeof onMineAdd === 'function' && <TodMine ui={ui} list={Array.isArray(mine) ? mine : []} onAdd={onMineAdd} onDel={onMineDel} />}
-        <div className="flex flex-col gap-2">
-          <button type="button" onClick={startClick} disabled={busy} aria-disabled={block ? 'true' : undefined} aria-describedby={block ? 'tod-start-hint' : undefined} className="btn-primary tod-go w-full"><ui.Icons.Play /> {todTx(ui, 'Начать игру')}</button>
-          {block && <p id="tod-start-hint" className="ui-error" role="alert">{block}</p>}
+        <div className="flex flex-col gap-3">
+          <button type="button" onClick={onShare} className="btn-secondary w-full"><ui.Icons.Share /> {todTx(ui, 'Поделиться сессией')}</button>
+          <div className="flex flex-col gap-2">
+            <button type="button" onClick={startClick} disabled={busy} aria-disabled={block ? 'true' : undefined} aria-describedby={block ? 'tod-start-hint' : undefined} className="btn-primary tod-go w-full"><ui.Icons.Play /> {todTx(ui, 'Начать игру')}</button>
+            {block && <p id="tod-start-hint" className="ui-error" role="alert">{block}</p>}
+          </div>
         </div>
       </main>
       <TodAdultModal ui={ui} open={warn} onOk={() => { setWarn(false); go(); }} onCancel={() => { ui.SoundFX.click(); setWarn(false); }} />
@@ -436,14 +435,27 @@ export const TodLobby = ({ ui, players, cfg, setCfg, deviceCount, block, onStart
 
 const todSkips = (st) => (Array.isArray(st && st.s) ? st.s.reduce((n, x) => n + x, 0) : 0);
 
+// значок уровня: только точки (закрашено 1 / 2 / 3), цвет — класс tod-lvl-<уровень>
+const TodDots = ({ lv }) => <span className="tod-lvl-dots" aria-hidden="true">{[1, 2, 3].map(k => <i key={k} className={k <= TOD_DOTS[lv] ? 'on' : ''}></i>)}</span>;
+
 // всплеск искр при выполненном задании (чистый CSS: каждая искра летит по своему углу)
 const TodBurst = () => (
   <span className="tod-burst" aria-hidden="true">{Array.from({ length: 12 }, (_, k) => <i key={k} style={{ '--a': (k * 30) + 'deg', '--d': (54 + (k % 3) * 16) + 'px', '--c': k % 3 === 0 ? '#ffb061' : k % 3 === 1 ? '#ff4d6d' : '#c98bff' }}></i>)}</span>
 );
 
-// игровой экран #/tod/play. Действия отдаются без seq (его подставляет приложение); banter — уже выбранная реплика (или '')
+// «ведущий-насмешник»: лицо меняется от события, реплика — в пузыре; у «Острого» тона пузырь красный и подрагивает
+const TOD_HECKLE_FACE = { turn_start: '🎤', chose_truth: '🧐', chose_dare: '😈', level_easy: '🐣', level_medium: '😏', level_hard: '🔥', done: '👏', done_hard: '🤯', skip_1: '🐔', skip_2: '🐔', skip_3: '🤡', skip_hard: '🙈', redeem: '🫡', same_type_streak: '🥱', easy_only: '🍼', deck_cycle: '🔄', game_end: '🏁' };
+const TodHeckle = ({ text, ev, tone }) => (
+  <div key={ev ? ev.seq : 0} className={`tod-heckle ${tone === 2 ? 'is-spicy' : ''}`}>
+    <span aria-hidden="true" className="tod-heckle-face">{TOD_HECKLE_FACE[ev && ev.k] || '😏'}</span>
+    <p className="tod-banter">{text}</p>
+  </div>
+);
+
+// игровой экран #/tod/play. Действия отдаются без seq (его подставляет приложение); banter — уже выбранная реплика (или '').
+// «Назад» и «Меню» перед уходом спрашивают подтверждение; onLeave(куда) — 'back' (в лобби) или 'menu' (в меню приложения)
 export const TodGame = ({ ui, state, banter, cardText, levelAvail, onAction, onEnd, onLeave }) => {
-  const [ask, setAsk] = React.useState(false); const [shake, setShake] = React.useState(0);
+  const [ask, setAsk] = React.useState(''); const [shake, setShake] = React.useState(0); // ask: '' — окно закрыто, иначе куда идёт игрок
   const st = state; const me = st.pl[st.turn] || { name: '' };
   const locked = todTruthLocked(st); const run = todTruthRun(st);
   const act = (a) => {
@@ -455,22 +467,21 @@ export const TodGame = ({ ui, state, banter, cardText, levelAvail, onAction, onE
   const turns = st.stat.reduce((n, s) => n + s.d.reduce((a, b) => a + b, 0), 0); const round = Math.floor(turns / Math.max(st.pl.length, 1)) + 1;
   const evNow = st.ev && st.ev.seq === st.seq ? st.ev.k : '';
   const win = evNow === 'done' || evNow === 'done_hard' || evNow === 'redeem'; const flop = /^skip_/.test(evNow);
+  const close = () => { ui.SoundFX.click(); setAsk(''); };
   return (
     <div className="safe-screen w-full flex flex-col items-center fade-in relative z-10">
-      <header className="w-full max-w-md flex items-center gap-3 pt-2">
-        <span className="flex-1 flex flex-col min-w-0"><span className="text-sm font-bold text-white truncate">{todTx(ui, 'Правда или действие')}</span><span className="ui-hint">{tf("Круг {v0}", { v0: round })}</span></span>
-        <button type="button" onClick={() => { ui.SoundFX.click(); setAsk(true); }} className="btn-secondary btn-sm">{todTx(ui, 'Завершить')}</button>
+      <header className="w-full max-w-md flex items-center justify-between gap-3 pt-2">
+        <button type="button" aria-label={todTx(ui, 'Назад')} onClick={() => { ui.SoundFX.click(); setAsk('back'); }} className="btn-icon flex-shrink-0"><ui.Icons.Back /></button>
+        <button type="button" onClick={() => { ui.SoundFX.click(); setAsk('menu'); }} aria-label={todTx(ui, 'Открыть меню')} className="btn-secondary btn-sm flex-shrink-0"><span>{todTx(ui, 'Меню')}</span><span aria-hidden="true" className="text-lg leading-none">☰</span></button>
       </header>
-      <main className="w-full max-w-md flex flex-col gap-5 pt-5 pb-8">
+      <main className="w-full max-w-md flex flex-col gap-5 pt-4 pb-8">
+        <div className="tod-titlebar">
+          <h1 className="tod-title-main">{todTx(ui, 'Правда или действие')}</h1>
+          <p className="tod-title-sub">{tf("Круг {v0}", { v0: round })}</p>
+        </div>
         <ul className="tod-roster" aria-label={todTx(ui, 'Игроки')}>
           {st.pl.map((p, i) => <li key={p.id || i} className={`chip ${i === st.turn ? 'is-on tod-now' : ''}`} aria-current={i === st.turn ? 'true' : undefined}><TodAvatar p={p} i={i} /><span className="tod-name">{p.name}</span><span className="tod-chicken">🐔 {todSkips(st.stat[i])}</span></li>)}
         </ul>
-        <div className="tod-stage">
-          <TodAvatar p={me} i={st.turn} big />
-          <h2 key={st.turn + ':' + st.seq} className="tod-turn break-words" aria-live="polite">{todTx(ui, 'Ход игрока:')} {me.name}</h2>
-          {win && <TodBurst key={'b' + st.seq} />}
-          {flop && <span key={'f' + st.seq} className="tod-egg" aria-hidden="true">🐔</span>}
-        </div>
         {st.phase === 'choose' && (
           <div className="flex flex-col gap-3">
             <div className="grid grid-cols-2 gap-3">
@@ -498,7 +509,7 @@ export const TodGame = ({ ui, state, banter, cardText, levelAvail, onAction, onE
               const on = !!(levelAvail && levelAvail[lv]);
               return (
                 <button key={lv} type="button" disabled={!on} onClick={() => act({ t: 'level', diff: lv })} className={`btn-tile tod-lvl tod-lvl-${lv} tod-heat w-full justify-between`}>
-                  <span className="flex items-center gap-2.5"><span className="tod-lvl-dots" aria-hidden="true">{[1, 2, 3].map(k => <i key={k} className={k <= TOD_DOTS[lv] ? 'on' : ''}></i>)}</span><span aria-hidden="true">{TOD_LEVEL_ICON[lv]}</span> {todTx(ui, TOD_LEVEL_WORD[lv])}</span>
+                  <span className="flex items-center gap-3"><TodDots lv={lv} /><span>{todTx(ui, TOD_LEVEL_WORD[lv])}</span></span>
                   <span className="text-xs text-zinc-400 font-semibold">{on ? todTx(ui, TOD_LEVEL_HINT[lv]) : todTx(ui, 'пока пусто')}</span>
                 </button>
               );
@@ -506,16 +517,20 @@ export const TodGame = ({ ui, state, banter, cardText, levelAvail, onAction, onE
           </div>
         )}
         {st.phase === 'card' && st.card && (
-          <div className="flex flex-col gap-4">
-            <div className="tod-flip">
-              <div key={st.card.id + ':' + st.seq} className={`tod-flip-in tod-card tod-card-${st.card.lv} rounded-[24px] border border-white/10 bg-white/[0.05] p-6 min-h-[180px] flex flex-col gap-3`}>
-                <span className={`tod-lvl tod-lvl-${st.card.lv}`}><span aria-hidden="true">{TOD_LEVEL_ICON[st.card.lv]}</span> {todTx(ui, st.card.pool === 'truth' ? tr("Правда") : tr("Действие"))} · {todTx(ui, TOD_LEVEL_WORD[st.card.lv])}</span>
-                <p className="text-xl leading-snug text-white break-words">{text === null ? todTx(ui, 'Карточка недоступна') : text === undefined ? todTx(ui, 'Загружаем карточку…') : text}</p>
-              </div>
+          <div className="tod-flip">
+            <div key={st.card.id + ':' + st.seq} className={`tod-flip-in tod-card tod-card-${st.card.lv} rounded-[24px] border border-white/10 bg-white/[0.05] p-6 min-h-[180px] flex flex-col gap-3`}>
+              <span className={`tod-lvl tod-lvl-${st.card.lv}`}><TodDots lv={st.card.lv} /><span>{todTx(ui, st.card.pool === 'truth' ? tr("Правда") : tr("Действие"))} · {todTx(ui, TOD_LEVEL_WORD[st.card.lv])}</span></span>
+              <p className="text-xl leading-snug text-white break-words">{text === null ? todTx(ui, 'Карточка недоступна') : text === undefined ? todTx(ui, 'Загружаем карточку…') : text}</p>
             </div>
           </div>
         )}
-        {banter && <p key={st.ev.seq} className="tod-banter">{banter}</p>}
+        <div className="tod-stage">
+          <TodAvatar p={me} i={st.turn} big />
+          <h2 key={st.turn + ':' + st.seq} className="tod-turn break-words" aria-live="polite">{todTx(ui, 'Ход игрока:')} {me.name}</h2>
+          {win && <TodBurst key={'b' + st.seq} />}
+          {flop && <span key={'f' + st.seq} className="tod-egg" aria-hidden="true">🐔</span>}
+        </div>
+        {banter && <TodHeckle text={banter} ev={st.ev} tone={st.opts.tone} />}
         {st.phase === 'card' && st.card && (
           <div className="flex flex-col gap-3">
             <button type="button" onClick={() => act({ t: 'done' })} className="btn-primary w-full"><ui.Icons.Check /> {todTx(ui, st.card.pool === 'truth' ? tr("Ответил(а)") : tr("Выполнено"))}</button>
@@ -523,41 +538,69 @@ export const TodGame = ({ ui, state, banter, cardText, levelAvail, onAction, onE
           </div>
         )}
       </main>
-      <ui.PopupModal isOpen={ask} onClose={() => setAsk(false)}>
+      <ui.PopupModal isOpen={!!ask} onClose={close}>
         <div className="flex flex-col gap-3 pt-1 text-left">
-          <h3 className="text-xl font-bold text-white pr-8">{todTx(ui, 'Завершить игру?')}</h3>
+          <h3 className="text-xl font-bold text-white pr-8">{todTx(ui, 'Вы действительно хотите закончить игру?')}</h3>
           <p className="text-sm text-zinc-300 leading-relaxed">{todTx(ui, 'Можно закончить партию для всех и открыть итоги или просто уйти с этого устройства.')}</p>
-          <button type="button" onClick={() => { setAsk(false); onEnd(); }} className="btn-danger w-full">{todTx(ui, 'Завершить для всех')}</button>
-          <button type="button" onClick={() => { ui.SoundFX.click(); setAsk(false); onLeave(); }} className="btn-secondary w-full">{todTx(ui, 'Выйти, остальные продолжат')}</button>
-          <button type="button" onClick={() => { ui.SoundFX.click(); setAsk(false); }} className="btn-ghost w-full">{todTx(ui, 'Отмена')}</button>
+          <button type="button" onClick={() => { setAsk(''); onEnd(); }} className="btn-danger w-full">{todTx(ui, 'Завершить для всех')}</button>
+          <button type="button" onClick={() => { ui.SoundFX.click(); const to = ask; setAsk(''); onLeave(to); }} className="btn-secondary w-full">{todTx(ui, 'Выйти, остальные продолжат')}</button>
+          <button type="button" onClick={close} className="btn-ghost w-full">{todTx(ui, 'Вернуться в игру')}</button>
         </div>
       </ui.PopupModal>
     </div>
   );
 };
 
-// итоги #/tod/results: «Зал позора» (крупнее и первым), добрые титулы, таблица игроков; titles — результат todTitles
+// итоги #/tod/results: заголовок с кубком и числами партии, подиум по выполненным заданиям, «Зал позора» (крупнее и первым среди титулов),
+// добрые титулы, таблица игроков; titles — результат todTitles. Подвала нет: экран заканчивается кнопками
+const TOD_MEDALS = ['🥇', '🥈', '🥉'];
 export const TodResults = ({ ui, state, titles, onAgain, onMenu, banner }) => {
   const st = state; const t = titles || { shame: [], cheer: [], clean: true, rank: [] };
   const info = (id) => TOD_TITLES.find(x => x.id === id) || { icon: '', name: id, hint: '' };
   const nameOf = (p) => (st.pl[p] ? st.pl[p].name : '');
+  const rank = Array.isArray(t.rank) ? t.rank : [];
+  const doneAll = rank.reduce((n, r) => n + r.done, 0); const skipAll = rank.reduce((n, r) => n + r.skips, 0); const hardAll = rank.reduce((n, r) => n + r.hard, 0);
+  const top = rank.slice(0, 3); const maxDone = top.length ? top[0].done : 0;
+  // подиум: серебро — слева, золото — в центре, бронза — справа (при двух игроках — золото и серебро)
+  const stand = top.length >= 3 ? [1, 0, 2] : top.length === 2 ? [0, 1] : [0];
   const Item = ({ x, big, n }) => { const ti = info(x.id); return (
     <li className={`tod-title ${big ? 'tod-title-shame' : ''} reveal rounded-[20px] border border-white/10 bg-white/[0.04] p-4 flex items-start gap-3`} style={{ animationDelay: (n * 90) + 'ms' }}>
       <span aria-hidden="true" className={`${big ? 'text-3xl' : 'text-2xl'} tod-title-ico`}>{ti.icon}</span>
       <span className="flex flex-col gap-0.5 min-w-0"><span className={`${big ? 'text-lg' : 'text-base'} font-bold text-white break-words`}>{todTx(ui, ti.name)}: {nameOf(x.p)}</span><span className="ui-hint">{todTx(ui, ti.hint)}</span></span>
     </li>
   ); };
+  const stat = (v, label) => <li className="tod-stat"><span className="tod-stat-v">{v}</span><span className="tod-stat-l">{label}</span></li>;
   return (
     <div className="safe-screen w-full flex flex-col items-center slide-up relative z-10">
-      <header className="w-full max-w-md flex items-center gap-3 pt-2">
-        <h1 className="flex-1 text-center text-lg font-bold text-white">{todTx(ui, 'Итоги')}</h1>
-      </header>
-      <main className="w-full max-w-md flex flex-col gap-6 pt-6 pb-8">
+      {maxDone > 0 && <div className="confetti-layer absolute inset-0 overflow-hidden pointer-events-none z-0" aria-hidden="true">{Array.from({ length: 16 }, (_, k) => <span key={k} className="confetti-piece" style={{ left: ((k * 37) % 100) + '%', fontSize: (16 + (k % 4) * 4) + 'px', '--dx': (((k % 5) - 2) * 18) + 'px', '--dur': (5 + (k % 5)) + 's', '--delay': ((k % 7) * 0.35) + 's' }}>{['🎉', '✨', '🔥', '🎊'][k % 4]}</span>)}</div>}
+      <main className="w-full max-w-md flex flex-col gap-6 pt-6 pb-10 relative z-10">
+        <header className="tod-res-hero">
+          <span aria-hidden="true" className="tod-res-cup">🏆</span>
+          <h1 className="tod-res-title">{todTx(ui, 'Итоги')}</h1>
+          <p className="tod-res-sub">{todTx(ui, 'Партия окончена')}</p>
+          <ul className="tod-stats" aria-label={todTx(ui, 'Итоги партии')}>
+            {stat(doneAll, todTx(ui, 'выполнено'))}{stat(skipAll, todTx(ui, 'пропусков'))}{stat(hardAll, todTx(ui, 'жёстких'))}
+          </ul>
+        </header>
         {banner}
+        {maxDone > 0 && (
+          <section className="flex flex-col gap-3" aria-label={todTx(ui, 'Подиум')}>
+            <ol className={`tod-podium tod-podium-${top.length}`}>
+              {stand.map((idx, col) => { const r = top[idx]; const p = st.pl[r.p]; return (
+                <li key={r.p} className={`tod-pod tod-pod-${idx + 1}`} style={{ '--k': Math.max(0.12, r.done / maxDone).toFixed(3), animationDelay: (col * 120) + 'ms' }}>
+                  <span aria-hidden="true" className="tod-pod-medal">{TOD_MEDALS[idx]}</span>
+                  <TodAvatar p={p} i={r.p} big />
+                  <span className="tod-pod-name">{p ? p.name : ''}</span>
+                  <span className="tod-pod-bar"><b>{r.done}</b></span>
+                </li>
+              ); })}
+            </ol>
+          </section>
+        )}
         <section className="flex flex-col gap-3">
           <h2 className="text-2xl font-bold text-white">{todTx(ui, 'Зал позора')}</h2>
           {t.shame.length ? <ul className="flex flex-col gap-3">{t.shame.map((x, i) => <Item key={'s' + i} x={x} big n={i} />)}</ul>
-            : <p className="text-base text-zinc-200 leading-relaxed">{todTx(ui, t.clean ? tr("Сегодня без позора. Все молодцы!") : tr("Позорных титулов нет, но пропуски были — в следующий раз смелее."))}</p>}
+            : <p className="tod-clean">{todTx(ui, t.clean ? tr("Сегодня без позора. Все молодцы!") : tr("Позорных титулов нет, но пропуски были — в следующий раз смелее."))}</p>}
         </section>
         {t.cheer.length > 0 && (
           <section className="flex flex-col gap-3">
@@ -569,7 +612,7 @@ export const TodResults = ({ ui, state, titles, onAgain, onMenu, banner }) => {
           <h2 className="text-base font-bold text-zinc-300">{todTx(ui, 'Таблица')}</h2>
           <table className="tod-table w-full text-left text-sm">
             <thead><tr><th scope="col">{todTx(ui, 'Игрок')}</th><th scope="col" aria-label={todTx(ui, 'Выполнено')}>✔</th><th scope="col" aria-label={todTx(ui, 'Пропущено')}>🐔</th><th scope="col">{todTx(ui, 'жёстких')}</th></tr></thead>
-            <tbody>{t.rank.map(r => <tr key={r.p}><td className="break-words">{nameOf(r.p)}</td><td>{r.done}</td><td>{r.skips}</td><td>{r.hard}</td></tr>)}</tbody>
+            <tbody>{rank.map(r => <tr key={r.p}><td className="break-words">{nameOf(r.p)}</td><td>{r.done}</td><td>{r.skips}</td><td>{r.hard}</td></tr>)}</tbody>
           </table>
         </section>
         <div className="flex flex-col gap-3">
@@ -577,7 +620,6 @@ export const TodResults = ({ ui, state, titles, onAgain, onMenu, banner }) => {
           <button type="button" onClick={() => { ui.SoundFX.click(); onMenu(); }} className="btn-secondary w-full">{todTx(ui, 'В меню')}</button>
         </div>
       </main>
-      <ui.AppFooter divider={false} />
     </div>
   );
 };
