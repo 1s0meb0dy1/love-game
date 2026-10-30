@@ -155,9 +155,9 @@ export const TodAdmin = ({ ui, cards, source, isAdmin, onSave, onSeed, onBack, i
   const total = types.reduce((n, t) => n + levels.reduce((m, lv) => m + groups[t][lv].length, 0), 0);
   return (
     <div className="safe-screen w-full flex flex-col items-center slide-up relative z-10">
-      <header className="w-full max-w-md flex items-center gap-3 pt-2">
+      <header className="page-head w-full max-w-md flex items-center gap-3 pt-2">
         <button type="button" onClick={() => { ui.SoundFX.click(); onBack(); }} aria-label={tr("Назад")} className="btn-icon flex-shrink-0"><Icons.Back /></button>
-        <h1 className="flex-1 text-center pr-11 text-lg font-bold text-white">{tr("Карточки")}</h1>
+        <h1 className="page-title flex-1 text-center pr-11 text-lg font-bold text-white">{tr("Карточки")}</h1>
       </header>
       <main className="w-full max-w-md flex flex-col gap-6 pt-6 pb-6">
         {!isAdmin ? ( <p className="text-sm text-zinc-400 text-center">{tr("Раздел доступен только владельцу.")}</p> ) : (
@@ -370,9 +370,9 @@ export const TodLobby = ({ ui, players, cfg, setCfg, deviceCount, block, onStart
   const ruleOn = rules.find(r => r.id === rule) || null;
   return (
     <div className="safe-screen tod-lobby w-full flex flex-col items-center slide-up relative z-10">
-      <header className="w-full max-w-md lg:max-w-5xl flex items-center gap-3">
+      <header className="page-head w-full max-w-md lg:max-w-5xl flex items-center gap-3">
         <button type="button" aria-label={todTx(ui, 'Назад')} onClick={() => { ui.SoundFX.click(); onBack(); }} className="btn-icon flex-shrink-0"><ui.Icons.Back /></button>
-        <h1 className="flex-1 text-center text-lg font-bold text-white">{todTx(ui, 'Правда или действие')}</h1>
+        <h1 className="page-title flex-1 text-center text-lg font-bold text-white">{todTx(ui, 'Правда или действие')}</h1>
         <button type="button" aria-label={todTx(ui, 'Поделиться сессией')} title={todTx(ui, 'Поделиться сессией')} onClick={onShare} className="btn-icon flex-shrink-0"><ui.Icons.Share /></button>
       </header>
       <main className="tod-lobby-main w-full max-w-md lg:max-w-5xl flex flex-col gap-3 desk-cols">

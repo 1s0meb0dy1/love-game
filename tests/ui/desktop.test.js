@@ -31,6 +31,27 @@ const done = (A) => { errs.push(...A.errors); A.close(); };
     await A.press('Правда', 500);
     T('после выбора: карточка с «Ходом игрока» на ней слева, подколка справа', !!A.D.querySelector('.tod-desk-main .tod-flip .tod-card-turn') && !A.D.querySelector('.tod-stage') && !!A.D.querySelector('.tod-desk-side .tod-heckle') && !!A.btn('Ответил(а)'));
     done(A);
+
+    // волна 2: шапки страниц слева, «Об игре» лендингом, документы с оглавлением, вход в две колонки
+    A = await boot({ hash: '#/privacy', desktop: true });
+    const toc = A.D.querySelector('.legal-aside .legal-toc');
+    T('документ на компьютере: слева оглавление по разделам и другие документы, заголовок в шапке .page-head', !!toc && toc.querySelectorAll('button').length === A.D.querySelectorAll('.legal-sec').length && !!A.D.querySelector('.legal-aside-docs a[href="#/terms"]') && !!A.D.querySelector('header.page-head h1.page-title') && !A.D.querySelector('nav.legal-others'));
+    done(A);
+    A = await boot({ hash: '#/privacy' });
+    T('документ на телефоне: оглавления нет, внизу прежний список других документов', !A.D.querySelector('.legal-aside') && !!A.D.querySelector('nav.legal-others a'));
+    done(A);
+    A = await boot({ hash: '#/about', desktop: true });
+    T('«Об игре» на компьютере: возможности сеткой карточек (с подробным текстом), а не раскрывающимся списком', A.D.querySelectorAll('.about-feat-grid > li.about-feat').length > 3 && !A.D.querySelector('[aria-labelledby="about-feat"] .about-acc') && !!A.D.querySelector('main.about-page .about-split'));
+    done(A);
+    A = await boot({ hash: '#/welcome', desktop: true });
+    T('вход на компьютере: слева рассказ об игре с тремя шагами и ссылкой «Подробнее об игре», справа карточка с формой', !!A.D.querySelector('.onb-split > .onb-pitch') && A.D.querySelectorAll('.onb-steps li').length === 3 && !!A.D.querySelector('.onb-split > .onb-card form') && !!A.btn('Подробнее об игре'));
+    done(A);
+    A = await boot({ hash: '#/welcome' });
+    T('вход на телефоне: без блока-рассказа, только форма', !A.D.querySelector('.onb-pitch') && !!A.D.querySelector('.onb-card form'));
+    done(A);
+    A = await boot({ hash: '#/profile', desktop: true });
+    T('«Игроки и сессия» на компьютере: имена слева (.prof-main), ID и выход справа (.prof-side), второго переключателя языка нет', !!A.D.querySelector('main.profile-page > form.prof-main') && !!A.D.querySelector('main.profile-page > .prof-side') && A.D.querySelectorAll('.lang-btn').length === 1);
+    done(A);
   } catch (e) { T('сценарий выполнился без исключений: ' + (e && e.stack), false); }
   console.log(res.join('\n')); console.log('--- captured runtime errors: ' + errs.length); errs.slice(0, 5).forEach(e => console.log(e));
   process.exit(res.some(l => l.startsWith('FAIL')) || errs.length ? 1 : 0);
