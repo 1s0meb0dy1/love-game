@@ -11,5 +11,13 @@ const updateSW = registerSW({
   onNeedRefresh() {
     const apply = () => { if (inGameHash(window.location.hash)) return false; clearInterval(waiting); updateSW(true); return true; };
     clearInterval(waiting); if (!apply()) waiting = setInterval(apply, 3000);
+  },
+  // встановлений застосунок часто не перезавантажується (повертаються з фону), тож нову версію шукаємо
+  // при кожному поверненні на екран і раз на 30 хв, а не лише при відкритті сторінки
+  onRegisteredSW(swUrl, reg) {
+    if (!reg) return;
+    const check = () => { if (navigator.onLine !== false) reg.update().catch(() => {}); };
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') check(); });
+    setInterval(check, 30 * 60 * 1000);
   }
 });
