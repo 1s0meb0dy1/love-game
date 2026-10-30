@@ -49,6 +49,7 @@ const noTruth = (E) => { const base = E.w.fetch; E.w.fetch = async (url, init) =
     await sleep(600); await press(B, 'Меню', 400); await press(B, 'Выйти, остальные продолжат', 900);
     const p = db.todRoom().p;
     T('«Выйти, остальные продолжат» на B не прерывает игру A, в p остаётся только отметка A', B.w.location.hash === '#/more' && onPlay(A) && db.todRoom().status === 'active' && Object.keys(p).length === 1 && !!p[devId(A)]);
+    B.w.location.hash = '#/'; await sleep(600); // приглашение показывают главная, режимы и лобби, а не меню приложения
     await waitFor(() => hasBanner(B), 8000); await joinTod(B); await waitFor(() => onPlay(B), 10000); await sleep(800);
     await press(A, 'Действие', 650); await press(A, 'Легко', 400); await sleep(700); await press(A, 'Выполнено', 900);
     await press(A, 'Меню', 400); await press(A, 'Завершить для всех', 900);

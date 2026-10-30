@@ -708,3 +708,50 @@ html[data-fx] .bg-room::before { background: radial-gradient(560px circle at var
 :root :is(.btn-primary, .btn-secondary, .btn-ghost, .btn-accent, .btn-danger, .btn-tile, .btn-dashed, .chip, .tag, .seg-btn) > svg { flex: 0 0 auto; }
 :root :is(.btn-primary, .btn-secondary, .btn-ghost, .btn-accent, .btn-danger, .btn-tile, .btn-dashed, .chip, .tag, .menu-opt, .row) { align-items: center; }
 :root :is(.tag, .chip) > [aria-hidden='true'] { flex: 0 0 auto; line-height: 1; }
+
+/* ═══ История игр сессии ═══ */
+:root .hist-hero { display: flex; flex-direction: column; align-items: center; gap: 0.25rem; padding: 1.5rem 1.25rem 1.25rem; border-radius: var(--r-hero); border: 1px solid var(--line-strong); text-align: center; background: radial-gradient(90% 90% at 50% 0%, rgb(255 77 109 / 0.14), transparent 62%), rgb(255 255 255 / 0.03); }
+:root .hist-hero-n { font-family: var(--font-display); font-size: 3.25rem; line-height: 1; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; }
+:root .hist-hero-l { font-size: 0.9375rem; font-weight: 600; color: var(--text-2); }
+:root .hist-stats { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 0.5rem; width: 100%; margin-top: 0.875rem; }
+:root .hist-stat { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.25rem; min-height: 4.5rem; padding: 0.625rem 0.375rem; border-radius: var(--r-control); border: 1px solid var(--line); background: rgb(255 255 255 / 0.04); }
+:root .hist-stat-v { font-family: var(--font-display); font-size: 1.5rem; line-height: 1.1; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; }
+:root .hist-stat-l { font-size: 0.75rem; line-height: 1.25; color: var(--text-3); text-wrap: balance; }
+:root .hist-day { padding-left: 0.25rem; font-size: 0.875rem; font-weight: 700; color: var(--text-2); }
+
+:root .hist-card { display: flex; flex-direction: column; border-radius: var(--r-surface); border: 1px solid var(--line-strong); background: rgb(255 255 255 / 0.04); overflow: hidden; transition: border-color 0.2s ease, background-color 0.2s ease; }
+:root .hist-card.is-last { border-color: rgb(255 77 109 / 0.5); background: linear-gradient(180deg, rgb(255 77 109 / 0.09), rgb(255 255 255 / 0.03)); }
+@media (hover: hover) { :root .hist-card:hover { background-color: rgb(255 255 255 / 0.07); } }
+:root .hist-card-main { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 0.625rem; width: 100%; padding: 1rem 2.5rem 1rem 1rem; text-align: left; cursor: pointer; }
+:root .hist-card-main:active { background: rgb(255 255 255 / 0.04); }
+:root .hist-card-top { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+:root .hist-time { font-family: var(--font-display); font-size: 1.0625rem; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; }
+:root .hist-names { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.9375rem; font-weight: 600; color: var(--text); }
+:root .hist-prog { display: flex; flex-direction: column; gap: 0.375rem; width: 100%; }
+:root .hist-prog-bar { display: block; height: 6px; border-radius: 999px; background: rgb(255 255 255 / 0.08); overflow: hidden; }
+:root .hist-prog-bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--rose), var(--ember)); }
+:root .hist-prog-txt { font-size: 0.8125rem; color: var(--text-3); font-variant-numeric: tabular-nums; }
+:root .hist-tags { display: flex; flex-wrap: wrap; gap: 0.375rem; }
+:root .hist-chev { position: absolute; right: 1rem; top: 50%; margin-top: -0.75rem; font-size: 1.5rem; line-height: 1.5rem; color: var(--text-3); }
+:root .hist-card-foot { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.75rem 1rem; border-top: 1px solid var(--line); background: rgb(255 77 109 / 0.05); }
+:root .hist-stop { min-width: 0; font-size: 0.8125rem; line-height: 1.35; color: var(--text-2); text-wrap: balance; }
+:root .hist-card-foot .btn-sm { flex: 0 0 auto; }
+
+:root .hist-empty { display: flex; flex-direction: column; align-items: center; gap: 0.75rem; padding: 2rem 1.25rem; border-radius: var(--r-hero); border: 1px dashed var(--line-strong); text-align: center; background: rgb(255 255 255 / 0.02); }
+:root .hist-empty-ico { font-size: 3rem; line-height: 1; }
+:root .hist-empty-h { font-family: var(--font-display); font-size: 1.25rem; line-height: 1.25; font-weight: 700; color: #fff; text-wrap: balance; }
+:root .hist-empty-p { max-width: 22rem; margin-bottom: 0.5rem; font-size: 0.9375rem; line-height: 1.55; color: var(--text-2); text-wrap: pretty; }
+
+:root .hist-view-hero { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 1.5rem 1.25rem; border-radius: var(--r-hero); border: 1px solid var(--line-strong); text-align: center; background: radial-gradient(90% 90% at 50% 0%, rgb(255 77 109 / 0.14), transparent 62%), rgb(255 255 255 / 0.03); }
+:root .hist-view-when { font-size: 0.875rem; font-weight: 700; color: var(--rose-300); }
+:root .hist-view-names { max-width: 100%; font-size: 1.0625rem; font-weight: 700; color: #fff; overflow-wrap: anywhere; text-wrap: balance; }
+:root .hist-badge { display: inline-flex; padding: 0.5rem 1rem; border-radius: 999px; border: 1px solid rgb(255 77 109 / 0.35); background: rgb(255 77 109 / 0.1); font-size: 0.875rem; font-weight: 600; color: var(--rose-ink); }
+:root .hist-players { display: flex; flex-direction: column; border-radius: var(--r-surface); border: 1px solid var(--line); background: rgb(255 255 255 / 0.03); overflow: hidden; }
+:root .hist-player { display: flex; align-items: center; gap: 0.75rem; min-height: 3.5rem; padding: 0.5rem 1rem; }
+:root .hist-player + .hist-player { border-top: 1px solid var(--line); }
+:root .hist-player-ico { flex: 0 0 auto; font-size: 1.25rem; line-height: 1; }
+:root .hist-player-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.9375rem; font-weight: 600; color: #fff; }
+:root .hist-player-n { display: inline-flex; align-items: center; gap: 0.375rem; flex: 0 0 auto; min-width: 2.75rem; justify-content: flex-end; font-size: 0.9375rem; font-weight: 700; color: var(--ok); font-variant-numeric: tabular-nums; }
+:root .hist-player-n.is-skip { color: rgb(var(--lvl-1-rgb)); }
+:root .hist-player-n svg { width: 16px; height: 16px; flex: 0 0 auto; }
+:root .hist-chip-n { margin-left: 0.125rem; font-size: 0.8125rem; font-weight: 700; color: var(--text-3); font-variant-numeric: tabular-nums; }

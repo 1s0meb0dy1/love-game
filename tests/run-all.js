@@ -2,13 +2,13 @@
 const { spawn } = require('child_process'); const path = require('path');
 const fs = require('fs'); const os = require('os');
 const captureDir = process.env.TEST_CAPTURE_FILES === '1' ? fs.mkdtempSync(path.join(os.tmpdir(), 'askme-tests-')) : null;
-const UNIT = ['deck', 'ai', 'ai-worker', 'analytics-logic', 'punishment-logic', 'sound', 'topics-logic', 'turn-queue', 'reel-and-queue', 'live-logic', 'content', 'update', 'session-io', 'tod-rules', 'tod-model', 'tod-cards', 'tod-deck', 'tod-engine', 'tod-talk-titles', 'tod-channel'].map(n => ({ name: 'unit/' + n, file: `unit/${n}.test.js`, env: {} }));
+const UNIT = ['deck', 'ai', 'ai-worker', 'analytics-logic', 'punishment-logic', 'sound', 'topics-logic', 'turn-queue', 'reel-and-queue', 'live-logic', 'content', 'update', 'session-io', 'tod-rules', 'history', 'tod-model', 'tod-cards', 'tod-deck', 'tod-engine', 'tod-talk-titles', 'tod-channel'].map(n => ({ name: 'unit/' + n, file: `unit/${n}.test.js`, env: {} }));
 const UI = [
   ['game', {}], ['timer', {}], ['modes', { FLOW: 'hard' }], ['modes', { FLOW: 'normal' }], ['modes', { FLOW: 'admin' }], ['results', {}],
   ['menu', { FLOW: 'player' }], ['menu', { FLOW: 'admin' }], ['punishment-templates', { FLOW: 'player' }], ['punishment-templates', { FLOW: 'admin' }],
   ['analytics', { FLOW: 'player' }], ['analytics', { FLOW: 'optout' }], ['analytics', { FLOW: 'admin' }], ['audit-regressions', {}],
   ['hidden-questions', { FLOW: 'player' }], ['hidden-questions', { FLOW: 'admin' }], ['question-form', {}], ['card-effects', {}], ['live', {}], ['live-lifecycle', {}], ['live-hard', {}], ['live-admin', {}], ['live-resume', {}], ['quick-ui', { FLOW: 'player' }], ['quick-ui', { FLOW: 'admin' }], ['analytics-partial', {}], ['about-legal', {}], ['invite-join', {}], ['live-invite', {}], ['cloud-payload', {}], ['live-solo-timeout', {}], ['game-resume', {}], ['id-login', {}], ['invite-share', {}], ['live-cap', {}], ['resume-guard', {}], ['ui-polish', {}], ['tod-cards-load', {}],
-  ['i18n-uk', { FLOW: 'player' }], ['i18n-uk', { FLOW: 'admin' }], ['tod-archive', { FLOW: 'player' }], ['tod-archive', { FLOW: 'offline' }], ['tod-archive', { FLOW: 'admin' }], ['tod-admin', {}], ['desktop', {}], ['tod-lobby', {}], ['tod-game', {}], ['tod-results', {}], ['tod-live', {}], ['tod-resume', {}]
+  ['i18n-uk', { FLOW: 'player' }], ['i18n-uk', { FLOW: 'admin' }], ['tod-archive', { FLOW: 'player' }], ['tod-archive', { FLOW: 'offline' }], ['tod-archive', { FLOW: 'admin' }], ['tod-admin', {}], ['desktop', {}], ['history', {}], ['tod-lobby', {}], ['tod-game', {}], ['tod-results', {}], ['tod-live', {}], ['tod-resume', {}]
 ].map(([n, env]) => ({ name: `ui/${n}${env.FLOW ? ' [' + env.FLOW + ']' : ''}`, file: `ui/${n}.test.js`, env }));
 const only = process.argv[2]; const jobs = only === '--unit' ? UNIT : only === '--ui' ? UI : [...UNIT, ...UI];
 const run = (job) => new Promise((resolve) => {

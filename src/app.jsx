@@ -12,6 +12,8 @@ import { TOD_STARTER } from './content/tod-cards.js';
 import { todCleanList, todCleanCard, todCardText } from './tod/model.js';
 import { todLoadCards, todSaveCard, todSeedStarter, todActive, todReadCache, todWriteCache } from './tod/cards.js';
 import { todMineRead, todMineWrite, todMineAdd, todMineRemove, todIsMine } from './tod/mine.js';
+import { histClean, histMerge, histAdd, histMarkContinued, histBuild } from './history/model.js';
+import { HistList, HistView, histDayLabel } from './history/screens.jsx';
 import { TOD_BANTER, TOD_TITLES } from './content/tod-banter.js';
 import { todBuildDeck, todNext } from './tod/deck.js';
 import { todStart, todApply } from './tod/engine.js';
@@ -176,6 +178,8 @@ i18nSetLang(readStoredLang());
             }
             return out;
         };
+        const cleanHistory = (v) => histClean(v, cleanSavedGame);
+        const mergeHistory = (a, b) => histMerge(a, b, cleanSavedGame);
         const cleanIdList = (v, max = 5000) => Array.isArray(v) ? v.filter(x => typeof x === 'string' || typeof x === 'number').slice(0, max) : [];
 
         let lastSyncToastAt = 0;
@@ -269,8 +273,8 @@ i18nSetLang(readStoredLang());
             { id: "Глубокие", name: "Глубокие", classText: "diff-text-3", classBg: "diff-pill-3" }
         ];
 
-        const SCREEN_TO_HASH = { onboarding: '#/welcome', session_created: '#/session-ready', menu: '#/', app_menu: '#/more', game_setup: '#/setup', topics_admin: '#/topics/manage', punish_admin: '#/punishments/manage', tod_admin: '#/tod/manage', tod_lobby: '#/tod', tod_play: '#/tod/play', tod_results: '#/tod/results', analytics: '#/analytics', analytics_sessions: '#/analytics/sessions', hidden_q: '#/questions/hidden', profile_page: '#/profile', admin_login: '#/admin', mode_select: '#/mode', game: '#/play', ai_response: '#/ai', summary: '#/summary', cat_list: '#/topics', q_list: '#/questions', archive_page: '#/archive', add_q: '#/add', edit_q: '#/edit', invite: '#/invite', join: '#/join', about: '#/about', privacy: '#/privacy', terms: '#/terms', cookies: '#/cookies', age: '#/age', copyright: '#/copyright' };
-        const HASH_TO_SCREEN = { '#/welcome': 'onboarding', '#/session-ready': 'session_created', '#/': 'menu', '#/menu': 'menu', '#/profile': 'profile_page', '#/more': 'app_menu', '#/setup': 'game_setup', '#/topics/manage': 'topics_admin', '#/punishments/manage': 'punish_admin', '#/tod/manage': 'tod_admin', '#/tod': 'tod_lobby', '#/tod/play': 'tod_play', '#/tod/results': 'tod_results', '#/analytics': 'analytics', '#/analytics/sessions': 'analytics_sessions', '#/questions/hidden': 'hidden_q', '#/admin': 'admin_login', '#/mode': 'mode_select', '#/play': 'game', '#/ai': 'ai_response', '#/summary': 'summary', '#/topics': 'cat_list', '#/questions': 'q_list', '#/archive': 'archive_page', '#/add': 'add_q', '#/edit': 'edit_q', '#/invite': 'invite', '#/join': 'join', '#/about': 'about', '#/privacy': 'privacy', '#/terms': 'terms', '#/cookies': 'cookies', '#/age': 'age', '#/copyright': 'copyright' };
+        const SCREEN_TO_HASH = { onboarding: '#/welcome', session_created: '#/session-ready', menu: '#/', app_menu: '#/more', game_setup: '#/setup', topics_admin: '#/topics/manage', punish_admin: '#/punishments/manage', tod_admin: '#/tod/manage', history: '#/history', history_view: '#/history/view', tod_lobby: '#/tod', tod_play: '#/tod/play', tod_results: '#/tod/results', analytics: '#/analytics', analytics_sessions: '#/analytics/sessions', hidden_q: '#/questions/hidden', profile_page: '#/profile', admin_login: '#/admin', mode_select: '#/mode', game: '#/play', ai_response: '#/ai', summary: '#/summary', cat_list: '#/topics', q_list: '#/questions', archive_page: '#/archive', add_q: '#/add', edit_q: '#/edit', invite: '#/invite', join: '#/join', about: '#/about', privacy: '#/privacy', terms: '#/terms', cookies: '#/cookies', age: '#/age', copyright: '#/copyright' };
+        const HASH_TO_SCREEN = { '#/welcome': 'onboarding', '#/session-ready': 'session_created', '#/': 'menu', '#/menu': 'menu', '#/profile': 'profile_page', '#/more': 'app_menu', '#/setup': 'game_setup', '#/topics/manage': 'topics_admin', '#/punishments/manage': 'punish_admin', '#/tod/manage': 'tod_admin', '#/history': 'history', '#/history/view': 'history_view', '#/tod': 'tod_lobby', '#/tod/play': 'tod_play', '#/tod/results': 'tod_results', '#/analytics': 'analytics', '#/analytics/sessions': 'analytics_sessions', '#/questions/hidden': 'hidden_q', '#/admin': 'admin_login', '#/mode': 'mode_select', '#/play': 'game', '#/ai': 'ai_response', '#/summary': 'summary', '#/topics': 'cat_list', '#/questions': 'q_list', '#/archive': 'archive_page', '#/add': 'add_q', '#/edit': 'edit_q', '#/invite': 'invite', '#/join': 'join', '#/about': 'about', '#/privacy': 'privacy', '#/terms': 'terms', '#/cookies': 'cookies', '#/age': 'age', '#/copyright': 'copyright' };
         // страницы, которые открываются без сессии (по общей ссылке): «Об игре», юридические, быстрое подключение
         const PUBLIC_SCREENS = ['about', 'privacy', 'terms', 'cookies', 'age', 'copyright', 'join'];
         // экраны, которые после перезагрузки страницы нечем наполнить (итоги и разбор опираются на данные партии в памяти): открываем меню
@@ -575,7 +579,7 @@ i18nSetLang(readStoredLang());
                     {rows.map(r => (
                         <div key={r.label}>
                             <div className="flex items-center justify-between mb-1.5">
-                                <span className={`font-bold text-xs ${r.cls}`}>{r.label}</span>
+                                <span className={`font-bold text-xs ${r.cls}`}>{tr(r.label)}</span>
                                 <span className="font-display text-xl font-bold text-white"><AnimatedCounter target={r.count} /></span>
                             </div>
                             <div className="h-2 rounded-full bg-white/[0.07] overflow-hidden">
@@ -665,7 +669,7 @@ i18nSetLang(readStoredLang());
             }
             return deck;
         };
-        const SCREEN_TITLES = { hidden_q: 'Скрытые вопросы — ASK ME', analytics: 'Аналитика — ASK ME', analytics_sessions: 'Сессии — Аналитика — ASK ME', app_menu: 'Меню — ASK ME', game_setup: 'Усложнённый режим — ASK ME', topics_admin: 'Управление темами — ASK ME', punish_admin: 'Шаблоны наказаний — ASK ME', tod_admin: 'Карточки — Правда или действие — ASK ME', tod_lobby: 'Правда или действие — ASK ME', tod_play: 'Игра — Правда или действие — ASK ME', tod_results: 'Итоги — Правда или действие — ASK ME', onboarding: 'ASK ME — начните игру', session_created: 'Сессия создана — ASK ME', menu: 'ASK ME — откровенные разговоры для двоих и компании', profile_page: 'Игроки и сессия — ASK ME', admin_login: 'Вход для владельца — ASK ME', mode_select: 'Режим игры — ASK ME', game: 'Игра — ASK ME', ai_response: 'Совет и ситуация — ASK ME', summary: 'Итоги игры — ASK ME', cat_list: 'Все темы — ASK ME', q_list: 'Вопросы — ASK ME', archive_page: 'Архив вопросов — ASK ME', add_q: 'Новый вопрос — ASK ME', edit_q: 'Редактирование вопроса — ASK ME', invite: 'Пригласить игроков — ASK ME', join: 'Присоединиться к игре — ASK ME', about: 'Об игре — ASK ME', privacy: 'Политика конфиденциальности — ASK ME', terms: 'Пользовательское соглашение — ASK ME', cookies: 'Cookies и локальное хранилище — ASK ME', age: 'Возраст и откровенный контент — ASK ME', copyright: 'Авторские права — ASK ME' };
+        const SCREEN_TITLES = { hidden_q: 'Скрытые вопросы — ASK ME', analytics: 'Аналитика — ASK ME', analytics_sessions: 'Сессии — Аналитика — ASK ME', app_menu: 'Меню — ASK ME', game_setup: 'Усложнённый режим — ASK ME', topics_admin: 'Управление темами — ASK ME', punish_admin: 'Шаблоны наказаний — ASK ME', tod_admin: 'Карточки — Правда или действие — ASK ME', history: 'Прошлые игры — ASK ME', history_view: 'Прошлая игра — ASK ME', tod_lobby: 'Правда или действие — ASK ME', tod_play: 'Игра — Правда или действие — ASK ME', tod_results: 'Итоги — Правда или действие — ASK ME', onboarding: 'ASK ME — начните игру', session_created: 'Сессия создана — ASK ME', menu: 'ASK ME — откровенные разговоры для двоих и компании', profile_page: 'Игроки и сессия — ASK ME', admin_login: 'Вход для владельца — ASK ME', mode_select: 'Режим игры — ASK ME', game: 'Игра — ASK ME', ai_response: 'Совет и ситуация — ASK ME', summary: 'Итоги игры — ASK ME', cat_list: 'Все темы — ASK ME', q_list: 'Вопросы — ASK ME', archive_page: 'Архив вопросов — ASK ME', add_q: 'Новый вопрос — ASK ME', edit_q: 'Редактирование вопроса — ASK ME', invite: 'Пригласить игроков — ASK ME', join: 'Присоединиться к игре — ASK ME', about: 'Об игре — ASK ME', privacy: 'Политика конфиденциальности — ASK ME', terms: 'Пользовательское соглашение — ASK ME', cookies: 'Cookies и локальное хранилище — ASK ME', age: 'Возраст и откровенный контент — ASK ME', copyright: 'Авторские права — ASK ME' };
         const GROUP_EMOJIS = ['😈', '🤫', '😋', '🤔', '🤪', '😏', '😱', '🫣'];
         const MAX_PLAYERS = 10;
         const LIVE_POLL_MS = 1000, LIVE_INVITE_MS = 3000, LIVE_BEAT_MS = 8000, LIVE_ALIVE_MS = 30000, LIVE_STALE_MS = 120000, LIVE_TAKEOVER_S = 6, LIVE_TAKEOVER_STEP_S = 4, LIVE_TAP_GUARD_MS = 500, LIVE_SOLO_MS = 2000, LIVE_JOIN_WAIT_MS = 15000, LIVE_MAX_DEVICES = MAX_PLAYERS;
@@ -1187,7 +1191,7 @@ i18nSetLang(readStoredLang());
                             if(!pts) { pts = [ { id: 'p1', name: sanitizeName(parsed.guyName || ''), gender: 'guy' }, { id: 'p2', name: sanitizeName(parsed.girlName || ''), gender: 'girl' } ]; }
                             const sid = (parsed.sessionId && isValidSessionIdFormat(parsed.sessionId)) ? parsed.sessionId.toUpperCase() : generateSessionId();
                             if (sessionTasks.blocked(sid)) return null;
-                            return { sessionId: sid, sessionKey: isValidAESKey(parsed.sessionKey) ? parsed.sessionKey : undefined, players: cleanPlayers(pts), archivedIds: cleanIdList(parsed.archivedIds), disabledIds: cleanIdList(parsed.disabledIds), savedGame: cleanSavedGame(parsed.savedGame), syncConflict: parsed.syncConflict === true, legacyPath: typeof parsed.legacyPath === 'string' && /^sess_[a-f0-9]{16}$/.test(parsed.legacyPath) ? parsed.legacyPath : undefined, joinAt: Math.min(Number(parsed.joinAt) || 0, Date.now()), updatedAt: parsed.updatedAt || Date.now() };
+                            return { sessionId: sid, sessionKey: isValidAESKey(parsed.sessionKey) ? parsed.sessionKey : undefined, players: cleanPlayers(pts), archivedIds: cleanIdList(parsed.archivedIds), disabledIds: cleanIdList(parsed.disabledIds), savedGame: cleanSavedGame(parsed.savedGame), history: cleanHistory(parsed.history), syncConflict: parsed.syncConflict === true, legacyPath: typeof parsed.legacyPath === 'string' && /^sess_[a-f0-9]{16}$/.test(parsed.legacyPath) ? parsed.legacyPath : undefined, joinAt: Math.min(Number(parsed.joinAt) || 0, Date.now()), updatedAt: parsed.updatedAt || Date.now() };
                         }
                     }
                 } catch (e) {} return null;
@@ -1223,6 +1227,7 @@ i18nSetLang(readStoredLang());
             const [todCards, setTodCards] = useState(todBoot.list); const [todSource, setTodSource] = useState(todBoot.source);
             const todCardsRef = useRef(todBoot.list); // всегда последний список: обработчики записи не должны работать с устаревшим
             const [todMine, setTodMineState] = useState(() => todMineRead(todCardsEnv.storage)); const todMineRef = useRef(todMine); todMineRef.current = todMine; // свои карточки: только на этом устройстве
+            const [histId, setHistId] = useState(''); const [histAsk, setHistAsk] = useState(null); const [pendingResume, setPendingResume] = useState(false); // история игр: открытая запись, запись в окне подтверждения, ожидание продолжения
             const [todEditId, setTodEditId] = useState(''); // карточка, форму которой открыть в админке (кнопка «Изменить» в архиве)
             const [todTab, setTodTab] = useState('classic'); // вкладка «Все вопросы»: classic | truth | dare
             const [todBackTo, setTodBackTo] = useState('app_menu'); // откуда открыта админка карточек (туда ведёт «Назад»)
@@ -1339,7 +1344,7 @@ i18nSetLang(readStoredLang());
                     setProfile(current => {
                         if (current?.sessionKey !== started.sessionKey) return current;
                         if (players.length && Number(cloud.updatedAt) > Number(started.updatedAt)) {
-                            return { ...current, players, archivedIds: cleanIdList(cloud.archivedIds), disabledIds: cleanIdList(cloud.disabledIds), savedGame: cleanSavedGame(cloud.savedGame), updatedAt: Number(cloud.updatedAt) };
+                            return { ...current, players, archivedIds: cleanIdList(cloud.archivedIds), disabledIds: cleanIdList(cloud.disabledIds), savedGame: cleanSavedGame(cloud.savedGame), history: mergeHistory(current.history, cloud.history), updatedAt: Number(cloud.updatedAt) };
                         }
                         return current;
                     });
@@ -1405,7 +1410,7 @@ i18nSetLang(readStoredLang());
                 const toProfile = (dec, sessionId, sessionKey) => {
                     let pts = cleanPlayers(dec.players); if (!pts.length && dec.guyName && dec.girlName) pts = [{id:'p1', name:String(dec.guyName).slice(0, 25), gender:'guy'}, {id:'p2', name:String(dec.girlName).slice(0, 25), gender:'girl'}];
                     if (!pts.length) return null;
-                    return { sessionId, sessionKey, players: pts, archivedIds: cleanIdList(dec.archivedIds), disabledIds: cleanIdList(dec.disabledIds), savedGame: cleanSavedGame(dec.savedGame), updatedAt: Date.now() };
+                    return { sessionId, sessionKey, players: pts, archivedIds: cleanIdList(dec.archivedIds), disabledIds: cleanIdList(dec.disabledIds), savedGame: cleanSavedGame(dec.savedGame), history: cleanHistory(dec.history), updatedAt: Date.now() };
                 };
                 try {
                     let restored = null, legacyPath = null, offline = false;
@@ -1506,7 +1511,7 @@ i18nSetLang(readStoredLang());
                     const cloud = await sessionStore.hydrate(current), players = cleanPlayers(cloud?.players);
                     if (!players.length || profileRef.current?.sessionKey !== current.sessionKey || sessionTasks.blocked(current.sessionId)) throw new Error('cloud-unavailable');
                     sessionStore.acceptHydration(current.sessionKey); hydratedKeyRef.current = current.sessionKey;
-                    const updated = { ...current, players, archivedIds: cleanIdList(cloud.archivedIds), disabledIds: cleanIdList(cloud.disabledIds), savedGame: cleanSavedGame(cloud.savedGame), updatedAt: Number(cloud.updatedAt) || Date.now(), syncConflict: false };
+                    const updated = { ...current, players, archivedIds: cleanIdList(cloud.archivedIds), disabledIds: cleanIdList(cloud.disabledIds), savedGame: cleanSavedGame(cloud.savedGame), history: mergeHistory(current.history, cloud.history), updatedAt: Number(cloud.updatedAt) || Date.now(), syncConflict: false };
                     setProfile(updated); setPlayersForm(players); showToast(tr("Загружена облачная копия сессии"));
                 } catch (error) { showToast(tr("Облачная копия недоступна. Локальный прогресс сохранён"), 5000, 'warn'); }
                 finally { setIsRestoringSession(false); }
@@ -1517,7 +1522,7 @@ i18nSetLang(readStoredLang());
                 if (validPlayers.length < 2) { SoundFX.warn(); setPlayersError(tr("Введите минимум два имени, чтобы начать игру")); return; }
                 SoundFX.success(); setPlayersError('');
                 const isNewSession = (!profile?.sessionId || isPreviewMode); const newSid = isNewSession ? generateSessionId() : profile.sessionId; const newKey = (!isNewSession && isValidAESKey(profile?.sessionKey)) ? profile.sessionKey : await generateAESKey();
-                const updatedProfile = { sessionId: newSid, sessionKey: newKey, players: validPlayers, archivedIds: isNewSession ? [] : (profile?.archivedIds || []), disabledIds: isNewSession ? [] : (profile?.disabledIds || []), savedGame: isNewSession ? null : (profile?.savedGame || null), syncConflict: !isNewSession && !!profile?.syncConflict, joinAt: isNewSession ? 0 : (profile?.joinAt || 0), updatedAt: Date.now() };
+                const updatedProfile = { sessionId: newSid, sessionKey: newKey, players: validPlayers, archivedIds: isNewSession ? [] : (profile?.archivedIds || []), disabledIds: isNewSession ? [] : (profile?.disabledIds || []), savedGame: isNewSession ? null : (profile?.savedGame || null), history: isNewSession ? [] : (profile?.history || []), syncConflict: !isNewSession && !!profile?.syncConflict, joinAt: isNewSession ? 0 : (profile?.joinAt || 0), updatedAt: Date.now() };
                 setProfile(updatedProfile); setIsPreviewMode(false); if (isNewSession) navigate('session_created'); else { showToast(tr("Имена сохранены")); navigate('menu'); }
             };
             const handleExitSession = () => {
@@ -2680,10 +2685,19 @@ i18nSetLang(readStoredLang());
                 setAnsweredCount(completed.length); setCompletedAllFlag(isAllCleared);
                 if (isAllCleared) SoundFX.romanticFinale(); else SoundFX.success();
                 archiveAnsweredQuestions(completed);
+                // запись в «Прошлые игры»; снимок для «Продолжить» — только если остановились на середине колоды
+                const histRes = (isAllCleared || reachedVeryEnd) ? null : cleanSavedGame({ questionIds: gameQuestions.map(q => q.id || q.dbKey), currentIndex, maxReachedIndex, turnHistory });
+                const histRec = histBuild({ now: Date.now(), players: profile?.players || [], questions: gameQuestions, entries: gameQuestions.map((q, i) => normTurn(turnHistory[i])), hard: hardMode, reached: maxReachedIndex + 1, allCleared: isAllCleared, res: histRes });
+                if (histRec) setProfile(p => p ? { ...p, history: histAdd(p.history, histRec), updatedAt: Date.now() } : p);
                 if (!completed.length) setProfile(p => p ? { ...p, savedGame: null, updatedAt: Date.now() } : p);
                 reportGame(maxReachedIndex + 1, { complete: isAllCleared }); navigate('summary');
             };
 
+            // «Продолжить игру» из прошлых игр: снимок партии становится сохранённой игрой, запись помечается «продолжена»; если уже есть начатая игра — сначала спрашиваем
+            const startResumeFromHistory = (rec) => { setHistAsk(null); setProfile(prev => prev ? { ...prev, savedGame: cleanSavedGame(rec.res), history: histMarkContinued(prev.history, rec.id), updatedAt: Date.now() } : prev); setPendingResume(true); };
+            const resumeFromHistory = (rec) => { if (!rec || !rec.res) return; if (profile?.savedGame?.questionIds?.length) { setHistAsk(rec); return; } startResumeFromHistory(rec); };
+            useEffect(() => { if (pendingResume && profile?.savedGame?.questionIds?.length) { setPendingResume(false); handleResumeSavedGame(); } }, [pendingResume, profile]);
+            useEffect(() => { if (screen === 'history_view' && profile && !(profile.history || []).some(g => g.id === histId)) { try { window.history.replaceState(null, '', window.location.pathname + window.location.search + '#/history'); } catch (e) {} setScreenState('history'); } }, [screen, histId, profile]);
             useEffect(() => {
                 if (screen !== 'ai_response') {
                     aiRequestRef.current.id++; aiRequestRef.current.controller?.abort();
@@ -2888,6 +2902,7 @@ if (screen === 'app_menu') {
                     { title: tr('Разделы'), items: [
                         { id: 'players', icon: '👥', title: tr('Игроки и сессия'), desc: tr('Имена, состав и восстановление'), onClick: () => { if (profile) { setPlayersForm(profile.players); navigate('profile_page'); } } },
                         { id: 'questions', icon: '📚', title: tr('Все вопросы'), desc: tr('Темы и список вопросов'), onClick: () => navigate('cat_list') },
+                        { id: 'history', icon: '🕑', title: tr('Прошлые игры'), desc: (profile?.history || []).length ? tf('Сыграно игр: {v0} · {v1}', { v0: profile.history.length, v1: histDayLabel(profile.history[0].t, Date.now(), lang) }) : tr('Здесь появятся ваши игры'), onClick: () => navigate('history') },
                         { id: 'archive', icon: '🗂️', title: tr('Архив'), desc: `${tr('Пройдено вопросов:')} ${stats.archivedList.length}`, onClick: () => navigate('archive_page') },
                         { id: 'about', icon: '✨', title: tr('Об игре'), desc: tr('Что умеет ASK ME и как играть'), onClick: () => navigate('about') },
                     ] },
@@ -3740,6 +3755,28 @@ if (screen === 'summary') {
                         </div>
                         <AppFooter />
                     </div>
+                );
+            }
+
+            if (screen === 'history' || screen === 'history_view') {
+                const histUi = { Icons, SoundFX, AppFooter, SummaryRing, SummaryBars, AnimatedCounter };
+                const histTopic = (id) => { const c = CATEGORIES.find(x => x.id === id); return c ? { icon: c.icon, name: catLabel(c.id, c.name) } : null; };
+                const list = profile?.history || []; const rec = screen === 'history_view' ? list.find(g => g.id === histId) : null;
+                const toPlay = () => navigate(stats.availableActive > 0 ? 'mode_select' : 'menu');
+                return (
+                    <>
+                        {rec
+                            ? <HistView ui={histUi} rec={rec} onBack={() => navigate('history')} onResume={resumeFromHistory} onPlay={toPlay} topicInfo={histTopic} />
+                            : <HistList ui={histUi} history={list} onOpen={(id) => { setHistId(id); navigate('history_view'); }} onResume={resumeFromHistory} onStart={toPlay} onBack={() => navigate('app_menu')} topicInfo={histTopic} />}
+                        <PopupModal isOpen={!!histAsk} onClose={() => setHistAsk(null)}>
+                            <div className="flex flex-col gap-3 pt-1 text-left">
+                                <h3 className="text-xl font-bold text-white pr-8">{tr('Заменить начатую игру?')}</h3>
+                                <p className="text-sm text-zinc-300 leading-relaxed">{profile?.savedGame ? tf('У вас уже есть незавершённая игра (вопрос {v0} из {v1}). Если продолжить прошлую, текущая будет заменена.', { v0: (profile.savedGame.currentIndex || 0) + 1, v1: profile.savedGame.questionIds.length }) : ''}</p>
+                                <button type="button" onClick={() => { SoundFX.click(); if (histAsk) startResumeFromHistory(histAsk); }} className="btn-primary w-full">{tr('Заменить и продолжить')}</button>
+                                <button type="button" onClick={() => { SoundFX.click(); setHistAsk(null); }} className="btn-secondary w-full">{tr('Отмена')}</button>
+                            </div>
+                        </PopupModal>
+                    </>
                 );
             }
 

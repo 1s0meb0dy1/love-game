@@ -101,7 +101,7 @@ export const createSessionStore = ({ request, urlFor, encrypt, decrypt, maxPaylo
       const state = states.get(profile.sessionKey);
       const operation = state.chain.catch(() => {}).then(async () => {
         if (state.conflict || state.hydrationConflict) throw new Error('cloud-conflict');
-        const pack = withGame => encrypt({ players: profile.players, archivedIds: profile.archivedIds || [], disabledIds: profile.disabledIds || [], savedGame: withGame ? profile.savedGame || null : null, updatedAt: profile.updatedAt }, profile.sessionKey);
+        const pack = withGame => encrypt({ players: profile.players, archivedIds: profile.archivedIds || [], disabledIds: profile.disabledIds || [], savedGame: withGame ? profile.savedGame || null : null, history: withGame ? profile.history || [] : (profile.history || []).map(({ res, ...rest }) => rest), updatedAt: profile.updatedAt }, profile.sessionKey);
         let payload = await pack(true);
         if (!payload) throw new Error('encrypt');
         if (payload.length >= maxPayload) payload = await pack(false);
