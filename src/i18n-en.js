@@ -999,4 +999,14 @@ export const EN = {
   "Не больше {v0} правд подряд": "No more than {v0} truths in a row",
   "Пропуск — позор": "Skipping means shame",
   "{v0} уровня действий": "{v0} dare levels",
+  // --- пауза гри ---
+  "Можно поставить игру на паузу: она сохранится, а «Продолжить игру» ждёт на главной.": "You can pause the game: it is saved, and “Continue game” waits on the home screen.",
+  "Можно поставить игру на паузу: она сохранится, а «Продолжить игру» ждёт на главной. Или закончить партию для всех и открыть итоги.": "You can pause the game: it is saved, and “Continue game” waits on the home screen. Or end the round for everyone and open the results.",
+  "Поставить на паузу": "Pause the game",
+  "Если закончить, пройденные вопросы (": "If you end it, the questions you went through (",
+  ". Чтобы выйти только самому, выберите «Поставить на паузу».": ". To leave just for yourself, choose “Pause the game”.",
+  "{v0}, три «Правды» подряд — теперь только «Действие»": "{v0}, three Truths in a row — now it’s Dare only",
+  "Игра на паузе. «Продолжить игру» — на главной": "Game paused. “Continue game” is on the home screen",
+  "Не удалось сохранить паузу: игра закрыта": "Could not save the pause: the game was closed",
+  "В сессии уже идёт другая партия. Играем на этом устройстве": "Another round is already running in this session. Playing on this device",
 };
