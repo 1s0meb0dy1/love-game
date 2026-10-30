@@ -65,12 +65,18 @@ const done = (A) => { errs.push(...A.errors); A.close(); };
     // новое лобби: правила, перевороты карточек, свои карточки на устройстве
     A = await boot(); await A.toLobby();
     const shareB = A.btns().find(b => b.textContent.includes('Поделиться сессией')); const startB = A.btn('Начать игру');
-    T('кнопка «Поделиться сессией» стоит прямо над «Начать игру»', !!shareB && !!startB && !!(shareB.compareDocumentPosition(startB) & 4) && shareB.parentElement === startB.parentElement.parentElement);
+    T('кнопка «Поделиться сессией» стоит рядом с составом, прямо над «Начать игру»', !!shareB && !!startB && !!(shareB.compareDocumentPosition(startB) & 4) && shareB.parentElement.classList.contains('tod-room') && shareB.parentElement.nextElementSibling === startB.parentElement);
     const strip = A.D.querySelector('.room-strip');
     T('блок состава сессии: имена игроков, одно устройство «Пока только это устройство», метка устройства одна', !!strip && strip.textContent.includes('Макс') && strip.textContent.includes('Аня') && strip.textContent.includes('Пока только это устройство') && strip.querySelectorAll('.room-pips i').length === 1);
     T('блок состава тише кнопки «Поделиться»: у него нет класса btn-* и фон прозрачнее, а сама кнопка заметна', !strip.className.includes('btn-') && shareB.className.includes('btn-secondary'));
 
-    T('лобби: блок «Правила» с правилом про 3 правды подряд и «Пропуск — это позор»', A.text().includes('«Правда» — не больше 3 раз подряд') && A.text().includes('Пропуск — это позор') && !!A.D.querySelector('.tod-lockdemo'));
+    T('лобби: «Правила» — три плитки (3 правды подряд, пропуск — позор, 3 уровня), пояснения скрыты', A.D.querySelectorAll('.tod-rule').length === 3 && A.text().includes('Не больше 3 правд подряд') && A.text().includes('Пропуск — позор') && A.text().includes('3 уровня действий') && !!A.D.querySelector('.tod-lockdemo') && !A.D.querySelector('.tod-rule-more'));
+    const lockT = A.D.querySelector('.tod-rule-lock'); await A.tap(lockT, 300);
+    T('нажатие на плитку раскрывает правило целиком (aria-expanded), повторное — сворачивает', lockT.getAttribute('aria-expanded') === 'true' && A.text().includes('«Правда» — не больше 3 раз подряд. После третьей правды подряд следующий ход — только «Действие».') && (await A.tap(lockT, 300), !A.D.querySelector('.tod-rule-more') && lockT.getAttribute('aria-expanded') === 'false'));
+    await A.tap(A.D.querySelector('.tod-rule-skip'), 300); T('плитка «Пропуск» раскрывает своё правило', A.text().includes('Пропуск — это позор. Ход не передаётся'));
+    T('лобби без подвала: экран партии занимает один экран', !A.D.querySelector('.safe-screen > footer'));
+    T('виньетка фона не затемняет верх экрана, в установленном приложении её нет', /\.bg-room::after \{[^}]*at 50% 0%, transparent/.test(A.html) && /display-mode: standalone[^{]*\{ \.bg-room::after \{ content: none; \}/.test(A.html) && /html\.is-app \.bg-room::after \{ content: none; \}/.test(A.html));
+    T('лобби на телефоне: веер карточек берёт оставшуюся высоту (контейнер todhero), кнопка старта прижата вниз', /\.tod-lobby \.tod-hero \{[^}]*container: todhero \/ size/.test(A.html) && /\.tod-lobby-go \{ margin-top: auto; \}/.test(A.html));
     T('лобби: «В колоде» считает карточки по текущим настройкам (без жёстких: 7 правд · 7 действий)', A.text().includes('В колоде: 7 правд · 7 действий'));
     const face = A.D.querySelector('.tod-face-truth'); await A.tap(face, 400);
     const faceQ = A.D.querySelector('.tod-face-truth .tod-face-q');
