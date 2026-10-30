@@ -37,6 +37,7 @@ module.exports = (opts = {}) => {
   w.matchMedia = w.matchMedia || (() => ({ matches: false, addListener() {}, removeListener() {}, addEventListener() {}, removeEventListener() {} }));
   w.fetch = async (url, init) => { url = String(url); const j = (o, ok = true) => ({ ok, status: ok ? 200 : 404, json: async () => o, text: async () => JSON.stringify(o) });
     if (url.includes('questions')) return j(qs); if (url.includes('identitytoolkit') || url.includes('securetoken')) return j({ idToken: 't', refreshToken: 'r', expiresIn: '3600', localId: 'test-user', users: [{ localId: 'test-user' }] });
+    if (url.includes('workers.dev')) return j(null, false); // ШІ-проксі в тестах «недоступний» — клієнт іде запасним шляхом
     if (init && /^(PUT|PATCH|DELETE|POST)$/i.test(init.method || '')) return j(null, true); // записи в «базу» по умолчанию принимаются (как у настоящей базы при верных данных)
     return j(null, false); };
   w.eval(fs.readFileSync(path.join(root, 'node_modules/react/umd/react.development.js'), 'utf8')); w.eval(fs.readFileSync(path.join(root, 'node_modules/react-dom/umd/react-dom.development.js'), 'utf8'));

@@ -11,7 +11,7 @@ const M = loadTod(['ai/prompts.js', 'ai/client.js'], ['buildPrompt', 'cleanAiReq
   T('промпт «Порада» українською: питання, тема, заголовки блоків і заборона вигадувати статистику', /Що для тебе дім\?/.test(p.user) && /Сімʼя/.test(p.user) && /🧠 Як краще поговорити/.test(p.user) && /Статистику не вигадуй/.test(p.user) && /українською/.test(p.system));
   const a = M.buildPrompt({ type: 'situation', lang: 'ru', question: 'Q', players: 4 }, () => 0), b = M.buildPrompt({ type: 'situation', lang: 'ru', question: 'Q', players: 4 }, () => 0.95);
   T('промпт «Ситуация» по-русски, для компании, ракурс меняется от случайного числа (ответы не повторяются)', /компания из 4/.test(a.user) && /🎬 Моделирование ситуации/.test(a.user) && a.user !== b.user);
-  T('проксі за замовчуванням не задано (поки воркер не розгорнуто)', M.AI_PROXY_URL === '');
+  T('проксі — воркер askme-ai на https', M.AI_PROXY_URL === 'https://askme-ai.yedvinn.workers.dev');
 
   let calls = 0; let mode = 'busy';
   globalThis.fetch = async (url, init) => { calls++; if (mode === 'busy') return { ok: false, status: 402, json: async () => ({}) }; if (mode === 'down') throw new Error('net');
