@@ -4,7 +4,7 @@
 // Ошибки записи в админке показываются прямо на экране (под полем, у кнопки загрузки, всплывающим уведомлением): общее окно ошибки есть не на всех экранах.
 import React from 'react';
 import { TOD_STARTER } from '../content/tod-cards.js';
-import { TOD_TYPES, TOD_LEVELS, TOD_TEXT_MAX, todCleanCard, todGroupCards, todNewId, todCardText } from './model.js';
+import { TOD_TYPES, TOD_LEVELS, TOD_TEXT_MAX, todCleanCard, todGroupCards, todNewId, todCardText, todNumbers } from './model.js';
 import { TOD_TITLES } from '../content/tod-banter.js';
 import { TOD_TRUTH_LIMIT, todTruthRun, todTruthLocked } from './engine.js';
 import { t as tr, tf, getLang } from '../i18n.js';
@@ -13,6 +13,7 @@ const TOD_GROUP_LABEL = { easy: 'Простые', medium: 'Средние', hard
 const TOD_TYPE_LABEL = { truth: 'Правда', dare: 'Действие' };
 const TOD_DOTS = { easy: 1, medium: 2, hard: 3 }; // значок уровня: сколько из трёх точек закрашено (цвет не единственный признак)
 const TOD_FILTER_TYPES = [['all', 'Все'], ['truth', 'Правда'], ['dare', 'Действие']];
+const todStarterIds = TOD_STARTER.map(c => c.id);
 const TOD_FILTER_LEVELS = [['all', 'Все уровни'], ['easy', 'Простые'], ['medium', 'Средние'], ['hard', 'Жёсткие']];
 
 // метка уровня: значок из точек, подпись и (если передан) число карточек; цвет — класс tod-lvl-<уровень> из styles.css
@@ -24,12 +25,31 @@ const TodLevelMark = ({ level, count, ui }) => (
   </h3>
 );
 
+// строка карточки в списках (архив и админка): сверху номер и метка «скрыта», ниже текст, у владельца — две кнопки на всю ширину.
+// onEdit(card) открывает страницу правки, onToggle(card) скрывает или возвращает карточку
+const TodRow = ({ ui, c, num, text, isAdmin, busy, onEdit, onToggle }) => (
+  <div className="py-4 flex flex-col gap-3">
+    <div className="flex items-center gap-2 flex-wrap text-xs">
+      <span className="text-rose-400 font-bold">№ {num}</span>
+      {c.isActive !== true && <span className="tag tag-warn"><span aria-hidden="true">🙈</span> {todTx(ui, 'скрыта')}</span>}
+    </div>
+    <div className={`text-[15px] leading-snug break-words ${c.isActive === true ? 'text-zinc-100' : 'text-zinc-400'}`}>{text}</div>
+    {isAdmin && onEdit && (
+      <div className="grid grid-cols-2 gap-2 w-full">
+        <button type="button" aria-label={`${todTx(ui, 'Изменить')}: ${text}`} onClick={() => { ui.SoundFX.click(); onEdit(c); }} className="btn-secondary btn-sm w-full"><ui.Icons.Edit /> {todTx(ui, 'Изменить')}</button>
+        {onToggle && <button type="button" disabled={!!busy} aria-label={`${c.isActive === true ? todTx(ui, 'Скрыть') : todTx(ui, 'Показать')}: ${text}`} onClick={() => onToggle(c)} className="btn-secondary btn-sm w-full">{c.isActive === true ? <ui.Icons.EyeOff /> : <ui.Icons.Eye />} {c.isActive === true ? todTx(ui, 'Скрыть') : todTx(ui, 'Показать')}</button>}
+      </div>
+    )}
+  </div>
+);
+
 // архив карточек для «Все вопросы»: tab — 'truth' | 'dare'; игроку видны только включённые карточки, владельцу ещё и скрытые (с меткой «скрыта»).
-// Владельцу у каждой карточки доступны «Изменить» (onEdit(card) открывает форму) и «Скрыть/Показать» (onToggle(card) -> Promise)
+// У каждой карточки свой номер (как у обычных вопросов). Владельцу доступны «Изменить» (onEdit(card) открывает страницу правки) и «Скрыть/Показать» (onToggle(card) -> Promise)
 export const TodArchive = ({ ui, cards, tab, isAdmin, onManage, onEdit, onToggle }) => {
   const type = tab === 'dare' ? 'dare' : 'truth';
   const [busyId, setBusyId] = React.useState('');
   const groups = todGroupCards(cards, { showHidden: !!isAdmin })[type];
+  const nums = todNumbers(cards, todStarterIds);
   const shown = TOD_LEVELS.filter(lv => groups[lv].length > 0);
   const flip = async (c) => { if (busyId || !onToggle) return; setBusyId(c.id); try { await onToggle(c); } finally { setBusyId(''); } };
   return (
@@ -40,20 +60,7 @@ export const TodArchive = ({ ui, cards, tab, isAdmin, onManage, onEdit, onToggle
         <section key={lv} className="space-y-3">
           <TodLevelMark ui={ui} level={lv} count={groups[lv].length} />
           <div className="flex flex-col divide-y divide-white/[0.08] border-y border-white/10">
-            {groups[lv].map(c => (
-              <div key={c.id} className="py-4 flex flex-col gap-3">
-                <div className="flex items-start justify-between gap-4">
-                  <div className={`flex-1 min-w-0 text-[15px] leading-snug break-words ${c.isActive ? 'text-zinc-100' : 'text-zinc-400'}`}>{todCardText(c, getLang())}</div>
-                  {!c.isActive && <span className="tag tag-warn flex-shrink-0"><span aria-hidden="true">🙈</span> {todTx(ui, 'скрыта')}</span>}
-                </div>
-                {isAdmin && onEdit && (
-                  <div className="flex items-center justify-end gap-2">
-                    <button type="button" aria-label={`${todTx(ui, 'Изменить')}: ${todCardText(c, getLang())}`} onClick={() => { ui.SoundFX.click(); onEdit(c); }} className="btn-secondary btn-sm"><ui.Icons.Edit /> {todTx(ui, 'Изменить')}</button>
-                    {onToggle && <button type="button" disabled={!!busyId} aria-label={`${c.isActive ? todTx(ui, 'Скрыть') : todTx(ui, 'Показать')}: ${todCardText(c, getLang())}`} onClick={() => flip(c)} className="btn-secondary btn-sm">{c.isActive ? <ui.Icons.EyeOff /> : <ui.Icons.Eye />} {c.isActive ? todTx(ui, 'Скрыть') : todTx(ui, 'Показать')}</button>}
-                  </div>
-                )}
-              </div>
-            ))}
+            {groups[lv].map(c => <TodRow key={c.id} ui={ui} c={c} num={nums[c.id]} text={todCardText(c, getLang())} isAdmin={isAdmin} busy={busyId} onEdit={onEdit} onToggle={onToggle && flip} />)}
           </div>
         </section>
       ))}
@@ -80,57 +87,22 @@ const todErrText = (e, verb) => {
   return text;
 };
 
-// админка карточек (только владельцу): фильтры, форма (тип, уровень, текст), «Скрыть/Показать», разовая загрузка стартового набора. Кнопки удаления нет.
-// onSave(card) -> Promise<card> (бросает ошибку при сбое), onSeed() -> Promise<{ added, skipped }>, source — откуда сейчас список: 'db' | 'cache' | 'starter'
-export const TodAdmin = ({ ui, cards, source, isAdmin, onSave, onSeed, onBack, initialEdit }) => {
+// админка карточек (только владельцу): список с фильтрами, «Скрыть/Показать», разовая загрузка стартового набора. Кнопки удаления нет.
+// Новая карточка и правка открываются на отдельной странице (TodEdit): onNew() и onEdit(card). onSave(card) -> Promise<card> (бросает ошибку при сбое),
+// onSeed() -> Promise<{ added, skipped }>, source — откуда сейчас список: 'db' | 'cache' | 'starter'
+export const TodAdmin = ({ ui, cards, source, isAdmin, onSave, onSeed, onBack, onNew, onEdit }) => {
   const { Icons, AppFooter } = ui;
   const [fType, setFType] = React.useState('all'); const [fLevel, setFLevel] = React.useState('all');
-  const [edit, setEdit] = React.useState(null); // null — форма закрыта, 'new' — новая карточка, иначе id изменяемой
-  const [fmType, setFmType] = React.useState('truth'); const [fmLevel, setFmLevel] = React.useState('easy'); const [fmText, setFmText] = React.useState('');
-  const [err, setErr] = React.useState(''); const [busy, setBusy] = React.useState(false);
   const [rowBusy, setRowBusy] = React.useState('');
   const [seedBusy, setSeedBusy] = React.useState(false); const [seedErr, setSeedErr] = React.useState('');
-  const formRef = React.useRef(null); const areaRef = React.useRef(null);
-  // открыт по кнопке «Изменить» в архиве: сразу показываем форму этой карточки (один раз)
-  const openedRef = React.useRef(false);
-  React.useEffect(() => {
-    if (openedRef.current || !initialEdit) return;
-    const c = (Array.isArray(cards) ? cards : []).find(x => x.id === initialEdit); if (!c) return;
-    openedRef.current = true; setEdit(c.id); setErr(''); setFmType(c.type); setFmLevel(c.difficulty); setFmText(todCardText(c, getLang()));
-  }, [initialEdit, cards]);
-  // форма открылась (особенно «Изменить» у карточки далеко внизу списка) -> показать её и поставить курсор в поле
-  React.useEffect(() => {
-    if (edit === null) return;
-    const el = formRef.current;
-    try { if (el && typeof el.scrollIntoView === 'function') el.scrollIntoView({ block: 'start', behavior: window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); } catch (e) {}
-    if (areaRef.current) areaRef.current.focus({ preventScroll: true });
-  }, [edit]);
 
   const list = Array.isArray(cards) ? cards : [];
   const have = new Set(list.map(c => c.id));
+  const nums = todNumbers(list, todStarterIds);
   // сколько карточек стартового набора ещё не лежит в базе; пока список взят не из базы, считаем, что не лежит ни одной (при загрузке база всё равно перечитывается)
   const seedN = source === 'starter' ? TOD_STARTER.length : TOD_STARTER.filter(c => !have.has(c.id)).length;
   const hiddenN = list.filter(c => c.isActive !== true).length;
 
-  const startEdit = (c) => {
-    ui.SoundFX.click(); setEdit(c ? c.id : 'new'); setErr('');
-    setFmType(c ? c.type : (fType !== 'all' ? fType : 'truth')); setFmLevel(c ? c.difficulty : (fLevel !== 'all' ? fLevel : 'easy')); setFmText(c ? todCardText(c, getLang()) : '');
-  };
-  const save = async () => {
-    if (busy) return;
-    const clean = todCleanCard({ id: 'td_x', type: fmType, difficulty: fmLevel, text: fmText, isActive: true });
-    if (!clean) { ui.SoundFX.warn(); setErr(tr("Введите текст карточки")); return; }
-    const twin = list.find(c => c.type === fmType && c.id !== edit && (todNorm(c.text) === todNorm(clean.text) || (c.text_uk && todNorm(c.text_uk) === todNorm(clean.text)) || (c.text_en && todNorm(c.text_en) === todNorm(clean.text))));
-    if (twin) { ui.SoundFX.warn(); setErr(twin.isActive === true ? tr("Такая карточка уже есть") : tr("Такая карточка уже есть, но скрыта: найдите её в списке и нажмите «Показать»")); return; }
-    const existing = edit !== 'new' ? list.find(c => c.id === edit) : null;
-    if (edit !== 'new' && !existing) { ui.SoundFX.warn(); setErr(tr("Карточка не найдена. Закройте форму и откройте её заново.")); return; }
-    setBusy(true); setErr('');
-    try {
-      await onSave({ id: existing ? existing.id : todNewId(), type: fmType, difficulty: fmLevel, text: clean.text, isActive: existing ? existing.isActive : true, typed: true });
-      ui.SoundFX.success(); ui.showToast(tr("Карточка сохранена")); setEdit(null);
-    } catch (e) { ui.SoundFX.warn(); setErr(todErrText(e, 'сохранить')); }
-    setBusy(false);
-  };
   const toggle = async (c) => {
     if (rowBusy) return;
     setRowBusy(c.id);
@@ -157,7 +129,7 @@ export const TodAdmin = ({ ui, cards, source, isAdmin, onSave, onSeed, onBack, i
     <div className="safe-screen w-full flex flex-col items-center slide-up relative z-10">
       <header className="page-head w-full max-w-md flex items-center gap-3 pt-2">
         <button type="button" onClick={() => { ui.SoundFX.click(); onBack(); }} aria-label={tr("Назад")} className="btn-icon flex-shrink-0"><Icons.Back /></button>
-        <h1 className="page-title flex-1 text-center pr-11 text-lg font-bold text-white">{tr("Карточки")}</h1>
+        <h1 className="page-title flex-1 text-center text-lg font-bold text-white">{tr("Карточки")}</h1>
       </header>
       <main className="w-full max-w-md flex flex-col gap-6 pt-6 pb-6">
         {!isAdmin ? ( <p className="text-sm text-zinc-400 text-center">{tr("Раздел доступен только владельцу.")}</p> ) : (
@@ -177,31 +149,7 @@ export const TodAdmin = ({ ui, cards, source, isAdmin, onSave, onSeed, onBack, i
                 {seedErr && <span className="ui-error" role="alert">{seedErr}</span>}
               </div>
             )}
-            {edit === null ? (
-              <button type="button" onClick={() => startEdit(null)} className="btn-primary w-full">{tr("+ Новая карточка")}</button>
-            ) : (
-              <section ref={formRef} className="flex flex-col gap-3 rounded-[20px] border border-white/10 bg-white/[0.04] p-4 fade-in">
-                <h2 className="text-sm font-bold text-white">{edit === 'new' ? tr("Новая карточка") : tr("Редактирование карточки")}</h2>
-                <div className="seg" role="radiogroup" aria-label={tr("Тип карточки")}>
-                  {TOD_TYPES.map(t => <button key={t} type="button" role="radio" aria-checked={fmType === t} onClick={() => { ui.SoundFX.click(); setFmType(t); setErr(''); }} className={`seg-btn ${fmType === t ? 'is-active' : ''}`}>{tr(TOD_TYPE_LABEL[t])}</button>)}
-                </div>
-                <div className="seg" role="radiogroup" aria-label={tr("Уровень карточки")}>
-                  {TOD_LEVELS.map(lv => <button key={lv} type="button" role="radio" aria-checked={fmLevel === lv} onClick={() => { ui.SoundFX.click(); setFmLevel(lv); }} className={`seg-btn ${fmLevel === lv ? 'is-active' : ''}`}>{tr(TOD_GROUP_LABEL[lv])}</button>)}
-                </div>
-                <div>
-                  <textarea ref={areaRef} value={fmText} maxLength={TOD_TEXT_MAX} onChange={e => { setFmText(e.target.value); setErr(''); }} aria-label={tr("Текст карточки")} aria-invalid={err ? 'true' : undefined}
-                    placeholder={fmType === 'truth' ? tr("Вопрос, на который нужно ответить честно") : tr("Задание, которое нужно выполнить")} />
-                  <div className="flex items-start justify-between gap-3">
-                    {err ? <span className="ui-error" role="alert">{err}</span> : <span></span>}
-                    <span className="ui-hint mt-1.5 flex-shrink-0 tabular-nums">{fmText.length} / {TOD_TEXT_MAX}</span>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <button type="button" onClick={() => { ui.SoundFX.click(); setEdit(null); setErr(''); }} className="btn-secondary">{tr("Отмена")}</button>
-                  <button type="button" disabled={busy} onClick={save} className="btn-primary">{busy ? tr("Сохраняем…") : tr("Сохранить")}</button>
-                </div>
-              </section>
-            )}
+            <button type="button" onClick={() => { ui.SoundFX.click(); onNew(fType !== 'all' ? fType : 'truth', fLevel !== 'all' ? fLevel : 'easy'); }} className="btn-primary w-full">{tr("+ Новая карточка")}</button>
             <div className="flex flex-col gap-3">
               <div className="seg" role="group" aria-label={tr("Фильтр по типу")}>
                 {TOD_FILTER_TYPES.map(([id, label]) => <button key={id} type="button" aria-pressed={fType === id} onClick={() => { ui.SoundFX.click(); setFType(id); }} className={`seg-btn ${fType === id ? 'is-active' : ''}`}>{tr(label)}</button>)}
@@ -223,17 +171,8 @@ export const TodAdmin = ({ ui, cards, source, isAdmin, onSave, onSeed, onBack, i
                     return (
                       <div key={lv} className="flex flex-col gap-2">
                         <TodLevelMark level={lv} count={items.length} />
-                        <div className="rounded-[20px] border border-white/10 bg-white/[0.04] divide-y divide-white/[0.06] overflow-hidden">
-                          {items.map(c => (
-                            <div key={c.id} className="px-4 py-3.5 flex flex-col gap-2.5">
-                              <p className={`text-[15px] leading-snug break-words ${c.isActive === true ? 'text-zinc-100' : 'text-zinc-400'}`}>{todCardText(c, getLang())}</p>
-                              <div className="flex items-center justify-end gap-2">
-                                {c.isActive !== true && <span className="tag tag-warn mr-auto"><span aria-hidden="true">🙈</span> {tr("скрыта")}</span>}
-                                <button type="button" aria-label={tf("Изменить: {v0}", { v0: todCardText(c, getLang()) })} onClick={() => startEdit(c)} className="btn-secondary btn-sm"><ui.Icons.Edit /> {tr("Изменить")}</button>
-                                <button type="button" disabled={!!rowBusy} aria-label={`${c.isActive === true ? tr("Скрыть") : tr("Показать")}: ${todCardText(c, getLang())}`} onClick={() => toggle(c)} className="btn-secondary btn-sm">{c.isActive === true ? <Icons.EyeOff /> : <Icons.Eye />} {c.isActive === true ? tr("Скрыть") : tr("Показать")}</button>
-                              </div>
-                            </div>
-                          ))}
+                        <div className="rounded-[20px] border border-white/10 bg-white/[0.04] divide-y divide-white/[0.06] overflow-hidden px-4">
+                          {items.map(c => <TodRow key={c.id} ui={ui} c={c} num={nums[c.id]} text={todCardText(c, getLang())} isAdmin onEdit={onEdit} onToggle={toggle} busy={rowBusy} />)}
                         </div>
                       </div>
                     );
@@ -241,6 +180,95 @@ export const TodAdmin = ({ ui, cards, source, isAdmin, onSave, onSeed, onBack, i
                 </section>
               );
             })}
+          </>
+        )}
+      </main>
+      <AppFooter />
+    </div>
+  );
+};
+
+// страница правки карточки (как «Редактирование» обычного вопроса): id — 'new' или id карточки; defaults = { type, level } для новой.
+// Сохранение: проверка текста и повтора, onSave(card) -> Promise<card>; успех -> тост и onBack(). «Скрыть для всех» / «Вернуть» у существующей карточки пишет сразу
+export const TodEdit = ({ ui, cards, id, isAdmin, defaults, onSave, onBack }) => {
+  const { Icons, AppFooter } = ui;
+  const list = Array.isArray(cards) ? cards : [];
+  const isNew = id === 'new' || !id;
+  const existing = isNew ? null : list.find(c => c.id === id) || null;
+  const nums = todNumbers(list, todStarterIds);
+  const [fmType, setFmType] = React.useState(existing ? existing.type : (defaults && defaults.type) || 'truth');
+  const [fmLevel, setFmLevel] = React.useState(existing ? existing.difficulty : (defaults && defaults.level) || 'easy');
+  const [fmText, setFmText] = React.useState(existing ? todCardText(existing, getLang()) : '');
+  const [err, setErr] = React.useState(''); const [busy, setBusy] = React.useState(false); const [hideBusy, setHideBusy] = React.useState(false);
+  const areaRef = React.useRef(null);
+  // карточку могли подгрузить уже после открытия страницы (прямая ссылка): один раз подставляем её данные, пока человек ничего не вводил
+  const filledRef = React.useRef(!!existing);
+  React.useEffect(() => {
+    if (filledRef.current || !existing) return;
+    filledRef.current = true; setFmType(existing.type); setFmLevel(existing.difficulty); setFmText(todCardText(existing, getLang()));
+  }, [existing]);
+  React.useEffect(() => { if (areaRef.current && isAdmin) areaRef.current.focus({ preventScroll: true }); }, [isAdmin]);
+
+  const save = async () => {
+    if (busy) return;
+    const clean = todCleanCard({ id: 'td_x', type: fmType, difficulty: fmLevel, text: fmText, isActive: true });
+    if (!clean) { ui.SoundFX.warn(); setErr(tr("Введите текст карточки")); return; }
+    const twin = list.find(c => c.type === fmType && c.id !== (existing && existing.id) && (todNorm(c.text) === todNorm(clean.text) || (c.text_uk && todNorm(c.text_uk) === todNorm(clean.text)) || (c.text_en && todNorm(c.text_en) === todNorm(clean.text))));
+    if (twin) { ui.SoundFX.warn(); setErr(twin.isActive === true ? tr("Такая карточка уже есть") : tr("Такая карточка уже есть, но скрыта: найдите её в списке и нажмите «Показать»")); return; }
+    if (!isNew && !existing) { ui.SoundFX.warn(); setErr(tr("Карточка не найдена. Закройте форму и откройте её заново.")); return; }
+    setBusy(true); setErr('');
+    try {
+      await onSave({ id: existing ? existing.id : todNewId(), type: fmType, difficulty: fmLevel, text: clean.text, isActive: existing ? existing.isActive : true, typed: true });
+      ui.SoundFX.success(); ui.showToast(tr("Карточка сохранена")); onBack();
+    } catch (e) { ui.SoundFX.warn(); setErr(todErrText(e, 'сохранить')); }
+    setBusy(false);
+  };
+  const flipHidden = async () => {
+    if (hideBusy || !existing) return;
+    setHideBusy(true);
+    try { await onSave({ ...existing, isActive: existing.isActive !== true }); ui.SoundFX.click(); ui.showToast(existing.isActive === true ? tr("Карточка скрыта") : tr("Карточка снова в игре")); }
+    catch (e) { ui.SoundFX.warn(); ui.showToast(todErrText(e, 'сохранить'), 6000, 'warn'); }
+    setHideBusy(false);
+  };
+
+  const missing = isAdmin && !isNew && !existing;
+  return (
+    <div className="safe-screen w-full flex flex-col items-center slide-up relative z-10">
+      <header className="page-head w-full max-w-md flex items-center gap-3 pt-2">
+        <button type="button" onClick={() => { ui.SoundFX.click(); onBack(); }} aria-label={tr("Назад")} className="btn-icon flex-shrink-0"><Icons.Back /></button>
+        <div className="page-title-wrap">
+          <h1 className="page-title text-lg font-bold text-white">{isNew ? tr("Новая карточка") : tr("Редактирование")}</h1>
+          {existing && <p className="text-xs text-zinc-500">{tr(TOD_TYPE_LABEL[existing.type])} № {nums[existing.id]}</p>}
+        </div>
+      </header>
+      <main className="w-full max-w-md flex flex-col gap-5 pt-6 pb-6 flex-1">
+        {!isAdmin ? ( <p className="text-sm text-zinc-400 text-center">{tr("Раздел доступен только владельцу.")}</p> )
+          : missing ? ( <p className="text-sm text-zinc-400 text-center leading-relaxed" role="status">{tr("Карточка не найдена. Закройте форму и откройте её заново.")}</p> ) : (
+          <>
+            <div className="seg" role="radiogroup" aria-label={tr("Тип карточки")}>
+              {TOD_TYPES.map(t => <button key={t} type="button" role="radio" aria-checked={fmType === t} onClick={() => { ui.SoundFX.click(); setFmType(t); setErr(''); }} className={`seg-btn ${fmType === t ? 'is-active' : ''}`}>{tr(TOD_TYPE_LABEL[t])}</button>)}
+            </div>
+            <div className="seg" role="radiogroup" aria-label={tr("Уровень карточки")}>
+              {TOD_LEVELS.map(lv => <button key={lv} type="button" role="radio" aria-checked={fmLevel === lv} onClick={() => { ui.SoundFX.click(); setFmLevel(lv); }} className={`seg-btn ${fmLevel === lv ? 'is-active' : ''}`}>{tr(TOD_GROUP_LABEL[lv])}</button>)}
+            </div>
+            <div>
+              <textarea ref={areaRef} value={fmText} maxLength={TOD_TEXT_MAX} onChange={e => { setFmText(e.target.value); setErr(''); }} aria-label={tr("Текст карточки")} aria-invalid={err ? 'true' : undefined}
+                placeholder={fmType === 'truth' ? tr("Вопрос, на который нужно ответить честно") : tr("Задание, которое нужно выполнить")} />
+              <div className="flex items-start justify-between gap-3">
+                {err ? <span className="ui-error" role="alert">{err}</span> : <span></span>}
+                <span className="ui-hint mt-1.5 flex-shrink-0 tabular-nums">{fmText.length} / {TOD_TEXT_MAX}</span>
+              </div>
+            </div>
+            {existing && (
+              <div className="flex flex-col gap-2">
+                <button type="button" disabled={hideBusy} onClick={flipHidden} className="btn-secondary w-full flex items-center justify-center gap-2">{existing.isActive === true ? <Icons.EyeOff /> : <Icons.Eye />} {existing.isActive === true ? tr("Скрыть для всех") : tr("Вернуть карточку всем")}</button>
+                <p className="ui-hint text-center">{existing.isActive === true ? tr("Игроки перестанут видеть карточку: она не попадёт в игру и в архив. Вернуть можно здесь или в списке карточек.") : tr("Сейчас карточка скрыта: игроки её не видят.")}</p>
+              </div>
+            )}
+            <div className="mt-auto pt-4 grid grid-cols-2 gap-3.5">
+              <button type="button" onClick={() => { ui.SoundFX.click(); onBack(); }} className="btn-secondary w-full">{tr("Отмена")}</button>
+              <button type="button" disabled={busy} onClick={save} className="btn-primary w-full">{busy ? tr("Сохраняем…") : tr("Сохранить")}</button>
+            </div>
           </>
         )}
       </main>
@@ -367,7 +395,7 @@ export const TodLobby = ({ ui, players, cfg, setCfg, deviceCount, block, onStart
         <h1 className="page-title flex-1 text-center text-lg font-bold text-white">{todTx(ui, 'Правда или действие')}</h1>
         <button type="button" aria-label={todTx(ui, 'Поделиться сессией')} title={todTx(ui, 'Поделиться сессией')} onClick={onShare} className="btn-icon flex-shrink-0"><ui.Icons.Share /></button>
       </header>
-      <main className="w-full max-w-md lg:max-w-5xl flex flex-col gap-6 pt-6 pb-8 desk-cols">
+      <main className="w-full max-w-md lg:max-w-5xl flex flex-col gap-8 pt-6 pb-10 desk-cols">
         {banner}
         <section className="tod-hero" aria-label={todTx(ui, 'Правда или действие')}>
           <div className="tod-fan">
@@ -377,7 +405,7 @@ export const TodLobby = ({ ui, players, cfg, setCfg, deviceCount, block, onStart
           <p className="tod-hero-title">{todTx(ui, 'Выбирай. Рискуй. Не пропускай.')}</p>
           {di && <p className="tod-hero-meta">{tf("В колоде: {v0} правд · {v1} действий", { v0: di.truth, v1: di.dare })}</p>}
         </section>
-        <section className="flex flex-col gap-3" aria-label={todTx(ui, 'Правила')}>
+        <section className="flex flex-col gap-4" aria-label={todTx(ui, 'Правила')}>
           <h2 className="text-sm font-bold text-zinc-300">{todTx(ui, 'Правила')}</h2>
           <ul className="tod-rules">
             <li className="tod-rule tod-rule-lock">
@@ -394,8 +422,8 @@ export const TodLobby = ({ ui, players, cfg, setCfg, deviceCount, block, onStart
             </li>
           </ul>
         </section>
-        <section className="flex flex-col gap-4 rounded-[20px] border border-white/10 bg-white/[0.04] p-4">
-          <div className="flex flex-col gap-2">
+        <section className="flex flex-col gap-5 rounded-[20px] border border-white/10 bg-white/[0.04] p-5">
+          <div className="flex flex-col gap-2.5">
             <span className="text-sm font-bold text-white">{todTx(ui, 'Подколки')}</span>
             <div className="seg" role="group" aria-label={todTx(ui, 'Подколки')}>
               {TOD_TONES.map(([tone, label]) => <button key={tone} type="button" aria-pressed={cfg.tone === tone} onClick={() => { ui.SoundFX.click(); setCfg({ ...cfg, tone }); }} className={`seg-btn ${cfg.tone === tone ? 'is-active' : ''}`}>{todTx(ui, label)}</button>)}
@@ -414,12 +442,12 @@ export const TodLobby = ({ ui, players, cfg, setCfg, deviceCount, block, onStart
           )}
         </section>
         {typeof onMineAdd === 'function' && <TodMine ui={ui} list={Array.isArray(mine) ? mine : []} onAdd={onMineAdd} onDel={onMineDel} />}
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-4">
           <h2 className="text-sm font-bold text-zinc-300">{todTx(ui, 'Игроки')} · {list.length}</h2>
           <ui.RoomStrip players={list} devices={deviceCount || 1} />
           <p className="ui-hint">{todTx(ui, 'Кнопки хода можно нажимать с любого устройства сессии.')}</p>
           <button type="button" onClick={onShare} className="btn-secondary w-full"><ui.Icons.Share /> {todTx(ui, 'Поделиться сессией')}</button>
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2 mt-1">
             <button type="button" onClick={startClick} disabled={busy} aria-disabled={block ? 'true' : undefined} aria-describedby={block ? 'tod-start-hint' : undefined} className="btn-primary tod-go w-full"><ui.Icons.Play /> {todTx(ui, 'Начать игру')}</button>
             {block && <p id="tod-start-hint" className="ui-error" role="alert">{block}</p>}
           </div>

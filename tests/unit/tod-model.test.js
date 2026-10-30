@@ -5,10 +5,10 @@ const fs = require('fs'); const path = require('path');
 const { loadTod } = require('../tod-load.js'); const { makeRules } = require('../rules-eval.js');
 const res = []; const T = (n, c) => res.push((c ? 'PASS ' : 'FAIL ') + n);
 const finish = () => { console.log(res.join('\n')); console.log('--- captured runtime errors: 0'); process.exit(res.some(l => l.startsWith('FAIL')) ? 1 : 0); };
-const NAMES = ['TOD_TYPES', 'TOD_LEVELS', 'TOD_LEVEL_LABEL', 'TOD_TEXT_MAX', 'todCleanCard', 'todCleanList', 'todPoolOf', 'todGroupCards', 'todNewId', 'todCardText'];
+const NAMES = ['TOD_TYPES', 'TOD_LEVELS', 'TOD_LEVEL_LABEL', 'TOD_TEXT_MAX', 'todCleanCard', 'todCleanList', 'todPoolOf', 'todGroupCards', 'todNewId', 'todCardText', 'todNumbers'];
 let M = null;
 try { M = loadTod(['tod/model.js'], NAMES); } catch (e) { T('модуль src/tod/model.js загружается: ' + (e && e.message), false); finish(); }
-const { TOD_TYPES, TOD_LEVELS, TOD_LEVEL_LABEL, TOD_TEXT_MAX, todCleanCard, todCleanList, todPoolOf, todGroupCards, todNewId, todCardText } = M;
+const { TOD_TYPES, TOD_LEVELS, TOD_LEVEL_LABEL, TOD_TEXT_MAX, todCleanCard, todCleanList, todPoolOf, todGroupCards, todNewId, todCardText, todNumbers } = M;
 
 const rules = makeRules(JSON.parse(fs.readFileSync(path.join(__dirname, '../fixtures/tod-rules.json'), 'utf8')));
 const OWNER = { uid: 'OWNER_UID' };
@@ -115,4 +115,15 @@ T('todPoolOf: неверная карточка -> null', [null, undefined, {}, 
 T('text_uk: сохраняется очищенным, пустой или не строка — отбрасывается', todCleanCard(card({ text_uk: '  <Питання?> ' })).text_uk === 'Питання?' && !('text_uk' in todCleanCard(card({ text_uk: '   ' }))) && !('text_uk' in todCleanCard(card({ text_uk: 7 }))));
 T('todCardText: uk берёт text_uk, без него и для ru — text', todCardText(card({ text_uk: 'Питання?' }), 'uk') === 'Питання?' && todCardText(card({ text_uk: 'Питання?' }), 'ru') === 'Вопрос?' && todCardText(card(), 'uk') === 'Вопрос?' && todCardText(null, 'uk') === '');
 T('text_en: сохраняется очищенным, пустой — отбрасывается; todCardText(en) берёт text_en, без него — text', todCleanCard(card({ text_en: ' <Question?> ' })).text_en === 'Question?' && !('text_en' in todCleanCard(card({ text_en: ' ' }))) && todCardText(card({ text_en: 'Question?' }), 'en') === 'Question?' && todCardText(card({ text_uk: 'Питання?' }), 'en') === 'Вопрос?' && todCardText(card({ text_en: 'Question?' }), 'uk') === 'Вопрос?');
+
+// номера карточек: свой счёт для «Правды» и «Действия», стартовый набор первым, скрытые считаются, новые идут следом по id
+{
+  const c = (id, type, isActive = true) => ({ id, type, difficulty: 'easy', text: id, isActive });
+  const list = [c('td_zz', 'truth'), c('td_a1', 'dare'), c('td_s2', 'truth', false), c('td_s1', 'truth'), c('td_s3', 'dare'), c('td_new1', 'truth')];
+  const n = todNumbers(list, ['td_s1', 'td_s2', 'td_s3']);
+  T('todNumbers: стартовые карточки — первые по id, у каждого типа свой счёт', n.td_s1 === 1 && n.td_s2 === 2 && n.td_s3 === 1);
+  T('todNumbers: созданные позже идут следом по id (новая получает следующий номер)', n.td_new1 === 3 && n.td_zz === 4 && n.td_a1 === 2);
+  T('todNumbers: скрытая карточка не сдвигает номера остальных', todNumbers(list.map(x => ({ ...x, isActive: true })), ['td_s1', 'td_s2', 'td_s3']).td_s1 === 1 && n.td_s2 === 2);
+  T('todNumbers: мусор и пустой ввод не падают', Object.keys(todNumbers(null)).length === 0 && Object.keys(todNumbers([null, {}, { id: 'x', type: 'bad' }])).length === 0);
+}
 finish();
