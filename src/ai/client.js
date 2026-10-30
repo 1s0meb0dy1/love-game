@@ -68,6 +68,7 @@ export const aiAsk = async (input, { onChunk, signal } = {}) => {
   if (!text) { text = await aiViaPollinations(req, signal); source = 'pollinations'; }
   if (signal && signal.aborted) throw new Error('aborted');
   if (text) { aiRemember(req, text); return { text, source }; }
-  const recent = aiRecent.get(aiKey(req)); if (recent && recent.length) return { text: recent[Math.floor(Math.random() * recent.length)], source: 'recent' };
+  // уже показані відповіді віддаємо по колу: без повторів поспіль і без Math.random
+  const recent = aiRecent.get(aiKey(req)); if (recent && recent.length) { const t = recent.shift(); recent.push(t); return { text: t, source: 'recent' }; }
   return { text: req.type === 'situation' || req.type === 'advice' ? aiLocalFallback(req) : '', source: 'local' };
 };
