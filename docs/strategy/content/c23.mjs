@@ -1,4 +1,4 @@
-// Глава 24 в оглавлении (id c23): источники и методология
+// Глава 33 в оглавлении (id c23): источники и методология
 import { readdirSync, readFileSync } from 'node:fs';
 
 // Сколько пометок ::know:: осталось в главах (считается при сборке, чтобы цифра не устаревала).
@@ -8,7 +8,7 @@ const KNOW = readdirSync(dir)
   .reduce((n, f) => n + (readFileSync(new URL(f, dir), 'utf8').match(/::know::/g) || []).length, 0);
 
 export default {
-  id: 'c23', num: '28', icon: '🧾', part: 'Основания', title: 'Источники, метод и пределы',
+  id: 'c23', num: '33', icon: '🧾', part: 'Основания', title: 'Источники, метод и пределы',
   sub: 'Что именно я делал, какие инструменты использовал, что не получилось и где заканчиваются факты. Проверяемость важнее уверенного тона.',
   verdict: { tone: 'info', x: 'Данные — не перепись рынка. Часть страниц доступна через поисковый индекс, цены зависят от витрины и аккаунта, отзывы отобраны качественно, приватные метрики конкурентов недоступны.' },
   blocks: [
@@ -59,6 +59,12 @@ export default {
       ['Netlify Free: лимиты в анонсе и в таблице кредитов', { chip: 'warn', v: 'Расходятся' }, 'Гл. 24'],
       ['Комиссии Google Play 10% + 5%', { chip: 'warn', v: 'Не подтверждено' }, 'Гл. 16: официальная страница подтвердила даты, но не ставки'],
       ['Коллизии финалистов в App Store', { chip: 'info', v: 'Веб-поиском' }, 'Гл. 05'],
+      ['В приложении уже есть статистика партий, включена по умолчанию, с именами игроков в расширенной записи', { chip: 'ok', v: 'Подтверждено по коду' }, 'Гл. 28, 32: в первом черновике я ошибочно написал «событий нет», исправлено'],
+      ['PostHog: 1 млн событий, 5 000 записей, 100 тыс. ошибок бесплатно; режим без cookie', { chip: 'ok', v: 'Подтверждено' }, 'Гл. 28'],
+      ['Sentry Developer: один пользователь, ошибки и трассировка, письма', { chip: 'ok', v: 'Подтверждено' }, 'Гл. 28, 30; число ошибок в месяц на странице не найдено'],
+      ['Удержание: GameAnalytics, Adjust, Sensor Tower, MWM', { chip: 'info', v: 'По пересказам' }, 'Гл. 28: первоисточник GameAnalytics закрыт формой'],
+      ['Mollie принимает компании только из ЕЭЗ, Швейцарии, Великобритании (нужен IBAN)', { chip: 'ok', v: 'Подтверждено' }, 'Гл. 29'],
+      ['WayForPay: 2 %, выплаты в гривнах, карты по всему миру кроме РФ/РБ', { chip: 'ok', v: 'Подтверждено' }, 'Гл. 29'],
     ], note: `Остаются непроверенными **${KNOW} пометок ::know::** в главах (Discord Activities, Supabase, Mixkit/Sonniss/ZapSplat, политики Google Play и рекламных площадок, психологические и UX-ориентиры, часть налоговых и товарных сборов). Они остаются общей экспертизой, а не фактом.` },
     { t: 'callout', k: 'fact', wide: true, title: 'Omniroute и ваш компьютер', x: 'Omniroute и локальные папки вашего ПК недоступны из облачной сессии: подключение к ним возможно только через Remote Control. Для результата они не потребовались.' },
     { t: 'h', x: 'Ссылки на источники' },
@@ -109,6 +115,16 @@ export default {
       ['WebKit · 7 дней и веб-приложения', 'https://webkit.org/blog/10218/intelligent-tracking-prevention', 'исключение для установленных приложений'],
       ['Google Play · целевой API', 'https://support.google.com/googleplay/android-developer/answer/11926878', 'API 36 с 31.08.2026'],
       ['Google Search · спам-политики', 'https://developers.google.com/search/docs/essentials/spam-policies', 'scaled content abuse'],
+      ['PostHog · цены', 'https://posthog.com/pricing', 'бесплатные лимиты'],
+      ['PostHog · без cookie', 'https://posthog.com/tutorials/cookieless-tracking', 'ограничения режима'],
+      ['PostHog · приватность', 'https://posthog.com/docs/product-analytics/privacy', 'облако ЕС, отказ'],
+      ['Sentry · цены', 'https://sentry.io/pricing', 'план Developer'],
+      ['GameAnalytics · бенчмарки 2025', 'https://www.gameanalytics.com/reports/2025-mobile-gaming-benchmarks', 'отчёт за формой'],
+      ['Innovecs · удержание в играх 2026', 'https://www.innovecsgames.com/blog/mobile-game-retention-benchmarks/', 'сводка Adjust и Sensor Tower'],
+      ['MWM · удержание', 'https://mwm.ai/glossary/retention', 'медиана каталога'],
+      ['Mollie · страны', 'https://help.mollie.com/hc/en-us/articles/115002116105-Can-I-use-Mollie-s-services-in-my-country', 'ЕЭЗ, Швейцария, Великобритания'],
+      ['Mollie · тарифы', 'https://www.mollie.com/pricing', 'комиссии'],
+      ['WayForPay', 'https://wayforpay.com/en', '2 %, международные карты'],
       ['Платёжные системы 2026 (агентство)', 'https://woborders.agency/en/blog/which-payment-system-choose-in-2026/', 'вторичный источник'],
       ['Gen Z слэнг 2026', 'https://www.takeroon.com/blog/brain-rot-words-list-internet-slang', ''],
       ['Benchmark eCPM 2026', 'https://www.appadrevenue.com/guides/how-much-do-mobile-ads-pay', 'вендорский расчёт'],
