@@ -34,7 +34,8 @@ export const LEGAL_EN = {
           'On your device, in the browser’s local storage (details on the “Cookies and local storage” page).',
           'In the Google Firebase Realtime Database cloud (servers in Europe, europe-west1 region). It holds an encrypted copy of the session, the shared room for multi-device play and, if enabled, stats.',
           'The game’s pages are hosted on GitHub Pages (GitHub, Inc.). Like any website, the host sees technical connection data when a page is opened, including your IP address.',
-          'The game’s fonts and scripts are served from the site itself: there are no external content delivery networks, ad trackers or third-party analytics counters.',
+          'The game’s fonts and scripts are served from the site itself: there are no external content delivery networks, ad trackers or behavioural analytics services.',
+          'Crash reports: if an error occurs in the game, the error type, a short message, the code line, the game version and the screen name (without parameters) are sent to Sentry (servers in Germany). Question and answer texts, player names and the session ID are not sent. If “Do Not Track” is enabled in your browser, no reports are sent.',
         ] },
         { h: 'Session encryption', p: [
           'The cloud copy of the session (player names, archive, turned-off questions, unfinished game) is encrypted on your device with AES-GCM before it is sent. The encryption key is stored on your devices and in the invite link. The Developer never receives it and cannot read your session.',
@@ -155,7 +156,7 @@ export const LEGAL_EN = {
       lead: 'The game does not use cookies for advertising or tracking. It keeps settings and progress in your device’s browser storage.',
       sections: [
         { h: 'What we use', p: [
-          'The game sets no advertising or analytics cookies and loads no third-party counters. Instead of cookies, it uses the browser’s local storage (localStorage / sessionStorage) and the app cache (service worker) so that the game starts quickly and remembers your progress. This storage is strictly necessary: the game cannot work without it, so no separate consent is required.',
+          'The game sets no advertising or analytics cookies and loads no behavioural analytics counters. Crash reports (Sentry) use no cookies. Instead of cookies, it uses the browser’s local storage (localStorage / sessionStorage) and the app cache (service worker) so that the game starts quickly and remembers your progress. This storage is strictly necessary: the game cannot work without it, so no separate consent is required.',
         ] },
         { h: 'What exactly is on your device', table: [
           ['askme_device_profile_v4', 'Profile of the current session: player names, archive, unfinished game', 'Until data is deleted'],

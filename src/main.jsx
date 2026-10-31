@@ -2,6 +2,11 @@ import './styles.css';
 import './app.jsx';
 import { registerSW } from 'virtual:pwa-register';
 import { inGameHash } from './update.js';
+import { installReporter } from './report.js';
+import { APP_VERSION } from './content/version.js';
+
+// сбои уходят в Sentry (подробности и что именно отправляется — в src/report.js)
+installReporter(window, APP_VERSION);
 
 // установлений застосунок (старий iOS «На початковий екран» або оболонка Capacitor): клас is-app прибирає віньєтку фону
 try { if (window.navigator.standalone === true || (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform())) document.documentElement.classList.add('is-app'); } catch (e) {}

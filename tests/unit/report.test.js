@@ -1,0 +1,31 @@
+// Отправка сбоев в Sentry (src/report.js, подключается в src/main.jsx): что уходит и когда не отправляется.
+const fs = require('fs'); const path = require('path');
+const M = new Function(fs.readFileSync(path.join(__dirname, '../../src/report.js'), 'utf8').replace(/^export /gm, '') + '; return { parseDsn, routeOf, scrub, framesOf, buildEvent, buildEnvelope, canReport, installReporter };')();
+const res = []; const T = (n, c) => res.push((c ? 'PASS ' : 'FAIL ') + n);
+const fakeWin = (over = {}) => { const h = {}; return { location: { protocol: 'https:', hostname: '1s0meb0dy1.github.io', hash: '#/play?sid=AB12CD34' }, navigator: { onLine: true, doNotTrack: null, standalone: false }, addEventListener: (t, f) => { h[t] = f; }, h, ...over }; };
+const d = M.parseDsn('https://9ad7a0b1f256b2058b24e3dc656fa93d@o4512352312688640.ingest.de.sentry.io/4512352618479696');
+T('DSN разбирается на ключ, хост и проект', d && d.key === '9ad7a0b1f256b2058b24e3dc656fa93d' && d.host.endsWith('ingest.de.sentry.io') && d.project === '4512352618479696');
+T('плохой DSN не ломает разбор', M.parseDsn('nope') === null && M.parseDsn(undefined) === null);
+T('экран без параметров: ID сессии и приглашения не попадают', M.routeOf('#/play?sid=AB12CD34') === '/play' && M.routeOf('#/tod/results') === '/tod' && M.routeOf('') === '/');
+T('ID сессии из 8 знаков и адреса с параметрами вычищаются из сообщения', M.scrub('Bad AB12CD34 at https://x.io/a?s=1#h') === 'Bad [id] at https://x.io/a' && M.scrub('x'.repeat(400)).length === 160 && M.scrub(null) === '');
+const chrome = 'Error: boom\n    at foo (https://1s0meb0dy1.github.io/love-game/assets/index-abc.js:10:20)\n    at https://1s0meb0dy1.github.io/love-game/assets/index-abc.js:1:2';
+const f = M.framesOf(chrome);
+T('стек Chrome → кадры: старые сверху, только путь и строка', f.length === 2 && f[1].function === 'foo' && f[1].lineno === 10 && f[1].colno === 20 && !/https/.test(f[1].filename));
+const safari = M.framesOf('foo@https://x.io/assets/a.js:3:4\nglobal code@https://x.io/assets/a.js:7:8');
+T('стек Safari тоже разбирается', safari.length === 2 && safari[1].lineno === 3);
+const ev = M.buildEvent({ error: new Error('Нет ответа AB12CD34'), release: '0.1.29б', route: '/play', standalone: false, now: 1e12, rnd: () => 0.5 });
+T('событие: версия, экран, обезличенное сообщение, 32-значный id, без лишних полей', ev.release === 'ask-me@0.1.29б' && ev.tags.route === '/play' && ev.exception.values[0].value === 'Нет ответа [id]' && /^[0-9a-f]{32}$/.test(ev.event_id) && !('user' in ev) && !('request' in ev) && !('contexts' in ev));
+const env = M.buildEnvelope(ev, 'https://k@h/1', 1e12).split('\n');
+T('конверт Sentry: три строки (заголовок, тип, событие)', env.length === 3 && JSON.parse(env[0]).event_id === ev.event_id && JSON.parse(env[1]).type === 'event' && JSON.parse(env[2]).platform === 'javascript');
+T('строка вместо ошибки тоже допустима', M.buildEvent({ error: 'oops', release: '1', route: '/', standalone: false }).exception.values[0].value === 'oops');
+T('отправка разрешена только по https, не на localhost, не при DNT и не без сети', M.canReport(fakeWin()) === true && !M.canReport(fakeWin({ location: { protocol: 'http:', hostname: 'x.io', hash: '' } })) && !M.canReport(fakeWin({ location: { protocol: 'https:', hostname: 'localhost', hash: '' } })) && !M.canReport(fakeWin({ navigator: { onLine: true, doNotTrack: '1' } })) && !M.canReport(fakeWin({ navigator: { onLine: false } })) && !M.canReport({}));
+const sentBodies = []; const w = fakeWin(); M.installReporter(w, '0.1.29б', (url, body) => { sentBodies.push({ url, body }); return Promise.resolve(); });
+w.h.error({ error: new TypeError('x1') }); w.h.error({ error: new TypeError('x1') });
+T('одинаковый сбой отправляется один раз', sentBodies.length === 1 && /\/api\/4512352618479696\/envelope\/\?sentry_key=/.test(sentBodies[0].url) && !/AB12CD34/.test(sentBodies[0].body));
+for (let i = 0; i < 10; i++) w.h.unhandledrejection({ reason: new Error('другая ' + i) });
+T('не больше 5 сбоев за визит', sentBodies.length === 5);
+const w2 = fakeWin({ location: { protocol: 'https:', hostname: 'localhost', hash: '' } }); const none = []; M.installReporter(w2, '1', (u, b) => none.push(b)); w2.h.error({ error: new Error('z') });
+T('на localhost ничего не отправляется', none.length === 0);
+const w3 = fakeWin(); M.installReporter(w3, '1', () => { throw new Error('сеть упала'); }); let threw = false; try { w3.h.error({ error: new Error('q') }); } catch (e) { threw = true; }
+T('сбой самой отправки не ломает игру', !threw);
+console.log(res.join('\n')); console.log('--- captured runtime errors: 0'); process.exit(0);
