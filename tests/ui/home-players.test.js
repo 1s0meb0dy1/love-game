@@ -39,6 +39,11 @@ const norm = (s) => String(s || '').replace(/\s+/g, ' ').trim();
     T('«Поделиться сессией» открывает страницу приглашения (#/invite)', A.hashNow() === '#/invite');
     done(A);
 
+    // сколько имён в ряд: на компьютере до шести, на телефоне по три
+    const cols = async (names, desktop) => { const B = await boot({ names, hash: '#/', desktop }); const c = (B.D.querySelector('.pl-grid').className.match(/pl-c(\d)/) || [])[1]; done(B); return +c; };
+    T('компьютер: 6 игроков — шесть в ряд, 4 — четыре, 3 — три, 10 — по пять в два ряда', await cols(['а', 'б', 'в', 'г', 'д', 'е'], true) === 6 && await cols(['а', 'б', 'в', 'г'], true) === 4 && await cols(['а', 'б', 'в'], true) === 3 && await cols(['а', 'б', 'в', 'г', 'д', 'е', 'ж', 'з', 'и', 'к'], true) === 5);
+    T('телефон: 3 игрока — три в ряд, 6 — по три, 4 — по четыре (если помещаются)', await cols(['а', 'б', 'в'], false) === 3 && await cols(['а', 'б', 'в', 'г', 'д', 'е'], false) === 3 && await cols(['а', 'б', 'в', 'г'], false) === 4);
+
     // экран режимов: игроки — аккордеон внизу, подсказка «до 10 игроков»
     A = await boot({ names: ['Макс', 'Аня'], hash: '#/mode' });
     const acc = A.D.querySelector('.room-acc'); const mainEl = A.D.querySelector('main');
@@ -70,7 +75,7 @@ const norm = (s) => String(s || '').replace(/\s+/g, ' ').trim();
 
     // версия, «Наверх», копирование текста
     A = await boot({ names: ['Макс', 'Аня'], hash: '#/about' });
-    T('подвал показывает версию «Версия 0.1.29а»', /Версия 0\.1\.29а/.test(A.D.querySelector('footer').textContent));
+    T('подвал показывает версию «Версия 0.1.29а»', /Версия 0\.1\.29[а-я]+/.test(A.D.querySelector('footer').textContent));
     T('страница «Об игре» помечена .selectable (текст можно выделять и копировать), а в стилях кнопки остаются невыделяемыми', !!A.D.querySelector('.safe-screen.selectable') && /\.selectable[^{]*\{[^}]*user-select: text/.test(css) && /\.selectable :where\(button[^{]*\{[^}]*user-select: none/.test(css));
     done(A);
     A = await boot({ names: ['Макс', 'Аня'], hash: '#/privacy' });

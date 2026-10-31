@@ -24,7 +24,7 @@ import { todStart, todApply } from './tod/engine.js';
 import { todPickBanter } from './tod/talk.js';
 import { todTitles } from './tod/titles.js';
 import { TodArchive, TodAdmin, TodEdit, TodLobby, TodGame, TodResults, TodAdultModal } from './tod/screens.jsx';
-import { todChannel } from './tod/channel.js';
+import { todChannel, todRoomOf } from './tod/channel.js';
 import { aiAsk } from './ai/client.js';
 import { IntroStories, introShouldShow, introMarkSeen, introReplayLabel } from './intro/stories.jsx';
 const ReactDOM = { ...ReactDOMAll, createRoot };
@@ -733,7 +733,7 @@ i18nSetLang(readStoredLang());
         const SCREEN_TITLES = { hidden_q: 'Скрытые вопросы — ASK ME', analytics: 'Аналитика — ASK ME', analytics_sessions: 'Сессии — Аналитика — ASK ME', app_menu: 'Меню — ASK ME', game_setup: 'Усложнённый режим — ASK ME', topics_admin: 'Управление темами — ASK ME', punish_admin: 'Шаблоны наказаний — ASK ME', tod_admin: 'Карточки — Правда или действие — ASK ME', tod_edit: 'Правка карточки — Правда или действие — ASK ME', history: 'Прошлые игры — ASK ME', history_view: 'Прошлая игра — ASK ME', tod_lobby: 'Правда или действие — ASK ME', tod_play: 'Игра — Правда или действие — ASK ME', tod_results: 'Итоги — Правда или действие — ASK ME', onboarding: 'ASK ME — начните игру', session_created: 'Сессия создана — ASK ME', menu: 'ASK ME — откровенные разговоры для двоих и компании', profile_page: 'Игроки и сессия — ASK ME', admin_login: 'Вход для владельца — ASK ME', mode_select: 'Режим игры — ASK ME', game: 'Игра — ASK ME', ai_response: 'Совет и ситуация — ASK ME', summary: 'Итоги игры — ASK ME', cat_list: 'Все темы — ASK ME', q_list: 'Вопросы — ASK ME', archive_page: 'Архив вопросов — ASK ME', add_q: 'Новый вопрос — ASK ME', edit_q: 'Редактирование вопроса — ASK ME', invite: 'Пригласить игроков — ASK ME', join: 'Присоединиться к игре — ASK ME', about: 'Об игре — ASK ME', privacy: 'Политика конфиденциальности — ASK ME', terms: 'Пользовательское соглашение — ASK ME', cookies: 'Cookies и локальное хранилище — ASK ME', age: 'Возраст и откровенный контент — ASK ME', copyright: 'Авторские права — ASK ME' };
         const GROUP_EMOJIS = ['😈', '🤫', '😋', '🤔', '🤪', '😏', '😱', '🫣'];
         const MAX_PLAYERS = 10;
-        const LIVE_POLL_MS = 1000, LIVE_INVITE_MS = 3000, LIVE_BEAT_MS = 8000, LIVE_ALIVE_MS = 30000, LIVE_STALE_MS = 120000, LIVE_TAKEOVER_S = 6, LIVE_TAKEOVER_STEP_S = 4, LIVE_TAP_GUARD_MS = 500, LIVE_SOLO_MS = 2000, LIVE_JOIN_WAIT_MS = 15000, LIVE_MAX_DEVICES = MAX_PLAYERS;
+        const LIVE_POLL_MS = 1000, LIVE_PAUSE_MS = 2500, AWAY_MAX_MS = 1800000, LIVE_INVITE_MS = 3000, LIVE_BEAT_MS = 8000, LIVE_ALIVE_MS = 30000, LIVE_STALE_MS = 120000, LIVE_TAKEOVER_S = 6, LIVE_TAKEOVER_STEP_S = 4, LIVE_TAP_GUARD_MS = 500, LIVE_SOLO_MS = 2000, LIVE_JOIN_WAIT_MS = 15000, LIVE_MAX_DEVICES = MAX_PLAYERS;
         // в одной партии устройств не больше, чем игроков в сессии (но не больше LIVE_MAX_DEVICES): каждое подключившееся устройство — это игрок
         // snap — снимок комнаты: у присоединяющегося копия сессии может отставать от хозяйской, поэтому берём большее из своих игроков и игроков в комнате
         const deviceCap = (prof, snap) => { let n = ((prof && prof.players) || []).length; try { const pl = snap && typeof snap.pl === 'string' ? JSON.parse(snap.pl) : null; if (Array.isArray(pl)) n = Math.max(n, pl.length); } catch (e) {} return Math.min(LIVE_MAX_DEVICES, Math.max(2, n)); };
@@ -747,11 +747,24 @@ i18nSetLang(readStoredLang());
         // версия первой записи новой партии отсчитывается от времени (десятые доли секунды): так она заведомо не совпадёт с версиями прошлых партий в этой комнате,
         // и устройства, ещё сидящие в старой партии, заметят, что в комнате что-то поменялось
         const liveVerStart = (id, now = Date.now()) => liveVerNext(Math.floor(now / 100), id);
-        // кто сейчас в игре: отметки присутствия {устройство: время}; «живое» — отметка моложе 30 с, мусор старше 2 мин убирается
+        // «Отошёл»: устройство, которое вышло из игры на другие страницы, оставляет в тех же отметках p ключ away~<устройство>~<время ухода> со временем последнего «я здесь».
+        // Правила базы менять не нужно (p/$device — любое число ≥ 0). Остальные устройства по таким ключам ставят игру на паузу; значение 0 — «пропустили и пошли дальше»
+        const AWAY_PREFIX = 'away~';
+        const liveAwayKey = (id, since) => AWAY_PREFIX + id + '~' + Math.floor(since);
+        const liveAwayParse = (key) => { const m = /^away~([0-9a-z]+)~(\d{1,14})$/.exec(String(key)); return m ? { id: m[1], since: Number(m[2]) } : null; };
+        // кто сейчас в игре: отметки присутствия {устройство: время}; «живое» — отметка моложе 30 с, мусор старше 2 мин убирается; away — кто сейчас «отошёл» (метка моложе 30 с)
         const liveAlive = (p, now, selfId) => {
-            const alive = [], stale = [];
-            Object.entries(p && typeof p === 'object' ? p : {}).forEach(([id, ts]) => { const t = Number(ts); if (!isFinite(t)) { stale.push(id); return; } const age = now - t; if (age <= LIVE_ALIVE_MS) alive.push(id); else if (age > LIVE_STALE_MS) stale.push(id); });
-            return { alive, others: alive.filter(id => id !== selfId), stale };
+            const alive = [], stale = [], away = [];
+            Object.entries(p && typeof p === 'object' ? p : {}).forEach(([id, ts]) => {
+                const t = Number(ts);
+                if (id.startsWith(AWAY_PREFIX)) {
+                    const a = liveAwayParse(id); if (!a || !isFinite(t) || t <= 0) { stale.push(id); return; }
+                    const age = now - t; if (age <= LIVE_ALIVE_MS) away.push({ id: a.id, key: id, since: a.since }); else if (age > LIVE_STALE_MS) stale.push(id);
+                    return;
+                }
+                if (!isFinite(t)) { stale.push(id); return; } const age = now - t; if (age <= LIVE_ALIVE_MS) alive.push(id); else if (age > LIVE_STALE_MS) stale.push(id);
+            });
+            return { alive, others: alive.filter(id => id !== selfId), stale, away };
         };
         // история ходов в базе ограничена по размеру: если не влезает, отбрасываем самые старые записи
         const liveHistStr = (hist) => {
@@ -1002,12 +1015,13 @@ i18nSetLang(readStoredLang());
                 return () => { document.removeEventListener('mousedown', out); document.removeEventListener('touchstart', out); document.removeEventListener('keydown', esc); };
             }, [open]);
             const list = Array.isArray(players) ? players : []; const n = list.length;
-            // три в ряд (четыре — для четверых), если все имена помещаются целиком; иначе по два (проверяем после отрисовки и при смене ширины экрана)
-            const [two, setTwo] = useState(false); const [tick, setTick] = useState(0);
-            useEffect(() => { const h = () => { setTwo(false); setTick(t => t + 1); }; window.addEventListener('resize', h); return () => window.removeEventListener('resize', h); }, []);
-            React.useLayoutEffect(() => { setTwo(false); setTick(t => t + 1); }, [list.map(p => p.name).join('\u0001')]);
-            React.useLayoutEffect(() => { if (two || n < 3 || !ref.current) return; if ([...ref.current.querySelectorAll('.pl-name')].some(el => el.scrollWidth > el.clientWidth + 1)) setTwo(true); }, [tick, two, n]);
-            const cols = n <= 1 ? 1 : n === 2 || two ? 2 : n === 4 ? 4 : 3;
+            // сколько в ряд: на телефоне по три (для четверых — по четыре), на компьютере до шести; если имя не помещается целиком, число в ряду уменьшается (после отрисовки и при смене ширины окна)
+            const desk = useIsDesktop(); const [step, setStep] = useState(0); const [tick, setTick] = useState(0);
+            const seq = (() => { const base = desk ? (n <= 6 ? n : Math.min(6, Math.ceil(n / 2))) : (n === 4 ? 4 : 3); const out = []; for (let c = base; c >= 2; c--) { if (!desk && n === 4 && c === 3) continue; out.push(c); } return out.length ? out : [2]; })();
+            useEffect(() => { const h = () => { setStep(0); setTick(t => t + 1); }; window.addEventListener('resize', h); return () => window.removeEventListener('resize', h); }, []);
+            React.useLayoutEffect(() => { setStep(0); setTick(t => t + 1); }, [list.map(p => p.name).join('\u0001'), desk]);
+            React.useLayoutEffect(() => { if (n < 3 || step >= seq.length - 1 || !ref.current) return; if ([...ref.current.querySelectorAll('.pl-name')].some(el => el.scrollWidth > el.clientWidth + 1)) setStep(step + 1); }, [tick, step, n]);
+            const cols = n <= 1 ? 1 : n === 2 ? 2 : seq[Math.min(step, seq.length - 1)];
             const saveName = () => {
                 const v = sanitizeName(rn ? rn.v : ''); if (!v) { SoundFX.warn(); setRn(r => ({ ...r, err: tr("Введите имя") })); return; }
                 SoundFX.success(); onChange(list.map(p => (p.id === rn.id ? { ...p, name: v } : p))); setRn(null); showToast(tr("Имя изменено"));
@@ -1061,6 +1075,42 @@ i18nSetLang(readStoredLang());
                     )}
                 </PopupModal>
             </>);
+        };
+
+        // ---- Общая пауза: кто-то из игроков вышел из игры на другие страницы ----
+        // Пока вышедшее устройство держит «отошёл» (оно обновляет метку раз в 8 с), у остальных поверх игры висит это окно с отсчётом и шуткой по режиму.
+        // Вернулся — пауза снимается сама; закрыл вкладку или пропал интернет — метка стареет за 30 с, устройство считается вышедшим, пауза снимается.
+        const PAUSE_TEXTS = {
+            normal: ['Пока кого-то нет, вопросы подождут. Придумайте самый честный ответ.', 'Кто-то отошёл за печеньками. Мы подождём, а вы вспомните, о чём хотели спросить.', 'Игра замерла в ожидании. Даже самые откровенные вопросы умеют ждать.', 'Эй, потеряшка, возвращайся! Без тебя ответы звучат не так интересно.', 'Тсс… вопросы затаились и ждут, когда соберутся все.', 'Пауза! Самое время налить чаю и обсудить, кто ответит смешнее.'],
+            hard: ['Таймер взял перерыв, наказания тоже. Все ждут беглеца.', 'Никого не накажут, пока не вернутся все. Пользуйтесь моментом!', 'Время остановилось: таймер замер, а наказания затаили дыхание.', 'Сбежал от наказания? Не выйдет — ждём тебя здесь.', 'Секундомер на паузе. Потренируйте честное лицо, оно пригодится.', 'Наказания пока дремлют. Разбудим их, когда все соберутся.'],
+            tod: ['«Правда» и «Действие» взяли тайм-аут. Курица тоже ждёт 🐔', 'Кто-то сбежал от задания? Так не пройдёт — ждём возвращения!', 'Пауза. Хорошее время придумать, что выберете: правду или действие.', 'Задания замерли в ожидании. Честное слово, они не кусаются.', 'Пока кого-то нет, «Зал позора» отдыхает. Но ненадолго!', 'Вернись скорее — без тебя некому краснеть!']
+        };
+        const pauseClock = (ms) => { const t = Math.max(0, Math.floor(ms / 1000)), h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), sec = t % 60; const two = (n) => String(n).padStart(2, '0'); return (h ? h + ':' : '') + two(m) + ':' + two(sec); };
+        const PausedOverlay = ({ since, count, mode, onSkip, onMenu }) => {
+            const [now, setNow] = useState(() => Date.now()); const [k, setK] = useState(() => Math.floor(Math.random() * 6)); const box = useRef(null);
+            useEffect(() => { const id = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(id); }, []);
+            useEffect(() => { const id = setInterval(() => setK(v => v + 1), 9000); return () => clearInterval(id); }, []);
+            useEffect(() => {
+                const prev = document.activeElement; const first = box.current && box.current.querySelector('button'); if (first) first.focus();
+                const key = (e) => { if (e.key !== 'Tab' || !box.current) return; const list = [...box.current.querySelectorAll('button:not([disabled])')]; if (!list.length) return; const i = list.indexOf(document.activeElement); e.preventDefault(); list[(i + (e.shiftKey ? list.length - 1 : 1)) % list.length].focus(); };
+                document.addEventListener('keydown', key); return () => { document.removeEventListener('keydown', key); if (prev && prev.isConnected && prev.focus) prev.focus(); };
+            }, []);
+            const pool = PAUSE_TEXTS[mode] || PAUSE_TEXTS.normal; const text = tr(pool[k % pool.length]);
+            return ReactDOM.createPortal(
+                <div className="pause-ov fade-in" role="alertdialog" aria-modal="true" aria-labelledby="pause-t" aria-describedby="pause-d">
+                    <div ref={box} className="pause-card slide-up">
+                        <div className="pause-ico" aria-hidden="true"><span className="pause-ring"></span><span className="pause-ring pause-ring-2"></span><span className="pause-bars"><i></i><i></i></span></div>
+                        <h2 id="pause-t" className="pause-t">{tr("Игра на паузе")}</h2>
+                        <p id="pause-d" className="pause-sub">{tf("Ждём, пока вернутся вышедшие игроки — устройств: {v0}", { v0: Math.max(1, count) })}</p>
+                        <div className="pause-clock" role="timer" aria-label={tr("Пауза длится")}><span className="pause-clock-l">{tr("Пауза длится")}</span><b>{pauseClock(now - since)}</b></div>
+                        <p key={k % pool.length} className="pause-joke" aria-live="polite">{text}</p>
+                        <p className="pause-note">{tr("Пауза снимется сама, когда все вернутся. Если у кого-то пропадёт интернет или закроется вкладка, игра пойдёт дальше без этого устройства — вернуться можно позже в сессии.")}</p>
+                        <div className="pause-actions">
+                            <button type="button" onClick={onSkip} className="btn-primary w-full">{tr("Продолжить без них")}</button>
+                            {onMenu && <button type="button" onClick={onMenu} className="btn-secondary w-full">{tr("В меню")}</button>}
+                        </div>
+                    </div>
+                </div>, document.body);
         };
 
         // Визначити, чи текст українською (за специфічними літерами).
@@ -1408,6 +1458,8 @@ i18nSetLang(readStoredLang());
             const [settings, setSettings] = useState(loadGameSettings);
             const [newPunish, setNewPunish] = useState(''); const [newPunishLevel, setNewPunishLevel] = useState('any'); const [punishErr, setPunishErr] = useState('');
             const [tm, setTm] = useState({ key: '', left: 0 });
+            const [gamePause, setGamePause] = useState(null);
+            const gamePauseRef = useRef(null); gamePauseRef.current = gamePause; // общая пауза: { since, n, node, keys } — кто-то из игроков вышел из игры (см. «пауза у всех» ниже)
             const [timerDismissKey, setTimerDismissKey] = useState('');
             const [hardMode, setHardMode] = useState(() => { try { return localStorage.getItem('askme_hard_mode_v1') === '1'; } catch (e) { return false; } });
             useEffect(() => { try { localStorage.setItem('askme_hard_mode_v1', hardMode ? '1' : '0'); } catch (e) {} }, [hardMode]);
@@ -1946,7 +1998,7 @@ i18nSetLang(readStoredLang());
                 applyPeek(mode === 'enter' ? 0 : dx, mode === 'enter' ? 'none' : mode);
                 applyGlow(mode === 'enter' || mode === 'spring' ? 0 : dx, mode);
             };
-            const swipeBusy = () => turnPopup.open || showSkipPopup || showEndGameConfirm || punish.open || (timerKey !== '' && tm.key === timerKey && timerDismissKey !== timerKey);
+            const swipeBusy = () => !!gamePause || turnPopup.open || showSkipPopup || showEndGameConfirm || punish.open || (timerKey !== '' && tm.key === timerKey && timerDismissKey !== timerKey);
             const swipeAllowed = (dir) => {
                 if (screen !== 'game' || !gameQuestions.length) return false;
                 const last = currentIndex === gameQuestions.length - 1;
@@ -2047,7 +2099,7 @@ i18nSetLang(readStoredLang());
             const [punDoneKey, setPunDoneKey] = useState('');
             const rawTimerKey = (fx.timerOn && screen === 'game' && gameMode === 'normal' && turnE && turnE.cur) ? `${currentIndex}:${turnE.cur}:${turnE.answered.length}` : '';
             const timerKey = rawTimerKey !== punDoneKey ? rawTimerKey : '';
-            const timerPaused = turnPopup.open || showSkipPopup || showEndGameConfirm || punish.open;
+            const timerPaused = turnPopup.open || showSkipPopup || showEndGameConfirm || punish.open || !!gamePause; // общая пауза: кто-то из игроков вышел
             useEffect(() => { if (timerKey) setTm({ key: timerKey, left: fx.timerSec }); }, [timerKey, fx.timerSec]);
             useEffect(() => {
                 if (!timerKey || timerPaused) return;
@@ -2322,6 +2374,7 @@ i18nSetLang(readStoredLang());
             const todDropPause = () => { try { todPauseClear(localStorage); } catch (e) {} setTodPausedState(null); };
             const todPause = () => {
                 const st = todGameRef.current; if (!st || st.phase === 'ended' || !profile) { todLeave(); setTodGame(null); navigate('menu'); return; }
+                if (todRoomRef.current) awayLeave(todRoomOf(todRoomRef.current)); // остальным устройствам — пауза, пока не вернёмся; если их нет — ждать некого
                 const ok = (() => { try { return todPauseWrite(localStorage, { sid: profile.sessionId, t: Date.now(), deck: todDeckRef.current || todDeck, state: st }); } catch (e) { return false; } })();
                 if (ok) { try { setTodPausedState(todPauseRead(localStorage, profile.sessionId)); } catch (e) {} showToast(tr('Игра на паузе. «Продолжить игру» — на главной'), 3500); }
                 else showToast(tr('Не удалось сохранить паузу: игра закрыта'), 3500, 'warn');
@@ -2804,14 +2857,91 @@ i18nSetLang(readStoredLang());
                 };
                 check(); const id = setInterval(check, LIVE_INVITE_MS); return () => { stop = true; clearInterval(id); };
             }, [screen, liveRoomId]);
-            // выход из игры одного устройства не завершает её для остальных: просто убираем свою отметку
-            const liveLeave = () => {
+            // выход из игры одного устройства не завершает её для остальных. Если в игре есть другие устройства и мы вышли на другие страницы (why === 'screen'),
+            // оставляем метку «отошёл» — у остальных игра встаёт на паузу, пока мы не вернёмся; закрытие страницы (why === 'page') и выход без других устройств просто убирают отметку
+            const awayRef = useRef(null); const prevScreenRef = useRef(screen); const todAliveRef = useRef(0);
+            const awayPatch = (node, body, keepalive) => fetchWithTimeout(roomUrl(node, '/p'), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), keepalive: !!keepalive }, 6000).catch(() => {});
+            const awayStart = (node) => {
+                if (awayRef.current || !node || sessionTasks.blocked(profileRef.current && profileRef.current.sessionId)) return;
+                const me = deviceIdRef.current, since = Date.now(), key = liveAwayKey(me, since); awayRef.current = { node, key, since };
+                awayPatch(node, { [me]: null, [key]: since });
+            };
+            // уход с экрана игры: смотрим свежие отметки комнаты. Есть другие устройства в игре — оставляем «отошёл» (у них пауза); никого нет — ждать некого:
+            // стираем свою отметку и метки уже вышедших, чтобы тот, кто вернётся первым, не попал на пустую паузу
+            const awayLeave = async (node) => {
+                const me = deviceIdRef.current; setGamePause(null);
+                let others = null, away = [];
+                try { const r = await fetchWithTimeout(roomUrl(node, '/p') + '?t=' + Date.now(), {}, 6000); if (r.ok) { const res = liveAlive(await r.json(), Date.now(), me); others = res.others.length; away = res.away.filter(x => x.id !== me).map(x => x.key); } } catch (e) {}
+                if (others === null) others = Math.max(liveIdsRef.current.filter(x => x !== me).length, node.endsWith('_t') && todAliveRef.current > 1 ? 1 : 0);
+                if (others > 0) { awayStart(node); return; }
+                await awayPatch(node, Object.fromEntries([[me, null], ...away.map(k => [k, null])]));
+            };
+            const awayDrop = (keepalive) => { const a = awayRef.current; if (!a) return; awayRef.current = null; awayPatch(a.node, { [a.key]: null }, keepalive); };
+            const liveLeave = (why) => {
                 const room = liveRoomRef.current, me = deviceIdRef.current;
-                if (room) fetchWithTimeout(roomUrl(room, '/p/' + me), { method: 'DELETE', keepalive: true }, 6000).catch(() => {});
+                if (room) {
+                    if (why === 'screen') awayLeave(room);
+                    else fetchWithTimeout(roomUrl(room, '/p/' + me), { method: 'DELETE', keepalive: true }, 6000).catch(() => {});
+                }
                 liveRoomRef.current = ''; liveRoleRef.current = ''; liveSyncRef.current = false; setLive({ room: '', role: '', sync: false }); setLiveFx(null); setLiveCount(0);
             };
-            useEffect(() => { if (live.room && !['game', 'ai_response', 'summary'].includes(screen)) liveLeave(); }, [screen]);
-            useEffect(() => { const h = () => { if (liveRoomRef.current) liveLeave(); }; window.addEventListener('pagehide', h); return () => window.removeEventListener('pagehide', h); }, []);
+            useEffect(() => { if (live.room && !['game', 'ai_response', 'summary'].includes(screen)) liveLeave(['game', 'ai_response'].includes(prevScreenRef.current) ? 'screen' : ''); }, [screen]);
+            // «Правда или действие»: ушли с экрана партии на другие страницы, не нажав «Поставить на паузу» (например, «Назад» в браузере) — тоже «отошёл»
+            useEffect(() => {
+                const room = todRoomRef.current, g = todGameRef.current;
+                if (prevScreenRef.current === 'tod_play' && !['tod_play', 'tod_results'].includes(screen) && room && g && g.phase !== 'ended') awayLeave(todRoomOf(room));
+            }, [screen]);
+            useEffect(() => { prevScreenRef.current = screen; }, [screen]);
+            // вернулись в игру (обычную или «Правду или действие») — «отошёл» снимается сразу
+            useEffect(() => {
+                const a = awayRef.current; if (!a) return;
+                const back = (!!live.room && a.node === live.room && ['game', 'ai_response'].includes(screen)) || (screen === 'tod_play' && !!todRoomRef.current && a.node === todRoomOf(todRoomRef.current));
+                if (back) awayDrop();
+            }, [screen, live.room]);
+            // пока мы «отошли» и страница открыта, раз в 8 с подтверждаем это; метка исчезла, стёрта (0) или игра закончилась — перестаём. Дольше 30 минут не держим, чтобы забытая вкладка не держала игру
+            useEffect(() => {
+                let busy = false;
+                const id = setInterval(async () => {
+                    const a = awayRef.current; if (!a || busy || document.hidden) return; busy = true;
+                    try {
+                        const p = profileRef.current;
+                        if (!p || sessionTasks.blocked(p.sessionId) || Date.now() - a.since > AWAY_MAX_MS) { awayDrop(); return; }
+                        const [vr, sr] = await Promise.all([fetchWithTimeout(roomUrl(a.node, '/p/' + a.key) + '?t=' + Date.now(), {}, 6000), fetchWithTimeout(roomUrl(a.node, '/status') + '?t=' + Date.now(), {}, 6000)]);
+                        if (!vr.ok || !sr.ok) return;
+                        const v = await vr.json(), st = await sr.json();
+                        if (awayRef.current !== a) return;
+                        if (st !== 'active' || !(Number(v) > 0)) { awayRef.current = null; return; }
+                        await awayPatch(a.node, { [a.key]: Date.now() });
+                    } catch (e) {} finally { busy = false; }
+                }, LIVE_BEAT_MS);
+                return () => clearInterval(id);
+            }, []);
+            useEffect(() => { const h = () => { awayDrop(true); if (liveRoomRef.current) liveLeave('page'); }; window.addEventListener('pagehide', h); return () => window.removeEventListener('pagehide', h); }, []);
+            // ---- пауза у всех, пока кто-то из игроков «отошёл» ----
+            useEffect(() => {
+                const inLive = ['game', 'ai_response'].includes(screen) && !!live.room, inTod = screen === 'tod_play' && !!todGame;
+                if (!inLive && !inTod) { setGamePause(null); return undefined; }
+                let stop = false, busy = false;
+                const tick = async () => {
+                    if (busy || stop || document.hidden) return; busy = true;
+                    try {
+                        const node = inTod ? (todRoomRef.current ? todRoomOf(todRoomRef.current) : '') : live.room; if (!node) return;
+                        const r = await fetchWithTimeout(roomUrl(node, '/p') + '?t=' + Date.now(), {}, 6000); if (!r.ok || stop) return;
+                        const res = liveAlive(await r.json(), Date.now(), deviceIdRef.current); if (stop) return;
+                        if (inTod) todAliveRef.current = res.alive.length;
+                        const away = res.away.filter(x => x.id !== deviceIdRef.current);
+                        setGamePause(away.length ? (cur => { const since = Math.min(...away.map(x => x.since)); return cur && cur.since === since && cur.n === away.length && cur.node === node ? cur : { since, n: away.length, node, keys: away.map(x => x.key) }; }) : null);
+                    } catch (e) {} finally { busy = false; }
+                };
+                tick(); const id = setInterval(tick, LIVE_PAUSE_MS); const vis = () => { if (!document.hidden) tick(); }; document.addEventListener('visibilitychange', vis);
+                return () => { stop = true; clearInterval(id); document.removeEventListener('visibilitychange', vis); };
+            }, [screen, live.room, !!todGame]);
+            // «Продолжить без них»: метки вышедших гасятся (значение 0), игра идёт дальше; они смогут вернуться позже через «Присоединиться» или «Продолжить игру»
+            const pauseSkip = () => {
+                const g = gamePause; if (!g) return; SoundFX.click();
+                awayPatch(g.node, Object.fromEntries(g.keys.map(k => [k, 0]))); setGamePause(null);
+                showToast(tr('Игра идёт дальше без вышедших. Они смогут вернуться позже'), 3500, 'info');
+            };
             useEffect(() => { if (liveEnded) { setLiveEnded(false); showToast(tr('Игра завершена на другом устройстве'), 2800, 'info'); handleFinishGame(false); } }, [liveEnded]);
             // присоединение к идущей игре. Если хозяин пока один, он пришлёт вопросы, только увидев нас, — поэтому сначала отмечаемся в комнате и ждём
             const liveJoinFlow = async (snap0, quiet = false) => {
@@ -3029,6 +3159,8 @@ i18nSetLang(readStoredLang());
             const pwaModalProps = { showPwaModal, setShowPwaModal, isInAppWebView, pwaPlatformTab, setPwaPlatformTab, triggerIosNativeShareMenu };
 
             // страницы без сессии: «Об игре», документы, быстрое подключение. Показываем сразу, не дожидаясь загрузки вопросов
+            // окно общей паузы поверх игры (обычной, усложнённой и «Правды или действия»)
+            const pauseOverlay = (gamePause && ['game', 'ai_response', 'tod_play'].includes(screen)) ? <PausedOverlay since={gamePause.since} count={gamePause.n} mode={screen === 'tod_play' ? 'tod' : (fx.timerOn || fx.punishOn) ? 'hard' : 'normal'} onSkip={pauseSkip} onMenu={() => { SoundFX.click(); if (screen === 'tod_play') todPause(); else navigate('menu'); }} /> : null;
             const pageBack = () => navigate(profile ? 'app_menu' : 'onboarding');
             if (PUBLIC_SCREENS.includes(screen)) {
                 const shell = (children, links = true) => (<div className="safe-screen selectable w-full flex flex-col items-center slide-up relative z-10">{children}<AppFooter noLinks={!links} /></div>);
@@ -3389,8 +3521,8 @@ if (screen === 'app_menu') {
             if (screen === 'tod_play' && todGame) {
                 const lvAvail = { easy: !!todNext(todDeck, todGame.cur, 'dare.easy'), medium: !!todNext(todDeck, todGame.cur, 'dare.medium'), hard: !!todNext(todDeck, todGame.cur, 'dare.hard') };
                 if (todGame.phase === 'ended') return <TodResults ui={todUi} state={todGame} titles={todTitles(todGame, TOD_TITLES)} onAgain={todAgain} onMenu={() => navigate('menu')} banner={todInviteBanner} />;
-                return <TodGame ui={todUi} desktop={desk} state={todGame} banter={todPickBanter(todGame, TOD_BANTER, tr)} cardText={todTextOf} levelAvail={lvAvail} onAction={todDispatch}
-                    onEnd={() => { todTapRef.current = 0; if (todDispatch({ t: 'end' })) navigate('tod_results'); }} onPause={todPause} />;
+                return <><TodGame ui={todUi} desktop={desk} state={todGame} banter={todPickBanter(todGame, TOD_BANTER, tr)} cardText={todTextOf} levelAvail={lvAvail} onAction={todDispatch}
+                    onEnd={() => { todTapRef.current = 0; if (todDispatch({ t: 'end' })) navigate('tod_results'); }} onPause={todPause} />{pauseOverlay}</>;
             }
             if (screen === 'tod_results' && todGame) {
                 return <TodResults ui={todUi} state={todGame} titles={todTitles(todGame, TOD_TITLES)} onAgain={todAgain} onMenu={() => navigate('menu')} banner={todInviteBanner} />;
@@ -3944,12 +4076,13 @@ if (screen === 'mode_select') {
                             </div>
                         </PopupModal>
 
+                        {pauseOverlay}
                         <GameExitDialog isOpen={showEndGameConfirm} onClose={() => setShowEndGameConfirm(false)}
                             title={gameMode === 'normal' ? tr("Вы действительно хотите закончить игру?") : tr("Завершить текущую партию?")}
                             onPause={gameMode === 'normal' ? () => { SoundFX.click(); setShowEndGameConfirm(false); navigate('menu'); } : null}
                             onExit={() => handleFinishGame(false)} exitLabel={live.room && liveCount > 1 ? tr("Для всех") : tr("Выйти")}
                             note={gameMode === 'normal' ? <>{tr("Если закончить, пройденные вопросы (")}{maxReachedIndex + 1} {tr("шт.) перейдут в Архив сессии")} <b className="text-rose-300">{profile.sessionId}</b>.</> : null}
-                            warn={live.room && liveCount > 1 ? <>{tr("Партия закончится у всех: в игре")} {liveCount} {declOfNum(liveCount, ['устройство', 'устройства', 'устройств'])}{tr(". Чтобы выйти только самому, выберите «Поставить на паузу».")}</> : null} />
+                            warn={live.room && liveCount > 1 ? <>{tr("Партия закончится у всех: в игре")} {liveCount} {declOfNum(liveCount, ['устройство', 'устройства', 'устройств'])}{tr(". Если выйти только самому («Поставить на паузу»), у остальных игра встанет на паузу, пока вы не вернётесь.")}</> : null} />
                     </div>
                 );
             }
@@ -3968,6 +4101,7 @@ if (screen === 'mode_select') {
                             </div>
                         </main>
                         <div className="fixed bottom-0 left-0 right-0 p-4 sm:p-6 z-20 bg-gradient-to-t from-[#0a0710] via-[#0a0710]/90 to-transparent"> <div className="max-w-xl mx-auto"> <button onClick={() => { SoundFX.click(); navigate('game'); }} className="btn-primary w-full flex items-center justify-center">{tr("К вопросу")}</button> </div> </div>
+                        {pauseOverlay}
                     </div>
                 );
             }

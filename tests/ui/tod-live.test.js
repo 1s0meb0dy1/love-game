@@ -48,7 +48,7 @@ const noTruth = (E) => { const base = E.w.fetch; E.w.fetch = async (url, init) =
     // B уходит, A продолжает
     await sleep(600); await press(B, 'Меню', 400); await press(B, 'Поставить на паузу', 900);
     const p = db.todRoom().p;
-    T('«Поставить на паузу» на B не прерывает игру A, в p остаётся только отметка A', B.w.location.hash === '#/' && onPlay(A) && db.todRoom().status === 'active' && Object.keys(p).length === 1 && !!p[devId(A)]);
+    T('«Поставить на паузу» на B не прерывает игру A (у A только пауза), в p остаётся одна отметка присутствия — A', B.w.location.hash === '#/' && onPlay(A) && db.todRoom().status === 'active' && Object.keys(p).filter(k => !k.startsWith('away~')).length === 1 && !!p[devId(A)]);
     B.w.location.hash = '#/'; await sleep(600); // приглашение показывают главная, режимы и лобби, а не меню приложения
     await waitFor(() => hasBanner(B), 8000); await joinTod(B); await waitFor(() => onPlay(B), 10000); await sleep(800);
     await press(A, 'Действие', 650); await press(A, 'Легко', 400); await sleep(700); await press(A, 'Выполнено', 900);

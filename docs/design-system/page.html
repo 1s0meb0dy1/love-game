@@ -345,7 +345,12 @@ main.ds-main { min-width: 0; display: flex; flex-direction: column; gap: 3.5rem;
         <div class="ds-modal"><div class="viewport-popup-box"><div class="exit-dlg"><h3 class="exit-dlg-t">Ви справді хочете закінчити гру?</h3><button class="btn-primary w-full">Поставити на паузу</button><div class="exit-dlg-rule"></div><div class="exit-dlg-row"><button class="btn-secondary w-full">Скасувати</button><button class="btn-secondary w-full">Вийти</button></div><p class="exit-dlg-note">Якщо закінчити, пройдені питання (3 шт.) перейдуть в Архів сесії <b style="color:var(--rose-300)">NJG93S35</b>.</p></div></div></div>
         <p class="ds-spec">Одно окно на все игры — компонент <code>GameExitDialog</code> (обычная, усложнённая игра и «Правда или действие»). Порядок сверху вниз: заголовок · «Поставить на паузу» (primary) · линия <code>exit-dlg-rule</code> · «Отмена» и «Выйти» в ряд (<code>exit-dlg-row</code>, обе secondary) · пояснение <code>exit-dlg-note</code> под кнопками. Без паузы (усложнённый режим) линии и первой кнопки нет. Если партия идёт на нескольких устройствах, «Выйти» называется «Для всех», а ниже появляется янтарное предупреждение <code>exit-dlg-warn</code>. Пояснение про Архив — только у обычной игры; у «Правды или действия» — «партия закончится для всех, а итоги откроются сразу».</p>
       </div>
-      <p class="ds-spec"><code>showToast(текст, мс, вид)</code>: ok — зелёный, turn — розовый, info — орхидея, warn — янтарь и <code>role="alert"</code>. Полоска снизу показывает оставшееся время. Окно — <code>viewport-popup-box</code>, Esc и ловушка фокуса.</p>
+<h3>Окно общей паузы</h3>
+      <div class="ds-board grid2">
+        <div class="pause-card" style="margin:0"><div class="pause-ico"><span class="pause-ring"></span><span class="pause-ring pause-ring-2"></span><span class="pause-bars"><i></i><i></i></span></div><h2 class="pause-t">Гра на паузі</h2><p class="pause-sub">Чекаємо, поки повернуться гравці, що вийшли, — пристроїв: 1</p><div class="pause-clock"><span class="pause-clock-l">Пауза триває</span><b>00:42</b></div><p class="pause-joke">Таймер узяв перерву, покарання теж. Усі чекають втікача.</p><div class="pause-actions"><button class="btn-primary w-full">Продовжити без них</button><button class="btn-secondary w-full">У меню</button></div></div>
+        <p class="ds-spec"><code>PausedOverlay</code> — поверх игры, когда кто-то из игроков вышел на другие страницы: значок <code>pause-bars</code> с расходящимися кольцами, заголовок, число устройств, отсчёт <code>pause-clock</code> (общий для всех устройств), шутка <code>pause-joke</code> (по шесть на режим: обычный, усложнённый, «Правда или действие»; меняется раз в 9 с), пояснение и две кнопки. Окно не закрывается само по Esc и тапу рядом — снимается, когда вышедшие вернулись, или кнопкой «Продолжить без них». Слой <code>pause-ov</code> стоит над игрой (z-index 90), ниже уведомлений.</p>
+      </div>
+            <p class="ds-spec"><code>showToast(текст, мс, вид)</code>: ok — зелёный, turn — розовый, info — орхидея, warn — янтарь и <code>role="alert"</code>. Полоска снизу показывает оставшееся время. Окно — <code>viewport-popup-box</code>, Esc и ловушка фокуса.</p>
     </section>
 
     <section class="ds-sec" id="desktop">
@@ -364,10 +369,21 @@ main.ds-main { min-width: 0; display: flex; flex-direction: column; gap: 3.5rem;
           <tr><td><code>--d-btn-h</code></td><td>54 px</td><td>56 px</td><td>высота <code>btn-primary</code> и <code>btn-danger</code></td></tr>
         </tbody>
       </table></div>
+      <div class="ds-table-wrap"><table class="ds-table">
+        <thead><tr><th>Токен отступа</th><th>Значение</th><th>Заменяет на телефоне</th></tr></thead>
+        <tbody>
+          <tr><td><code>--d-gap-1</code></td><td>14 px</td><td><code>gap-2.5</code>, <code>gap-3</code>, <code>space-y-3</code></td></tr>
+          <tr><td><code>--d-gap-2</code></td><td>22 px</td><td><code>gap-4</code>, <code>gap-5</code>, <code>space-y-4</code></td></tr>
+          <tr><td><code>--d-gap-3</code></td><td>32 px</td><td><code>gap-6</code>, <code>gap-7</code>, <code>space-y-5/6</code>, сетка режимов</td></tr>
+          <tr><td><code>--d-gap-4</code></td><td>48 px</td><td><code>gap-8</code>, <code>gap-10</code></td></tr>
+          <tr><td><code>--d-pad</code></td><td>32 px</td><td>внутренний отступ карточек и блоков</td></tr>
+        </tbody>
+      </table></div>
       <h3>Что есть только на компьютере</h3>
       <ul class="ds-rules" style="list-style:disc">
         <li><b>Верхняя панель</b> <code>desk-nav</code>: логотип (ведёт на главную), «Играть», «Вопросы», «Игроки», «Об игре», ID сессии, звук, язык, «Меню». Пункта «Главная» и имён игроков в панели нет. Активный пункт — только линия снизу (<code>desk-link.is-on::after</code>), без подложки; при наведении линия «вырастает» слева. «Меню» — переключатель: повторное нажатие возвращает на страницу, где был пользователь.</li>
         <li><b>Расширенный подвал</b> <code>desk-footer</code>: логотип-ссылка на главную, четыре колонки ссылок, строка с версией и подсказкой про стрелки.</li>
+        <li><b>Игроки на главной</b>: до шести таблеток в ряд (<code>pl-c1</code>…<code>pl-c6</code>, число в ряду — переменная <code>--c</code>); для семи–десяти — поровну в два ряда; если имя не помещается, число в ряду уменьшается.</li>
         <li><b>Рулетка «Кто отвечает»</b>: окно <code>viewport-popup-box.is-wide</code> шириной 46 rem, карточки игроков 132 × 152 px, лента 184 px (на телефоне 84 × 92 и 112 px). Геометрию считает <code>reelGeometry(w, t, jit, card, gap)</code>.</li>
         <li><b>Экран хода «Правды или действия»</b>: две колонки; слева крупная сцена (<code>tod-stage</code>: аватар 88 px с пульсирующим кольцом, «Ход игрока», подсказка) и две большие карточки выбора (<code>tod-pick</code>, 17 rem), справа игроки столбиком и подколка. Кнопки: «Пропустить» слева, «Выполнено» справа.</li>
         <li><b>Живой пример вопроса</b> <code>desk-teaser</code> на главной: берёт публичные примеры со страницы «Об игре» (без темы «Интим»), кнопка «Другой пример».</li>
@@ -461,6 +477,8 @@ main.ds-main { min-width: 0; display: flex; flex-direction: column; gap: 3.5rem;
           <tr><td>Окно выхода: описание, «Завершить для всех», «Вернуться в игру»</td><td><code>GameExitDialog</code>: пауза · линия · «Отмена»/«Выйти» · пояснение</td></tr>
           <tr><td>«Правда или действие»: карточка на весь экран, «Выполнено» слева</td><td>Компактная карточка с воздухом, «Пропустить» слева, «Выполнено» справа; карточки выбора выше и выровнены</td></tr>
           <tr><td>Колёсико мыши не листало страницы</td><td><code>html</code> — <code>overflow-x: hidden</code>, <code>body</code> — <code>overflow-x: clip</code></td></tr>
+          <tr><td>Вышел один игрок — остальные играют дальше</td><td>Общая пауза <code>PausedOverlay</code>: отсчёт, шутка по режиму, авто-снятие; метка <code>away~…</code> в <code>p</code></td></tr>
+          <tr><td>На компьютере элементы стояли тесно</td><td>Шкала отступов <code>--d-gap-1…4</code>; на главной до шести имён в ряд</td></tr>
           <tr><td>—</td><td>Токены <code>--d-*</code>, версия в подвале, <code>user-select: text</code> на информационных страницах (<code>.selectable</code>)</td></tr>
         </tbody>
       </table></div>
