@@ -1,0 +1,3 @@
+#!/bin/sh
+# Каждый коммит поднимает версию приложения на шаг (а → б → в …), если версию не поставили руками. Включить: git config core.hooksPath .githooks
+node scripts/bump-version.mjs --staged && git add src/content/version.js

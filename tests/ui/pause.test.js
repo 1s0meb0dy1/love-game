@@ -21,7 +21,7 @@ const path = (el) => { const p = el && el.querySelector('svg path'); return p ? 
     const { w, D, has, click } = A; const t = (n, c) => T('обычная игра: ' + n, c);
     t('шапка: «Назад», звук, язык, «Меню» одним рядом нужных размеров', headOk(D));
     const m0 = A.btns().find(b => /Меню/.test(b.textContent) && /btn-sm/.test(b.className)); m0.dispatchEvent(new w.MouseEvent('click', { bubbles: true })); await A.sleep(400);
-    t('«Меню» спрашивает «Вы действительно хотите закончить игру?» с паузой, «Отмена» и «Да»', has('Вы действительно хотите закончить игру?') && has('Поставить на паузу') && has('Отмена') && A.btns().some(b => norm(b.textContent) === 'Да'));
+    t('«Меню» спрашивает «Вы действительно хотите закончить игру?» с паузой, «Отмена» и «Выйти»', has('Вы действительно хотите закончить игру?') && has('Поставить на паузу') && has('Отмена') && A.btns().some(b => norm(b.textContent) === 'Выйти'));
     await click('Отмена', 300);
     t('«Отмена» закрывает окно, игра на месте', !has('Вы действительно хотите закончить игру?') && w.location.hash === '#/play');
     const back = headInfo(D).back; back.dispatchEvent(new w.MouseEvent('click', { bubbles: true })); await A.sleep(400);
@@ -46,7 +46,7 @@ const path = (el) => { const p = el && el.querySelector('svg path'); return p ? 
     await A.press('Правда', 450); const cardTxt = A.cardBody();
     t('после выбора на экране карточка с текстом', !!cardTxt);
     await A.press('Меню', 400);
-    t('«Меню» открывает окно с паузой, завершением и возвратом', A.text().includes('Вы действительно хотите закончить игру?') && !!A.btn('Поставить на паузу') && !!A.btn('Завершить для всех') && !!A.btn('Вернуться в игру'));
+    t('«Меню» открывает окно с паузой, «Отмена» и «Выйти»', A.text().includes('Вы действительно хотите закончить игру?') && !!A.btn('Поставить на паузу') && !!A.btn('Выйти') && !!A.btn('Отмена'));
     await A.press('Поставить на паузу', 700);
     t('пауза: главная, партия не завершена, снимок лежит на устройстве', A.hashNow() === '#/' && !!A.w.localStorage.getItem('askme_tod_pause_v1'));
     const bs = A.btns(); const iR = bs.findIndex(b => norm(b.textContent).startsWith('Продолжить игру')); const iS = bs.findIndex(b => norm(b.textContent).includes('Начать новую игру'));

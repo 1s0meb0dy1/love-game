@@ -108,7 +108,9 @@ main.ds-main { min-width: 0; display: flex; flex-direction: column; gap: 3.5rem;
     <a href="#inputs">Выбор и ввод</a>
     <a href="#labels">Метки</a>
     <a href="#surfaces">Поверхности</a>
+    <a href="#players">Игроки и состав</a>
     <a href="#feedback">Уведомления и окна</a>
+    <a href="#desktop">Компьютер</a>
     <a href="#motion">Движение</a>
     <a href="#room">Фон «комната»</a>
     <a href="#icons">Иконки</a>
@@ -122,7 +124,7 @@ main.ds-main { min-width: 0; display: flex; flex-direction: column; gap: 3.5rem;
       <!--LOGO_LG-->
       <h1>Дизайн-система «Heat»</h1>
       <p class="ds-lead">Тёмная сливовая комната, свечение которой теплеет вместе с глубиной вопроса. Все примеры ниже нарисованы настоящими стилями приложения: что видите здесь, то и в игре.</p>
-      <div class="ds-meta"><span class="tag lg">Источник: <code>src/styles.css</code></span><span class="tag lg">Ревизия 29.10.2026</span><span class="tag tag-ok lg">WCAG AA по тексту</span></div>
+      <div class="ds-meta"><span class="tag lg">Источник: <code>src/styles.css</code></span><span class="tag lg">Ревизия 31.10.2026</span><span class="tag tag-ok lg">WCAG AA по тексту</span></div>
     </header>
 
     <section class="ds-sec" id="principles">
@@ -310,6 +312,23 @@ main.ds-main { min-width: 0; display: flex; flex-direction: column; gap: 3.5rem;
       <p class="ds-spec">Рамка и заливка выделяют объект по роли: строки списка — без рамок внутри общего блока, карточки — рамка 1 px, выбранное — розовая рамка и <code>--rose-ink</code>.</p>
     </section>
 
+    <section class="ds-sec" id="players">
+      <h2>Игроки и состав сессии</h2>
+      <h3>Игроки на главной — таблетки</h3>
+      <div class="ds-board col">
+        <div class="home-sub-wrap"><p class="home-sub" style="--sub-em: 20.4">Откровенные разговоры для компании</p></div>
+        <div class="pl-grid pl-c3" style="margin-inline:auto"><div class="pl-cell"><button class="pl-pill"><span class="pl-name">Макс</span><span class="pl-emo">😈</span></button></div><div class="pl-cell"><button class="pl-pill is-open"><span class="pl-name">Аня</span><span class="pl-emo">🤫</span></button></div><div class="pl-cell"><button class="pl-pill"><span class="pl-name">Ярослав</span><span class="pl-emo">😏</span></button></div></div>
+        <div class="pl-grid pl-c2 is-pair" style="margin-inline:auto"><div class="pl-cell"><button class="pl-pill"><span class="pl-name">Макс</span></button></div><div class="pl-cell"><button class="pl-pill"><span class="pl-name">Аня</span></button></div></div>
+      </div>
+      <p class="ds-spec">Компонент <code>HomePlayers</code>: имя и справа эмодзи (у группы — случайные, у пары между таблетками сердце). Три в ряд (для четверых — четыре), а если имя не помещается целиком — по два; проверка идёт после отрисовки и при смене ширины окна. Нажатие открывает <code>menu-pop</code> игрока: «Поделиться сессией», «Изменить имя», «Удалить игрока» (<code>menu-opt is-danger</code>), «Отмена». Игроков не меньше двух. Подзаголовок под логотипом (<code>home-sub</code>) всегда в одну строку: размер считается от ширины контейнера (<code>cqi</code>) и длины фразы (<code>--sub-em</code>).</p>
+      <h3>Состав сессии — аккордеон</h3>
+      <div class="ds-board col">
+        <section class="room-acc"><button class="room-acc-head" aria-expanded="false"><span class="room-acc-ico"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M16 20v-1.2a3.8 3.8 0 00-3.8-3.8H7.8A3.8 3.8 0 004 18.8V20"/><circle cx="10" cy="8" r="3.3"/><path d="M20 20v-1.1a3.4 3.4 0 00-2.5-3.28M15.5 4.9a3.3 3.3 0 010 6.2"/></svg></span><span class="room-acc-t">Гравці <b>4</b></span><span class="room-pips"><i class="me"></i></span><span class="room-acc-chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span></button></section>
+        <section class="room-acc is-open"><button class="room-acc-head" aria-expanded="true"><span class="room-acc-ico"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M16 20v-1.2a3.8 3.8 0 00-3.8-3.8H7.8A3.8 3.8 0 004 18.8V20"/><circle cx="10" cy="8" r="3.3"/><path d="M20 20v-1.1a3.4 3.4 0 00-2.5-3.28M15.5 4.9a3.3 3.3 0 010 6.2"/></svg></span><span class="room-acc-t">Гравці <b>4</b></span><span class="room-pips"><i class="me"></i><i class="on"></i></span><span class="room-acc-chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span></button><div class="room-acc-body"><div class="room-acc-in"><ul class="room-strip-names"><li><span>Макс</span></li><li><span>Аня</span></li><li><span>Ярослав</span></li><li><span>Катя</span></li></ul><p class="room-strip-dev">У грі 2 пристрої</p></div></div></section>
+      </div>
+      <p class="ds-spec"><code>RoomStrip</code> закрыт по умолчанию и занимает одну строку; всегда стоит <b>последним блоком перед подвалом</b> на экранах «Выберите режим», «Усложнённый режим» и в лобби «Правды или действия». Тело раскрывается сеткой <code>grid-template-rows: 0fr → 1fr</code>, закрытое скрыто через <code>visibility</code> (не попадает в Tab). Версия приложения в подвале — <code>app-ver</code>, текст «Версия 0.1.29а» (число и буква берутся из <code>src/content/version.js</code>).</p>
+    </section>
+
     <section class="ds-sec" id="feedback">
       <h2>Уведомления и окна</h2>
       <div class="ds-board grid2">
@@ -321,7 +340,56 @@ main.ds-main { min-width: 0; display: flex; flex-direction: column; gap: 3.5rem;
         </div>
         <div class="ds-modal"><div class="viewport-popup-box"><h3 style="margin-bottom:.5rem">Почати нову гру?</h3><p class="ui-hint" style="margin-bottom:1rem">Поточна партія завершиться для всіх.</p><div style="display:flex;flex-direction:column;gap:.5rem"><button class="btn-primary w-full">Почати нову</button><button class="btn-ghost w-full">Скасувати</button></div></div></div>
       </div>
-      <p class="ds-spec"><code>showToast(текст, мс, вид)</code>: ok — зелёный, turn — розовый, info — орхидея, warn — янтарь и <code>role="alert"</code>. Полоска снизу показывает оставшееся время. Окно — <code>viewport-popup-box</code>, Esc и ловушка фокуса.</p>
+      <h3>Окно «Закончить игру?»</h3>
+      <div class="ds-board grid2">
+        <div class="ds-modal"><div class="viewport-popup-box"><div class="exit-dlg"><h3 class="exit-dlg-t">Ви справді хочете закінчити гру?</h3><button class="btn-primary w-full">Поставити на паузу</button><div class="exit-dlg-rule"></div><div class="exit-dlg-row"><button class="btn-secondary w-full">Скасувати</button><button class="btn-secondary w-full">Вийти</button></div><p class="exit-dlg-note">Якщо закінчити, пройдені питання (3 шт.) перейдуть в Архів сесії <b style="color:var(--rose-300)">NJG93S35</b>.</p></div></div></div>
+        <p class="ds-spec">Одно окно на все игры — компонент <code>GameExitDialog</code> (обычная, усложнённая игра и «Правда или действие»). Порядок сверху вниз: заголовок · «Поставить на паузу» (primary) · линия <code>exit-dlg-rule</code> · «Отмена» и «Выйти» в ряд (<code>exit-dlg-row</code>, обе secondary) · пояснение <code>exit-dlg-note</code> под кнопками. Без паузы (усложнённый режим) линии и первой кнопки нет. Если партия идёт на нескольких устройствах, «Выйти» называется «Для всех», а ниже появляется янтарное предупреждение <code>exit-dlg-warn</code>. Пояснение про Архив — только у обычной игры; у «Правды или действия» — «партия закончится для всех, а итоги откроются сразу».</p>
+      </div>
+<h3>Окно общей паузы</h3>
+      <div class="ds-board grid2">
+        <div class="pause-card" style="margin:0"><div class="pause-ico"><span class="pause-ring"></span><span class="pause-ring pause-ring-2"></span><span class="pause-bars"><i></i><i></i></span></div><h2 class="pause-t">Гра на паузі</h2><p class="pause-sub">Чекаємо, поки повернуться гравці, що вийшли, — пристроїв: 1</p><div class="pause-clock"><span class="pause-clock-l">Пауза триває</span><b>00:42</b></div><p class="pause-joke">Таймер узяв перерву, покарання теж. Усі чекають втікача.</p><div class="pause-actions"><button class="btn-primary w-full">Продовжити без них</button><button class="btn-secondary w-full">У меню</button></div></div>
+        <p class="ds-spec"><code>PausedOverlay</code> — поверх игры, когда кто-то из игроков вышел на другие страницы: значок <code>pause-bars</code> с расходящимися кольцами, заголовок, число устройств, отсчёт <code>pause-clock</code> (общий для всех устройств), шутка <code>pause-joke</code> (по шесть на режим: обычный, усложнённый, «Правда или действие»; меняется раз в 9 с), пояснение и две кнопки. Окно не закрывается само по Esc и тапу рядом — снимается, когда вышедшие вернулись, или кнопкой «Продолжить без них». Слой <code>pause-ov</code> стоит над игрой (z-index 90), ниже уведомлений.</p>
+      </div>
+            <p class="ds-spec"><code>showToast(текст, мс, вид)</code>: ok — зелёный, turn — розовый, info — орхидея, warn — янтарь и <code>role="alert"</code>. Полоска снизу показывает оставшееся время. Окно — <code>viewport-popup-box</code>, Esc и ловушка фокуса.</p>
+    </section>
+
+    <section class="ds-sec" id="desktop">
+      <h2>Компьютер (от 1024 px)</h2>
+      <p class="ds-lead">На экране шире 1024 px работает отдельная шкала: шрифты крупнее, чем на телефоне, а страницы могут получать дополнительные блоки и движение. Всё это живёт в <code>@media (min-width: 1024px)</code> и не попадает на телефон; игровая логика, порядок ходов и тексты вопросов от этого не зависят.</p>
+      <div class="ds-table-wrap"><table class="ds-table">
+        <thead><tr><th>Токен</th><th>Телефон</th><th>Компьютер</th><th>Где</th></tr></thead>
+        <tbody>
+          <tr><td><code>--d-h1</code></td><td>18 px (шапка)</td><td>40 px</td><td>заголовок страницы <code>page-title</code></td></tr>
+          <tr><td><code>--d-h2</code></td><td>—</td><td>24 px</td><td>заголовок раздела внутри страницы</td></tr>
+          <tr><td><code>--d-h3</code></td><td>—</td><td>18 px</td><td>заголовок карточки или блока</td></tr>
+          <tr><td><code>--d-sub</code></td><td>до 19 px</td><td>до 24 px</td><td>подзаголовок под логотипом (<code>home-sub</code>, в одну строку)</td></tr>
+          <tr><td><code>--d-body</code></td><td>14 px (<code>text-sm</code>)</td><td>17 px</td><td>основной текст, плитки, пункты меню</td></tr>
+          <tr><td><code>--d-small</code></td><td>12 px (<code>text-xs</code>)</td><td>15 px</td><td>подписи, подсказки, метки разделов</td></tr>
+          <tr><td><code>--d-btn</code></td><td>15–16 px</td><td>17 px</td><td>текст кнопок</td></tr>
+          <tr><td><code>--d-btn-h</code></td><td>54 px</td><td>56 px</td><td>высота <code>btn-primary</code> и <code>btn-danger</code></td></tr>
+        </tbody>
+      </table></div>
+      <div class="ds-table-wrap"><table class="ds-table">
+        <thead><tr><th>Токен отступа</th><th>Значение</th><th>Заменяет на телефоне</th></tr></thead>
+        <tbody>
+          <tr><td><code>--d-gap-1</code></td><td>14 px</td><td><code>gap-2.5</code>, <code>gap-3</code>, <code>space-y-3</code></td></tr>
+          <tr><td><code>--d-gap-2</code></td><td>22 px</td><td><code>gap-4</code>, <code>gap-5</code>, <code>space-y-4</code></td></tr>
+          <tr><td><code>--d-gap-3</code></td><td>32 px</td><td><code>gap-6</code>, <code>gap-7</code>, <code>space-y-5/6</code>, сетка режимов</td></tr>
+          <tr><td><code>--d-gap-4</code></td><td>48 px</td><td><code>gap-8</code>, <code>gap-10</code></td></tr>
+          <tr><td><code>--d-pad</code></td><td>32 px</td><td>внутренний отступ карточек и блоков</td></tr>
+        </tbody>
+      </table></div>
+      <h3>Что есть только на компьютере</h3>
+      <ul class="ds-rules" style="list-style:disc">
+        <li><b>Верхняя панель</b> <code>desk-nav</code>: логотип (ведёт на главную), «Играть», «Вопросы», «Игроки», «Об игре», ID сессии, звук, язык, «Меню». Пункта «Главная» и имён игроков в панели нет. Активный пункт — только линия снизу (<code>desk-link.is-on::after</code>), без подложки; при наведении линия «вырастает» слева. «Меню» — переключатель: повторное нажатие возвращает на страницу, где был пользователь.</li>
+        <li><b>Расширенный подвал</b> <code>desk-footer</code>: логотип-ссылка на главную, четыре колонки ссылок, строка с версией и подсказкой про стрелки.</li>
+        <li><b>Игроки на главной</b>: до шести таблеток в ряд (<code>pl-c1</code>…<code>pl-c6</code>, число в ряду — переменная <code>--c</code>); для семи–десяти — поровну в два ряда; если имя не помещается, число в ряду уменьшается.</li>
+        <li><b>Рулетка «Кто отвечает»</b>: окно <code>viewport-popup-box.is-wide</code> шириной 46 rem, карточки игроков 132 × 152 px, лента 184 px (на телефоне 84 × 92 и 112 px). Геометрию считает <code>reelGeometry(w, t, jit, card, gap)</code>.</li>
+        <li><b>Экран хода «Правды или действия»</b>: две колонки; слева крупная сцена (<code>tod-stage</code>: аватар 88 px с пульсирующим кольцом, «Ход игрока», подсказка) и две большие карточки выбора (<code>tod-pick</code>, 17 rem), справа игроки столбиком и подколка. Кнопки: «Пропустить» слева, «Выполнено» справа.</li>
+        <li><b>Живой пример вопроса</b> <code>desk-teaser</code> на главной: берёт публичные примеры со страницы «Об игре» (без темы «Интим»), кнопка «Другой пример».</li>
+        <li><b>Движение</b>: карточки режимов появляются по очереди (<code>deskRise</code>), прожектор за курсором и наклон карточек (<code>DesktopFx</code>). Всё отключается при <code>prefers-reduced-motion</code>.</li>
+      </ul>
+      <p class="ds-spec">Правило: компьютерный элемент добавляется <b>только</b> внутри <code>@media (min-width: 1024px)</code> или за проверкой <code>useIsDesktop()</code>; перенос на телефон — отдельным решением владельца. Прокрутка колёсиком: горизонтальный срез делает только <code>html</code>, а <code>body</code> режет через <code>overflow-x: clip</code> — иначе <code>overscroll-behavior</code> запирает колесо.</p>
     </section>
 
     <section class="ds-sec" id="motion">
@@ -389,12 +457,32 @@ main.ds-main { min-width: 0; display: flex; flex-direction: column; gap: 3.5rem;
         <li><b>Тексты интерфейса</b> — через <code>tr()</code>, у каждого есть украинский перевод; украинский — язык по умолчанию.</li>
         <li><b>Ответ ИИ всегда подписан</b>: «Совет от ИИ» и пометка под текстом.</li>
         <li><b>Правила пишутся селектором <code>:root .класс</code></b>, утилиты Tailwind в разметке — только для раскладки.</li>
+        <li><b>Окно «Закончить игру?»</b> — только через <code>GameExitDialog</code>: пауза, линия, «Отмена» и «Выйти», пояснение под кнопками.</li>
+        <li><b>Состав сессии</b> — аккордеон <code>RoomStrip</code> в самом низу экрана, над подвалом; не больше одной строки в закрытом виде.</li>
+        <li><b>Компьютер</b> — свои токены <code>--d-*</code> и свои блоки внутри <code>@media (min-width: 1024px)</code>; на телефон они не переносятся и ход игры не меняют.</li>
+        <li><b>Версия</b> — в подвале («Версия 0.1.29а»); каждое изменение приложения поднимает букву на шаг (<code>npm run bump</code>, хук <code>.githooks/pre-commit</code>), числа 0 и 1 меняет только владелец.</li>
         <li><b>Перед выпуском</b> — <code>npm run verify</code>: тесты, сборка, первая загрузка ≤ 500 КБ gzip.</li>
       </ol>
     </section>
 
     <section class="ds-sec" id="changes">
-      <h2>Что изменилось в ревизии 29.10</h2>
+      <h2>Что изменилось в ревизии 31.10</h2>
+      <div class="ds-table-wrap"><table class="ds-table">
+        <thead><tr><th>Было</th><th>Стало</th></tr></thead>
+        <tbody>
+          <tr><td>Шапка страниц у самого верха</td><td><code>.safe-screen</code>: отступ сверху 2 rem (на iPhone — ниже выреза)</td></tr>
+          <tr><td>Имена на главной — текст с эмодзи между ними</td><td>Таблетки <code>pl-pill</code> по 3 / 4 / 2 в ряд, меню игрока</td></tr>
+          <tr><td>Подзаголовок 12 px, мог переноситься</td><td><code>home-sub</code> до 19 px / 24 px, всегда в одну строку</td></tr>
+          <tr><td>«Состав сессии» сверху экрана режимов</td><td>Аккордеон <code>room-acc</code> над подвалом на всех экранах</td></tr>
+          <tr><td>Окно выхода: описание, «Завершить для всех», «Вернуться в игру»</td><td><code>GameExitDialog</code>: пауза · линия · «Отмена»/«Выйти» · пояснение</td></tr>
+          <tr><td>«Правда или действие»: карточка на весь экран, «Выполнено» слева</td><td>Компактная карточка с воздухом, «Пропустить» слева, «Выполнено» справа; карточки выбора выше и выровнены</td></tr>
+          <tr><td>Колёсико мыши не листало страницы</td><td><code>html</code> — <code>overflow-x: hidden</code>, <code>body</code> — <code>overflow-x: clip</code></td></tr>
+          <tr><td>Вышел один игрок — остальные играют дальше</td><td>Общая пауза <code>PausedOverlay</code>: отсчёт, шутка по режиму, авто-снятие; метка <code>away~…</code> в <code>p</code></td></tr>
+          <tr><td>На компьютере элементы стояли тесно</td><td>Шкала отступов <code>--d-gap-1…4</code>; на главной до шести имён в ряд</td></tr>
+          <tr><td>—</td><td>Токены <code>--d-*</code>, версия в подвале, <code>user-select: text</code> на информационных страницах (<code>.selectable</code>)</td></tr>
+        </tbody>
+      </table></div>
+      <h2>Ревизия 29.10</h2>
       <div class="ds-table-wrap"><table class="ds-table">
         <thead><tr><th>Было</th><th>Стало</th></tr></thead>
         <tbody>

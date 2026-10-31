@@ -1,8 +1,8 @@
 // Чистая логика живой игры: версии без совпадений между устройствами, учёт «живых» устройств, ограничение размера истории.
 const src = require('../src-loader.js')(); const g = (re) => { const m = src.match(re); if (!m) throw new Error('не найдено: ' + re); return m[0]; };
 const consts = g(/const MAX_PLAYERS = [^\n]*\n/) + g(/const LIVE_POLL_MS = [^\n]*\n/);
-const f = new Function(consts + g(/const liveHash = [^\n]*\n/) + g(/const liveFrac = [^\n]*\n/) + g(/const liveVerNext = [^\n]*\n/) + g(/const liveVerStart = [^\n]*\n/) + g(/const liveDeckKey = [^\n]*\n/) + g(/const liveAlive = [\s\S]*?\n        \};\n/) + g(/const liveHistStr = [\s\S]*?\n        \};\n/) +
-  'return {liveHash,liveFrac,liveVerNext,liveVerStart,liveDeckKey,liveAlive,liveHistStr,LIVE_ALIVE_MS,LIVE_STALE_MS,LIVE_MAX_DEVICES,LIVE_SOLO_MS,LIVE_JOIN_WAIT_MS,LIVE_TAKEOVER_S,LIVE_TAKEOVER_STEP_S,LIVE_BEAT_MS};', )();
+const f = new Function(consts + g(/const liveHash = [^\n]*\n/) + g(/const liveFrac = [^\n]*\n/) + g(/const liveVerNext = [^\n]*\n/) + g(/const liveVerStart = [^\n]*\n/) + g(/const liveDeckKey = [^\n]*\n/) + g(/const AWAY_PREFIX = [^\n]*\n/) + g(/const liveAwayKey = [^\n]*\n/) + g(/const liveAwayParse = [^\n]*\n/) + g(/const liveAlive = [\s\S]*?\n        \};\n/) + g(/const liveHistStr = [\s\S]*?\n        \};\n/) +
+  'return {liveHash,liveFrac,liveVerNext,liveVerStart,liveDeckKey,liveAlive,liveAwayKey,liveAwayParse,liveHistStr,LIVE_ALIVE_MS,LIVE_STALE_MS,LIVE_MAX_DEVICES,LIVE_SOLO_MS,LIVE_JOIN_WAIT_MS,LIVE_TAKEOVER_S,LIVE_TAKEOVER_STEP_S,LIVE_BEAT_MS};', )();
 const MAX = Number((src.match(/const MAX_PLAYERS = (\d+)/) || [])[1]);
 const res = []; const T = (n, c) => res.push((c ? 'PASS ' : 'FAIL ') + n);
 
@@ -47,4 +47,17 @@ T('версия новой партии — обычное число, кото�
 T('ожидания: хозяин-одиночка заглядывает во вторую очередь не реже раза в 3 с, гость ждёт хозяина не меньше 10 с', f.LIVE_SOLO_MS <= 3000 && f.LIVE_JOIN_WAIT_MS >= 10000);
 T('очередь подхвата таймера: шаг между устройствами больше периода опроса (4 с > 1 с), первое срабатывает не раньше 6 с', f.LIVE_TAKEOVER_STEP_S >= 3 && f.LIVE_TAKEOVER_S >= 5);
 T('отметка «я здесь» чаще, чем срок «живости» (8 с < 30 с, запас на сбой сети)', f.LIVE_BEAT_MS * 3 < f.LIVE_ALIVE_MS);
+// «отошёл»: ключи away~<устройство>~<время ухода> в тех же отметках присутствия (правила базы не меняются: значение — число ≥ 0)
+{
+  const k = f.liveAwayKey('ab12', now - 5000);
+  T('ключ «отошёл» разбирается обратно: устройство и время ухода', k === 'away~ab12~' + (now - 5000) && JSON.stringify(f.liveAwayParse(k)) === JSON.stringify({ id: 'ab12', since: now - 5000 }) && f.liveAwayParse('away~x') === null && f.liveAwayParse('ab12') === null);
+  const q = { me: now, d1: now - 2000, [k]: now - 1000 };
+  const r2 = f.liveAlive(q, now, 'me');
+  T('«отошёл» не считается устройством в игре и даёт паузу (away: устройство, ключ, время ухода)', r2.alive.length === 2 && r2.others.length === 1 && r2.away.length === 1 && r2.away[0].id === 'ab12' && r2.away[0].key === k && r2.away[0].since === now - 5000);
+  T('метка «отошёл» старше 30 с не держит паузу (закрыл вкладку или пропал интернет — устройство исключено)', f.liveAlive({ [k]: now - 31000 }, now, 'me').away.length === 0);
+  T('метка старше 2 минут уходит в уборку (stale)', f.liveAlive({ [k]: now - 130000 }, now, 'me').stale.includes(k));
+  T('значение 0 («продолжить без них») — не пауза, метка убирается', (() => { const z = f.liveAlive({ [k]: 0 }, now, 'me'); return z.away.length === 0 && z.stale.includes(k); })());
+  T('испорченный ключ away~… и нечисловое значение — в уборку', (() => { const z = f.liveAlive({ 'away~bad': now, [k]: 'x' }, now, 'me'); return z.away.length === 0 && z.stale.length === 2; })());
+  T('несколько ушедших: все в away, живых устройств без них', f.liveAlive({ me: now, [f.liveAwayKey('aa', now - 9000)]: now, [f.liveAwayKey('bb', now - 3000)]: now - 4000 }, now, 'me').away.length === 2);
+}
 console.log(res.join('\n')); console.log('--- captured runtime errors: 0');

@@ -1,7 +1,7 @@
 // Режим «Правда или действие»: канал синхронизации live/<комната>_t (src/tod/channel.js) поверх базы в памяти с правилами live.
 const { loadTod } = require('../tod-load.js'); const makeDb = require('../fake-rtdb.js');
 const src = require('../src-loader.js')(); const g = (re) => { const m = src.match(re); if (!m) throw new Error('не найдено: ' + re); return m[0]; };
-const L = new Function(g(/const MAX_PLAYERS = [^\n]*\n/) + g(/const LIVE_POLL_MS = [^\n]*\n/) + g(/const liveFrac = [^\n]*\n/) + g(/const liveVerNext = [^\n]*\n/) + g(/const liveVerStart = [^\n]*\n/) + g(/const liveAlive = [\s\S]*?\n        \};\n/) + 'return { liveVerNext, liveVerStart, liveAlive };')();
+const L = new Function(g(/const MAX_PLAYERS = [^\n]*\n/) + g(/const LIVE_POLL_MS = [^\n]*\n/) + g(/const liveFrac = [^\n]*\n/) + g(/const liveVerNext = [^\n]*\n/) + g(/const liveVerStart = [^\n]*\n/) + g(/const AWAY_PREFIX = [^\n]*\n/) + g(/const liveAwayKey = [^\n]*\n/) + g(/const liveAwayParse = [^\n]*\n/) + g(/const liveAlive = [\s\S]*?\n        \};\n/) + 'return { liveVerNext, liveVerStart, liveAlive };')();
 const res = []; const T = (n, c) => res.push((c ? 'PASS ' : 'FAIL ') + n);
 const finish = () => { console.log(res.join('\n')); console.log('--- captured runtime errors: 0'); process.exit(res.some(l => l.startsWith('FAIL')) ? 1 : 0); };
 let M = null;

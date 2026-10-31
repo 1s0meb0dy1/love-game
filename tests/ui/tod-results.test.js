@@ -3,7 +3,7 @@ const { boot } = require('../tod-ui.js');
 const res = []; const T = (n, c) => res.push((c ? 'PASS ' : 'FAIL ') + n); const errs = [];
 const done = (A) => { errs.push(...A.errors); A.close(); };
 const step = async (A, t) => { await A.sleep(520); await A.press(t, 420); };
-const finishGame = async (A) => { await step(A, 'Меню'); await A.press('Завершить для всех', 500); };
+const finishGame = async (A) => { await step(A, 'Меню'); await A.press('Выйти', 500); };
 
 (async () => {
   try {
@@ -41,7 +41,7 @@ const finishGame = async (A) => { await step(A, 'Меню'); await A.press('За
     T('перезагрузка адреса #/tod/results без игры -> главная (состояния нет)', A.hashNow() === '#/' && !A.text().includes('Зал позора'));
     done(A);
 
-    A = await boot({ lang: 'uk', hash: '#/tod' }); await A.press('Почати гру', 500); await step(A, 'Меню'); await A.press('Завершити для всіх', 500);
+    A = await boot({ lang: 'uk', hash: '#/tod' }); await A.press('Почати гру', 500); await step(A, 'Меню'); await A.press('Вийти', 500);
     T('украинский интерфейс: итоги переведены', A.hashNow() === '#/tod/results' && A.text().includes('Зала ганьби') && A.text().includes('Зіграти ще') && !A.text().includes('Сыграть'));
     done(A);
   } catch (e) { T('сценарий выполнился без исключений: ' + (e && e.stack), false); }

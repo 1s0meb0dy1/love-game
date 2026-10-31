@@ -8,6 +8,7 @@ import { ABOUT_EN } from './content/about-en.js';
 import { LEGAL } from './content/legal.js';
 import { LEGAL_UK } from './content/legal-uk.js';
 import { LEGAL_EN } from './content/legal-en.js';
+import { APP_VERSION, appVersionLabel } from './content/version.js';
 import { createSessionTasks, createSessionStore, createLiveWriter, mergeTurnHistories } from './session-io.js';
 import { t as tr, tf, setLang as i18nSetLang, getLang, catName as catLabel, diffName as diffLabel, audienceLabel, AUDIENCE_LABELS, CATEGORY_UK, DIFFICULTY_UK, SUPPORTED_LANGS, DEFAULT_LANG, LANG_STORAGE_KEY, detectLang, pickText, dateLocale } from './i18n.js';
 import { TOD_STARTER } from './content/tod-cards.js';
@@ -23,7 +24,7 @@ import { todStart, todApply } from './tod/engine.js';
 import { todPickBanter } from './tod/talk.js';
 import { todTitles } from './tod/titles.js';
 import { TodArchive, TodAdmin, TodEdit, TodLobby, TodGame, TodResults, TodAdultModal } from './tod/screens.jsx';
-import { todChannel } from './tod/channel.js';
+import { todChannel, todRoomOf } from './tod/channel.js';
 import { aiAsk } from './ai/client.js';
 import { IntroStories, introShouldShow, introMarkSeen, introReplayLabel } from './intro/stories.jsx';
 const ReactDOM = { ...ReactDOMAll, createRoot };
@@ -349,11 +350,11 @@ i18nSetLang(readStoredLang());
         if (typeof window !== 'undefined') { const unlockHandler = () => SoundFX.init(); window.addEventListener('touchstart', unlockHandler, { passive: true, once: true }); window.addEventListener('click', unlockHandler, { passive: true, once: true }); }
 
         const Icons = {
-            Play: () => <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5.14v14l11-7-11-7z" /></svg>, ArrowUp: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M12 19V5m0 0l-6.5 6.5M12 5l6.5 6.5" /></svg>, Filter: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h18l-7 8.2V19l-4 2v-7.8L3 5z" /></svg>, Pause: () => <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="5" width="4" height="14" rx="1.3" /><rect x="13.5" y="5" width="4" height="14" rx="1.3" /></svg>, Menu: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>, Back: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>, Next: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>, Sparkles: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>, List: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>, Plus: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>, Check: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>, Bulb: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>, Edit: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.9} d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg>, Resume: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.9} d="M16.023 9.348h4.992V4.356M2.985 19.644v-4.992h4.992M2.985 14.652l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" /><path d="M10.4 9.1v5.8l4.7-2.9z" fill="currentColor" stroke="none" /></svg>, Trash: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>, Restore: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>, Archive: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>, SoundOn: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>, SoundOff: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" /></svg>, User: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>, Lock: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>, Copy: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>, Share: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>, IosShare: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>, Eye: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>, EyeOff: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>, ChevronDown: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>, DownloadApp: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>, Close: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M6 18L18 6M6 6l12 12" /></svg>, Logout: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+            Play: () => <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5.14v14l11-7-11-7z" /></svg>, ArrowUp: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M12 19V5m0 0l-6.5 6.5M12 5l6.5 6.5" /></svg>, Filter: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h18l-7 8.2V19l-4 2v-7.8L3 5z" /></svg>, Pause: () => <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="5" width="4" height="14" rx="1.3" /><rect x="13.5" y="5" width="4" height="14" rx="1.3" /></svg>, Menu: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>, Back: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>, Next: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>, Sparkles: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>, List: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>, Plus: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>, Check: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>, Bulb: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>, Edit: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.9} d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg>, Resume: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.9} d="M16.023 9.348h4.992V4.356M2.985 19.644v-4.992h4.992M2.985 14.652l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" /><path d="M10.4 9.1v5.8l4.7-2.9z" fill="currentColor" stroke="none" /></svg>, Trash: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>, Restore: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>, Archive: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>, SoundOn: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>, SoundOff: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" /></svg>, Users: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M16 20v-1.2a3.8 3.8 0 00-3.8-3.8H7.8A3.8 3.8 0 004 18.8V20" /><circle cx="10" cy="8" r="3.3" /><path d="M20 20v-1.1a3.4 3.4 0 00-2.5-3.28M15.5 4.9a3.3 3.3 0 010 6.2" /></svg>, User: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>, Lock: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>, Copy: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>, Share: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>, IosShare: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>, Eye: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>, EyeOff: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>, ChevronDown: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>, DownloadApp: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>, Close: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M6 18L18 6M6 6l12 12" /></svg>, Logout: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
             , Skip: () => <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M5 5.5l9.5 6.5L5 18.5v-13z" /><path d="M19 5v14" /></svg>
         };
 
-        const PopupModal = ({ isOpen, onClose, children }) => {
+        const PopupModal = ({ isOpen, onClose, children, wide }) => {
             const box = useRef(null), closeRef = useRef(onClose); closeRef.current = onClose;
             useEffect(() => {
                 if (!isOpen) return;
@@ -375,7 +376,7 @@ i18nSetLang(readStoredLang());
                 return () => { document.removeEventListener('keydown', keydown); if (root) root.inert = oldInert; if (previous?.isConnected) previous.focus(); };
             }, [isOpen]);
             if (!isOpen) return null;
-            return ReactDOM.createPortal(<div className="viewport-popup-overlay fade-in" onClick={() => { if (onClose) { SoundFX.click(); onClose(); } }}><div ref={box} tabIndex={-1} className="viewport-popup-box slide-up" role="dialog" aria-label={tr("Диалог")} aria-modal="true" onClick={e => e.stopPropagation()}>{onClose && <button type="button" onClick={() => { SoundFX.click(); onClose(); }} aria-label={tr("Закрыть")} className="btn-icon absolute top-3 right-3"><Icons.Close /></button>}{children}</div></div>, document.body);
+            return ReactDOM.createPortal(<div className="viewport-popup-overlay fade-in" onClick={() => { if (onClose) { SoundFX.click(); onClose(); } }}><div ref={box} tabIndex={-1} className={`viewport-popup-box slide-up ${wide ? 'is-wide' : ''}`} role="dialog" aria-label={tr("Диалог")} aria-modal="true" onClick={e => e.stopPropagation()}>{onClose && <button type="button" onClick={() => { SoundFX.click(); onClose(); }} aria-label={tr("Закрыть")} className="btn-icon absolute top-3 right-3"><Icons.Close /></button>}{children}</div></div>, document.body);
         };
 
         // ---- Всплывающие уведомления ----
@@ -402,8 +403,13 @@ i18nSetLang(readStoredLang());
                 window.addEventListener('scroll', onScroll, { passive: true });
                 return () => { window.removeEventListener('scroll', onScroll); if (raf && window.cancelAnimationFrame) window.cancelAnimationFrame(raf); };
             }, []);
+            // На телефоне первое касание во время инерционной прокрутки лишь останавливает её, а «click» не приходит — поэтому для пальца срабатываем на самом касании (pointerdown),
+            // а следующий за ним «click» гасим; мышь и клавиатура работают через обычный click
+            const lastTouch = useRef(0);
             const go = () => { SoundFX.click(); let smooth = true; try { smooth = !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch (e) {} try { window.scrollTo({ top: 0, behavior: smooth ? 'smooth' : 'auto' }); } catch (e) { window.scrollTo(0, 0); } setOn(false); };
-            return (<button type="button" onClick={go} aria-label={tr("Наверх")} title={tr("Наверх")} tabIndex={on ? 0 : -1} aria-hidden={on ? undefined : 'true'} className={`to-top ${on ? 'is-on' : ''} ${lift ? 'is-lifted' : ''}`}><Icons.ArrowUp /></button>);
+            const onDown = (e) => { if (e.pointerType === 'mouse' || e.button > 0) return; lastTouch.current = Date.now(); go(); };
+            const onClick = () => { if (Date.now() - lastTouch.current < 700) return; go(); };
+            return (<button type="button" onPointerDown={onDown} onClick={onClick} aria-label={tr("Наверх")} title={tr("Наверх")} tabIndex={on ? 0 : -1} aria-hidden={on ? undefined : 'true'} className={`to-top ${on ? 'is-on' : ''} ${lift ? 'is-lifted' : ''}`}><Icons.ArrowUp /></button>);
         };
         const ToastHost = () => {
             const [t, setT] = useState(null);
@@ -456,6 +462,23 @@ i18nSetLang(readStoredLang());
                     <button type="button" onClick={onMenu} aria-label={tr("Открыть меню")} className="btn-secondary btn-sm flex-shrink-0"><span>{tr("Меню")}</span><span aria-hidden="true" className="text-lg leading-none">☰</span></button>
                 </div>
             </header>
+        );
+        // Окно «Закончить игру?» — одно на все игры: заголовок, «Поставить на паузу», линия, «Отмена» и «Выйти», пояснение под кнопками.
+        // Без onPause (усложнённый режим, где пауза не нужна) остаются заголовок, кнопки и пояснение
+        const GameExitDialog = ({ isOpen, onClose, title, onPause, onExit, exitLabel, note, warn }) => (
+            <PopupModal isOpen={isOpen} onClose={onClose}>
+                <div className="exit-dlg">
+                    <h3 className="exit-dlg-t">{title}</h3>
+                    {onPause && <button type="button" onClick={onPause} className="btn-primary w-full"><Icons.Pause /> {tr("Поставить на паузу")}</button>}
+                    {onPause && <div className="exit-dlg-rule" role="separator" aria-hidden="true"></div>}
+                    <div className="exit-dlg-row grid">
+                        <button type="button" onClick={() => { SoundFX.click(); onClose(); }} className="btn-secondary w-full">{tr("Отмена")}</button>
+                        <button type="button" onClick={onExit} className="btn-secondary w-full">{exitLabel || tr("Выйти")}</button>
+                    </div>
+                    {note && <p className="exit-dlg-note">{note}</p>}
+                    {warn && <p className="exit-dlg-warn">{warn}</p>}
+                </div>
+            </PopupModal>
         );
         const SETTINGS_KEY = "askme_game_settings_v1";
         const DEFAULT_PUNISHMENTS = [
@@ -710,7 +733,7 @@ i18nSetLang(readStoredLang());
         const SCREEN_TITLES = { hidden_q: 'Скрытые вопросы — ASK ME', analytics: 'Аналитика — ASK ME', analytics_sessions: 'Сессии — Аналитика — ASK ME', app_menu: 'Меню — ASK ME', game_setup: 'Усложнённый режим — ASK ME', topics_admin: 'Управление темами — ASK ME', punish_admin: 'Шаблоны наказаний — ASK ME', tod_admin: 'Карточки — Правда или действие — ASK ME', tod_edit: 'Правка карточки — Правда или действие — ASK ME', history: 'Прошлые игры — ASK ME', history_view: 'Прошлая игра — ASK ME', tod_lobby: 'Правда или действие — ASK ME', tod_play: 'Игра — Правда или действие — ASK ME', tod_results: 'Итоги — Правда или действие — ASK ME', onboarding: 'ASK ME — начните игру', session_created: 'Сессия создана — ASK ME', menu: 'ASK ME — откровенные разговоры для двоих и компании', profile_page: 'Игроки и сессия — ASK ME', admin_login: 'Вход для владельца — ASK ME', mode_select: 'Режим игры — ASK ME', game: 'Игра — ASK ME', ai_response: 'Совет и ситуация — ASK ME', summary: 'Итоги игры — ASK ME', cat_list: 'Все темы — ASK ME', q_list: 'Вопросы — ASK ME', archive_page: 'Архив вопросов — ASK ME', add_q: 'Новый вопрос — ASK ME', edit_q: 'Редактирование вопроса — ASK ME', invite: 'Пригласить игроков — ASK ME', join: 'Присоединиться к игре — ASK ME', about: 'Об игре — ASK ME', privacy: 'Политика конфиденциальности — ASK ME', terms: 'Пользовательское соглашение — ASK ME', cookies: 'Cookies и локальное хранилище — ASK ME', age: 'Возраст и откровенный контент — ASK ME', copyright: 'Авторские права — ASK ME' };
         const GROUP_EMOJIS = ['😈', '🤫', '😋', '🤔', '🤪', '😏', '😱', '🫣'];
         const MAX_PLAYERS = 10;
-        const LIVE_POLL_MS = 1000, LIVE_INVITE_MS = 3000, LIVE_BEAT_MS = 8000, LIVE_ALIVE_MS = 30000, LIVE_STALE_MS = 120000, LIVE_TAKEOVER_S = 6, LIVE_TAKEOVER_STEP_S = 4, LIVE_TAP_GUARD_MS = 500, LIVE_SOLO_MS = 2000, LIVE_JOIN_WAIT_MS = 15000, LIVE_MAX_DEVICES = MAX_PLAYERS;
+        const LIVE_POLL_MS = 1000, LIVE_PAUSE_MS = 2500, AWAY_MAX_MS = 1800000, LIVE_INVITE_MS = 3000, LIVE_BEAT_MS = 8000, LIVE_ALIVE_MS = 30000, LIVE_STALE_MS = 120000, LIVE_TAKEOVER_S = 6, LIVE_TAKEOVER_STEP_S = 4, LIVE_TAP_GUARD_MS = 500, LIVE_SOLO_MS = 2000, LIVE_JOIN_WAIT_MS = 15000, LIVE_MAX_DEVICES = MAX_PLAYERS;
         // в одной партии устройств не больше, чем игроков в сессии (но не больше LIVE_MAX_DEVICES): каждое подключившееся устройство — это игрок
         // snap — снимок комнаты: у присоединяющегося копия сессии может отставать от хозяйской, поэтому берём большее из своих игроков и игроков в комнате
         const deviceCap = (prof, snap) => { let n = ((prof && prof.players) || []).length; try { const pl = snap && typeof snap.pl === 'string' ? JSON.parse(snap.pl) : null; if (Array.isArray(pl)) n = Math.max(n, pl.length); } catch (e) {} return Math.min(LIVE_MAX_DEVICES, Math.max(2, n)); };
@@ -724,11 +747,24 @@ i18nSetLang(readStoredLang());
         // версия первой записи новой партии отсчитывается от времени (десятые доли секунды): так она заведомо не совпадёт с версиями прошлых партий в этой комнате,
         // и устройства, ещё сидящие в старой партии, заметят, что в комнате что-то поменялось
         const liveVerStart = (id, now = Date.now()) => liveVerNext(Math.floor(now / 100), id);
-        // кто сейчас в игре: отметки присутствия {устройство: время}; «живое» — отметка моложе 30 с, мусор старше 2 мин убирается
+        // «Отошёл»: устройство, которое вышло из игры на другие страницы, оставляет в тех же отметках p ключ away~<устройство>~<время ухода> со временем последнего «я здесь».
+        // Правила базы менять не нужно (p/$device — любое число ≥ 0). Остальные устройства по таким ключам ставят игру на паузу; значение 0 — «пропустили и пошли дальше»
+        const AWAY_PREFIX = 'away~';
+        const liveAwayKey = (id, since) => AWAY_PREFIX + id + '~' + Math.floor(since);
+        const liveAwayParse = (key) => { const m = /^away~([0-9a-z]+)~(\d{1,14})$/.exec(String(key)); return m ? { id: m[1], since: Number(m[2]) } : null; };
+        // кто сейчас в игре: отметки присутствия {устройство: время}; «живое» — отметка моложе 30 с, мусор старше 2 мин убирается; away — кто сейчас «отошёл» (метка моложе 30 с)
         const liveAlive = (p, now, selfId) => {
-            const alive = [], stale = [];
-            Object.entries(p && typeof p === 'object' ? p : {}).forEach(([id, ts]) => { const t = Number(ts); if (!isFinite(t)) { stale.push(id); return; } const age = now - t; if (age <= LIVE_ALIVE_MS) alive.push(id); else if (age > LIVE_STALE_MS) stale.push(id); });
-            return { alive, others: alive.filter(id => id !== selfId), stale };
+            const alive = [], stale = [], away = [];
+            Object.entries(p && typeof p === 'object' ? p : {}).forEach(([id, ts]) => {
+                const t = Number(ts);
+                if (id.startsWith(AWAY_PREFIX)) {
+                    const a = liveAwayParse(id); if (!a || !isFinite(t) || t <= 0) { stale.push(id); return; }
+                    const age = now - t; if (age <= LIVE_ALIVE_MS) away.push({ id: a.id, key: id, since: a.since }); else if (age > LIVE_STALE_MS) stale.push(id);
+                    return;
+                }
+                if (!isFinite(t)) { stale.push(id); return; } const age = now - t; if (age <= LIVE_ALIVE_MS) alive.push(id); else if (age > LIVE_STALE_MS) stale.push(id);
+            });
+            return { alive, others: alive.filter(id => id !== selfId), stale, away };
         };
         // история ходов в базе ограничена по размеру: если не влезает, отбрасываем самые старые записи
         const liveHistStr = (hist) => {
@@ -759,19 +795,20 @@ i18nSetLang(readStoredLang());
         };
         const REEL = { CARD: 84, GAP: 8, TARGET: 30, TRAVEL: 22 };
         const reelTarget = (k, winnerIdx) => REEL.TARGET + ((winnerIdx - (REEL.TARGET % k)) % k + k) % k;
-        const reelGeometry = (w, tIndex, jit = 0) => {
-            const stride = REEL.CARD + REEL.GAP;
-            const final = w / 2 - (tIndex * stride + REEL.CARD / 2) + jit;
+        const REEL_BIG = { CARD: 132, GAP: 12 }; // рулетка на компьютере: карточки игроков крупнее
+        const reelGeometry = (w, tIndex, jit = 0, card = REEL.CARD, gap = REEL.GAP) => {
+            const stride = card + gap;
+            const final = w / 2 - (tIndex * stride + card / 2) + jit;
             return { t: tIndex, final, start: final - REEL.TRAVEL * stride };
         };
         const TurnReel = ({ players, winnerId, spinning }) => {
-            const k = Math.max(1, players.length);
+            const k = Math.max(1, players.length); const big = useIsDesktop(); const card = big ? REEL_BIG.CARD : REEL.CARD; const gap = big ? REEL_BIG.GAP : REEL.GAP;
             const t = reelTarget(k, Math.max(0, players.findIndex(p => p.id === winnerId)));
             const wrapRef = React.useRef(null);
             const [pos, setPos] = React.useState({ x: 0, anim: false, ready: false });
             React.useLayoutEffect(() => {
                 const w = wrapRef.current ? wrapRef.current.getBoundingClientRect().width : 300;
-                const g = reelGeometry(w, t, (Math.random() - 0.5) * REEL.CARD * 0.5);
+                const g = reelGeometry(w, t, (Math.random() - 0.5) * card * 0.5, card, gap);
                 const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
                 if (reduce) { setPos({ x: g.final, anim: false, ready: true }); return; }
                 setPos({ x: g.start, anim: false, ready: true });
@@ -780,15 +817,15 @@ i18nSetLang(readStoredLang());
                 return () => { cancelAnimationFrame(r1); if (r2) cancelAnimationFrame(r2); };
             }, []);
             return (
-                <div ref={wrapRef} className="relative w-full h-[112px] overflow-hidden rounded-[20px] border border-white/10 bg-white/[0.04]">
-                    <div className="absolute top-0 bottom-0 left-0 flex items-center" style={{ gap: REEL.GAP, transform: `translate3d(${pos.x}px,0,0)`, transition: pos.anim ? 'transform 2.2s cubic-bezier(0.08,0.6,0.12,1)' : 'none', willChange: 'transform', opacity: pos.ready ? 1 : 0 }}>
+                <div ref={wrapRef} className={`reel-wrap relative w-full overflow-hidden rounded-[20px] border border-white/10 bg-white/[0.04] ${big ? 'h-[184px]' : 'h-[112px]'}`}>
+                    <div className="absolute top-0 bottom-0 left-0 flex items-center" style={{ gap, transform: `translate3d(${pos.x}px,0,0)`, transition: pos.anim ? 'transform 2.2s cubic-bezier(0.08,0.6,0.12,1)' : 'none', willChange: 'transform', opacity: pos.ready ? 1 : 0 }}>
                         {Array.from({ length: t + 8 }, (_, i) => {
                             const p = players[i % k];
                             const win = !spinning && i === t;
                             return (
-                                <div key={i} style={{ width: REEL.CARD, flex: '0 0 auto' }} className={`h-[92px] rounded-xl border flex flex-col items-center justify-center gap-1 transition-all duration-300 ${win ? 'bg-rose-500/15 border-rose-500 scale-105' : 'bg-white/[0.04] border-white/10'} ${(!spinning && !win) ? 'opacity-35' : ''}`}>
-                                    <span className="text-2xl">{p.gender === 'guy' ? '👨' : '👩'}</span>
-                                    <span className="text-xs font-bold text-white truncate max-w-[72px]">{p.name}</span>
+                                <div key={i} style={{ width: card, flex: '0 0 auto' }} className={`${big ? 'h-[152px] gap-2' : 'h-[92px] gap-1'} rounded-xl border flex flex-col items-center justify-center transition-all duration-300 ${win ? 'bg-rose-500/15 border-rose-500 scale-105' : 'bg-white/[0.04] border-white/10'} ${(!spinning && !win) ? 'opacity-35' : ''}`}>
+                                    <span className={big ? 'text-5xl' : 'text-2xl'}>{p.gender === 'guy' ? '👨' : '👩'}</span>
+                                    <span className={`font-bold text-white truncate ${big ? 'text-base max-w-[116px]' : 'text-xs max-w-[72px]'}`}>{p.name}</span>
                                 </div>
                             );
                         })}
@@ -847,7 +884,7 @@ i18nSetLang(readStoredLang());
         };
         const useDeskState = () => { const [, bump] = useState(0); useEffect(() => { const f = () => bump(n => n + 1); deskStore.subs.add(f); return () => { deskStore.subs.delete(f); }; }, []); return deskStore.s; };
         const DESK_HIDE = ['game', 'ai_response', 'summary', 'tod_play', 'tod_results']; // экраны партии: панели нет, чтобы не уйти из игры случайным нажатием
-        const DESK_GROUPS = { home: ['menu', 'profile_page'], play: ['mode_select', 'game_setup', 'tod_lobby'], questions: ['cat_list', 'q_list', 'archive_page', 'add_q', 'edit_q', 'hidden_q'], about: ['about'] };
+        const DESK_GROUPS = { players: ['profile_page'], play: ['mode_select', 'game_setup', 'tod_lobby'], questions: ['cat_list', 'q_list', 'archive_page', 'add_q', 'edit_q', 'hidden_q'], about: ['about'] };
         const DesktopNav = () => {
             const desk = useIsDesktop(); const st = useDeskState();
             const show = desk && !!st.screen && !DESK_HIDE.includes(st.screen);
@@ -861,17 +898,16 @@ i18nSetLang(readStoredLang());
                     <div className="desk-nav-in">
                         <AskMeLogo size="md" onClick={() => go(st.hasProfile ? 'menu' : 'about')} />
                         <ul className="desk-links">
-                            {st.hasProfile && link('home', 'menu', tr("Главная"))}
                             {st.hasProfile && link('play', 'mode_select', tr("Играть"))}
                             {st.hasProfile && link('questions', 'cat_list', tr("Вопросы"))}
+                            {st.hasProfile && link('players', 'profile_page', tr("Игроки"))}
                             {link('about', 'about', tr("Об игре"))}
                         </ul>
                         <div className="desk-nav-right">
-                            {st.hasProfile && st.players.length > 0 && <span className="desk-players" title={st.players.map(p => p.name).join(', ')}>{st.players.map(p => p.name).join(' · ')}</span>}
                             {st.hasProfile && <SessionIdBadge sessionId={st.sessionId} sessionKey={st.sessionKey} onCopy={api.showToast} />}
                             <button type="button" onClick={() => api.toggleMute && api.toggleMute()} aria-label={st.muted ? tr("Включить звук") : tr("Выключить звук")} title={st.muted ? tr("Включить звук") : tr("Выключить звук")} className="btn-icon">{st.muted ? <Icons.SoundOff /> : <Icons.SoundOn />}</button>
                             <LangMenu lang={st.lang} onChange={(l) => api.changeLang && api.changeLang(l)} />
-                            {st.hasProfile && <button type="button" onClick={() => go('app_menu')} className="btn-secondary btn-sm"><span>{tr("Меню")}</span><Icons.Menu /></button>}
+                            {st.hasProfile && <button type="button" onClick={() => { SoundFX.click(); if (api.toggleMenu) api.toggleMenu(); else if (api.navigate) api.navigate('app_menu'); }} aria-pressed={st.screen === 'app_menu'} className={`btn-secondary btn-sm ${st.screen === 'app_menu' ? 'is-on' : ''}`}><span>{tr("Меню")}</span><Icons.Menu /></button>}
                         </div>
                     </div>
                 </nav>
@@ -909,7 +945,7 @@ i18nSetLang(readStoredLang());
                 <footer className="desk-footer select-none z-10">
                     <div className="desk-footer-in">
                         <div className="desk-fcol desk-fbrand">
-                            <AskMeLogo size="md" />
+                            <a href="#/" className="desk-flogo" aria-label={tr("На главную")} onClick={() => SoundFX.click()}><AskMeLogo size="md" /></a>
                             <p>{tr("Откровенные разговоры для двоих и компании. Играйте по взаимному согласию и берегите чужие границы.")}</p>
                             <span className="tag tag-rose">18+</span>
                         </div>
@@ -917,31 +953,164 @@ i18nSetLang(readStoredLang());
                         <nav className="desk-fcol" aria-label={tr("Режимы")}><h2>{tr("Режимы")}</h2><a href="#/mode">{tr("Выберите режим")}</a><a href="#/setup">{tr("Усложнённый режим")}</a><a href="#/tod">{tr("Правда или действие")}</a><a href="#/invite">{tr("Пригласить игроков")}</a></nav>
                         <nav className="desk-fcol" aria-label={tr("Документы")}><h2>{tr("Документы")}</h2><a href="#/privacy">{tr("Конфиденциальность")}</a><a href="#/terms">{tr("Соглашение")}</a><a href="#/cookies">{tr("Cookies")}</a><a href="#/age">{tr("Возраст 18+")}</a><a href="#/copyright">{tr("© Авторские права")}</a></nav>
                     </div>
-                    <div className="desk-footer-bar"><span>by <b>yedvinn</b></span><span>{tr("Подсказка: листать вопросы можно стрелками ← → на клавиатуре")}</span></div>
+                    <div className="desk-footer-bar"><span>by <b>yedvinn</b></span><span className="app-ver">{tf("Версия {v0}", { v0: appVersionLabel(APP_VERSION, getLang()) })}</span><span>{tr("Подсказка: листать вопросы можно стрелками ← → на клавиатуре")}</span></div>
                 </footer>
             );
             return (
             <footer className="w-full py-6 flex flex-col items-center justify-center gap-3 select-none z-10">
                 {divider && <div aria-hidden="true" className={`footer-rule mb-3 ${wide ? 'is-wide' : ''}`}></div>}
                 <div className="flex items-center justify-center gap-3 opacity-60 hover:opacity-100 transition-opacity"> <AskMeLogo size="xs" /> <span className="text-white/20 text-xs">•</span> <span className="text-xs text-zinc-400 font-semibold"> by <span className="text-rose-400">yedvinn</span> </span> </div>
+                <p className="app-ver">{tf("Версия {v0}", { v0: appVersionLabel(APP_VERSION, getLang()) })}</p>
                 {!noLinks && <nav aria-label={tr("Информация")} className="footer-links"><a href="#/about">{tr("Об игре")}</a><a href="#/privacy">{tr("Конфиденциальность")}</a><a href="#/terms">{tr("Соглашение")}</a><a href="#/copyright">{tr("© Авторские права")}</a></nav>}
             </footer>
             );
         };
 
-        // Состав сессии: имена игроков и устройства в комнате (первое — это устройство, остальные подключены). Спокойный блок, заметно тише кнопки «Поделиться»:
-        // имена устройств в базе не хранятся, поэтому показываем игроков сессии и число устройств
+        // Состав сессии: имена игроков и устройства в комнате — свёрнутый «аккордеон» внизу экрана перед подвалом (по умолчанию закрыт, занимает одну строку).
+        // Имена устройств в базе не хранятся, поэтому показываем игроков сессии и число устройств; тело всегда в разметке, но пока закрыто — скрыто (visibility)
         const RoomStrip = ({ players, devices }) => {
+            const [open, setOpen] = useState(false); const uid = useRef('rs' + Math.random().toString(36).slice(2, 7)).current;
             const list = Array.isArray(players) ? players : []; const n = Math.max(1, Math.min(Number(devices) || 1, MAX_PLAYERS));
+            const devText = n === 1 ? tr("Пока только это устройство") : tf("В игре {v0} {v1}", { v0: n, v1: declOfNum(n, ['устройство', 'устройства', 'устройств']) });
             return (
-                <div className="room-strip" role="group" aria-label={tr("Состав сессии")}>
-                    <ul className="room-strip-names">{list.map((p, i) => <li key={(p && p.id) || i}><span>{p && p.name}</span></li>)}</ul>
-                    <div className="room-strip-dev">
+                <section className={`room-acc ${open ? 'is-open' : ''}`} aria-label={tr("Состав сессии")}>
+                    <button type="button" id={uid + 'b'} className="room-acc-head" aria-expanded={open} aria-controls={uid} onClick={() => { SoundFX.click(); setOpen(o => !o); }}>
+                        <span className="room-acc-ico" aria-hidden="true"><Icons.Users /></span>
+                        <span className="room-acc-t">{tr("Игроки")} <b>{list.length}</b></span>
                         <span className="room-pips" aria-hidden="true">{Array.from({ length: n }, (_, i) => <i key={i} className={i === 0 ? 'me' : 'on'}></i>)}</span>
-                        <span>{n === 1 ? tr("Пока только это устройство") : tf("В игре {v0} {v1}", { v0: n, v1: declOfNum(n, ['устройство', 'устройства', 'устройств']) })}</span>
-                    </div>
-                </div>
+                        <span className="room-acc-chev" aria-hidden="true"><Icons.ChevronDown /></span>
+                    </button>
+                    <div id={uid} role="region" aria-labelledby={uid + 'b'} className="room-acc-body"><div className="room-acc-in">
+                        <ul className="room-strip-names">{list.map((p, i) => <li key={(p && p.id) || i}><span>{p && p.name}</span></li>)}</ul>
+                        <p className="room-strip-dev">{devText}</p>
+                    </div></div>
+                </section>
             );
+        };
+
+        // Только на компьютере: живой пример вопроса на главной (берётся из публичных примеров страницы «Об игре», без темы «Интим»). На ход игры не влияет
+        const DeskTeaser = () => {
+            const [n, setN] = useState(0);
+            const ex = aboutDoc().demo.examples; const flat = DIFFICULTIES.flatMap(d => (ex[d.id] || []).map(q => ({ q, d })));
+            if (!flat.length) return null;
+            const it = flat[n % flat.length];
+            return (
+                <section className="desk-teaser" aria-label={tr("Пример вопроса")}>
+                    <div className="desk-teaser-head"><span className="desk-teaser-t">{tr("Пример вопроса")}</span><span className={`desk-teaser-lvl lvl-${DIFFICULTIES.indexOf(it.d) + 1}`}>{diffLabel(it.d.id, it.d.name)}</span></div>
+                    <p key={n} className="desk-teaser-q">{it.q}</p>
+                    <button type="button" onClick={() => { SoundFX.click(); setN(v => (v + 1 + Math.floor(Math.random() * Math.max(1, flat.length - 1))) % flat.length); }} className="btn-text">{tr("Другой пример")}</button>
+                </section>
+            );
+        };
+
+        // Игроки на главной: «таблетки» по три в ряд (по две, если имена длинные или экран узкий). Эмодзи справа от имени; у пары между таблетками сердце.
+        // Нажатие открывает меню игрока: «Поделиться сессией», «Изменить имя», «Удалить игрока», «Отмена». Список меняет родитель (onChange), игроков не меньше двух
+        const HomePlayers = ({ players, group, emojis, onShare, onChange }) => {
+            const [open, setOpen] = useState(-1); const [rn, setRn] = useState(null); const [del, setDel] = useState(null); const ref = useRef(null);
+            useEffect(() => {
+                if (open < 0) return undefined;
+                const out = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(-1); };
+                const esc = (e) => { if (e.key === 'Escape') setOpen(-1); };
+                document.addEventListener('mousedown', out); document.addEventListener('touchstart', out); document.addEventListener('keydown', esc);
+                return () => { document.removeEventListener('mousedown', out); document.removeEventListener('touchstart', out); document.removeEventListener('keydown', esc); };
+            }, [open]);
+            const list = Array.isArray(players) ? players : []; const n = list.length;
+            // сколько в ряд: на телефоне по три (для четверых — по четыре), на компьютере до шести; если имя не помещается целиком, число в ряду уменьшается (после отрисовки и при смене ширины окна)
+            const desk = useIsDesktop(); const [step, setStep] = useState(0); const [tick, setTick] = useState(0);
+            const seq = (() => { const base = desk ? (n <= 6 ? n : Math.min(6, Math.ceil(n / 2))) : (n === 4 ? 4 : 3); const out = []; for (let c = base; c >= 2; c--) { if (!desk && n === 4 && c === 3) continue; out.push(c); } return out.length ? out : [2]; })();
+            useEffect(() => { const h = () => { setStep(0); setTick(t => t + 1); }; window.addEventListener('resize', h); return () => window.removeEventListener('resize', h); }, []);
+            React.useLayoutEffect(() => { setStep(0); setTick(t => t + 1); }, [list.map(p => p.name).join('\u0001'), desk]);
+            React.useLayoutEffect(() => { if (n < 3 || step >= seq.length - 1 || !ref.current) return; if ([...ref.current.querySelectorAll('.pl-name')].some(el => el.scrollWidth > el.clientWidth + 1)) setStep(step + 1); }, [tick, step, n]);
+            const cols = n <= 1 ? 1 : n === 2 ? 2 : seq[Math.min(step, seq.length - 1)];
+            const saveName = () => {
+                const v = sanitizeName(rn ? rn.v : ''); if (!v) { SoundFX.warn(); setRn(r => ({ ...r, err: tr("Введите имя") })); return; }
+                SoundFX.success(); onChange(list.map(p => (p.id === rn.id ? { ...p, name: v } : p))); setRn(null); showToast(tr("Имя изменено"));
+            };
+            const askDelete = (p) => { setOpen(-1); if (n <= 2) { SoundFX.warn(); showToast(tr("В сессии должно остаться минимум два игрока"), 3200, 'warn'); return; } SoundFX.click(); setDel(p); };
+            const doDelete = () => { if (!del) return; SoundFX.click(); onChange(list.filter(p => p.id !== del.id)); setDel(null); showToast(tr("Игрок удалён")); };
+            return (<>
+                <div ref={ref} className={`pl-grid pl-c${cols} ${!group && n === 2 ? 'is-pair' : ''}`} role="group" aria-label={tr("Игроки")}>
+                    {list.map((p, i) => {
+                        const col = i % cols; const side = cols === 1 ? 'c' : col === 0 ? 'l' : col === cols - 1 ? 'r' : 'c';
+                        return (
+                            <div key={p.id} className="pl-cell">
+                                <button type="button" onClick={() => { SoundFX.click(); setOpen(o => (o === i ? -1 : i)); }} aria-haspopup="menu" aria-expanded={open === i} title={p.name} className={`pl-pill ${open === i ? 'is-open' : ''}`}>
+                                    <span className="pl-name">{p.name}</span>{group && <span className="pl-emo" aria-hidden="true">{emojis[i % emojis.length]}</span>}
+                                </button>
+                                {open === i && (
+                                    <div className={`menu-pop pl-menu pl-menu-${side} fade-in`} role="menu" aria-label={p.name}>
+                                        <button type="button" role="menuitem" className="menu-opt" onClick={() => { setOpen(-1); onShare(); }}><span>{tr("Поделиться сессией")}</span><Icons.Share /></button>
+                                        <button type="button" role="menuitem" className="menu-opt" onClick={() => { SoundFX.click(); setOpen(-1); setRn({ id: p.id, v: p.name, err: '' }); }}><span>{tr("Изменить имя")}</span><Icons.Edit /></button>
+                                        <button type="button" role="menuitem" className="menu-opt is-danger" onClick={() => askDelete(p)}><span>{tr("Удалить игрока")}</span><Icons.Trash /></button>
+                                        <button type="button" role="menuitem" className="menu-opt" onClick={() => { SoundFX.click(); setOpen(-1); }}><span>{tr("Отмена")}</span><Icons.Close /></button>
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+                <PopupModal isOpen={!!rn} onClose={() => setRn(null)}>
+                    {rn && (
+                        <form noValidate onSubmit={(e) => { e.preventDefault(); saveName(); }} className="exit-dlg">
+                            <h3 className="exit-dlg-t">{tr("Изменить имя")}</h3>
+                            <input type="text" autoFocus maxLength={20} value={rn.v} onChange={(e) => setRn({ ...rn, v: sanitizeName(e.target.value), err: '' })} aria-label={tr("Имя игрока")} placeholder={tr("Имя игрока")} className="pl-input" />
+                            {rn.err && <p className="ui-error text-center" role="alert">{rn.err}</p>}
+                            <div className="exit-dlg-row">
+                                <button type="button" onClick={() => { SoundFX.click(); setRn(null); }} className="btn-secondary w-full">{tr("Отмена")}</button>
+                                <button type="submit" className="btn-primary w-full">{tr("Сохранить")}</button>
+                            </div>
+                        </form>
+                    )}
+                </PopupModal>
+                <PopupModal isOpen={!!del} onClose={() => setDel(null)}>
+                    {del && (
+                        <div className="exit-dlg">
+                            <h3 className="exit-dlg-t">{tf("Удалить игрока «{v0}»?", { v0: del.name })}</h3>
+                            <p className="exit-dlg-note">{tr("Игрока можно будет добавить снова в разделе «Игроки и сессия».")}</p>
+                            <div className="exit-dlg-row">
+                                <button type="button" onClick={() => { SoundFX.click(); setDel(null); }} className="btn-secondary w-full">{tr("Отмена")}</button>
+                                <button type="button" onClick={doDelete} className="btn-danger w-full">{tr("Удалить")}</button>
+                            </div>
+                        </div>
+                    )}
+                </PopupModal>
+            </>);
+        };
+
+        // ---- Общая пауза: кто-то из игроков вышел из игры на другие страницы ----
+        // Пока вышедшее устройство держит «отошёл» (оно обновляет метку раз в 8 с), у остальных поверх игры висит это окно с отсчётом и шуткой по режиму.
+        // Вернулся — пауза снимается сама; закрыл вкладку или пропал интернет — метка стареет за 30 с, устройство считается вышедшим, пауза снимается.
+        const PAUSE_TEXTS = {
+            normal: ['Пока кого-то нет, вопросы подождут. Придумайте самый честный ответ.', 'Кто-то отошёл за печеньками. Мы подождём, а вы вспомните, о чём хотели спросить.', 'Игра замерла в ожидании. Даже самые откровенные вопросы умеют ждать.', 'Эй, потеряшка, возвращайся! Без тебя ответы звучат не так интересно.', 'Тсс… вопросы затаились и ждут, когда соберутся все.', 'Пауза! Самое время налить чаю и обсудить, кто ответит смешнее.'],
+            hard: ['Таймер взял перерыв, наказания тоже. Все ждут беглеца.', 'Никого не накажут, пока не вернутся все. Пользуйтесь моментом!', 'Время остановилось: таймер замер, а наказания затаили дыхание.', 'Сбежал от наказания? Не выйдет — ждём тебя здесь.', 'Секундомер на паузе. Потренируйте честное лицо, оно пригодится.', 'Наказания пока дремлют. Разбудим их, когда все соберутся.'],
+            tod: ['«Правда» и «Действие» взяли тайм-аут. Курица тоже ждёт 🐔', 'Кто-то сбежал от задания? Так не пройдёт — ждём возвращения!', 'Пауза. Хорошее время придумать, что выберете: правду или действие.', 'Задания замерли в ожидании. Честное слово, они не кусаются.', 'Пока кого-то нет, «Зал позора» отдыхает. Но ненадолго!', 'Вернись скорее — без тебя некому краснеть!']
+        };
+        const pauseClock = (ms) => { const t = Math.max(0, Math.floor(ms / 1000)), h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), sec = t % 60; const two = (n) => String(n).padStart(2, '0'); return (h ? h + ':' : '') + two(m) + ':' + two(sec); };
+        const PausedOverlay = ({ since, count, mode, onSkip, onMenu }) => {
+            const [now, setNow] = useState(() => Date.now()); const [k, setK] = useState(() => Math.floor(Math.random() * 6)); const box = useRef(null);
+            useEffect(() => { const id = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(id); }, []);
+            useEffect(() => { const id = setInterval(() => setK(v => v + 1), 9000); return () => clearInterval(id); }, []);
+            useEffect(() => {
+                const prev = document.activeElement; const first = box.current && box.current.querySelector('button'); if (first) first.focus();
+                const key = (e) => { if (e.key !== 'Tab' || !box.current) return; const list = [...box.current.querySelectorAll('button:not([disabled])')]; if (!list.length) return; const i = list.indexOf(document.activeElement); e.preventDefault(); list[(i + (e.shiftKey ? list.length - 1 : 1)) % list.length].focus(); };
+                document.addEventListener('keydown', key); return () => { document.removeEventListener('keydown', key); if (prev && prev.isConnected && prev.focus) prev.focus(); };
+            }, []);
+            const pool = PAUSE_TEXTS[mode] || PAUSE_TEXTS.normal; const text = tr(pool[k % pool.length]);
+            return ReactDOM.createPortal(
+                <div className="pause-ov fade-in" role="alertdialog" aria-modal="true" aria-labelledby="pause-t" aria-describedby="pause-d">
+                    <div ref={box} className="pause-card slide-up">
+                        <div className="pause-ico" aria-hidden="true"><span className="pause-ring"></span><span className="pause-ring pause-ring-2"></span><span className="pause-bars"><i></i><i></i></span></div>
+                        <h2 id="pause-t" className="pause-t">{tr("Игра на паузе")}</h2>
+                        <p id="pause-d" className="pause-sub">{tf("Ждём, пока вернутся вышедшие игроки — устройств: {v0}", { v0: Math.max(1, count) })}</p>
+                        <div className="pause-clock" role="timer" aria-label={tr("Пауза длится")}><span className="pause-clock-l">{tr("Пауза длится")}</span><b>{pauseClock(now - since)}</b></div>
+                        <p key={k % pool.length} className="pause-joke" aria-live="polite">{text}</p>
+                        <p className="pause-note">{tr("Пауза снимется сама, когда все вернутся. Если у кого-то пропадёт интернет или закроется вкладка, игра пойдёт дальше без этого устройства — вернуться можно позже в сессии.")}</p>
+                        <div className="pause-actions">
+                            <button type="button" onClick={onSkip} className="btn-primary w-full">{tr("Продолжить без них")}</button>
+                            {onMenu && <button type="button" onClick={onMenu} className="btn-secondary w-full">{tr("В меню")}</button>}
+                        </div>
+                    </div>
+                </div>, document.body);
         };
 
         // Визначити, чи текст українською (за специфічними літерами).
@@ -1289,6 +1458,8 @@ i18nSetLang(readStoredLang());
             const [settings, setSettings] = useState(loadGameSettings);
             const [newPunish, setNewPunish] = useState(''); const [newPunishLevel, setNewPunishLevel] = useState('any'); const [punishErr, setPunishErr] = useState('');
             const [tm, setTm] = useState({ key: '', left: 0 });
+            const [gamePause, setGamePause] = useState(null);
+            const gamePauseRef = useRef(null); gamePauseRef.current = gamePause; // общая пауза: { since, n, node, keys } — кто-то из игроков вышел из игры (см. «пауза у всех» ниже)
             const [timerDismissKey, setTimerDismissKey] = useState('');
             const [hardMode, setHardMode] = useState(() => { try { return localStorage.getItem('askme_hard_mode_v1') === '1'; } catch (e) { return false; } });
             useEffect(() => { try { localStorage.setItem('askme_hard_mode_v1', hardMode ? '1' : '0'); } catch (e) {} }, [hardMode]);
@@ -1577,9 +1748,13 @@ i18nSetLang(readStoredLang());
 
             const handleShareGame = async () => { SoundFX.click(); const shareUrl = `${window.location.origin}${window.location.pathname}#/welcome`; if (navigator.share) { try { await navigator.share({ title: tr("ASK ME — Игра"), text: tr("Откровенные разговоры ❤️"), url: shareUrl }); return; } catch (e) { if (e.name === 'AbortError') return; } } await copyTextToClipboard(shareUrl); showToast(tr("Ссылка на игру скопирована!")); };
             const toggleMute = () => { const nextState = !isMuted; setIsMuted(nextState); SoundFX.muted = nextState; if (!nextState) SoundFX.click(); };
+            const menuFromRef = useRef('menu'); // последняя страница до «Меню» (для кнопки «Меню» в верхней панели компьютера)
+            useEffect(() => { if (screen !== 'app_menu') menuFromRef.current = screen; }, [screen]);
             const desk = useIsDesktop(); // компьютер (от 1024 px): другая вёрстка экранов, верхняя панель и расширенный подвал
             useEffect(() => {
-                Object.assign(deskStore.api, { navigate, toggleMute, changeLang, showToast });
+                Object.assign(deskStore.api, { navigate: (id) => { if (id === 'profile_page' && profile) setPlayersForm(profile.players); navigate(id); }, toggleMute, changeLang, showToast,
+                    // «Меню» в панели — переключатель: открывает меню, а повторное нажатие возвращает на страницу, где пользователь был до него
+                    toggleMenu: () => { if (screen === 'app_menu') { const back = menuFromRef.current; navigate(back && back !== 'app_menu' ? back : 'menu'); } else navigate('app_menu'); } });
                 deskStore.set({ screen, hasProfile: !!profile, sessionId: profile ? profile.sessionId : '', sessionKey: profile ? profile.sessionKey : '', players: profile ? profile.players : [], muted: isMuted, lang });
             });
             const handleLogoSecretTap = () => { const nextCount = logoTapCount + 1; setLogoTapCount(nextCount); if (nextCount >= 5) { SoundFX.magic(); setLogoTapCount(0); setAdminPinError(''); navigate('admin_login'); } };
@@ -1823,7 +1998,7 @@ i18nSetLang(readStoredLang());
                 applyPeek(mode === 'enter' ? 0 : dx, mode === 'enter' ? 'none' : mode);
                 applyGlow(mode === 'enter' || mode === 'spring' ? 0 : dx, mode);
             };
-            const swipeBusy = () => turnPopup.open || showSkipPopup || showEndGameConfirm || punish.open || (timerKey !== '' && tm.key === timerKey && timerDismissKey !== timerKey);
+            const swipeBusy = () => !!gamePause || turnPopup.open || showSkipPopup || showEndGameConfirm || punish.open || (timerKey !== '' && tm.key === timerKey && timerDismissKey !== timerKey);
             const swipeAllowed = (dir) => {
                 if (screen !== 'game' || !gameQuestions.length) return false;
                 const last = currentIndex === gameQuestions.length - 1;
@@ -1835,6 +2010,12 @@ i18nSetLang(readStoredLang());
                 return !(done && last);
             };
             const performSwipe = (dir) => { if (dir === 'left') handlePrevQuestion(); else handleNextQuestion(); };
+            // кнопки «Назад» / «Далее» внизу экрана смены вопроса запускают ту же анимацию, что и свайп пальцем (карточка улетает, новая проявляется);
+            // если свайп сейчас невозможен (окна, рулетка, последний вопрос, ход ещё не закончен) — работает обычное нажатие без анимации
+            const pressSwipeBtn = (dir) => {
+                const liveGuard = liveRoomRef.current && Date.now() - liveRef.current.appliedAt < LIVE_TAP_GUARD_MS;
+                if (!liveGuard && !swipeBusy() && swipeAllowed(dir)) commitSwipe(dir); else performSwipe(dir);
+            };
             const swipeLabel = (dir) => !swipeAllowed(dir) ? (dir === 'left' && currentIndex === 0 ? tr("Это первый вопрос") : tr("Здесь нельзя")) : (dir === 'left' ? tr("← Назад") : tr("Далее →"));
             const onSwipeStart = (e) => {
                 if (swipeBusy() || (e.target.closest && e.target.closest('button,a,input,textarea,select'))) return;
@@ -1918,7 +2099,7 @@ i18nSetLang(readStoredLang());
             const [punDoneKey, setPunDoneKey] = useState('');
             const rawTimerKey = (fx.timerOn && screen === 'game' && gameMode === 'normal' && turnE && turnE.cur) ? `${currentIndex}:${turnE.cur}:${turnE.answered.length}` : '';
             const timerKey = rawTimerKey !== punDoneKey ? rawTimerKey : '';
-            const timerPaused = turnPopup.open || showSkipPopup || showEndGameConfirm || punish.open;
+            const timerPaused = turnPopup.open || showSkipPopup || showEndGameConfirm || punish.open || !!gamePause; // общая пауза: кто-то из игроков вышел
             useEffect(() => { if (timerKey) setTm({ key: timerKey, left: fx.timerSec }); }, [timerKey, fx.timerSec]);
             useEffect(() => {
                 if (!timerKey || timerPaused) return;
@@ -2014,11 +2195,11 @@ i18nSetLang(readStoredLang());
                             </div>
                         )}
                         <div className="pg-side">
-                        {strip}
                         <div className="flex flex-col gap-2">
                             <button type="button" disabled={!(settings.timerOn || settings.punishOn)} onClick={startFromPregame} className="btn-primary w-full">{tr("Начать игру")}</button>
                             {!(settings.timerOn || settings.punishOn) && <p role="alert" className="inline-error"><span aria-hidden="true" className="inline-error-i">!</span><span>{tr("Включите хотя бы одно усложнение: таймер или наказания.")}</span></p>}
                         </div>
+                        {strip}
                         </div>
                     </div>
             );
@@ -2125,7 +2306,7 @@ i18nSetLang(readStoredLang());
             };
             // ---- режим «Правда или действие»: запись карточек из админки ----
             const todSetList = (list, source, writeCache) => { todCardsRef.current = list; setTodCards(list); setTodSource(source); if (writeCache) todWriteCache(todCardsEnv.storage, list); };
-            const todUi = { Icons, SoundFX, AppFooter, showToast, showError: showErrorPopup, navigate, SettingSwitch, PopupModal, RoomStrip, tr, GameHeader, hdr: { muted: isMuted, onMute: toggleMute, lang, onLang: changeLang } };
+            const todUi = { Icons, SoundFX, AppFooter, showToast, showError: showErrorPopup, navigate, SettingSwitch, PopupModal, GameExitDialog, RoomStrip, tr, GameHeader, hdr: { muted: isMuted, onMute: toggleMute, lang, onLang: changeLang } };
             // ---- режим «Правда или действие»: партия на одном устройстве ----
             const todCardOf = (id) => todCardsRef.current.find(x => x.id === id) || (todIsMine(id) ? todMineRef.current.find(x => x.id === id) : undefined) || todExtraRef.current[id]; // null в todExtra — карточки нет в базе
             const todLevelOf = (id) => { const c = todCardOf(id); return c ? c.difficulty : null; };
@@ -2193,6 +2374,7 @@ i18nSetLang(readStoredLang());
             const todDropPause = () => { try { todPauseClear(localStorage); } catch (e) {} setTodPausedState(null); };
             const todPause = () => {
                 const st = todGameRef.current; if (!st || st.phase === 'ended' || !profile) { todLeave(); setTodGame(null); navigate('menu'); return; }
+                if (todRoomRef.current) awayLeave(todRoomOf(todRoomRef.current)); // остальным устройствам — пауза, пока не вернёмся; если их нет — ждать некого
                 const ok = (() => { try { return todPauseWrite(localStorage, { sid: profile.sessionId, t: Date.now(), deck: todDeckRef.current || todDeck, state: st }); } catch (e) { return false; } })();
                 if (ok) { try { setTodPausedState(todPauseRead(localStorage, profile.sessionId)); } catch (e) {} showToast(tr('Игра на паузе. «Продолжить игру» — на главной'), 3500); }
                 else showToast(tr('Не удалось сохранить паузу: игра закрыта'), 3500, 'warn');
@@ -2675,14 +2857,91 @@ i18nSetLang(readStoredLang());
                 };
                 check(); const id = setInterval(check, LIVE_INVITE_MS); return () => { stop = true; clearInterval(id); };
             }, [screen, liveRoomId]);
-            // выход из игры одного устройства не завершает её для остальных: просто убираем свою отметку
-            const liveLeave = () => {
+            // выход из игры одного устройства не завершает её для остальных. Если в игре есть другие устройства и мы вышли на другие страницы (why === 'screen'),
+            // оставляем метку «отошёл» — у остальных игра встаёт на паузу, пока мы не вернёмся; закрытие страницы (why === 'page') и выход без других устройств просто убирают отметку
+            const awayRef = useRef(null); const prevScreenRef = useRef(screen); const todAliveRef = useRef(0);
+            const awayPatch = (node, body, keepalive) => fetchWithTimeout(roomUrl(node, '/p'), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), keepalive: !!keepalive }, 6000).catch(() => {});
+            const awayStart = (node) => {
+                if (awayRef.current || !node || sessionTasks.blocked(profileRef.current && profileRef.current.sessionId)) return;
+                const me = deviceIdRef.current, since = Date.now(), key = liveAwayKey(me, since); awayRef.current = { node, key, since };
+                awayPatch(node, { [me]: null, [key]: since });
+            };
+            // уход с экрана игры: смотрим свежие отметки комнаты. Есть другие устройства в игре — оставляем «отошёл» (у них пауза); никого нет — ждать некого:
+            // стираем свою отметку и метки уже вышедших, чтобы тот, кто вернётся первым, не попал на пустую паузу
+            const awayLeave = async (node) => {
+                const me = deviceIdRef.current; setGamePause(null);
+                let others = null, away = [];
+                try { const r = await fetchWithTimeout(roomUrl(node, '/p') + '?t=' + Date.now(), {}, 6000); if (r.ok) { const res = liveAlive(await r.json(), Date.now(), me); others = res.others.length; away = res.away.filter(x => x.id !== me).map(x => x.key); } } catch (e) {}
+                if (others === null) others = Math.max(liveIdsRef.current.filter(x => x !== me).length, node.endsWith('_t') && todAliveRef.current > 1 ? 1 : 0);
+                if (others > 0) { awayStart(node); return; }
+                await awayPatch(node, Object.fromEntries([[me, null], ...away.map(k => [k, null])]));
+            };
+            const awayDrop = (keepalive) => { const a = awayRef.current; if (!a) return; awayRef.current = null; awayPatch(a.node, { [a.key]: null }, keepalive); };
+            const liveLeave = (why) => {
                 const room = liveRoomRef.current, me = deviceIdRef.current;
-                if (room) fetchWithTimeout(roomUrl(room, '/p/' + me), { method: 'DELETE', keepalive: true }, 6000).catch(() => {});
+                if (room) {
+                    if (why === 'screen') awayLeave(room);
+                    else fetchWithTimeout(roomUrl(room, '/p/' + me), { method: 'DELETE', keepalive: true }, 6000).catch(() => {});
+                }
                 liveRoomRef.current = ''; liveRoleRef.current = ''; liveSyncRef.current = false; setLive({ room: '', role: '', sync: false }); setLiveFx(null); setLiveCount(0);
             };
-            useEffect(() => { if (live.room && !['game', 'ai_response', 'summary'].includes(screen)) liveLeave(); }, [screen]);
-            useEffect(() => { const h = () => { if (liveRoomRef.current) liveLeave(); }; window.addEventListener('pagehide', h); return () => window.removeEventListener('pagehide', h); }, []);
+            useEffect(() => { if (live.room && !['game', 'ai_response', 'summary'].includes(screen)) liveLeave(['game', 'ai_response'].includes(prevScreenRef.current) ? 'screen' : ''); }, [screen]);
+            // «Правда или действие»: ушли с экрана партии на другие страницы, не нажав «Поставить на паузу» (например, «Назад» в браузере) — тоже «отошёл»
+            useEffect(() => {
+                const room = todRoomRef.current, g = todGameRef.current;
+                if (prevScreenRef.current === 'tod_play' && !['tod_play', 'tod_results'].includes(screen) && room && g && g.phase !== 'ended') awayLeave(todRoomOf(room));
+            }, [screen]);
+            useEffect(() => { prevScreenRef.current = screen; }, [screen]);
+            // вернулись в игру (обычную или «Правду или действие») — «отошёл» снимается сразу
+            useEffect(() => {
+                const a = awayRef.current; if (!a) return;
+                const back = (!!live.room && a.node === live.room && ['game', 'ai_response'].includes(screen)) || (screen === 'tod_play' && !!todRoomRef.current && a.node === todRoomOf(todRoomRef.current));
+                if (back) awayDrop();
+            }, [screen, live.room]);
+            // пока мы «отошли» и страница открыта, раз в 8 с подтверждаем это; метка исчезла, стёрта (0) или игра закончилась — перестаём. Дольше 30 минут не держим, чтобы забытая вкладка не держала игру
+            useEffect(() => {
+                let busy = false;
+                const id = setInterval(async () => {
+                    const a = awayRef.current; if (!a || busy || document.hidden) return; busy = true;
+                    try {
+                        const p = profileRef.current;
+                        if (!p || sessionTasks.blocked(p.sessionId) || Date.now() - a.since > AWAY_MAX_MS) { awayDrop(); return; }
+                        const [vr, sr] = await Promise.all([fetchWithTimeout(roomUrl(a.node, '/p/' + a.key) + '?t=' + Date.now(), {}, 6000), fetchWithTimeout(roomUrl(a.node, '/status') + '?t=' + Date.now(), {}, 6000)]);
+                        if (!vr.ok || !sr.ok) return;
+                        const v = await vr.json(), st = await sr.json();
+                        if (awayRef.current !== a) return;
+                        if (st !== 'active' || !(Number(v) > 0)) { awayRef.current = null; return; }
+                        await awayPatch(a.node, { [a.key]: Date.now() });
+                    } catch (e) {} finally { busy = false; }
+                }, LIVE_BEAT_MS);
+                return () => clearInterval(id);
+            }, []);
+            useEffect(() => { const h = () => { awayDrop(true); if (liveRoomRef.current) liveLeave('page'); }; window.addEventListener('pagehide', h); return () => window.removeEventListener('pagehide', h); }, []);
+            // ---- пауза у всех, пока кто-то из игроков «отошёл» ----
+            useEffect(() => {
+                const inLive = ['game', 'ai_response'].includes(screen) && !!live.room, inTod = screen === 'tod_play' && !!todGame;
+                if (!inLive && !inTod) { setGamePause(null); return undefined; }
+                let stop = false, busy = false;
+                const tick = async () => {
+                    if (busy || stop || document.hidden) return; busy = true;
+                    try {
+                        const node = inTod ? (todRoomRef.current ? todRoomOf(todRoomRef.current) : '') : live.room; if (!node) return;
+                        const r = await fetchWithTimeout(roomUrl(node, '/p') + '?t=' + Date.now(), {}, 6000); if (!r.ok || stop) return;
+                        const res = liveAlive(await r.json(), Date.now(), deviceIdRef.current); if (stop) return;
+                        if (inTod) todAliveRef.current = res.alive.length;
+                        const away = res.away.filter(x => x.id !== deviceIdRef.current);
+                        setGamePause(away.length ? (cur => { const since = Math.min(...away.map(x => x.since)); return cur && cur.since === since && cur.n === away.length && cur.node === node ? cur : { since, n: away.length, node, keys: away.map(x => x.key) }; }) : null);
+                    } catch (e) {} finally { busy = false; }
+                };
+                tick(); const id = setInterval(tick, LIVE_PAUSE_MS); const vis = () => { if (!document.hidden) tick(); }; document.addEventListener('visibilitychange', vis);
+                return () => { stop = true; clearInterval(id); document.removeEventListener('visibilitychange', vis); };
+            }, [screen, live.room, !!todGame]);
+            // «Продолжить без них»: метки вышедших гасятся (значение 0), игра идёт дальше; они смогут вернуться позже через «Присоединиться» или «Продолжить игру»
+            const pauseSkip = () => {
+                const g = gamePause; if (!g) return; SoundFX.click();
+                awayPatch(g.node, Object.fromEntries(g.keys.map(k => [k, 0]))); setGamePause(null);
+                showToast(tr('Игра идёт дальше без вышедших. Они смогут вернуться позже'), 3500, 'info');
+            };
             useEffect(() => { if (liveEnded) { setLiveEnded(false); showToast(tr('Игра завершена на другом устройстве'), 2800, 'info'); handleFinishGame(false); } }, [liveEnded]);
             // присоединение к идущей игре. Если хозяин пока один, он пришлёт вопросы, только увидев нас, — поэтому сначала отмечаемся в комнате и ждём
             const liveJoinFlow = async (snap0, quiet = false) => {
@@ -2900,9 +3159,11 @@ i18nSetLang(readStoredLang());
             const pwaModalProps = { showPwaModal, setShowPwaModal, isInAppWebView, pwaPlatformTab, setPwaPlatformTab, triggerIosNativeShareMenu };
 
             // страницы без сессии: «Об игре», документы, быстрое подключение. Показываем сразу, не дожидаясь загрузки вопросов
+            // окно общей паузы поверх игры (обычной, усложнённой и «Правды или действия»)
+            const pauseOverlay = (gamePause && ['game', 'ai_response', 'tod_play'].includes(screen)) ? <PausedOverlay since={gamePause.since} count={gamePause.n} mode={screen === 'tod_play' ? 'tod' : (fx.timerOn || fx.punishOn) ? 'hard' : 'normal'} onSkip={pauseSkip} onMenu={() => { SoundFX.click(); if (screen === 'tod_play') todPause(); else navigate('menu'); }} /> : null;
             const pageBack = () => navigate(profile ? 'app_menu' : 'onboarding');
             if (PUBLIC_SCREENS.includes(screen)) {
-                const shell = (children, links = true) => (<div className="safe-screen w-full flex flex-col items-center slide-up relative z-10">{children}<AppFooter noLinks={!links} /></div>);
+                const shell = (children, links = true) => (<div className="safe-screen selectable w-full flex flex-col items-center slide-up relative z-10">{children}<AppFooter noLinks={!links} /></div>);
                 if (screen === 'about') return shell(<AboutPage profileDb={profileDb} topicCount={CATEGORIES.length} hasProfile={!!profile} onBack={pageBack} onStart={() => navigate(profile ? 'menu' : 'onboarding')} onShare={sharePage} />);
                 if (screen === 'join') {
                     const sameSession = !!(joinInvite && profile && profile.sessionKey === joinInvite.key);
@@ -3260,8 +3521,8 @@ if (screen === 'app_menu') {
             if (screen === 'tod_play' && todGame) {
                 const lvAvail = { easy: !!todNext(todDeck, todGame.cur, 'dare.easy'), medium: !!todNext(todDeck, todGame.cur, 'dare.medium'), hard: !!todNext(todDeck, todGame.cur, 'dare.hard') };
                 if (todGame.phase === 'ended') return <TodResults ui={todUi} state={todGame} titles={todTitles(todGame, TOD_TITLES)} onAgain={todAgain} onMenu={() => navigate('menu')} banner={todInviteBanner} />;
-                return <TodGame ui={todUi} desktop={desk} state={todGame} banter={todPickBanter(todGame, TOD_BANTER, tr)} cardText={todTextOf} levelAvail={lvAvail} onAction={todDispatch}
-                    onEnd={() => { todTapRef.current = 0; if (todDispatch({ t: 'end' })) navigate('tod_results'); }} onPause={todPause} />;
+                return <><TodGame ui={todUi} desktop={desk} state={todGame} banter={todPickBanter(todGame, TOD_BANTER, tr)} cardText={todTextOf} levelAvail={lvAvail} onAction={todDispatch}
+                    onEnd={() => { todTapRef.current = 0; if (todDispatch({ t: 'end' })) navigate('tod_results'); }} onPause={todPause} />{pauseOverlay}</>;
             }
             if (screen === 'tod_results' && todGame) {
                 return <TodResults ui={todUi} state={todGame} titles={todTitles(todGame, TOD_TITLES)} onAgain={todAgain} onMenu={() => navigate('menu')} banner={todInviteBanner} />;
@@ -3490,7 +3751,6 @@ if (screen === 'mode_select') {
                         <main className="w-full max-w-md lg:max-w-5xl flex flex-col gap-4 pt-6 pb-8">
                             {liveInviteBanner}
                             {todInviteBanner}
-                            {lobbyStrip}
                             <div className="mode-grid">
                             <button disabled={stats.availableActive === 0} onClick={() => { SoundFX.click(); setHardMode(false); startWithMode('normal', { hard: false }); }} className="opt-card opt-brand">
                                 <span aria-hidden="true" className="w-12 h-12 rounded-xl bg-rose-500/20 flex items-center justify-center text-2xl flex-shrink-0">💬</span>
@@ -3515,7 +3775,7 @@ if (screen === 'mode_select') {
                                 </span>
                             </button>
                             </div>
-                            <p className="px-2 text-xs text-zinc-400 leading-relaxed text-center">{tf("👥 К игре можно подключить до {v0} устройств (по числу игроков): вопросы, очередь и таймер будут общими. Пригласить — кнопкой в шапке.", { v0: profile ? deviceCap(profile) : MAX_PLAYERS })}</p>
+                            <p className="px-2 text-xs text-zinc-400 leading-relaxed text-center">{tf("👥 К игре можно подключить до {v0} игроков: вопросы, очередь и таймер будут общими. Пригласить — кнопкой в шапке.", { v0: MAX_PLAYERS })}</p>
                             {isAdmin && (
                                 <button onClick={() => { SoundFX.click(); setHardMode(false); startWithMode('test'); }} className="opt-card">
                                     <span aria-hidden="true" className="w-12 h-12 rounded-xl bg-white/[0.07] flex items-center justify-center text-2xl flex-shrink-0">🧪</span>
@@ -3525,6 +3785,7 @@ if (screen === 'mode_select') {
                                     </span>
                                 </button>
                             )}
+                            {lobbyStrip}
                         </main>
                         <AppFooter divider={false} />
                     </div>
@@ -3579,18 +3840,11 @@ if (screen === 'mode_select') {
 
                             <div className="flex flex-col items-center text-center gap-3 py-1">
                                 <AskMeLogo size="lg" onClick={handleLogoSecretTap} />
-                                <p className="text-rose-400 text-xs sm:text-xs font-extrabold mt-0.5">
-                                    {!profile ? tr("Откровенные разговоры для пар и компаний") : isGroup ? tr("Откровенные разговоры для компании") : tr("Откровенные разговоры для двоих")}
-                                </p>
+                                {(() => { const subT = !profile ? tr("Откровенные разговоры для пар и компаний") : isGroup ? tr("Откровенные разговоры для компании") : tr("Откровенные разговоры для двоих"); return (
+                                    <div className="home-sub-wrap"><p className="home-sub" style={{ '--sub-em': (subT.length * 0.6).toFixed(1) }}>{subT}</p></div>
+                                ); })()}
                                 {profile ? (
-                                    <div className="flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1 text-base font-semibold text-white max-w-sm">
-                                        {profile.players.map((p, i) => (
-                                            <React.Fragment key={p.id}>
-                                                <span className="truncate max-w-[9rem]">{p.name}</span>
-                                                {i < pCount - 1 && <span aria-hidden="true" className={isGroup ? 'text-base' : 'text-rose-500 text-sm'}>{isGroup ? GROUP_EMOJIS_SHUFFLED[i % GROUP_EMOJIS_SHUFFLED.length] : '♥'}</span>}
-                                            </React.Fragment>
-                                        ))}
-                                    </div>
+                                    <HomePlayers players={profile.players} group={isGroup} emojis={GROUP_EMOJIS_SHUFFLED} onShare={() => openInvite('menu')} onChange={(players) => setProfile(prev => (prev ? { ...prev, players, updatedAt: Date.now() } : prev))} />
                                 ) : ( <p className="text-white text-sm font-semibold">{tr("Режим предпросмотра")}</p> )}
                             </div>
                             <div className="hairline-divider"></div>
@@ -3643,6 +3897,7 @@ if (screen === 'mode_select') {
                                             <div id="start-hint" aria-live="polite">{startBlock && ( <p key={startErrTick} role={startErrTick ? 'alert' : undefined} className={`inline-error ${startErrTick ? 'shake' : ''}`}><span aria-hidden="true" className="inline-error-i">!</span><span>{startBlock}{isAdmin ? tr(" Тестовый режим доступен и без выбора.") : ''}</span></p> )}</div>
                                             {profile && ( <p className="mt-3.5 text-center text-xs text-zinc-500">{tr("ID сессии:")} <span className="font-semibold text-zinc-300 select-all">{profile.sessionId}</span></p> )}
                                         </div>
+                                        {desk && <DeskTeaser />}
                                     </div>
                                 </div>
                             </div>
@@ -3748,13 +4003,13 @@ if (screen === 'mode_select') {
 
                         <div className="fixed bottom-0 left-0 right-0 p-4 sm:p-6 z-20 bg-gradient-to-t from-[#0a0710] via-[#0a0710]/90 to-transparent" style={{ paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom))' }}>
                             <div className="max-w-lg mx-auto grid grid-cols-2 gap-3.5">
-                                <button onClick={handlePrevQuestion} disabled={currentIndex === 0} className="btn-secondary w-full flex items-center justify-center gap-2"><Icons.Back /> {tr("Назад")}</button>
-                                <button onClick={handleNextQuestion} className="btn-primary w-full flex items-center justify-center gap-2">{(currentIndex === gameQuestions.length - 1 && turnDone) ? (gameMode === 'test' ? tr("В меню") : tr("Итоги")) : tr("Далее")} <Icons.Next /></button>
+                                <button onClick={() => pressSwipeBtn('left')} disabled={currentIndex === 0} className="btn-secondary w-full flex items-center justify-center gap-2"><Icons.Back /> {tr("Назад")}</button>
+                                <button onClick={() => pressSwipeBtn('right')} className="btn-primary w-full flex items-center justify-center gap-2">{(currentIndex === gameQuestions.length - 1 && turnDone) ? (gameMode === 'test' ? tr("В меню") : tr("Итоги")) : tr("Далее")} <Icons.Next /></button>
                             </div>
                         </div>
 
-                        <PopupModal isOpen={gameMode === 'normal' && turnPopup.open} onClose={handleCloseRoulettePopup}>
-                            <div className="text-center flex flex-col items-center justify-between gap-5 pt-1 min-h-[300px]">
+                        <PopupModal wide isOpen={gameMode === 'normal' && turnPopup.open} onClose={handleCloseRoulettePopup}>
+                            <div className="roulette-dlg text-center flex flex-col items-center justify-between gap-5 pt-1 min-h-[300px]">
                                 <div className="w-full flex flex-col items-center gap-4">
                                     <span className="text-xs font-bold text-zinc-500">{tr("Вопрос №")} {currentQ.num} {tr("• Очередь")}</span>
                                     <h3 className="text-lg font-bold text-white">{turnPopup.spinning ? tr("Определяем, кто отвечает…") : tr("Отвечает:")}</h3>
@@ -3821,16 +4076,13 @@ if (screen === 'mode_select') {
                             </div>
                         </PopupModal>
 
-                        <PopupModal isOpen={showEndGameConfirm} onClose={() => setShowEndGameConfirm(false)}>
-                            <div className="text-center flex flex-col items-center gap-4 pt-2">
-                                <h3 className="text-lg font-bold text-white px-8">{gameMode === 'normal' ? tr("Вы действительно хотите закончить игру?") : tr("Завершить текущую партию?")}</h3>
-                                {gameMode === 'normal' && <p className="text-xs text-zinc-300 leading-relaxed">{tr("Можно поставить игру на паузу: она сохранится, а «Продолжить игру» ждёт на главной.")}</p>}
-                                {gameMode === 'normal' && <button type="button" onClick={() => { SoundFX.click(); setShowEndGameConfirm(false); navigate('menu'); }} className="btn-primary w-full"><Icons.Pause /> {tr("Поставить на паузу")}</button>}
-                                {gameMode === 'normal' && <p className="text-xs text-zinc-400 leading-relaxed">{tr("Если закончить, пройденные вопросы (")}{maxReachedIndex + 1} {tr("шт.) перейдут в Архив сессии")} <b className="text-rose-300">{profile.sessionId}</b>.</p>}
-                                {live.room && liveCount > 1 && <p className="text-xs text-amber-200/90 leading-relaxed">{tr("Партия закончится у всех: в игре")} {liveCount} {declOfNum(liveCount, ['устройство', 'устройства', 'устройств'])}{tr(". Чтобы выйти только самому, выберите «Поставить на паузу».")}</p>}
-                                <div className="grid grid-cols-2 gap-3 w-full"> <button onClick={() => { SoundFX.click(); setShowEndGameConfirm(false); }} className="btn-secondary w-full">{tr("Отмена")}</button> <button onClick={() => handleFinishGame(false)} className="btn-secondary w-full">{live.room && liveCount > 1 ? tr("Для всех") : tr("Да")}</button> </div>
-                            </div>
-                        </PopupModal>
+                        {pauseOverlay}
+                        <GameExitDialog isOpen={showEndGameConfirm} onClose={() => setShowEndGameConfirm(false)}
+                            title={gameMode === 'normal' ? tr("Вы действительно хотите закончить игру?") : tr("Завершить текущую партию?")}
+                            onPause={gameMode === 'normal' ? () => { SoundFX.click(); setShowEndGameConfirm(false); navigate('menu'); } : null}
+                            onExit={() => handleFinishGame(false)} exitLabel={live.room && liveCount > 1 ? tr("Для всех") : tr("Выйти")}
+                            note={gameMode === 'normal' ? <>{tr("Если закончить, пройденные вопросы (")}{maxReachedIndex + 1} {tr("шт.) перейдут в Архив сессии")} <b className="text-rose-300">{profile.sessionId}</b>.</> : null}
+                            warn={live.room && liveCount > 1 ? <>{tr("Партия закончится у всех: в игре")} {liveCount} {declOfNum(liveCount, ['устройство', 'устройства', 'устройств'])}{tr(". Если выйти только самому («Поставить на паузу»), у остальных игра встанет на паузу, пока вы не вернётесь.")}</> : null} />
                     </div>
                 );
             }
@@ -3849,6 +4101,7 @@ if (screen === 'mode_select') {
                             </div>
                         </main>
                         <div className="fixed bottom-0 left-0 right-0 p-4 sm:p-6 z-20 bg-gradient-to-t from-[#0a0710] via-[#0a0710]/90 to-transparent"> <div className="max-w-xl mx-auto"> <button onClick={() => { SoundFX.click(); navigate('game'); }} className="btn-primary w-full flex items-center justify-center">{tr("К вопросу")}</button> </div> </div>
+                        {pauseOverlay}
                     </div>
                 );
             }

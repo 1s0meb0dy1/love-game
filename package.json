@@ -13,7 +13,8 @@
     "size": "node scripts/check-size.mjs",
     "verify": "npm test && npm run build && npm run size",
     "rules:render": "node scripts/render-rules.mjs",
-    "test:rules": "npx -y firebase-tools@latest emulators:exec --config firebase/emulator.json --project demo-love-game --only database \"node tests/firebase-rules.test.cjs\""
+    "test:rules": "npx -y firebase-tools@latest emulators:exec --config firebase/emulator.json --project demo-love-game --only database \"node tests/firebase-rules.test.cjs\"",
+    "bump": "node scripts/bump-version.mjs"
   },
   "dependencies": {
     "qrcode-generator": "1.4.4",

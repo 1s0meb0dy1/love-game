@@ -35,11 +35,11 @@ const play = async (A, tone = 'Мягкий') => { await A.toLobby(); const b = 
     T('два быстрых нажатия «Ответил(а)» (в пределах 500 мс) -> ход передан один раз', A.heading() === 'Ход игрока: Макс' && !A.btn('Пропустить'));
     T('кнопки хода — классы btn-* или opt-card (не меньше 44 px по дизайн-системе)', [A.btn('Правда'), A.btn('Действие'), A.btn('Меню')].every(b => b && /\b(btn-[a-z]+|opt-card)\b/.test(b.className)));
     await A.sleep(550); await A.press('Меню', 350);
-    T('«Завершить» просит подтверждения', A.text().includes('Вы действительно хотите закончить игру?') && !!A.btn('Завершить для всех') && A.btn('Завершить для всех').className.includes('btn-danger'));
-    await A.press('Вернуться в игру', 350);
-    T('«Вернуться в игру» возвращает в игру', !A.text().includes('Вы действительно хотите закончить игру?') && A.hashNow() === '#/tod/play' && A.heading() === 'Ход игрока: Макс');
-    await A.press('Меню', 350); await A.press('Завершить для всех', 500);
-    T('«Завершить для всех» открывает итоги (#/tod/results)', A.hashNow() === '#/tod/results' && A.D.title === 'Итоги — Правда или действие — ASK ME' && A.text().includes('Зал позора'));
+    T('«Завершить» просит подтверждения', A.text().includes('Вы действительно хотите закончить игру?') && !!A.btn('Выйти') && A.btn('Выйти').className.includes('btn-secondary'));
+    await A.press('Отмена', 350);
+    T('«Отмена» возвращает в игру', !A.text().includes('Вы действительно хотите закончить игру?') && A.hashNow() === '#/tod/play' && A.heading() === 'Ход игрока: Макс');
+    await A.press('Меню', 350); await A.press('Выйти', 500);
+    T('«Выйти» открывает итоги (#/tod/results)', A.hashNow() === '#/tod/results' && A.D.title === 'Итоги — Правда или действие — ASK ME' && A.text().includes('Зал позора'));
     done(A);
 
     A = await boot(); await play(A, 'Выкл');
@@ -92,7 +92,7 @@ const play = async (A, tone = 'Мягкий') => { await A.toLobby(); const b = 
     T('карточка действия: метка уровня тоже с точками без эмодзи', !!A.D.querySelector('.tod-card .tod-lvl-dots') && !/[🟢🟡🔴]/u.test(A.D.querySelector('.tod-card').textContent));
     // «Назад» тоже спрашивает подтверждение и ведёт в лобби
     await A.sleep(550); await A.tap(A.D.querySelector('header button[aria-label="Назад"]'), 350);
-    T('«Назад» открывает вопрос «Вы действительно хотите закончить игру?» с тремя вариантами', A.text().includes('Вы действительно хотите закончить игру?') && !!A.btn('Завершить для всех') && !!A.btn('Поставить на паузу') && !!A.btn('Вернуться в игру'));
+    T('«Назад» открывает вопрос «Вы действительно хотите закончить игру?» с паузой, «Отмена» и «Выйти»', A.text().includes('Вы действительно хотите закончить игру?') && !!A.btn('Выйти') && !!A.btn('Поставить на паузу') && !!A.btn('Отмена'));
     await A.press('Поставить на паузу', 600);
     T('пауза через «Назад» тоже ведёт на главную, где «Продолжить игру» стоит над «Начать новую игру»', A.hashNow() === '#/' && A.btns().findIndex(b => b.textContent.includes('Продолжить игру')) >= 0 && A.btns().findIndex(b => b.textContent.includes('Продолжить игру')) < A.btns().findIndex(b => b.textContent.includes('Начать новую игру')));
     done(A);
