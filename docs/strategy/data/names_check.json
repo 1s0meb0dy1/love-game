@@ -1,0 +1,4364 @@
+[
+ {
+  "name": "audax",
+  "group": "latin",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Audax"
+   ],
+   "partial": [
+    "Audax Fitness",
+    "Brevet Map: Audax Randonneur",
+    "Audax Capital"
+   ]
+  }
+ },
+ {
+  "name": "audeo",
+  "group": "latin",
+  "com": "taken",
+  "io": "unknown",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "partial",
+   "exact": [],
+   "partial": [
+    "Audeobox"
+   ]
+  }
+ },
+ {
+  "name": "ausus",
+  "group": "latin",
+  "com": "taken",
+  "io": "taken",
+  "app": "free",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "verum",
+  "group": "latin",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Verum",
+    "Verum"
+   ],
+   "partial": [
+    "Verum Mail",
+    "Verum Exchange",
+    "Verum VPN - Secure & Anonymous"
+   ]
+  }
+ },
+ {
+  "name": "vero",
+  "group": "latin",
+  "com": "taken",
+  "io": "unknown",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "VERO",
+    "Vero+",
+    "Vero"
+   ],
+   "partial": [
+    "Vero Live",
+    "Vero WiFi",
+    "فيرو - Vero"
+   ]
+  }
+ },
+ {
+  "name": "rubor",
+  "group": "latin",
+  "com": "taken",
+  "io": "unknown",
+  "app": "free",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "partial",
+   "exact": [],
+   "partial": [
+    "Rubo – Real Global Encounters"
+   ]
+  }
+ },
+ {
+  "name": "ardor",
+  "group": "latin",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Ardor"
+   ],
+   "partial": [
+    "My Ardor English Prime",
+    "Ardor Albury"
+   ]
+  }
+ },
+ {
+  "name": "flamma",
+  "group": "latin",
+  "com": "taken",
+  "io": "unknown",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "ignis",
+  "group": "latin",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "IGNIS | Wildfire Operations",
+    "Ignis",
+    "Ignis"
+   ],
+   "partial": [
+    "Ignis AI: Calories & Workouts",
+    "Ignis Pixel",
+    "Ignis by Tiket.com"
+   ]
+  }
+ },
+ {
+  "name": "nox",
+  "group": "latin",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "taken",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "NOX - Mystery Adventure Escape",
+    "Nox: AI Personal Coach",
+    "Nox - Your Student Network"
+   ],
+   "partial": []
+  }
+ },
+ {
+  "name": "noctis",
+  "group": "latin",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "NOCTIS",
+    "Noctis: Sleep & White Noise",
+    "Noctis: Horror Game"
+   ],
+   "partial": [
+    "Noctis Sleep Journal",
+    "Noctis Luxury Watch Face"
+   ]
+  }
+ },
+ {
+  "name": "vesper",
+  "group": "latin",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Vesper",
+    "Vesper: Voice Greeting Card",
+    "Vesper"
+   ],
+   "partial": [
+    "Vesper Tool",
+    "Vesper VIP",
+    "VESPER Your Vegas Companion"
+   ]
+  }
+ },
+ {
+  "name": "fortis",
+  "group": "latin",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Fortis",
+    "Fortis+",
+    "Fortis: Workout Log & Tracker"
+   ],
+   "partial": [
+    "myFortis",
+    "Fortis Mobile",
+    "Fortis QMS"
+   ]
+  }
+ },
+ {
+  "name": "cupido",
+  "group": "latin",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Cupido - Connect & Chat",
+    "Cupido"
+   ],
+   "partial": [
+    "Cupido New York"
+   ]
+  }
+ },
+ {
+  "name": "ludo",
+  "group": "latin",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "taken",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Ludo",
+    "Ludo",
+    "Ludo - Classic"
+   ],
+   "partial": [
+    "Ludo King®",
+    "Ludo Club - Fun Dice Game",
+    "Ludo STAR: Online Dice Game"
+   ]
+  }
+ },
+ {
+  "name": "ludus",
+  "group": "latin",
+  "com": "taken",
+  "io": "unknown",
+  "app": "taken",
+  "game": "taken",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Ludus",
+    "Ludus",
+    "Ludus - Board Game Tracker"
+   ],
+   "partial": [
+    "Ludus Mobile",
+    "LUDUS・PvP Merge Battle Game",
+    "Ludus Complex"
+   ]
+  }
+ },
+ {
+  "name": "iocus",
+  "group": "latin",
+  "com": "taken",
+  "io": "free",
+  "app": "free",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "risus",
+  "group": "latin",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "sodalis",
+  "group": "latin",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "partial",
+   "exact": [],
+   "partial": [
+    "Sodalis Senior living",
+    "mySodalis",
+    "Sodalis Attendance"
+   ]
+  }
+ },
+ {
+  "name": "arcanum",
+  "group": "latin",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Arcanum",
+    "Arcanum",
+    "Arcanum"
+   ],
+   "partial": [
+    "Arcanum Lux — Tarot Readings",
+    "Bar Arcanum 3-Minute Mysteries",
+    "Tempus Arcanum: Watch Faces"
+   ]
+  }
+ },
+ {
+  "name": "fateor",
+  "group": "latin",
+  "com": "taken",
+  "io": "free",
+  "app": "free",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "confessio",
+  "group": "latin",
+  "com": "taken",
+  "io": "free",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Confessio: Catholic Confession",
+    "Confessio"
+   ],
+   "partial": [
+    "Confession Mirror",
+    "Metanoia: Catholic Confession",
+    "Confessions : Say the thing"
+   ]
+  }
+ },
+ {
+  "name": "rogo",
+  "group": "latin",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "partial",
+   "exact": [],
+   "partial": [
+    "ROGO Rent",
+    "Coaching by Rogo",
+    "Rogo Radio"
+   ]
+  }
+ },
+ {
+  "name": "quaero",
+  "group": "latin",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "partial",
+   "exact": [],
+   "partial": [
+    "Fidat Quaero"
+   ]
+  }
+ },
+ {
+  "name": "dicta",
+  "group": "latin",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Dicta - Majlislar AI kotibi"
+   ],
+   "partial": [
+    "Dicta AI: Voice to Text App",
+    "Dicta Illuminate",
+    "DictaAI: Voice to Text"
+   ]
+  }
+ },
+ {
+  "name": "aude",
+  "group": "latin",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "partial",
+   "exact": [],
+   "partial": [
+    "Claude by Anthropic",
+    "Audeus Text to Speech",
+    "Audeara"
+   ]
+  }
+ },
+ {
+  "name": "sors",
+  "group": "latin",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "sors",
+    "SORS"
+   ],
+   "partial": [
+    "SOR - Safety on The Road"
+   ]
+  }
+ },
+ {
+  "name": "alea",
+  "group": "latin",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Alea: Decision Maker & Raffle",
+    "Alea – Calisthenics Dice",
+    "ALEA"
+   ],
+   "partial": [
+    "alea App",
+    "Alea Fitness & Yoga",
+    "Alea Events"
+   ]
+  }
+ },
+ {
+  "name": "fatum",
+  "group": "latin",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Fatum: Palm Reader & Astrology"
+   ],
+   "partial": [
+    "Fatum Character Creator Deck",
+    "Fatuma’s Voice Forum"
+   ]
+  }
+ },
+ {
+  "name": "convivium",
+  "group": "latin",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Convivium",
+    "Convivium"
+   ],
+   "partial": [
+    "Convivium Condomínios"
+   ]
+  }
+ },
+ {
+  "name": "gaudium",
+  "group": "latin",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "laetus",
+  "group": "latin",
+  "com": "taken",
+  "io": "free",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Laetus: Luck Analytics",
+    "LAETUS"
+   ],
+   "partial": []
+  }
+ },
+ {
+  "name": "festa",
+  "group": "latin",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "taken",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Festa",
+    "Festa: Malta & Gozo Events"
+   ],
+   "partial": [
+    "TP-Link Festa",
+    "FESTAS",
+    "FestaApp"
+   ]
+  }
+ },
+ {
+  "name": "brio",
+  "group": "latin",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "BRIO"
+   ],
+   "partial": [
+    "BRIO Smart Tech Sound",
+    "Brio Tech",
+    "Brio Leisure"
+   ]
+  }
+ },
+ {
+  "name": "gusto",
+  "group": "latin",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Gusto - Cooking Assistant",
+    "Gusto",
+    "Gusto"
+   ],
+   "partial": [
+    "gusto! Rewards",
+    "Gusto's Pizza",
+    "MásGusto"
+   ]
+  }
+ },
+ {
+  "name": "candor",
+  "group": "latin",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Candor - Simplifying Claims",
+    "CANDOR: Anonymous Opinion",
+    "Candor: Private AI Journal"
+   ],
+   "partial": [
+    "Candor International School",
+    "Candor App",
+    "Candor IVF"
+   ]
+  }
+ },
+ {
+  "name": "lusus",
+  "group": "latin",
+  "com": "taken",
+  "io": "free",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "amicus",
+  "group": "latin",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Amicus"
+   ],
+   "partial": [
+    "Amicus Prime+",
+    "Amicus International School",
+    "Amicus INTERACT"
+   ]
+  }
+ },
+ {
+  "name": "socius",
+  "group": "latin",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Socius"
+   ],
+   "partial": [
+    "Your Socius",
+    "Socius Servicios",
+    "Socius BJJ Member App"
+   ]
+  }
+ },
+ {
+  "name": "noctua",
+  "group": "latin",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Noctua",
+    "Noctua - Daily Quote & Philo",
+    "NOCTUA"
+   ],
+   "partial": [
+    "Play by Noctua Games Beta",
+    "Noctuario"
+   ]
+  }
+ },
+ {
+  "name": "mirus",
+  "group": "latin",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Mirus"
+   ],
+   "partial": [
+    "Mirus Mobile",
+    "Mirus NEO",
+    "Mirus POS: Billing & WebStore"
+   ]
+  }
+ },
+ {
+  "name": "ausim",
+  "group": "latin",
+  "com": "taken",
+  "io": "free",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "partial",
+   "exact": [],
+   "partial": [
+    "AusIMM"
+   ]
+  }
+ },
+ {
+  "name": "quaestio",
+  "group": "latin",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Quaestio - Cartes",
+    "Quaestio - Quiz"
+   ],
+   "partial": [
+    "Quaestio Learn Anywhere"
+   ]
+  }
+ },
+ {
+  "name": "ausculta",
+  "group": "latin",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "partial",
+   "exact": [],
+   "partial": [
+    "Auscultation School",
+    "Auscultation | Heart Sounds",
+    "Auscultation World"
+   ]
+  }
+ },
+ {
+  "name": "fabula",
+  "group": "latin",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "narro",
+  "group": "latin",
+  "com": "taken",
+  "io": "unknown",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "NARRO"
+   ],
+   "partial": [
+    "Narro Reader - Text To Speech"
+   ]
+  }
+ },
+ {
+  "name": "murmur",
+  "group": "latin",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "taken",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Murmur - Anonymous Post, Chat",
+    "Murmur - Chat and See",
+    "Murmur: Voice to Text Recorder"
+   ],
+   "partial": [
+    "Murmur Master",
+    "A Soft Murmur",
+    "MurMur Picture Dictionary"
+   ]
+  }
+ },
+ {
+  "name": "susurro",
+  "group": "latin",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "partial",
+   "exact": [],
+   "partial": [
+    "Susurros del Corazón"
+   ]
+  }
+ },
+ {
+  "name": "secreta",
+  "group": "latin",
+  "com": "taken",
+  "io": "free",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Secreta: Hidden Text Messages",
+    "Secreta"
+   ],
+   "partial": []
+  }
+ },
+ {
+  "name": "mysterium",
+  "group": "latin",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Mysterium: A Psychic Clue Game",
+    "Mysterium"
+   ],
+   "partial": [
+    "Mysterium VPN: Fast & Secure",
+    "Mysterium Dark — Next Gen VPN",
+    "Mysterium Fidei"
+   ]
+  }
+ },
+ {
+  "name": "audacia",
+  "group": "latin",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Audacia: Desafío Hadal"
+   ],
+   "partial": [
+    "Audacia Audiolibros",
+    "AUDACIA FITNESS",
+    "Radio Audacia Online 2.0"
+   ]
+  }
+ },
+ {
+  "name": "bibo",
+  "group": "latin",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "taken",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Bibo: POS & Analytics"
+   ],
+   "partial": [
+    "BIBO Super App",
+    "BiBo Biz",
+    "Bibo Mart - Tã Sữa Chính Hãng"
+   ]
+  }
+ },
+ {
+  "name": "cena",
+  "group": "latin",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Cena"
+   ],
+   "partial": [
+    "John Cena HD Wallpaper 2024",
+    "John Cena Wallpaper HD & 4K",
+    "John Cena Wallpaper HD"
+   ]
+  }
+ },
+ {
+  "name": "vigilia",
+  "group": "latin",
+  "com": "taken",
+  "io": "unknown",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Vigilia",
+    "Vigilia: Lighthouse Logbook"
+   ],
+   "partial": [
+    "Vigilia Residential",
+    "Vigilia Connect"
+   ]
+  }
+ },
+ {
+  "name": "lucerna",
+  "group": "latin",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Lucerna – السراج اليومي",
+    "Lucerna: Akari Puzzle",
+    "Lucerna: Holy Bible"
+   ],
+   "partial": [
+    "Lucerna Auctions"
+   ]
+  }
+ },
+ {
+  "name": "spill",
+  "group": "english",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "partial",
+   "exact": [],
+   "partial": [
+    "Spilled!",
+    "Sand Spill! - Color Puzzle",
+    "SpillIt: Truth Party Game"
+   ]
+  }
+ },
+ {
+  "name": "blurt",
+  "group": "english",
+  "com": "taken",
+  "io": "unknown",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Blurt: Blurting Study Method",
+    "Blurt - Party Charades",
+    "Blurt - Improv & drinking game"
+   ],
+   "partial": [
+    "BlurtKey",
+    "Blur – The Social Party Game",
+    "Blurts: Voice Memos to Tasks"
+   ]
+  }
+ },
+ {
+  "name": "gossip",
+  "group": "english",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "taken",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Gossip",
+    "Gossip",
+    "Gossip"
+   ],
+   "partial": [
+    "GossipMaster",
+    "Gossip Harbor: Merge & Story",
+    "Gossip Street: Merge & Story"
+   ]
+  }
+ },
+ {
+  "name": "dish",
+  "group": "english",
+  "com": "taken",
+  "io": "unknown",
+  "app": "taken",
+  "game": "free",
+  "party": "taken",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Dish: Wireless Gamepad"
+   ],
+   "partial": [
+    "DISH Anywhere",
+    "MyDISH",
+    "Satellite Finder: Dish Network"
+   ]
+  }
+ },
+ {
+  "name": "confess",
+  "group": "english",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Confess",
+    "Confess",
+    "Confess"
+   ],
+   "partial": [
+    "ConfessIt",
+    "Confessio: Catholic Confession",
+    "Confession Mirror"
+   ]
+  }
+ },
+ {
+  "name": "dare",
+  "group": "english",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "partial",
+   "exact": [],
+   "partial": [
+    "Truth or Dare Game - Party App",
+    "Truth or Dare - Dirty & Spicy",
+    "Spiky - Truth or Dare Game"
+   ]
+  }
+ },
+ {
+  "name": "bluff",
+  "group": "english",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Bluff",
+    "BLUFF",
+    "BLUFF!"
+   ],
+   "partial": [
+    "Bluff Card Game",
+    "Bluff Master: Card Game",
+    "Bluff Master 420 - I Doubt It"
+   ]
+  }
+ },
+ {
+  "name": "fess",
+  "group": "english",
+  "com": "taken",
+  "io": "unknown",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Fess: Games That Get Personal"
+   ],
+   "partial": []
+  }
+ },
+ {
+  "name": "truthy",
+  "group": "english",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Truthy"
+   ],
+   "partial": []
+  }
+ },
+ {
+  "name": "daring",
+  "group": "english",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "partial",
+   "exact": [],
+   "partial": [
+    "Daring Descent - Make Money",
+    "Daring Abroad Network",
+    "Daring Meet - Video Conference"
+   ]
+  }
+ },
+ {
+  "name": "candid",
+  "group": "english",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "taken",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Candid: Catholic Speed Dating",
+    "Candid: Journal & Confidant",
+    "CAN/DID"
+   ],
+   "partial": [
+    "CANdid by DrinkPAK",
+    "Camdid: Candid Party Photos",
+    "Candid Learning"
+   ]
+  }
+ },
+ {
+  "name": "nosy",
+  "group": "english",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "partial",
+   "exact": [],
+   "partial": [
+    "Nosy Neighbors Coffee & Donuts",
+    "Nosy World",
+    "Nosy Neighbor"
+   ]
+  }
+ },
+ {
+  "name": "pry",
+  "group": "english",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Pry-ID"
+   ],
+   "partial": []
+  }
+ },
+ {
+  "name": "snoop",
+  "group": "english",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Snoop 翻手機",
+    "SNOOP"
+   ],
+   "partial": [
+    "Snoop Dogg Wallpaper HD",
+    "Snoop Dogg: Quotes & Game",
+    "Snoop, A Messenger"
+   ]
+  }
+ },
+ {
+  "name": "hush",
+  "group": "english",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Hush: Real Talks, Deep Chats",
+    "Hush:App Blocker & Screen Time",
+    "Hush: App Lock & Hide Apps"
+   ],
+   "partial": [
+    "Hush Dating App: Chat & Date",
+    "Hushed: US Second Phone Number",
+    "Hush Shop"
+   ]
+  }
+ },
+ {
+  "name": "whisper",
+  "group": "english",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Whisper",
+    "Whisper",
+    "Whisper"
+   ],
+   "partial": [
+    "Whisper Social",
+    "Whisper Secrets",
+    "Whisper AI Voice to Text"
+   ]
+  }
+ },
+ {
+  "name": "spark",
+  "group": "english",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "taken",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Spark: Chords, Backing Tracks",
+    "Spark: Daily Learning Puzzles",
+    "Spark"
+   ],
+   "partial": [
+    "Spark Mail: AI Email, Calendar",
+    "Customer Spark",
+    "Spark Flex"
+   ]
+  }
+ },
+ {
+  "name": "flirt",
+  "group": "english",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "partial",
+   "exact": [],
+   "partial": [
+    "Jaumo Dating App: Flirt & Date",
+    "My Flirt: Meet People Nearby",
+    "YouFlirt - flirt & chat app"
+   ]
+  }
+ },
+ {
+  "name": "blush",
+  "group": "english",
+  "com": "taken",
+  "io": "unknown",
+  "app": "taken",
+  "game": "free",
+  "party": "taken",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Blush: AI Dating Simulator",
+    "blush - Connect & Chat",
+    "Blush: Meet Someone Real"
+   ],
+   "partial": [
+    "Blush Blush - Idle Otome Game",
+    "BlushMe: Meet. Chat. Blush",
+    "Blush AI: Your Sweetest Corner"
+   ]
+  }
+ },
+ {
+  "name": "ember",
+  "group": "english",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "taken",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Ember",
+    "Ember - Play Games. Win Big.",
+    "Ember"
+   ],
+   "partial": [
+    "Eternal Ember",
+    "Ember Rewards",
+    "EMBER Smart Heating Control"
+   ]
+  }
+ },
+ {
+  "name": "blaze",
+  "group": "english",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "taken",
+  "party": "taken",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Blaze: Dating and chatting",
+    "Blaze - 4K Virtual Fireplace",
+    "Blaze"
+   ],
+   "partial": [
+    "Blaze Pizza",
+    "Blaze CU Mobile",
+    "BlazeTV"
+   ]
+  }
+ },
+ {
+  "name": "glow",
+  "group": "english",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "taken",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Glow: Diet Coach & Meal Plans",
+    "Glow",
+    "Glow: Lightning-Fast Bitcoin"
+   ],
+   "partial": [
+    "Glow Fashion Idol",
+    "Ovulation Tracker App | Glow",
+    "Glow Spin - Rhythm Reflex Game"
+   ]
+  }
+ },
+ {
+  "name": "buzz",
+  "group": "english",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "taken",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Buzz",
+    "Buzz",
+    "Buzz"
+   ],
+   "partial": [
+    "PolyBuzz: Chat with AI Friends",
+    "Buzz Cannabis",
+    "Buzz Captions & Translation"
+   ]
+  }
+ },
+ {
+  "name": "fizz",
+  "group": "english",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "taken",
+  "play": {
+   "status": "partial",
+   "exact": [],
+   "partial": [
+    "The Fizz - Buffalo Rock",
+    "Fizzz: AI Chat & Stories",
+    "Filthy Fizz"
+   ]
+  }
+ },
+ {
+  "name": "zing",
+  "group": "english",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "taken",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Zing - Jewish Music Streaming",
+    "Zing - Scents",
+    "Zing"
+   ],
+   "partial": [
+    "Zing AI: Home & Gym Workouts",
+    "Zing Credit Union Mobile App",
+    "Zing Health Member App"
+   ]
+  }
+ },
+ {
+  "name": "zest",
+  "group": "english",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "taken",
+  "party": "taken",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Zest",
+    "Zest",
+    "Zest."
+   ],
+   "partial": [
+    "Zest Cooking",
+    "Zest Mobile",
+    "Zest Connect"
+   ]
+  }
+ },
+ {
+  "name": "vibe",
+  "group": "english",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "taken",
+  "party": "taken",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "VIbe",
+    "Vibe",
+    "Vibe"
+   ],
+   "partial": [
+    "Vibe Dating App: Meet People",
+    "Vibe by Mistral (ex-Le Chat)",
+    "Vibe Credit Union"
+   ]
+  }
+ },
+ {
+  "name": "mingle",
+  "group": "english",
+  "com": "taken",
+  "io": "unknown",
+  "app": "taken",
+  "game": "free",
+  "party": "taken",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Mingle: Meetup IRL"
+   ],
+   "partial": [
+    "Mingle2: Dating, Chat & Meet",
+    "Christian Mingle: Dating App",
+    "Mingle Mate Serious Dating App"
+   ]
+  }
+ },
+ {
+  "name": "huddle",
+  "group": "english",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Huddle",
+    "Huddle",
+    "Huddle - Sports Club Manager"
+   ],
+   "partial": [
+    "Huddle Sports",
+    "Huddle.Team",
+    "Huddle Health"
+   ]
+  }
+ },
+ {
+  "name": "circle",
+  "group": "english",
+  "com": "taken",
+  "io": "unknown",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Circle",
+    "Circle: AI Job Search & Apply",
+    "Circle - Your DNA & Health"
+   ],
+   "partial": [
+    "Circle K",
+    "Circle Parental Controls App",
+    "Circle to Search"
+   ]
+  }
+ },
+ {
+  "name": "pass",
+  "group": "english",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "taken",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Pass: Request a Ride"
+   ],
+   "partial": [
+    "Password Manager - Proton Pass",
+    "Verkada Pass",
+    "PASS by KT - 인증을 넘어 일상으로 PASS"
+   ]
+  }
+ },
+ {
+  "name": "spin",
+  "group": "english",
+  "com": "taken",
+  "io": "unknown",
+  "app": "taken",
+  "game": "taken",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Spin - Electric Scooters"
+   ],
+   "partial": [
+    "Spin The Wheel - Random Picker",
+    "SPIN Safe Browser: Web Filter",
+    "Spinning Wheel + Roulette"
+   ]
+  }
+ },
+ {
+  "name": "flip",
+  "group": "english",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "taken",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "FLIP - Focus Timer for Study",
+    "Flip: Transfer & Cashback",
+    "Flip"
+   ],
+   "partial": [
+    "Flipp: Shop Grocery Deals",
+    "Flip Diving",
+    "Flip AI"
+   ]
+  }
+ },
+ {
+  "name": "deal",
+  "group": "english",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "taken",
+  "party": "free",
+  "play": {
+   "status": "partial",
+   "exact": [],
+   "partial": [
+    "DealSeek: Coupons & Discounts",
+    "Slickdeals: Deals & Discounts",
+    "Groupon – Deals & Coupons"
+   ]
+  }
+ },
+ {
+  "name": "draw",
+  "group": "english",
+  "com": "taken",
+  "io": "unknown",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "partial",
+   "exact": [],
+   "partial": [
+    "Draw it",
+    "FlipaClip: Draw 2D Animation",
+    "Simply Draw: Learn to Draw"
+   ]
+  }
+ },
+ {
+  "name": "pick",
+  "group": "english",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "taken",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Pick",
+    "Pick-Roll",
+    "Pick-Up On-Demand"
+   ],
+   "partial": [
+    "PICK Transportation OK",
+    "Pick 'Em Sports",
+    "Pick Them All"
+   ]
+  }
+ },
+ {
+  "name": "nudge",
+  "group": "english",
+  "com": "taken",
+  "io": "unknown",
+  "app": "taken",
+  "game": "free",
+  "party": "taken",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Nudge+",
+    "Nudge",
+    "Nudge"
+   ],
+   "partial": [
+    "The Nudge"
+   ]
+  }
+ },
+ {
+  "name": "poke",
+  "group": "english",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "taken",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Poke - To Do List",
+    "Poke",
+    "Poke"
+   ],
+   "partial": [
+    "Poke Genie -Remote Raid IV PvP",
+    "Poke House",
+    "Poke TCG Scanner Dragon Shield"
+   ]
+  }
+ },
+ {
+  "name": "wink",
+  "group": "english",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Wink - Friends & Dating App",
+    "Wink",
+    "Wink"
+   ],
+   "partial": [
+    "Winkit - AI Video Enhancer",
+    "Wink NEO",
+    "WinkNovel -Shorts & Dramas"
+   ]
+  }
+ },
+ {
+  "name": "giggle",
+  "group": "english",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "partial",
+   "exact": [],
+   "partial": [
+    "Giggle Babies - Toddler Care",
+    "Giggle Academy: Learn and Play",
+    "GiggleWiFi"
+   ]
+  }
+ },
+ {
+  "name": "snort",
+  "group": "english",
+  "com": "taken",
+  "io": "unknown",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "cackle",
+  "group": "english",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "taken",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "gabby",
+  "group": "english",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Gabby - Coaching & Meditation",
+    "Gabby - Words Create Bonds"
+   ],
+   "partial": [
+    "Gabbys Dollhouse: Cat Games",
+    "Gabby's Dollhouse NETFLIX",
+    "Gabby's Dollhouse Stickers"
+   ]
+  }
+ },
+ {
+  "name": "chatty",
+  "group": "english",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Chatty: AI Assistant",
+    "Chatty",
+    "Chatty - English Tutor"
+   ],
+   "partial": [
+    "Chatty AI",
+    "Chattygo-Live Video Call& Chat",
+    "Chatty AI: Multi Model AI Chat"
+   ]
+  }
+ },
+ {
+  "name": "yapper",
+  "group": "english",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "taken",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Yapper",
+    "Yapper - Your Chat Recap"
+   ],
+   "partial": [
+    "Yapper Live",
+    "Yapper Phone for ADHD brains",
+    "Yapper! Party Word Game"
+   ]
+  }
+ },
+ {
+  "name": "tattle",
+  "group": "english",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "partial",
+   "exact": [],
+   "partial": [
+    "TATTLE SYSTEMS GO"
+   ]
+  }
+ },
+ {
+  "name": "squeal",
+  "group": "english",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "partial",
+   "exact": [],
+   "partial": [
+    "Squeal on Pigs",
+    "Squeal / No Squeal UK Slot Sim",
+    "Monster Squeal Sounds"
+   ]
+  }
+ },
+ {
+  "name": "blab",
+  "group": "english",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "taken",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "BLAB.",
+    "Blab: Chat & Make New Friends",
+    "Blab: Voice Chat"
+   ],
+   "partial": [
+    "BlabBlab",
+    "Blabbik",
+    "BlaBlaCar: Carpooling and Bus"
+   ]
+  }
+ },
+ {
+  "name": "hotseat",
+  "group": "english",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "HotSeat",
+    "Hot Seat - Party Questions"
+   ],
+   "partial": [
+    "HotSeat Quiz",
+    "Hotseat Football Manager",
+    "Stack Rivals: Hotseat Physics"
+   ]
+  }
+ },
+ {
+  "name": "fireside",
+  "group": "english",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Fireside",
+    "Fireside",
+    "Fireside: Book Tracker & TBR"
+   ],
+   "partial": [
+    "Fireside Project",
+    "fireside MARKET Rewards",
+    "Fireside Rx"
+   ]
+  }
+ },
+ {
+  "name": "sleepover",
+  "group": "english",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "taken",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Sleepover - Exceptional Stays"
+   ],
+   "partial": [
+    "Royal Sleepover: Pajama Party!",
+    "BFF Sleepover Dress  Up Game"
+   ]
+  }
+ },
+ {
+  "name": "nightcap",
+  "group": "english",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Nightcap: Auto Power-Off Phone",
+    "Nightcap: Points for Two",
+    "Nightcap: BAC & Drink Tracker"
+   ],
+   "partial": [
+    "Nightcap POS",
+    "Captain Nightcap: Fall Asleep"
+   ]
+  }
+ },
+ {
+  "name": "afterglow",
+  "group": "english",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Afterglow: Mobile MMORPG",
+    "Afterglow: AI Video Maker",
+    "Afterglow: Wellness Companion"
+   ],
+   "partial": [
+    "Afterglow Icons Pro",
+    "Afterglow Drive - Sunset",
+    "Afterglow Premium"
+   ]
+  }
+ },
+ {
+  "name": "afterparty",
+  "group": "english",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "taken",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Afterparty: card game"
+   ],
+   "partial": [
+    "AfterParty Photos"
+   ]
+  }
+ },
+ {
+  "name": "lastcall",
+  "group": "english",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "LastCall",
+    "Last Call",
+    "Last Call"
+   ],
+   "partial": [
+    "Last Call Analytics",
+    "Last Call Lost",
+    "Last Call Liquor Mart"
+   ]
+  }
+ },
+ {
+  "name": "roundtwo",
+  "group": "english",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "partial",
+   "exact": [],
+   "partial": [
+    "Round Two Fitness & Cycle"
+   ]
+  }
+ },
+ {
+  "name": "rewind",
+  "group": "english",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Rewind - tours & experiences",
+    "Rewind: Music Discovery",
+    "Rewind: live video recorder"
+   ],
+   "partial": [
+    "Urban Rewind: Throwback Trivia",
+    "Audio Rewind",
+    "Rewinders: Time Loop Tactics"
+   ]
+  }
+ },
+ {
+  "name": "plottwist",
+  "group": "english",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "taken",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "PlotTwist: Episode Tracker",
+    "Plot Twist: Interactive Dramas",
+    "Plot Twist"
+   ],
+   "partial": [
+    "Crazy Story: Plot Twist"
+   ]
+  }
+ },
+ {
+  "name": "cliffhanger",
+  "group": "english",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "whodunit",
+  "group": "english",
+  "com": "taken",
+  "io": "free",
+  "app": "taken",
+  "game": "free",
+  "party": "taken",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Whodunit"
+   ],
+   "partial": [
+    "Whodunit Rooms: Crime Puzzles",
+    "Mission Masters Whodunit",
+    "Roomdoku: Sudoku Whodunit"
+   ]
+  }
+ },
+ {
+  "name": "hothand",
+  "group": "english",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "zavo",
+  "group": "invented",
+  "com": "taken",
+  "io": "unknown",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "quizo",
+  "group": "invented",
+  "com": "taken",
+  "io": "unknown",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Quizo - Kvíz v mobilu",
+    "Quizo"
+   ],
+   "partial": [
+    "Mr. Quizo"
+   ]
+  }
+ },
+ {
+  "name": "dareo",
+  "group": "invented",
+  "com": "taken",
+  "io": "unknown",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Dareo: Truth or Dare Online",
+    "Dareo: Truth or Dare Deck"
+   ],
+   "partial": []
+  }
+ },
+ {
+  "name": "truvo",
+  "group": "invented",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Truvo"
+   ],
+   "partial": [
+    "TruVo AI"
+   ]
+  }
+ },
+ {
+  "name": "verro",
+  "group": "invented",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "partial",
+   "exact": [],
+   "partial": [
+    "Verro Network",
+    "Verro Athlete",
+    "Verro AI - Interior designer"
+   ]
+  }
+ },
+ {
+  "name": "askly",
+  "group": "invented",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Askly",
+    "Askly - Social Q&A & Connect",
+    "Askly"
+   ],
+   "partial": [
+    "Askly AI"
+   ]
+  }
+ },
+ {
+  "name": "askify",
+  "group": "invented",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "askr",
+  "group": "invented",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "talko",
+  "group": "invented",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "TalkO: AI Tutor",
+    "Talko",
+    "Talko"
+   ],
+   "partial": [
+    "Talko Kids",
+    "TalkoLive"
+   ]
+  }
+ },
+ {
+  "name": "yapo",
+  "group": "invented",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "partial",
+   "exact": [],
+   "partial": [
+    "Yapon.uz"
+   ]
+  }
+ },
+ {
+  "name": "yappa",
+  "group": "invented",
+  "com": "taken",
+  "io": "unknown",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Yappa-Offline Expense & Bills",
+    "Yappa"
+   ],
+   "partial": [
+    "Yapp - AI Notes & Summaries"
+   ]
+  }
+ },
+ {
+  "name": "yapz",
+  "group": "invented",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "YAPZ - Party Games"
+   ],
+   "partial": [
+    "YAPZO – Voice Chat & Friends",
+    "YapZap - AI fun game for kids",
+    "YapZap: Music & Video Leagues"
+   ]
+  }
+ },
+ {
+  "name": "chatzy",
+  "group": "invented",
+  "com": "taken",
+  "io": "free",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Chatzy - Chat and Earn Money"
+   ],
+   "partial": [
+    "Chatzyo – Video & Text Chat",
+    "ChatzyBot",
+    "ChatZyr: Social App & Chatroom"
+   ]
+  }
+ },
+ {
+  "name": "spilz",
+  "group": "invented",
+  "com": "taken",
+  "io": "free",
+  "app": "free",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "gabbo",
+  "group": "invented",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Gabbo"
+   ],
+   "partial": []
+  }
+ },
+ {
+  "name": "jibo",
+  "group": "invented",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "partial",
+   "exact": [],
+   "partial": [
+    "JIBO IT Support"
+   ]
+  }
+ },
+ {
+  "name": "blabo",
+  "group": "invented",
+  "com": "taken",
+  "io": "free",
+  "app": "free",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "nuzo",
+  "group": "invented",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "partial",
+   "exact": [],
+   "partial": [
+    "Nuzo and Namia"
+   ]
+  }
+ },
+ {
+  "name": "kiro",
+  "group": "invented",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "taken",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "KIRO",
+    "Kiro",
+    "Kiro"
+   ],
+   "partial": [
+    "Kiro Mobile",
+    "KIRO Newsradio",
+    "Kiro Book"
+   ]
+  }
+ },
+ {
+  "name": "rilo",
+  "group": "invented",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "RiLo: Ride Local Vancouver",
+    "Rilo"
+   ],
+   "partial": [
+    "Rilo Self-Care & Routines"
+   ]
+  }
+ },
+ {
+  "name": "tavo",
+  "group": "invented",
+  "com": "taken",
+  "io": "unknown",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Tavo: Maintenance Calories"
+   ],
+   "partial": [
+    "TAVO Sleep",
+    "Tavour"
+   ]
+  }
+ },
+ {
+  "name": "lumo",
+  "group": "invented",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "taken",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Lumo: A Muslim Friend",
+    "Lumo – Ultimate Media Player",
+    "Lumo"
+   ],
+   "partial": [
+    "Lumo Music MP3",
+    "Lumo Stars",
+    "Lumo Wallet"
+   ]
+  }
+ },
+ {
+  "name": "pilo",
+  "group": "invented",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Pilo",
+    "Pilo"
+   ],
+   "partial": [
+    "Microsoft Copilot",
+    "PillO Pilot"
+   ]
+  }
+ },
+ {
+  "name": "zumo",
+  "group": "invented",
+  "com": "taken",
+  "io": "unknown",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "partial",
+   "exact": [],
+   "partial": [
+    "Zumo Thai"
+   ]
+  }
+ },
+ {
+  "name": "qoro",
+  "group": "invented",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "hivo",
+  "group": "invented",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "HIVO"
+   ],
+   "partial": []
+  }
+ },
+ {
+  "name": "orbo",
+  "group": "invented",
+  "com": "taken",
+  "io": "unknown",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "partial",
+   "exact": [],
+   "partial": [
+    "Orbot: Tor for Android",
+    "Orboot Earth AR by PlayShifu"
+   ]
+  }
+ },
+ {
+  "name": "fenx",
+  "group": "invented",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "bluro",
+  "group": "invented",
+  "com": "taken",
+  "io": "free",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "partial",
+   "exact": [],
+   "partial": [
+    "BluRock One",
+    "BlurOne: Blur Video, Face Blur",
+    "BlurOut: Blur & Censor Photo"
+   ]
+  }
+ },
+ {
+  "name": "vexa",
+  "group": "invented",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Vexa: Rocket Spin"
+   ],
+   "partial": [
+    "Vexa TV — مشغل بث مباشر"
+   ]
+  }
+ },
+ {
+  "name": "yeso",
+  "group": "invented",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "nexo",
+  "group": "invented",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "taken",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Nexo",
+    "NEXO",
+    "Nexo - Local Plans & Hangouts"
+   ],
+   "partial": [
+    "nexos.ai",
+    "Nexo People",
+    "Nexo Infinity"
+   ]
+  }
+ },
+ {
+  "name": "kavo",
+  "group": "invented",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Kavo - Sell Gift Cards"
+   ],
+   "partial": [
+    "Kavo AI: Home & Gym Workouts",
+    "Kavori: Gear Logic Puzzles",
+    "KAVORA"
+   ]
+  }
+ },
+ {
+  "name": "loku",
+  "group": "invented",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Loku- Look and date your want"
+   ],
+   "partial": [
+    "Loku Live",
+    "LOKUS: limit screen time",
+    "Lokus: Calm Productivity"
+   ]
+  }
+ },
+ {
+  "name": "mivo",
+  "group": "invented",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Mivo-Me&Voice",
+    "Mivo – AI Voice Maker",
+    "Mivo: Tile Puzzle"
+   ],
+   "partial": [
+    "Mivora AI-Video & Image Maker"
+   ]
+  }
+ },
+ {
+  "name": "nyko",
+  "group": "invented",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "partial",
+   "exact": [],
+   "partial": [
+    "NYK - Official App"
+   ]
+  }
+ },
+ {
+  "name": "plexa",
+  "group": "invented",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Plexa"
+   ],
+   "partial": [
+    "PLEXapps",
+    "Plexamp"
+   ]
+  }
+ },
+ {
+  "name": "quillo",
+  "group": "invented",
+  "com": "taken",
+  "io": "free",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Quillo: Voice to Tasks",
+    "Quillo",
+    "Quillo: Receipt to Recipes"
+   ],
+   "partial": [
+    "Quillo Mortgage"
+   ]
+  }
+ },
+ {
+  "name": "riffo",
+  "group": "invented",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Riffo: Learn Guitar & Tabs"
+   ],
+   "partial": []
+  }
+ },
+ {
+  "name": "sivo",
+  "group": "invented",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "SiVO"
+   ],
+   "partial": [
+    "SIVO BETA",
+    "SIVO Synchronicity Journal",
+    "Sivo Wellness"
+   ]
+  }
+ },
+ {
+  "name": "tarro",
+  "group": "invented",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "partial",
+   "exact": [],
+   "partial": [
+    "Tarro Manager",
+    "Tarro Driver"
+   ]
+  }
+ },
+ {
+  "name": "vyro",
+  "group": "invented",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Vyro: Workout Tracker & Coach",
+    "Vyro: ai Clipper Workflow",
+    "Vyro"
+   ],
+   "partial": [
+    "VYRO Cam",
+    "256 Vyro",
+    "Vyroze: TrainerBook"
+   ]
+  }
+ },
+ {
+  "name": "wexo",
+  "group": "invented",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "partial",
+   "exact": [],
+   "partial": [
+    "Wexo Cashback",
+    "Wexo Partner"
+   ]
+  }
+ },
+ {
+  "name": "xilo",
+  "group": "invented",
+  "com": "taken",
+  "io": "unknown",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "partial",
+   "exact": [],
+   "partial": [
+    "xilolo",
+    "Vaxilo Sip Glow",
+    "Maxilo - Rééduque ta langue"
+   ]
+  }
+ },
+ {
+  "name": "yuvo",
+  "group": "invented",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "partial",
+   "exact": [],
+   "partial": [
+    "Yuvo Party",
+    "Yuvoi"
+   ]
+  }
+ },
+ {
+  "name": "zeni",
+  "group": "invented",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "ZENi",
+    "Zeni",
+    "Zeni – AI Assistant"
+   ],
+   "partial": [
+    "Zeni Zen: Traffic Guard",
+    "Zeni Fast: Match Master",
+    "Zeni Cool: Jewel Blast"
+   ]
+  }
+ },
+ {
+  "name": "bonza",
+  "group": "invented",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "partial",
+   "exact": [],
+   "partial": [
+    "Bonza Jigsaw",
+    "Bonza Phrases",
+    "Bonza Planet"
+   ]
+  }
+ },
+ {
+  "name": "crux",
+  "group": "invented",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "taken",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "CRUX",
+    "Crux",
+    "Crux"
+   ],
+   "partial": [
+    "Climb with Crux",
+    "Crux Logs",
+    "CRUX by SCHF"
+   ]
+  }
+ },
+ {
+  "name": "daro",
+  "group": "invented",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Daro",
+    "Daro: Sun Coil"
+   ],
+   "partial": [
+    "Daroore",
+    "DARO Clips",
+    "DARO Mobilna Sprzedaż"
+   ]
+  }
+ },
+ {
+  "name": "ekko",
+  "group": "invented",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "EKKO",
+    "ekko",
+    "EKKO"
+   ],
+   "partial": [
+    "Ekko app",
+    "Ekko Chat",
+    "Ekko Music"
+   ]
+  }
+ },
+ {
+  "name": "fyra",
+  "group": "invented",
+  "com": "taken",
+  "io": "unknown",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "partial",
+   "exact": [],
+   "partial": [
+    "Fyra Yoga"
+   ]
+  }
+ },
+ {
+  "name": "glimo",
+  "group": "invented",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Glimo"
+   ],
+   "partial": []
+  }
+ },
+ {
+  "name": "hibo",
+  "group": "invented",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "jolo",
+  "group": "invented",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Jolo | Food & Grocery Delivery",
+    "JoLo: Voice Rooms & Games"
+   ],
+   "partial": [
+    "Jolo Rider",
+    "Jolo Vendor"
+   ]
+  }
+ },
+ {
+  "name": "kuro",
+  "group": "invented",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Kuro",
+    "Kuro",
+    "Kuro: Private Diary Journal"
+   ],
+   "partial": [
+    "Kuro Reader+",
+    "Kuro Reader+ Pro",
+    "Kuro VPN"
+   ]
+  }
+ },
+ {
+  "name": "mimo",
+  "group": "invented",
+  "com": "taken",
+  "io": "unknown",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Mimo",
+    "Mimo",
+    "Mimo – Newborn Baby Tracker"
+   ],
+   "partial": [
+    "mimo share",
+    "Mimo Candidate",
+    "Detective Mimo"
+   ]
+  }
+ },
+ {
+  "name": "noxi",
+  "group": "invented",
+  "com": "taken",
+  "io": "unknown",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "partial",
+   "exact": [],
+   "partial": [
+    "Noxi Mart",
+    "Noxie: Learn English by Ear",
+    "Noximinder"
+   ]
+  }
+ },
+ {
+  "name": "opra",
+  "group": "invented",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "puka",
+  "group": "invented",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Puka"
+   ],
+   "partial": []
+  }
+ },
+ {
+  "name": "quox",
+  "group": "invented",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "partial",
+   "exact": [],
+   "partial": [
+    "Quoxxo"
+   ]
+  }
+ },
+ {
+  "name": "rovi",
+  "group": "invented",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "ROVI"
+   ],
+   "partial": [
+    "Rovi App",
+    "Rovi`s Delivery",
+    "ROVI FOOD"
+   ]
+  }
+ },
+ {
+  "name": "sabo",
+  "group": "invented",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "SABO"
+   ],
+   "partial": [
+    "No Sabo",
+    "SABO Arena",
+    "My SAB Official"
+   ]
+  }
+ },
+ {
+  "name": "tiko",
+  "group": "invented",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "taken",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Tiko",
+    "Tiko: Planet Puzzles",
+    "TIKO"
+   ],
+   "partial": [
+    "Tiko Portal",
+    "Tiko Counter",
+    "Tiko Sav – Video Downloader"
+   ]
+  }
+ },
+ {
+  "name": "urbo",
+  "group": "invented",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Urbo - Uy sotib olish va ijara"
+   ],
+   "partial": [
+    "Urbo bankas",
+    "URBO Check-in"
+   ]
+  }
+ },
+ {
+  "name": "vika",
+  "group": "invented",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Vika",
+    "Vika – Судья по гимнастике",
+    "vika - Live Stream"
+   ],
+   "partial": [
+    "VIKA Boutique",
+    "Vika Quick: Worm Hunter",
+    "Vika Wealth"
+   ]
+  }
+ },
+ {
+  "name": "wuvo",
+  "group": "invented",
+  "com": "taken",
+  "io": "taken",
+  "app": "free",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "davai",
+  "group": "ua",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "davai — learn Lithuanian"
+   ],
+   "partial": [
+    "DAVAI Student",
+    "DAVAI Mentor"
+   ]
+  }
+ },
+ {
+  "name": "dayesh",
+  "group": "ua",
+  "com": "taken",
+  "io": "free",
+  "app": "free",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "hovory",
+  "group": "ua",
+  "com": "taken",
+  "io": "unknown",
+  "app": "free",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "kazhy",
+  "group": "ua",
+  "com": "taken",
+  "io": "free",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "pytai",
+  "group": "ua",
+  "com": "taken",
+  "io": "free",
+  "app": "free",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "balakai",
+  "group": "ua",
+  "com": "taken",
+  "io": "unknown",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "tusa",
+  "group": "ua",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Tusa"
+   ],
+   "partial": [
+    "Tusa Play",
+    "TUSA Diving LOG",
+    "Tusato"
+   ]
+  }
+ },
+ {
+  "name": "tusovka",
+  "group": "ua",
+  "com": "taken",
+  "io": "free",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "vyklyk",
+  "group": "ua",
+  "com": "taken",
+  "io": "unknown",
+  "app": "free",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "odverto",
+  "group": "ua",
+  "com": "free",
+  "io": "free",
+  "app": "free",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "shchyro",
+  "group": "ua",
+  "com": "free",
+  "io": "free",
+  "app": "free",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "smilyvo",
+  "group": "ua",
+  "com": "taken",
+  "io": "free",
+  "app": "free",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "vidvaha",
+  "group": "ua",
+  "com": "taken",
+  "io": "free",
+  "app": "free",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "neboisia",
+  "group": "ua",
+  "com": "free",
+  "io": "free",
+  "app": "free",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "smikh",
+  "group": "ua",
+  "com": "free",
+  "io": "free",
+  "app": "free",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "zhartuy",
+  "group": "ua",
+  "com": "free",
+  "io": "free",
+  "app": "free",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "vohnyk",
+  "group": "ua",
+  "com": "taken",
+  "io": "free",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "vecherya",
+  "group": "ua",
+  "com": "taken",
+  "io": "free",
+  "app": "free",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "rozmova",
+  "group": "ua",
+  "com": "taken",
+  "io": "free",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "tamada",
+  "group": "ua",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "partial",
+   "exact": [],
+   "partial": [
+    "Tamada App"
+   ]
+  }
+ },
+ {
+  "name": "zastillya",
+  "group": "ua",
+  "com": "free",
+  "io": "free",
+  "app": "free",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "posydenky",
+  "group": "ua",
+  "com": "taken",
+  "io": "free",
+  "app": "free",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "vechornytsi",
+  "group": "ua",
+  "com": "taken",
+  "io": "unknown",
+  "app": "free",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "hurt",
+  "group": "ua",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "partial",
+   "exact": [],
+   "partial": [
+    "hurtig"
+   ]
+  }
+ },
+ {
+  "name": "kolo",
+  "group": "ua",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "KOLO - Get a Ride",
+    "Kolo: Home Videos & Projects",
+    "Kolo"
+   ],
+   "partial": [
+    "KOLO8",
+    "Kolo Social",
+    "KOLO Clean from GP PRO"
+   ]
+  }
+ },
+ {
+  "name": "zhest",
+  "group": "ua",
+  "com": "taken",
+  "io": "free",
+  "app": "free",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "kipish",
+  "group": "ua",
+  "com": "taken",
+  "io": "free",
+  "app": "free",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "askdare",
+  "group": "compound",
+  "com": "free",
+  "io": "free",
+  "app": "free",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "darecards",
+  "group": "compound",
+  "com": "taken",
+  "io": "free",
+  "app": "free",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "truthdeck",
+  "group": "compound",
+  "com": "taken",
+  "io": "free",
+  "app": "free",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "spindare",
+  "group": "compound",
+  "com": "taken",
+  "io": "free",
+  "app": "free",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "SpinDare: Spin the Wheel"
+   ],
+   "partial": []
+  }
+ },
+ {
+  "name": "nightcards",
+  "group": "compound",
+  "com": "taken",
+  "io": "free",
+  "app": "free",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "partial",
+   "exact": [],
+   "partial": [
+    "Good Night Cards Wishes GIFs"
+   ]
+  }
+ },
+ {
+  "name": "askaround",
+  "group": "compound",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "tellmore",
+  "group": "compound",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "pickone",
+  "group": "compound",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "PickOne",
+    "PICKONE",
+    "PickOne"
+   ],
+   "partial": []
+  }
+ },
+ {
+  "name": "passit",
+  "group": "compound",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "PassIT: IT Certification Prep"
+   ],
+   "partial": [
+    "PassIT K53",
+    "Passit App"
+   ]
+  }
+ },
+ {
+  "name": "passaround",
+  "group": "compound",
+  "com": "taken",
+  "io": "free",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "PassAround — Share Your Pass"
+   ],
+   "partial": []
+  }
+ },
+ {
+  "name": "onephone",
+  "group": "compound",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "taken",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "OnePhone: Numbers & eSIM Data"
+   ],
+   "partial": [
+    "BT One Phone Mobile App",
+    "Clone Phone - OnePlus app"
+   ]
+  }
+ },
+ {
+  "name": "roundtable",
+  "group": "compound",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "RoundTable: Language Companion",
+    "Roundtable (RTB)"
+   ],
+   "partial": [
+    "Round Table Pizza Rewards",
+    "Round Table India",
+    "RoundTable Trading"
+   ]
+  }
+ },
+ {
+  "name": "hostmode",
+  "group": "compound",
+  "com": "taken",
+  "io": "free",
+  "app": "free",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "partial",
+   "exact": [],
+   "partial": [
+    "Ghost Mode: App Blocker"
+   ]
+  }
+ },
+ {
+  "name": "partyask",
+  "group": "compound",
+  "com": "taken",
+  "io": "unknown",
+  "app": "free",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "askmeup",
+  "group": "compound",
+  "com": "taken",
+  "io": "taken",
+  "app": "free",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "askfirst",
+  "group": "compound",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Ask First - For Health Clarity"
+   ],
+   "partial": [
+    "AskFirst powered by Sensely",
+    "Ask First Pro"
+   ]
+  }
+ },
+ {
+  "name": "askout",
+  "group": "compound",
+  "com": "taken",
+  "io": "free",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "tellall",
+  "group": "compound",
+  "com": "taken",
+  "io": "free",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "tellme",
+  "group": "compound",
+  "com": "taken",
+  "io": "unknown",
+  "app": "taken",
+  "game": "free",
+  "party": "taken",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "TellMe",
+    "Tell Me - Text To Speech",
+    "tellme"
+   ],
+   "partial": [
+    "TellMe Online Shopping",
+    "Interactive Chat Story: TellMe",
+    "Just Tell Me"
+   ]
+  }
+ },
+ {
+  "name": "dareme",
+  "group": "compound",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "DareMe: Daily Challenges",
+    "DareMe",
+    "DareMe: Truth or Dare Dating"
+   ],
+   "partial": []
+  }
+ },
+ {
+  "name": "truthorbust",
+  "group": "compound",
+  "com": "taken",
+  "io": "free",
+  "app": "free",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "spillthetea",
+  "group": "compound",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "partial",
+   "exact": [],
+   "partial": [
+    "Spill the Tea on Work",
+    "Spill The Tea/ Benzo Box",
+    "Tea Runner Don't Spill the Tea"
+   ]
+  }
+ },
+ {
+  "name": "noskips",
+  "group": "compound",
+  "com": "taken",
+  "io": "free",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "skipfree",
+  "group": "compound",
+  "com": "taken",
+  "io": "free",
+  "app": "free",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "fullcircle",
+  "group": "compound",
+  "com": "taken",
+  "io": "unknown",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Full Circle",
+    "Full Circle – Court Education",
+    "Full Circle"
+   ],
+   "partial": [
+    "FullCircle Program",
+    "Fullcircle LCIndia",
+    "Full Circle Fitness"
+   ]
+  }
+ },
+ {
+  "name": "openup",
+  "group": "compound",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "openmic",
+  "group": "compound",
+  "com": "taken",
+  "io": "unknown",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "OpenMic"
+   ],
+   "partial": [
+    "Open Mic by ArtfulYo",
+    "OpenMicX",
+    "MyOpenMic"
+   ]
+  }
+ },
+ {
+  "name": "hotmic",
+  "group": "compound",
+  "com": "taken",
+  "io": "unknown",
+  "app": "taken",
+  "game": "free",
+  "party": "taken",
+  "play": {
+   "status": "partial",
+   "exact": [],
+   "partial": [
+    "Hot Mic Radio"
+   ]
+  }
+ },
+ {
+  "name": "livemic",
+  "group": "compound",
+  "com": "taken",
+  "io": "taken",
+  "app": "free",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "LiveMic: Bluetooth Speaker Mic",
+    "LiveMic: Karaoke Singing Mic",
+    "Live Mic - Wireless Microphone"
+   ],
+   "partial": [
+    "Live Mic Karaoke",
+    "Live Mic to Bluetooth Speaker",
+    "Live Mic to Bluetooth Speaker"
+   ]
+  }
+ },
+ {
+  "name": "goodnights",
+  "group": "compound",
+  "com": "taken",
+  "io": "unknown",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "none",
+   "exact": [],
+   "partial": []
+  }
+ },
+ {
+  "name": "nightowl",
+  "group": "compound",
+  "com": "taken",
+  "io": "taken",
+  "app": "taken",
+  "game": "free",
+  "party": "free",
+  "play": {
+   "status": "exact",
+   "exact": [
+    "Night Owl -Dimmer & Night Mode",
+    "Night Owl - Sleep Coach",
+    "NightOwl"
+   ],
+   "partial": [
+    "Night Owl Protect",
+    "NightOwl Companion",
+    "Night Owl Connect"
+   ]
+  }
+ }
+]
