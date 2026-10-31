@@ -5,6 +5,7 @@ import path from 'node:path';
 import { chapters, hero } from './content/index.mjs';
 import { GLOSS, PICKS } from './content/names.mjs';
 import { NEW_CARDS } from './content/bank.mjs';
+import { UK_NEW, UK_OLD } from './content/bank-uk.mjs';
 import { chapter, createCtx, esc, md, contrast } from './render.mjs';
 
 const HERE = import.meta.dirname;
@@ -46,7 +47,8 @@ const names = [
 const missing = nm.filter((x) => !GLOSS[x.name]).map((x) => x.name);
 if (missing.length) console.warn('Нет пояснения для названий:', missing.join(', '));
 const oldBank = JSON.parse(fs.readFileSync(path.join(HERE, 'data/old_bank.json'), 'utf8'));
-const bank = [...NEW_CARDS, ...oldBank];
+if (UK_NEW.length !== NEW_CARDS.length || UK_OLD.length !== oldBank.length) throw new Error(`Украинский перевод не совпадает по длине: ${UK_NEW.length}/${NEW_CARDS.length}, ${UK_OLD.length}/${oldBank.length}`);
+const bank = [...NEW_CARDS.map((c, i) => ({ ...c, u: UK_NEW[i] })), ...oldBank.map((c, i) => ({ ...c, u: UK_OLD[i] }))];
 const ctx = createCtx({ names, bank });
 
 /* ── страница ───────────────────────────────────────────────────── */

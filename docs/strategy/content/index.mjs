@@ -23,6 +23,7 @@ import c20 from './c20.mjs';
 import c21 from './c21.mjs';
 import c22 from './c22.mjs';
 import c23 from './c23.mjs';
+import c24 from './c24.mjs';
 
 export const hero = {
   tag: 'Сверено со старым файлом от 30.10.2026 · данные на 31.10.2026',
@@ -41,4 +42,4 @@ export const hero = {
   footer: ['ASK ME · Strategy Atlas 2026 · собран 31.10.2026', 'Не юридическая и не налоговая консультация: проверьте у бухгалтера и юриста.'],
 };
 
-export const chapters = [c00, c01, c02, c03, c04, c05, c06, c07, c08, c09, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20, c21, c22, c23];
+export const chapters = [c00, c01, c02, c03, c04, c05, c06, c07, c08, c09, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20, c21, c22, c24, c23];

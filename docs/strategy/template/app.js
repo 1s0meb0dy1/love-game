@@ -142,20 +142,20 @@
     function drawB() {
       var q = bs.q.toLowerCase();
       cur = cards.filter(function (c) {
-        return (bs.k === 'all' || c.k === bs.k) && (bs.a === 'all' || c.a === bs.a || c.a === 'b') && (bs.l === 'all' || String(c.l) === bs.l) && (!q || (c.r + ' ' + c.e + ' ' + c.t).toLowerCase().indexOf(q) >= 0);
+        return (bs.k === 'all' || c.k === bs.k) && (bs.a === 'all' || c.a === bs.a || c.a === 'b') && (bs.l === 'all' || String(c.l) === bs.l) && (!q || (c.r + ' ' + c.e + ' ' + (c.u || '') + ' ' + c.t).toLowerCase().indexOf(q) >= 0);
       });
       grid.innerHTML = cur.slice(0, bs.n).map(function (c, i) {
-        return '<div class="bc" data-i="' + i + '" role="button" tabindex="0" title="Нажмите, чтобы скопировать"><b>' + esc(c.r) + '</b><em>' + esc(c.e) + '</em><div class="bm"><span class="chip chip-vio">' + K[c.k] + '</span><span class="chip chip-info">' + A[c.a] + '</span><span class="chip ' + (c.l === 3 ? 'chip-bad' : c.l === 2 ? 'chip-warn' : 'chip-ok') + '">' + L[c.l] + '</span></div></div>';
+        return '<div class="bc" data-i="' + i + '" role="button" tabindex="0" title="Нажмите, чтобы скопировать"><b>' + esc(c.r) + '</b><em>' + esc(c.e) + '</em><em class="bu" lang="uk">' + esc(c.u || '') + '</em><div class="bm"><span class="chip chip-vio">' + K[c.k] + '</span><span class="chip chip-info">' + A[c.a] + '</span><span class="chip ' + (c.l === 3 ? 'chip-bad' : c.l === 2 ? 'chip-warn' : 'chip-ok') + '">' + L[c.l] + '</span></div></div>';
       }).join('');
       cntB.textContent = cur.length + ' из ' + cards.length;
       more.style.display = cur.length > bs.n ? '' : 'none';
     }
-    grid.addEventListener('click', function (e) { var el = e.target.closest('.bc'); if (el) { var c = cur[+el.getAttribute('data-i')]; copy(c.r + ' / ' + c.e, 'Карточка скопирована'); } });
+    grid.addEventListener('click', function (e) { var el = e.target.closest('.bc'); if (el) { var c = cur[+el.getAttribute('data-i')]; copy([c.r, c.e, c.u].filter(Boolean).join(' / '), 'Карточка скопирована'); } });
     $$('[data-bk]', bk).forEach(function (b) { b.addEventListener('click', function () { var k = b.getAttribute('data-bk'), v = b.getAttribute('data-v'); bs[k] = v; $$('[data-bk=' + k + ']', bk).forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); }); bs.n = 48; drawB(); }); });
     $('input[type=search]', bk).addEventListener('input', function (e) { bs.q = e.target.value; bs.n = 48; drawB(); });
     more.addEventListener('click', function () { bs.n += 96; drawB(); });
     function dl(name, text, type) { var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: type })); a.download = name; a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); }, 500); }
-    $('[data-export=csv]', bk).addEventListener('click', function () { var q = function (s) { return '"' + String(s).replace(/"/g, '""') + '"'; }; dl('ask-me-cards.csv', '﻿kind,audience,level,category,ru,en\n' + cur.map(function (c) { return [K[c.k], A[c.a], c.l, c.t, c.r, c.e].map(q).join(','); }).join('\n'), 'text/csv'); });
+    $('[data-export=csv]', bk).addEventListener('click', function () { var q = function (s) { return '"' + String(s).replace(/"/g, '""') + '"'; }; dl('ask-me-cards.csv', '﻿kind,audience,level,category,ru,en,uk\n' + cur.map(function (c) { return [K[c.k], A[c.a], c.l, c.t, c.r, c.e, c.u || ''].map(q).join(','); }).join('\n'), 'text/csv'); });
     $('[data-export=json]', bk).addEventListener('click', function () { dl('ask-me-cards.json', JSON.stringify(cur, null, 1), 'application/json'); });
     drawB();
   }

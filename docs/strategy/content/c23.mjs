@@ -1,6 +1,14 @@
-// Глава 23: источники и методология
+// Глава 24 в оглавлении (id c23): источники и методология
+import { readdirSync, readFileSync } from 'node:fs';
+
+// Сколько пометок ::know:: осталось в главах (считается при сборке, чтобы цифра не устаревала).
+const dir = new URL('.', import.meta.url);
+const KNOW = readdirSync(dir)
+  .filter((f) => /^c\d\d\.mjs$/.test(f) && f !== 'c23.mjs')
+  .reduce((n, f) => n + (readFileSync(new URL(f, dir), 'utf8').match(/::know::/g) || []).length, 0);
+
 export default {
-  id: 'c23', num: '23', icon: '🧾', part: 'Основания', title: 'Источники, метод и пределы',
+  id: 'c23', num: '24', icon: '🧾', part: 'Основания', title: 'Источники, метод и пределы',
   sub: 'Что именно я делал, какие инструменты использовал, что не получилось и где заканчиваются факты. Проверяемость важнее уверенного тона.',
   verdict: { tone: 'info', x: 'Данные — не перепись рынка. Часть страниц доступна через поисковый индекс, цены зависят от витрины и аккаунта, отзывы отобраны качественно, приватные метрики конкурентов недоступны.' },
   blocks: [
@@ -18,7 +26,7 @@ export default {
     { t: 'h', x: 'Что не удалось и не сделано' },
     { t: 'table', cap: 'Пробелы', search: false, cols: [{ h: 'Что' }, { h: 'Причина' }, { h: 'Что делать' }], rows: [
       ['Similarweb: демография, источники трафика, ключевые конкуренты', 'Коннектор подключён, но все 8 запросов вернули «квота кредитов исчерпана»', 'Пополнить кредиты MCP и повторить'],
-      ['Apple App Store: коллизии названий', 'iTunes Search API недоступен из этой среды (403)', 'Проверить финалистов вручную'],
+      ['Apple App Store: коллизии названий', 'iTunes Search API недоступен из этой среды (403); финалисты проверены только веб-поиском (гл. 05)', 'Поискать финалистов в App Store на устройстве'],
       ['Торговые знаки и соцсети', 'Не входили в объём', 'Клиренс через юриста или самостоятельно в базах WIPO/EUIPO/USPTO/Укрпатент'],
       ['Скриншоты и дизайн-системы конкурентов', 'Нет доступа к скриншотам магазинов', 'Провести 5 сценариев на устройстве'],
       ['Систематический корпус Reddit и отзывов App Store', 'Нет доступа к API', 'Использовать парсер/данные Sensor Tower, AppMagic'],
@@ -27,6 +35,24 @@ export default {
       ['Покупки, переписка с блогерами, регистрация доменов', 'Не выполнялись без вашего решения', 'По плану гл. 21–22'],
       ['Запуск нагрузочных и безопасностных тестов репозитория', 'Зависимости не установлены; не входило в задачу', 'Запустить `npm run verify`'],
     ] },
+    { t: 'h', x: 'Что перепроверено 31.10.2026', sub: 'Вторая итерация: пометки ::know:: из первой версии проверены по первоисточникам, где это удалось.' },
+    { t: 'table', cap: 'Журнал сверки', search: false, cols: [{ h: 'Утверждение' }, { h: 'Результат' }, { h: 'Где в документе' }], rows: [
+      ['Проверка `initData` в Telegram Mini App (HMAC с токеном, `auth_date`, Ed25519)', { chip: 'ok', v: 'Подтверждено' }, 'Гл. 15'],
+      ['Цифровые товары в Telegram — только Stars (XTR); `successful_payment`, `/paysupport`, возвраты', { chip: 'ok', v: 'Подтверждено' }, 'Гл. 15'],
+      ['Apple 1.1.1, 1.1.4, 1.2, 1.4.3, 1.4.5, 2.3.8, 4.3(b): тексты правил', { chip: 'ok', v: 'Подтверждено' }, 'Гл. 12, 16'],
+      ['Apple Small Business Program: 15%, порог $1 млн proceeds', { chip: 'ok', v: 'Подтверждено' }, 'Гл. 16'],
+      ['Новые возрастные рейтинги Apple 13+/16+/18+ и обязательная анкета с сентября 2026', { chip: 'ok', v: 'Подтверждено' }, 'Гл. 16'],
+      ['Google Cloud Translation: $20 за 1 млн символов, 500 000 бесплатно', { chip: 'ok', v: 'Подтверждено' }, 'Гл. 15'],
+      ['DeepL API Free: 500 000 символов в месяц', { chip: 'bad', v: 'Устарело' }, 'Гл. 15: план больше не продаётся, вместо него Developer с разовым лимитом 1 000 000'],
+      ['Paddle: 5% + 50¢; запрет «adult» и гороскопов', { chip: 'ok', v: 'Подтверждено' }, 'Гл. 17, 18'],
+      ['GDPR ст. 33: 72 часа; Директива 2011/83/EU ст. 9: 14 дней', { chip: 'ok', v: 'Подтверждено' }, 'Гл. 15, 16'],
+      ['Expo SDK и React Native: актуальные версии', { chip: 'info', v: 'Уточнено' }, 'Гл. 14: SDK 56 + RN 0.85; RN 0.87; SDK 57 не подтверждён'],
+      ['`navigator.vibrate` не работает в Safari на iOS', { chip: 'ok', v: 'Подтверждено (MDN)' }, 'Гл. 11'],
+      ['Лицензии звука: Freesound, Kenney, Pixabay, BBC', { chip: 'info', v: 'Частично' }, 'Гл. 11: подтверждено через выдержки; Mixkit не открыт полностью'],
+      ['Лимиты Firebase Spark и Cloudflare Workers Free', { chip: 'info', v: 'Из выдержек' }, 'Гл. 14, 18: сверить на страницах тарифов'],
+      ['Комиссии Google Play 10% + 5%', { chip: 'warn', v: 'Не подтверждено' }, 'Гл. 16: официальная страница подтвердила даты, но не ставки'],
+      ['Коллизии финалистов в App Store', { chip: 'info', v: 'Веб-поиском' }, 'Гл. 05'],
+    ], note: `Остаются непроверенными **${KNOW} пометок ::know::** в главах (Discord Activities, Supabase, Mixkit/Sonniss/ZapSplat, политики Google Play и рекламных площадок, психологические и UX-ориентиры, часть налоговых и товарных сборов). Они остаются общей экспертизой, а не фактом.` },
     { t: 'callout', k: 'fact', wide: true, title: 'Omniroute и ваш компьютер', x: 'Omniroute и локальные папки вашего ПК недоступны из облачной сессии: подключение к ним возможно только через Remote Control. Для результата они не потребовались.' },
     { t: 'h', x: 'Ссылки на источники' },
     { t: 'sources', items: [
@@ -49,6 +75,21 @@ export default {
       ['Epic v. Apple · MacDailyNews', 'https://macdailynews.com/2026/08/14/u-s-supreme-court-clears-path-for-app-store-commission-showdown-as-apple-must-defend-its-rates-in-lower-court/', 'ставка комиссии'],
       ['Google Play · комиссии 2026', 'https://foxdata.com/en/blogs/google-play-store-opens-external-billing-fees-drop-to-10-starting-june-30-2026/', 'сообщения расходятся'],
       ['Google · 12 тестеров × 14 дней', 'https://ontest.app/blog/google-play-12-testers-14-days-requirement-explained', ''],
+      ['Apple · App Review Guidelines', 'https://developer.apple.com/app-store/review/guidelines/', 'п. 1.1–1.4, 2.3.8, 3.1, 4.3'],
+      ['Apple · Small Business Program', 'https://developer.apple.com/app-store/small-business-program/', '15%, порог $1 млн'],
+      ['Apple · новые возрастные рейтинги', 'https://developer.apple.com/news?id=ks775ehf', '13+, 16+, 18+'],
+      ['Telegram · Mini Apps', 'https://core.telegram.org/bots/webapps', 'проверка initData, Stars, Mini App Store'],
+      ['Telegram · платежи в Stars', 'https://core.telegram.org/bots/payments-stars', 'XTR, возвраты, /paysupport'],
+      ['Paddle · цены', 'https://www.paddle.com/pricing', '5% + 50¢'],
+      ['Paddle · политика допустимого использования', 'https://www.paddle.com/help/start/intro-to-paddle/what-am-i-not-allowed-to-sell-on-paddle', 'запрещённые категории'],
+      ['Google Cloud Translation · цены', 'https://cloud.google.com/translate/pricing', '$20 за 1 млн символов'],
+      ['DeepL · тарифы API', 'https://support.deepl.com/hc/en-us/articles/360021200939', 'API Free больше не продаётся'],
+      ['Expo SDK 56', 'https://expo.dev/changelog/sdk-56', 'React Native 0.85, React 19.2'],
+      ['React Native 0.87', 'https://reactnative.dev/blog/2026/08/11/react-native-0.87', 'релиз 11.08.2026'],
+      ['GDPR ст. 33 (EUR-Lex)', 'https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016R0679', '72 часа'],
+      ['Директива 2011/83/EU ст. 9 (EUR-Lex)', 'https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32011L0083', '14 дней на отказ'],
+      ['MDN browser-compat-data · Navigator.vibrate', 'https://github.com/mdn/browser-compat-data/blob/main/api/Navigator.json', 'Safari iOS: нет'],
+      ['Google Play · официальная страница о комиссиях', 'https://support.google.com/googleplay/android-developer/answer/15582165', 'даты соглашения'],
       ['Платёжные системы 2026 (агентство)', 'https://woborders.agency/en/blog/which-payment-system-choose-in-2026/', 'вторичный источник'],
       ['Gen Z слэнг 2026', 'https://www.takeroon.com/blog/brain-rot-words-list-internet-slang', ''],
       ['Benchmark eCPM 2026', 'https://www.appadrevenue.com/guides/how-much-do-mobile-ads-pay', 'вендорский расчёт'],

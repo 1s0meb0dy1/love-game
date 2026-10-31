@@ -268,7 +268,7 @@ td .mini{display:block;height:6px;border-radius:6px;background:var(--s3);margin-
 .bank-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,330px),1fr));gap:10px;margin-top:12px}
 .bc{padding:14px 16px 12px;border-radius:var(--r1);border:1px solid var(--line);background:var(--s1);display:flex;flex-direction:column;gap:6px;cursor:pointer}
 .bc:hover{border-color:var(--rose)}
-.bc b{font:600 15.5px/1.4 var(--ff)}.bc em{font-style:normal;font-size:13.5px;color:var(--t3)}
+.bc b{font:600 15.5px/1.4 var(--ff)}.bc em{font-style:normal;font-size:13.5px;color:var(--t3)}.bc em.bu{color:var(--t2);border-top:1px dashed var(--line);padding-top:6px}.bc em.bu:empty{display:none}
 .bc .bm{display:flex;gap:6px;flex-wrap:wrap;margin-top:2px}
 .more-btn{margin-top:14px}
 
@@ -346,3 +346,11 @@ td .mini{display:block;height:6px;border-radius:6px;background:var(--s3);margin-
   .tbl-wrap,.tbl-scroll{overflow:visible!important}
   .chip{white-space:normal;padding:1px 6px}
 }
+
+/* Эскизы экранов (гл. 23) */
+.wires{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:16px}
+.wire{margin:0;padding:16px;border:1px solid var(--line);border-radius:var(--r2);background:var(--s1);min-width:0}
+.wire figcaption{font:600 15px var(--ff);color:var(--t1);margin-bottom:10px}
+.wire pre{margin:0;padding:12px;border-radius:12px;background:var(--bg2);border:1px solid var(--line);overflow-x:auto;font:400 12.5px/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace;color:var(--t2);white-space:pre;scrollbar-width:thin}
+.wire p{margin:10px 0 0;font-size:13.5px;line-height:1.5;color:var(--t3)}
+@media print{.wire{break-inside:avoid}.wire pre{white-space:pre-wrap;overflow:visible}}
