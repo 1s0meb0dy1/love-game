@@ -42,7 +42,7 @@ const startTod = async (E) => { await press(E, 'Начать игру', 600); if
     await sleep(600); await press(A, 'Ответил(а)', 700); await press(A, 'Правда', 900);
     const s1 = st();
     T('после перезагрузки следующая выдача — по порядку колоды, а не повтор', cardText(A) !== c0 && s1.cur.truth.i === 2 && s1.cur.truth.round === 0 && cardText(B) === cardText(A));
-    await sleep(600); await press(A, 'Меню', 400); await press(A, 'Завершить для всех', 900);
+    await sleep(600); await press(A, 'Меню', 400); await press(A, 'Выйти', 900);
     await waitFor(() => onResults(B), 6000);
     const t0 = table(A);
     A = await reload(A, '#/tod/results');
@@ -50,7 +50,7 @@ const startTod = async (E) => { await press(E, 'Начать игру', 600); if
     // новая партия: B ещё на итогах прошлой
     await press(A, 'Сыграть ещё', 700); await startTod(A);
     T('новая партия («Сыграть ещё» на A): у B на экране итогов появился баннер присоединения', await waitFor(() => onResults(B) && hasBanner(B), 8000));
-    await press(A, 'Меню', 400); await press(A, 'Завершить для всех', 900);
+    await press(A, 'Меню', 400); await press(A, 'Выйти', 900);
     // испорченный канал: состояние не разбирается -> главная, адрес заменён на #/
     const key = db.todRoomKey();
     db.seed(key, ['st'], '{"v":1,"turn":99');

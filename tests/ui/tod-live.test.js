@@ -1,5 +1,5 @@
 // Режим «Правда или действие» на нескольких устройствах: партия в канале live/<комната>_t, приглашение и вход, одновременные нажатия,
-// точечная подгрузка карточки, выход одного устройства, «Завершить для всех», лимит устройств и предупреждение 18+ при входе.
+// точечная подгрузка карточки, выход одного устройства, «Выйти», лимит устройств и предупреждение 18+ при входе.
 const { boot, waitFor, sleep, txt, devId } = require('../live-helpers.js'); const { DEFAULT_DB } = require('../tod-ui.js');
 
 const norm = (s) => String(s || '').replace(/\s+/g, ' ').trim();
@@ -52,10 +52,10 @@ const noTruth = (E) => { const base = E.w.fetch; E.w.fetch = async (url, init) =
     B.w.location.hash = '#/'; await sleep(600); // приглашение показывают главная, режимы и лобби, а не меню приложения
     await waitFor(() => hasBanner(B), 8000); await joinTod(B); await waitFor(() => onPlay(B), 10000); await sleep(800);
     await press(A, 'Действие', 650); await press(A, 'Легко', 400); await sleep(700); await press(A, 'Выполнено', 900);
-    await press(A, 'Меню', 400); await press(A, 'Завершить для всех', 900);
+    await press(A, 'Меню', 400); await press(A, 'Выйти', 900);
     const res = await waitFor(() => onResults(B), 6000);
     const table = (E) => [...E.D.querySelectorAll('table td, .tod-table td')].map(x => norm(x.textContent)).join('|');
-    T('«Завершить для всех» на A: у B открылись итоги с теми же числами', onResults(A) && res && table(A) !== '' && table(A) === table(B) && db.todRoom().status === 'ended');
+    T('«Выйти» на A: у B открылись итоги с теми же числами', onResults(A) && res && table(A) !== '' && table(A) === table(B) && db.todRoom().status === 'ended');
     // новая партия с тоном «Острый»: вход с предупреждением 18+
     await press(A, 'Сыграть ещё', 700); await press(A, 'Острый', 300); await press(A, 'Начать игру', 600); await press(A, 'Нам есть 18, начать', 1200);
     const banner2 = await waitFor(() => hasBanner(B), 8000); await joinTod(B); await sleep(900);

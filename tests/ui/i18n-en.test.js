@@ -35,7 +35,7 @@ const scan = (where) => {
   await go('#/mode'); await click(en('Обычный режим'), 1500); scan('#/play');
   await go('#/tod', 800); await click(en('Начать игру'), 1200); if (has(en('Нам есть 18, начать'))) await click(en('Нам есть 18, начать'), 1200); scan('#/tod/play');
   await click(en('Правда'), 900); scan('#/tod/play (картка)'); await click(en('Меню'), 600); scan('#/tod/play (завершення)');
-  await click(en('Завершить для всех'), 1200); scan('#/tod/results'); T('обхід дійшов до підсумків «Правди чи дії»', /^Results/.test(D.title) && D.title.includes(en('Правда или действие')));
+  await click(en('Выйти'), 1200); scan('#/tod/results'); T('обхід дійшов до підсумків «Правди чи дії»', /^Results/.test(D.title) && D.title.includes(en('Правда или действие')));
   T('мова інтерфейсу — англійська (html lang)', D.documentElement.lang === 'en');
   T('на екранах немає кирилиці' + (leaks.size ? ': ' + [...leaks].slice(0, 40).map(([s, h]) => `${h} «${s}»`).join('; ') : ''), leaks.size === 0);
   console.log(res.join('\n')); console.log('--- captured runtime errors:', errors.length); errors.slice(0, 6).forEach(e => console.log(' ', e)); process.exit(0);

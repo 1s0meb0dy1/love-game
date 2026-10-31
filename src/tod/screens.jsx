@@ -443,8 +443,6 @@ export const TodLobby = ({ ui, players, cfg, setCfg, deviceCount, block, onStart
         </section>
         {typeof onMineAdd === 'function' && <TodMine ui={ui} list={Array.isArray(mine) ? mine : []} onAdd={onMineAdd} onDel={onMineDel} />}
         <div className="flex flex-col gap-4">
-          <h2 className="text-sm font-bold text-zinc-300">{todTx(ui, 'Игроки')} · {list.length}</h2>
-          <ui.RoomStrip players={list} devices={deviceCount || 1} />
           <p className="ui-hint">{todTx(ui, 'Кнопки хода можно нажимать с любого устройства сессии.')}</p>
           <button type="button" onClick={onShare} className="btn-secondary w-full"><ui.Icons.Share /> {todTx(ui, 'Поделиться сессией')}</button>
           <div className="flex flex-col gap-2 mt-1">
@@ -452,6 +450,7 @@ export const TodLobby = ({ ui, players, cfg, setCfg, deviceCount, block, onStart
             {block && <p id="tod-start-hint" className="ui-error" role="alert">{block}</p>}
           </div>
         </div>
+        <ui.RoomStrip players={list} devices={deviceCount || 1} />
       </main>
       <TodAdultModal ui={ui} open={warn} onOk={() => { setWarn(false); go(); }} onCancel={() => { ui.SoundFX.click(); setWarn(false); }} />
       <ui.AppFooter divider={false} />
@@ -512,12 +511,13 @@ export const TodGame = ({ ui, state, banter, cardText, levelAvail, onAction, onE
           <span aria-hidden="true" className="tod-pick-ico">{locked ? '🔒' : '💬'}</span>
           <span className="font-bold text-white text-lg">{todTx(ui, 'Правда')}</span>
           <span className="tod-pick-sub">{locked ? todTx(ui, 'Закрыта: три раза подряд') : todTx(ui, 'Ответь честно')}</span>
-          <TodPips run={run} locked={locked} />
+          <span className="tod-pick-foot"><TodPips run={run} locked={locked} /></span>
         </button>
         <button type="button" onClick={() => act({ t: 'choose', type: 'dare' })} className={`opt-card opt-ember tod-pick tod-pick-dare ${locked ? 'tod-attn' : ''}`}>
           <span aria-hidden="true" className="tod-pick-ico">🎯</span>
           <span className="font-bold text-white text-lg">{todTx(ui, 'Действие')}</span>
           <span className="tod-pick-sub">{locked ? todTx(ui, 'Теперь только оно') : todTx(ui, 'Выполни задание')}</span>
+          <span className="tod-pick-foot" aria-hidden="true"></span>
         </button>
       </div>
     </div>
@@ -545,11 +545,14 @@ export const TodGame = ({ ui, state, banter, cardText, levelAvail, onAction, onE
       </div>
     </div>
   );
-  // пока карточки нет (выбор «Правды/Действия» и уровня) — компактная строка с именем
+  // пока карточки нет (выбор «Правды/Действия» и уровня) — блок с именем стоит НАД выбором: сначала «чей ход», потом что выбирать
   const stageEl = st.phase !== 'card' && (
     <div className="tod-stage">
       <TodAvatar p={me} i={st.turn} big />
-      {turnTitle}
+      <div className="tod-stage-txt">
+        {turnTitle}
+        <p className="tod-stage-hint">{st.phase === 'level' ? todTx(ui, 'Выбери уровень задания') : todTx(ui, 'Что выберешь: правду или действие?')}</p>
+      </div>
       {win && <TodBurst key={'b' + st.seq} />}
       {flop && <span key={'f' + st.seq} className="tod-egg" aria-hidden="true">🐔</span>}
     </div>
@@ -557,8 +560,8 @@ export const TodGame = ({ ui, state, banter, cardText, levelAvail, onAction, onE
   const heckleEl = banter ? <TodHeckle text={banter} ev={st.ev} tone={st.opts.tone} /> : null;
   const actionsEl = st.phase === 'card' && st.card && (
     <div className="tod-actions">
-      <button type="button" onClick={() => act({ t: 'done' })} className="btn-primary w-full"><ui.Icons.Check /> {todTx(ui, st.card.pool === 'truth' ? tr("Ответил(а)") : tr("Выполнено"))}</button>
       <button type="button" onClick={() => act({ t: 'skip' })} className="btn-secondary w-full"><span aria-hidden="true">🐔</span> {todTx(ui, 'Пропустить')}</button>
+      <button type="button" onClick={() => act({ t: 'done' })} className="btn-primary w-full"><ui.Icons.Check /> {todTx(ui, st.card.pool === 'truth' ? tr("Ответил(а)") : tr("Выполнено"))}</button>
     </div>
   );
   return (
@@ -571,20 +574,14 @@ export const TodGame = ({ ui, state, banter, cardText, levelAvail, onAction, onE
         </div>
         {desktop ? (
           <div className="tod-desk">
-            <div className="tod-desk-main">{chooseEl}{levelEl}{cardEl}{stageEl}{actionsEl}</div>
+            <div className="tod-desk-main">{stageEl}{chooseEl}{levelEl}{cardEl}{actionsEl}</div>
             <aside className="tod-desk-side">{rosterEl}{heckleEl}</aside>
           </div>
-        ) : (<>{rosterEl}<div className="tod-play-mid">{chooseEl}{levelEl}{cardEl}{stageEl}</div>{heckleEl}{actionsEl}</>)}
+        ) : (<>{rosterEl}<div className="tod-play-mid">{stageEl}{chooseEl}{levelEl}{cardEl}</div>{heckleEl}{actionsEl}</>)}
       </main>
-      <ui.PopupModal isOpen={ask} onClose={close}>
-        <div className="flex flex-col gap-3 pt-1 text-left">
-          <h3 className="text-xl font-bold text-white pr-8">{todTx(ui, 'Вы действительно хотите закончить игру?')}</h3>
-          <p className="text-sm text-zinc-300 leading-relaxed">{todTx(ui, 'Можно поставить игру на паузу: она сохранится, а «Продолжить игру» ждёт на главной. Или закончить партию для всех и открыть итоги.')}</p>
-          <button type="button" onClick={() => { ui.SoundFX.click(); setAsk(false); onPause(); }} className="btn-primary w-full"><ui.Icons.Pause /> {todTx(ui, 'Поставить на паузу')}</button>
-          <button type="button" onClick={() => { setAsk(false); onEnd(); }} className="btn-danger w-full">{todTx(ui, 'Завершить для всех')}</button>
-          <button type="button" onClick={close} className="btn-ghost w-full">{todTx(ui, 'Вернуться в игру')}</button>
-        </div>
-      </ui.PopupModal>
+      <ui.GameExitDialog isOpen={ask} onClose={close} title={todTx(ui, 'Вы действительно хотите закончить игру?')}
+        onPause={() => { ui.SoundFX.click(); setAsk(false); onPause(); }} onExit={() => { ui.SoundFX.click(); setAsk(false); onEnd(); }}
+        note={todTx(ui, 'Если выйти, партия закончится для всех, а итоги откроются сразу.')} />
     </div>
   );
 };

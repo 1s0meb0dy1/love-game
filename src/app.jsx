@@ -8,6 +8,7 @@ import { ABOUT_EN } from './content/about-en.js';
 import { LEGAL } from './content/legal.js';
 import { LEGAL_UK } from './content/legal-uk.js';
 import { LEGAL_EN } from './content/legal-en.js';
+import { APP_VERSION, appVersionLabel } from './content/version.js';
 import { createSessionTasks, createSessionStore, createLiveWriter, mergeTurnHistories } from './session-io.js';
 import { t as tr, tf, setLang as i18nSetLang, getLang, catName as catLabel, diffName as diffLabel, audienceLabel, AUDIENCE_LABELS, CATEGORY_UK, DIFFICULTY_UK, SUPPORTED_LANGS, DEFAULT_LANG, LANG_STORAGE_KEY, detectLang, pickText, dateLocale } from './i18n.js';
 import { TOD_STARTER } from './content/tod-cards.js';
@@ -349,11 +350,11 @@ i18nSetLang(readStoredLang());
         if (typeof window !== 'undefined') { const unlockHandler = () => SoundFX.init(); window.addEventListener('touchstart', unlockHandler, { passive: true, once: true }); window.addEventListener('click', unlockHandler, { passive: true, once: true }); }
 
         const Icons = {
-            Play: () => <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5.14v14l11-7-11-7z" /></svg>, ArrowUp: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M12 19V5m0 0l-6.5 6.5M12 5l6.5 6.5" /></svg>, Filter: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h18l-7 8.2V19l-4 2v-7.8L3 5z" /></svg>, Pause: () => <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="5" width="4" height="14" rx="1.3" /><rect x="13.5" y="5" width="4" height="14" rx="1.3" /></svg>, Menu: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>, Back: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>, Next: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>, Sparkles: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>, List: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>, Plus: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>, Check: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>, Bulb: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>, Edit: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.9} d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg>, Resume: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.9} d="M16.023 9.348h4.992V4.356M2.985 19.644v-4.992h4.992M2.985 14.652l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" /><path d="M10.4 9.1v5.8l4.7-2.9z" fill="currentColor" stroke="none" /></svg>, Trash: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>, Restore: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>, Archive: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>, SoundOn: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>, SoundOff: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" /></svg>, User: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>, Lock: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>, Copy: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>, Share: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>, IosShare: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>, Eye: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>, EyeOff: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>, ChevronDown: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>, DownloadApp: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>, Close: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M6 18L18 6M6 6l12 12" /></svg>, Logout: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+            Play: () => <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5.14v14l11-7-11-7z" /></svg>, ArrowUp: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M12 19V5m0 0l-6.5 6.5M12 5l6.5 6.5" /></svg>, Filter: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h18l-7 8.2V19l-4 2v-7.8L3 5z" /></svg>, Pause: () => <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="5" width="4" height="14" rx="1.3" /><rect x="13.5" y="5" width="4" height="14" rx="1.3" /></svg>, Menu: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>, Back: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>, Next: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>, Sparkles: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>, List: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>, Plus: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>, Check: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>, Bulb: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>, Edit: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.9} d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg>, Resume: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.9} d="M16.023 9.348h4.992V4.356M2.985 19.644v-4.992h4.992M2.985 14.652l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" /><path d="M10.4 9.1v5.8l4.7-2.9z" fill="currentColor" stroke="none" /></svg>, Trash: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>, Restore: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>, Archive: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>, SoundOn: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>, SoundOff: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" /></svg>, Users: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M16 20v-1.2a3.8 3.8 0 00-3.8-3.8H7.8A3.8 3.8 0 004 18.8V20" /><circle cx="10" cy="8" r="3.3" /><path d="M20 20v-1.1a3.4 3.4 0 00-2.5-3.28M15.5 4.9a3.3 3.3 0 010 6.2" /></svg>, User: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>, Lock: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>, Copy: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>, Share: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>, IosShare: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>, Eye: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>, EyeOff: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>, ChevronDown: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>, DownloadApp: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>, Close: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M6 18L18 6M6 6l12 12" /></svg>, Logout: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
             , Skip: () => <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M5 5.5l9.5 6.5L5 18.5v-13z" /><path d="M19 5v14" /></svg>
         };
 
-        const PopupModal = ({ isOpen, onClose, children }) => {
+        const PopupModal = ({ isOpen, onClose, children, wide }) => {
             const box = useRef(null), closeRef = useRef(onClose); closeRef.current = onClose;
             useEffect(() => {
                 if (!isOpen) return;
@@ -375,7 +376,7 @@ i18nSetLang(readStoredLang());
                 return () => { document.removeEventListener('keydown', keydown); if (root) root.inert = oldInert; if (previous?.isConnected) previous.focus(); };
             }, [isOpen]);
             if (!isOpen) return null;
-            return ReactDOM.createPortal(<div className="viewport-popup-overlay fade-in" onClick={() => { if (onClose) { SoundFX.click(); onClose(); } }}><div ref={box} tabIndex={-1} className="viewport-popup-box slide-up" role="dialog" aria-label={tr("Диалог")} aria-modal="true" onClick={e => e.stopPropagation()}>{onClose && <button type="button" onClick={() => { SoundFX.click(); onClose(); }} aria-label={tr("Закрыть")} className="btn-icon absolute top-3 right-3"><Icons.Close /></button>}{children}</div></div>, document.body);
+            return ReactDOM.createPortal(<div className="viewport-popup-overlay fade-in" onClick={() => { if (onClose) { SoundFX.click(); onClose(); } }}><div ref={box} tabIndex={-1} className={`viewport-popup-box slide-up ${wide ? 'is-wide' : ''}`} role="dialog" aria-label={tr("Диалог")} aria-modal="true" onClick={e => e.stopPropagation()}>{onClose && <button type="button" onClick={() => { SoundFX.click(); onClose(); }} aria-label={tr("Закрыть")} className="btn-icon absolute top-3 right-3"><Icons.Close /></button>}{children}</div></div>, document.body);
         };
 
         // ---- Всплывающие уведомления ----
@@ -402,8 +403,13 @@ i18nSetLang(readStoredLang());
                 window.addEventListener('scroll', onScroll, { passive: true });
                 return () => { window.removeEventListener('scroll', onScroll); if (raf && window.cancelAnimationFrame) window.cancelAnimationFrame(raf); };
             }, []);
+            // На телефоне первое касание во время инерционной прокрутки лишь останавливает её, а «click» не приходит — поэтому для пальца срабатываем на самом касании (pointerdown),
+            // а следующий за ним «click» гасим; мышь и клавиатура работают через обычный click
+            const lastTouch = useRef(0);
             const go = () => { SoundFX.click(); let smooth = true; try { smooth = !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch (e) {} try { window.scrollTo({ top: 0, behavior: smooth ? 'smooth' : 'auto' }); } catch (e) { window.scrollTo(0, 0); } setOn(false); };
-            return (<button type="button" onClick={go} aria-label={tr("Наверх")} title={tr("Наверх")} tabIndex={on ? 0 : -1} aria-hidden={on ? undefined : 'true'} className={`to-top ${on ? 'is-on' : ''} ${lift ? 'is-lifted' : ''}`}><Icons.ArrowUp /></button>);
+            const onDown = (e) => { if (e.pointerType === 'mouse' || e.button > 0) return; lastTouch.current = Date.now(); go(); };
+            const onClick = () => { if (Date.now() - lastTouch.current < 700) return; go(); };
+            return (<button type="button" onPointerDown={onDown} onClick={onClick} aria-label={tr("Наверх")} title={tr("Наверх")} tabIndex={on ? 0 : -1} aria-hidden={on ? undefined : 'true'} className={`to-top ${on ? 'is-on' : ''} ${lift ? 'is-lifted' : ''}`}><Icons.ArrowUp /></button>);
         };
         const ToastHost = () => {
             const [t, setT] = useState(null);
@@ -456,6 +462,23 @@ i18nSetLang(readStoredLang());
                     <button type="button" onClick={onMenu} aria-label={tr("Открыть меню")} className="btn-secondary btn-sm flex-shrink-0"><span>{tr("Меню")}</span><span aria-hidden="true" className="text-lg leading-none">☰</span></button>
                 </div>
             </header>
+        );
+        // Окно «Закончить игру?» — одно на все игры: заголовок, «Поставить на паузу», линия, «Отмена» и «Выйти», пояснение под кнопками.
+        // Без onPause (усложнённый режим, где пауза не нужна) остаются заголовок, кнопки и пояснение
+        const GameExitDialog = ({ isOpen, onClose, title, onPause, onExit, exitLabel, note, warn }) => (
+            <PopupModal isOpen={isOpen} onClose={onClose}>
+                <div className="exit-dlg">
+                    <h3 className="exit-dlg-t">{title}</h3>
+                    {onPause && <button type="button" onClick={onPause} className="btn-primary w-full"><Icons.Pause /> {tr("Поставить на паузу")}</button>}
+                    {onPause && <div className="exit-dlg-rule" role="separator" aria-hidden="true"></div>}
+                    <div className="exit-dlg-row grid">
+                        <button type="button" onClick={() => { SoundFX.click(); onClose(); }} className="btn-secondary w-full">{tr("Отмена")}</button>
+                        <button type="button" onClick={onExit} className="btn-secondary w-full">{exitLabel || tr("Выйти")}</button>
+                    </div>
+                    {note && <p className="exit-dlg-note">{note}</p>}
+                    {warn && <p className="exit-dlg-warn">{warn}</p>}
+                </div>
+            </PopupModal>
         );
         const SETTINGS_KEY = "askme_game_settings_v1";
         const DEFAULT_PUNISHMENTS = [
@@ -759,19 +782,20 @@ i18nSetLang(readStoredLang());
         };
         const REEL = { CARD: 84, GAP: 8, TARGET: 30, TRAVEL: 22 };
         const reelTarget = (k, winnerIdx) => REEL.TARGET + ((winnerIdx - (REEL.TARGET % k)) % k + k) % k;
-        const reelGeometry = (w, tIndex, jit = 0) => {
-            const stride = REEL.CARD + REEL.GAP;
-            const final = w / 2 - (tIndex * stride + REEL.CARD / 2) + jit;
+        const REEL_BIG = { CARD: 132, GAP: 12 }; // рулетка на компьютере: карточки игроков крупнее
+        const reelGeometry = (w, tIndex, jit = 0, card = REEL.CARD, gap = REEL.GAP) => {
+            const stride = card + gap;
+            const final = w / 2 - (tIndex * stride + card / 2) + jit;
             return { t: tIndex, final, start: final - REEL.TRAVEL * stride };
         };
         const TurnReel = ({ players, winnerId, spinning }) => {
-            const k = Math.max(1, players.length);
+            const k = Math.max(1, players.length); const big = useIsDesktop(); const card = big ? REEL_BIG.CARD : REEL.CARD; const gap = big ? REEL_BIG.GAP : REEL.GAP;
             const t = reelTarget(k, Math.max(0, players.findIndex(p => p.id === winnerId)));
             const wrapRef = React.useRef(null);
             const [pos, setPos] = React.useState({ x: 0, anim: false, ready: false });
             React.useLayoutEffect(() => {
                 const w = wrapRef.current ? wrapRef.current.getBoundingClientRect().width : 300;
-                const g = reelGeometry(w, t, (Math.random() - 0.5) * REEL.CARD * 0.5);
+                const g = reelGeometry(w, t, (Math.random() - 0.5) * card * 0.5, card, gap);
                 const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
                 if (reduce) { setPos({ x: g.final, anim: false, ready: true }); return; }
                 setPos({ x: g.start, anim: false, ready: true });
@@ -780,15 +804,15 @@ i18nSetLang(readStoredLang());
                 return () => { cancelAnimationFrame(r1); if (r2) cancelAnimationFrame(r2); };
             }, []);
             return (
-                <div ref={wrapRef} className="relative w-full h-[112px] overflow-hidden rounded-[20px] border border-white/10 bg-white/[0.04]">
-                    <div className="absolute top-0 bottom-0 left-0 flex items-center" style={{ gap: REEL.GAP, transform: `translate3d(${pos.x}px,0,0)`, transition: pos.anim ? 'transform 2.2s cubic-bezier(0.08,0.6,0.12,1)' : 'none', willChange: 'transform', opacity: pos.ready ? 1 : 0 }}>
+                <div ref={wrapRef} className={`reel-wrap relative w-full overflow-hidden rounded-[20px] border border-white/10 bg-white/[0.04] ${big ? 'h-[184px]' : 'h-[112px]'}`}>
+                    <div className="absolute top-0 bottom-0 left-0 flex items-center" style={{ gap, transform: `translate3d(${pos.x}px,0,0)`, transition: pos.anim ? 'transform 2.2s cubic-bezier(0.08,0.6,0.12,1)' : 'none', willChange: 'transform', opacity: pos.ready ? 1 : 0 }}>
                         {Array.from({ length: t + 8 }, (_, i) => {
                             const p = players[i % k];
                             const win = !spinning && i === t;
                             return (
-                                <div key={i} style={{ width: REEL.CARD, flex: '0 0 auto' }} className={`h-[92px] rounded-xl border flex flex-col items-center justify-center gap-1 transition-all duration-300 ${win ? 'bg-rose-500/15 border-rose-500 scale-105' : 'bg-white/[0.04] border-white/10'} ${(!spinning && !win) ? 'opacity-35' : ''}`}>
-                                    <span className="text-2xl">{p.gender === 'guy' ? '👨' : '👩'}</span>
-                                    <span className="text-xs font-bold text-white truncate max-w-[72px]">{p.name}</span>
+                                <div key={i} style={{ width: card, flex: '0 0 auto' }} className={`${big ? 'h-[152px] gap-2' : 'h-[92px] gap-1'} rounded-xl border flex flex-col items-center justify-center transition-all duration-300 ${win ? 'bg-rose-500/15 border-rose-500 scale-105' : 'bg-white/[0.04] border-white/10'} ${(!spinning && !win) ? 'opacity-35' : ''}`}>
+                                    <span className={big ? 'text-5xl' : 'text-2xl'}>{p.gender === 'guy' ? '👨' : '👩'}</span>
+                                    <span className={`font-bold text-white truncate ${big ? 'text-base max-w-[116px]' : 'text-xs max-w-[72px]'}`}>{p.name}</span>
                                 </div>
                             );
                         })}
@@ -847,7 +871,7 @@ i18nSetLang(readStoredLang());
         };
         const useDeskState = () => { const [, bump] = useState(0); useEffect(() => { const f = () => bump(n => n + 1); deskStore.subs.add(f); return () => { deskStore.subs.delete(f); }; }, []); return deskStore.s; };
         const DESK_HIDE = ['game', 'ai_response', 'summary', 'tod_play', 'tod_results']; // экраны партии: панели нет, чтобы не уйти из игры случайным нажатием
-        const DESK_GROUPS = { home: ['menu', 'profile_page'], play: ['mode_select', 'game_setup', 'tod_lobby'], questions: ['cat_list', 'q_list', 'archive_page', 'add_q', 'edit_q', 'hidden_q'], about: ['about'] };
+        const DESK_GROUPS = { players: ['profile_page'], play: ['mode_select', 'game_setup', 'tod_lobby'], questions: ['cat_list', 'q_list', 'archive_page', 'add_q', 'edit_q', 'hidden_q'], about: ['about'] };
         const DesktopNav = () => {
             const desk = useIsDesktop(); const st = useDeskState();
             const show = desk && !!st.screen && !DESK_HIDE.includes(st.screen);
@@ -861,17 +885,16 @@ i18nSetLang(readStoredLang());
                     <div className="desk-nav-in">
                         <AskMeLogo size="md" onClick={() => go(st.hasProfile ? 'menu' : 'about')} />
                         <ul className="desk-links">
-                            {st.hasProfile && link('home', 'menu', tr("Главная"))}
                             {st.hasProfile && link('play', 'mode_select', tr("Играть"))}
                             {st.hasProfile && link('questions', 'cat_list', tr("Вопросы"))}
+                            {st.hasProfile && link('players', 'profile_page', tr("Игроки"))}
                             {link('about', 'about', tr("Об игре"))}
                         </ul>
                         <div className="desk-nav-right">
-                            {st.hasProfile && st.players.length > 0 && <span className="desk-players" title={st.players.map(p => p.name).join(', ')}>{st.players.map(p => p.name).join(' · ')}</span>}
                             {st.hasProfile && <SessionIdBadge sessionId={st.sessionId} sessionKey={st.sessionKey} onCopy={api.showToast} />}
                             <button type="button" onClick={() => api.toggleMute && api.toggleMute()} aria-label={st.muted ? tr("Включить звук") : tr("Выключить звук")} title={st.muted ? tr("Включить звук") : tr("Выключить звук")} className="btn-icon">{st.muted ? <Icons.SoundOff /> : <Icons.SoundOn />}</button>
                             <LangMenu lang={st.lang} onChange={(l) => api.changeLang && api.changeLang(l)} />
-                            {st.hasProfile && <button type="button" onClick={() => go('app_menu')} className="btn-secondary btn-sm"><span>{tr("Меню")}</span><Icons.Menu /></button>}
+                            {st.hasProfile && <button type="button" onClick={() => { SoundFX.click(); if (api.toggleMenu) api.toggleMenu(); else if (api.navigate) api.navigate('app_menu'); }} aria-pressed={st.screen === 'app_menu'} className={`btn-secondary btn-sm ${st.screen === 'app_menu' ? 'is-on' : ''}`}><span>{tr("Меню")}</span><Icons.Menu /></button>}
                         </div>
                     </div>
                 </nav>
@@ -909,7 +932,7 @@ i18nSetLang(readStoredLang());
                 <footer className="desk-footer select-none z-10">
                     <div className="desk-footer-in">
                         <div className="desk-fcol desk-fbrand">
-                            <AskMeLogo size="md" />
+                            <a href="#/" className="desk-flogo" aria-label={tr("На главную")} onClick={() => SoundFX.click()}><AskMeLogo size="md" /></a>
                             <p>{tr("Откровенные разговоры для двоих и компании. Играйте по взаимному согласию и берегите чужие границы.")}</p>
                             <span className="tag tag-rose">18+</span>
                         </div>
@@ -917,31 +940,127 @@ i18nSetLang(readStoredLang());
                         <nav className="desk-fcol" aria-label={tr("Режимы")}><h2>{tr("Режимы")}</h2><a href="#/mode">{tr("Выберите режим")}</a><a href="#/setup">{tr("Усложнённый режим")}</a><a href="#/tod">{tr("Правда или действие")}</a><a href="#/invite">{tr("Пригласить игроков")}</a></nav>
                         <nav className="desk-fcol" aria-label={tr("Документы")}><h2>{tr("Документы")}</h2><a href="#/privacy">{tr("Конфиденциальность")}</a><a href="#/terms">{tr("Соглашение")}</a><a href="#/cookies">{tr("Cookies")}</a><a href="#/age">{tr("Возраст 18+")}</a><a href="#/copyright">{tr("© Авторские права")}</a></nav>
                     </div>
-                    <div className="desk-footer-bar"><span>by <b>yedvinn</b></span><span>{tr("Подсказка: листать вопросы можно стрелками ← → на клавиатуре")}</span></div>
+                    <div className="desk-footer-bar"><span>by <b>yedvinn</b></span><span className="app-ver">{tf("Версия {v0}", { v0: appVersionLabel(APP_VERSION, getLang()) })}</span><span>{tr("Подсказка: листать вопросы можно стрелками ← → на клавиатуре")}</span></div>
                 </footer>
             );
             return (
             <footer className="w-full py-6 flex flex-col items-center justify-center gap-3 select-none z-10">
                 {divider && <div aria-hidden="true" className={`footer-rule mb-3 ${wide ? 'is-wide' : ''}`}></div>}
                 <div className="flex items-center justify-center gap-3 opacity-60 hover:opacity-100 transition-opacity"> <AskMeLogo size="xs" /> <span className="text-white/20 text-xs">•</span> <span className="text-xs text-zinc-400 font-semibold"> by <span className="text-rose-400">yedvinn</span> </span> </div>
+                <p className="app-ver">{tf("Версия {v0}", { v0: appVersionLabel(APP_VERSION, getLang()) })}</p>
                 {!noLinks && <nav aria-label={tr("Информация")} className="footer-links"><a href="#/about">{tr("Об игре")}</a><a href="#/privacy">{tr("Конфиденциальность")}</a><a href="#/terms">{tr("Соглашение")}</a><a href="#/copyright">{tr("© Авторские права")}</a></nav>}
             </footer>
             );
         };
 
-        // Состав сессии: имена игроков и устройства в комнате (первое — это устройство, остальные подключены). Спокойный блок, заметно тише кнопки «Поделиться»:
-        // имена устройств в базе не хранятся, поэтому показываем игроков сессии и число устройств
+        // Состав сессии: имена игроков и устройства в комнате — свёрнутый «аккордеон» внизу экрана перед подвалом (по умолчанию закрыт, занимает одну строку).
+        // Имена устройств в базе не хранятся, поэтому показываем игроков сессии и число устройств; тело всегда в разметке, но пока закрыто — скрыто (visibility)
         const RoomStrip = ({ players, devices }) => {
+            const [open, setOpen] = useState(false); const uid = useRef('rs' + Math.random().toString(36).slice(2, 7)).current;
             const list = Array.isArray(players) ? players : []; const n = Math.max(1, Math.min(Number(devices) || 1, MAX_PLAYERS));
+            const devText = n === 1 ? tr("Пока только это устройство") : tf("В игре {v0} {v1}", { v0: n, v1: declOfNum(n, ['устройство', 'устройства', 'устройств']) });
             return (
-                <div className="room-strip" role="group" aria-label={tr("Состав сессии")}>
-                    <ul className="room-strip-names">{list.map((p, i) => <li key={(p && p.id) || i}><span>{p && p.name}</span></li>)}</ul>
-                    <div className="room-strip-dev">
+                <section className={`room-acc ${open ? 'is-open' : ''}`} aria-label={tr("Состав сессии")}>
+                    <button type="button" id={uid + 'b'} className="room-acc-head" aria-expanded={open} aria-controls={uid} onClick={() => { SoundFX.click(); setOpen(o => !o); }}>
+                        <span className="room-acc-ico" aria-hidden="true"><Icons.Users /></span>
+                        <span className="room-acc-t">{tr("Игроки")} <b>{list.length}</b></span>
                         <span className="room-pips" aria-hidden="true">{Array.from({ length: n }, (_, i) => <i key={i} className={i === 0 ? 'me' : 'on'}></i>)}</span>
-                        <span>{n === 1 ? tr("Пока только это устройство") : tf("В игре {v0} {v1}", { v0: n, v1: declOfNum(n, ['устройство', 'устройства', 'устройств']) })}</span>
-                    </div>
-                </div>
+                        <span className="room-acc-chev" aria-hidden="true"><Icons.ChevronDown /></span>
+                    </button>
+                    <div id={uid} role="region" aria-labelledby={uid + 'b'} className="room-acc-body"><div className="room-acc-in">
+                        <ul className="room-strip-names">{list.map((p, i) => <li key={(p && p.id) || i}><span>{p && p.name}</span></li>)}</ul>
+                        <p className="room-strip-dev">{devText}</p>
+                    </div></div>
+                </section>
             );
+        };
+
+        // Только на компьютере: живой пример вопроса на главной (берётся из публичных примеров страницы «Об игре», без темы «Интим»). На ход игры не влияет
+        const DeskTeaser = () => {
+            const [n, setN] = useState(0);
+            const ex = aboutDoc().demo.examples; const flat = DIFFICULTIES.flatMap(d => (ex[d.id] || []).map(q => ({ q, d })));
+            if (!flat.length) return null;
+            const it = flat[n % flat.length];
+            return (
+                <section className="desk-teaser" aria-label={tr("Пример вопроса")}>
+                    <div className="desk-teaser-head"><span className="desk-teaser-t">{tr("Пример вопроса")}</span><span className={`desk-teaser-lvl lvl-${DIFFICULTIES.indexOf(it.d) + 1}`}>{diffLabel(it.d.id, it.d.name)}</span></div>
+                    <p key={n} className="desk-teaser-q">{it.q}</p>
+                    <button type="button" onClick={() => { SoundFX.click(); setN(v => (v + 1 + Math.floor(Math.random() * Math.max(1, flat.length - 1))) % flat.length); }} className="btn-text">{tr("Другой пример")}</button>
+                </section>
+            );
+        };
+
+        // Игроки на главной: «таблетки» по три в ряд (по две, если имена длинные или экран узкий). Эмодзи справа от имени; у пары между таблетками сердце.
+        // Нажатие открывает меню игрока: «Поделиться сессией», «Изменить имя», «Удалить игрока», «Отмена». Список меняет родитель (onChange), игроков не меньше двух
+        const HomePlayers = ({ players, group, emojis, onShare, onChange }) => {
+            const [open, setOpen] = useState(-1); const [rn, setRn] = useState(null); const [del, setDel] = useState(null); const ref = useRef(null);
+            useEffect(() => {
+                if (open < 0) return undefined;
+                const out = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(-1); };
+                const esc = (e) => { if (e.key === 'Escape') setOpen(-1); };
+                document.addEventListener('mousedown', out); document.addEventListener('touchstart', out); document.addEventListener('keydown', esc);
+                return () => { document.removeEventListener('mousedown', out); document.removeEventListener('touchstart', out); document.removeEventListener('keydown', esc); };
+            }, [open]);
+            const list = Array.isArray(players) ? players : []; const n = list.length;
+            // три в ряд (четыре — для четверых), если все имена помещаются целиком; иначе по два (проверяем после отрисовки и при смене ширины экрана)
+            const [two, setTwo] = useState(false); const [tick, setTick] = useState(0);
+            useEffect(() => { const h = () => { setTwo(false); setTick(t => t + 1); }; window.addEventListener('resize', h); return () => window.removeEventListener('resize', h); }, []);
+            React.useLayoutEffect(() => { setTwo(false); setTick(t => t + 1); }, [list.map(p => p.name).join('\u0001')]);
+            React.useLayoutEffect(() => { if (two || n < 3 || !ref.current) return; if ([...ref.current.querySelectorAll('.pl-name')].some(el => el.scrollWidth > el.clientWidth + 1)) setTwo(true); }, [tick, two, n]);
+            const cols = n <= 1 ? 1 : n === 2 || two ? 2 : n === 4 ? 4 : 3;
+            const saveName = () => {
+                const v = sanitizeName(rn ? rn.v : ''); if (!v) { SoundFX.warn(); setRn(r => ({ ...r, err: tr("Введите имя") })); return; }
+                SoundFX.success(); onChange(list.map(p => (p.id === rn.id ? { ...p, name: v } : p))); setRn(null); showToast(tr("Имя изменено"));
+            };
+            const askDelete = (p) => { setOpen(-1); if (n <= 2) { SoundFX.warn(); showToast(tr("В сессии должно остаться минимум два игрока"), 3200, 'warn'); return; } SoundFX.click(); setDel(p); };
+            const doDelete = () => { if (!del) return; SoundFX.click(); onChange(list.filter(p => p.id !== del.id)); setDel(null); showToast(tr("Игрок удалён")); };
+            return (<>
+                <div ref={ref} className={`pl-grid pl-c${cols} ${!group && n === 2 ? 'is-pair' : ''}`} role="group" aria-label={tr("Игроки")}>
+                    {list.map((p, i) => {
+                        const col = i % cols; const side = cols === 1 ? 'c' : col === 0 ? 'l' : col === cols - 1 ? 'r' : 'c';
+                        return (
+                            <div key={p.id} className="pl-cell">
+                                <button type="button" onClick={() => { SoundFX.click(); setOpen(o => (o === i ? -1 : i)); }} aria-haspopup="menu" aria-expanded={open === i} title={p.name} className={`pl-pill ${open === i ? 'is-open' : ''}`}>
+                                    <span className="pl-name">{p.name}</span>{group && <span className="pl-emo" aria-hidden="true">{emojis[i % emojis.length]}</span>}
+                                </button>
+                                {open === i && (
+                                    <div className={`menu-pop pl-menu pl-menu-${side} fade-in`} role="menu" aria-label={p.name}>
+                                        <button type="button" role="menuitem" className="menu-opt" onClick={() => { setOpen(-1); onShare(); }}><span>{tr("Поделиться сессией")}</span><Icons.Share /></button>
+                                        <button type="button" role="menuitem" className="menu-opt" onClick={() => { SoundFX.click(); setOpen(-1); setRn({ id: p.id, v: p.name, err: '' }); }}><span>{tr("Изменить имя")}</span><Icons.Edit /></button>
+                                        <button type="button" role="menuitem" className="menu-opt is-danger" onClick={() => askDelete(p)}><span>{tr("Удалить игрока")}</span><Icons.Trash /></button>
+                                        <button type="button" role="menuitem" className="menu-opt" onClick={() => { SoundFX.click(); setOpen(-1); }}><span>{tr("Отмена")}</span><Icons.Close /></button>
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+                <PopupModal isOpen={!!rn} onClose={() => setRn(null)}>
+                    {rn && (
+                        <form noValidate onSubmit={(e) => { e.preventDefault(); saveName(); }} className="exit-dlg">
+                            <h3 className="exit-dlg-t">{tr("Изменить имя")}</h3>
+                            <input type="text" autoFocus maxLength={20} value={rn.v} onChange={(e) => setRn({ ...rn, v: sanitizeName(e.target.value), err: '' })} aria-label={tr("Имя игрока")} placeholder={tr("Имя игрока")} className="pl-input" />
+                            {rn.err && <p className="ui-error text-center" role="alert">{rn.err}</p>}
+                            <div className="exit-dlg-row">
+                                <button type="button" onClick={() => { SoundFX.click(); setRn(null); }} className="btn-secondary w-full">{tr("Отмена")}</button>
+                                <button type="submit" className="btn-primary w-full">{tr("Сохранить")}</button>
+                            </div>
+                        </form>
+                    )}
+                </PopupModal>
+                <PopupModal isOpen={!!del} onClose={() => setDel(null)}>
+                    {del && (
+                        <div className="exit-dlg">
+                            <h3 className="exit-dlg-t">{tf("Удалить игрока «{v0}»?", { v0: del.name })}</h3>
+                            <p className="exit-dlg-note">{tr("Игрока можно будет добавить снова в разделе «Игроки и сессия».")}</p>
+                            <div className="exit-dlg-row">
+                                <button type="button" onClick={() => { SoundFX.click(); setDel(null); }} className="btn-secondary w-full">{tr("Отмена")}</button>
+                                <button type="button" onClick={doDelete} className="btn-danger w-full">{tr("Удалить")}</button>
+                            </div>
+                        </div>
+                    )}
+                </PopupModal>
+            </>);
         };
 
         // Визначити, чи текст українською (за специфічними літерами).
@@ -1577,9 +1696,13 @@ i18nSetLang(readStoredLang());
 
             const handleShareGame = async () => { SoundFX.click(); const shareUrl = `${window.location.origin}${window.location.pathname}#/welcome`; if (navigator.share) { try { await navigator.share({ title: tr("ASK ME — Игра"), text: tr("Откровенные разговоры ❤️"), url: shareUrl }); return; } catch (e) { if (e.name === 'AbortError') return; } } await copyTextToClipboard(shareUrl); showToast(tr("Ссылка на игру скопирована!")); };
             const toggleMute = () => { const nextState = !isMuted; setIsMuted(nextState); SoundFX.muted = nextState; if (!nextState) SoundFX.click(); };
+            const menuFromRef = useRef('menu'); // последняя страница до «Меню» (для кнопки «Меню» в верхней панели компьютера)
+            useEffect(() => { if (screen !== 'app_menu') menuFromRef.current = screen; }, [screen]);
             const desk = useIsDesktop(); // компьютер (от 1024 px): другая вёрстка экранов, верхняя панель и расширенный подвал
             useEffect(() => {
-                Object.assign(deskStore.api, { navigate, toggleMute, changeLang, showToast });
+                Object.assign(deskStore.api, { navigate: (id) => { if (id === 'profile_page' && profile) setPlayersForm(profile.players); navigate(id); }, toggleMute, changeLang, showToast,
+                    // «Меню» в панели — переключатель: открывает меню, а повторное нажатие возвращает на страницу, где пользователь был до него
+                    toggleMenu: () => { if (screen === 'app_menu') { const back = menuFromRef.current; navigate(back && back !== 'app_menu' ? back : 'menu'); } else navigate('app_menu'); } });
                 deskStore.set({ screen, hasProfile: !!profile, sessionId: profile ? profile.sessionId : '', sessionKey: profile ? profile.sessionKey : '', players: profile ? profile.players : [], muted: isMuted, lang });
             });
             const handleLogoSecretTap = () => { const nextCount = logoTapCount + 1; setLogoTapCount(nextCount); if (nextCount >= 5) { SoundFX.magic(); setLogoTapCount(0); setAdminPinError(''); navigate('admin_login'); } };
@@ -1835,6 +1958,12 @@ i18nSetLang(readStoredLang());
                 return !(done && last);
             };
             const performSwipe = (dir) => { if (dir === 'left') handlePrevQuestion(); else handleNextQuestion(); };
+            // кнопки «Назад» / «Далее» внизу экрана смены вопроса запускают ту же анимацию, что и свайп пальцем (карточка улетает, новая проявляется);
+            // если свайп сейчас невозможен (окна, рулетка, последний вопрос, ход ещё не закончен) — работает обычное нажатие без анимации
+            const pressSwipeBtn = (dir) => {
+                const liveGuard = liveRoomRef.current && Date.now() - liveRef.current.appliedAt < LIVE_TAP_GUARD_MS;
+                if (!liveGuard && !swipeBusy() && swipeAllowed(dir)) commitSwipe(dir); else performSwipe(dir);
+            };
             const swipeLabel = (dir) => !swipeAllowed(dir) ? (dir === 'left' && currentIndex === 0 ? tr("Это первый вопрос") : tr("Здесь нельзя")) : (dir === 'left' ? tr("← Назад") : tr("Далее →"));
             const onSwipeStart = (e) => {
                 if (swipeBusy() || (e.target.closest && e.target.closest('button,a,input,textarea,select'))) return;
@@ -2014,11 +2143,11 @@ i18nSetLang(readStoredLang());
                             </div>
                         )}
                         <div className="pg-side">
-                        {strip}
                         <div className="flex flex-col gap-2">
                             <button type="button" disabled={!(settings.timerOn || settings.punishOn)} onClick={startFromPregame} className="btn-primary w-full">{tr("Начать игру")}</button>
                             {!(settings.timerOn || settings.punishOn) && <p role="alert" className="inline-error"><span aria-hidden="true" className="inline-error-i">!</span><span>{tr("Включите хотя бы одно усложнение: таймер или наказания.")}</span></p>}
                         </div>
+                        {strip}
                         </div>
                     </div>
             );
@@ -2125,7 +2254,7 @@ i18nSetLang(readStoredLang());
             };
             // ---- режим «Правда или действие»: запись карточек из админки ----
             const todSetList = (list, source, writeCache) => { todCardsRef.current = list; setTodCards(list); setTodSource(source); if (writeCache) todWriteCache(todCardsEnv.storage, list); };
-            const todUi = { Icons, SoundFX, AppFooter, showToast, showError: showErrorPopup, navigate, SettingSwitch, PopupModal, RoomStrip, tr, GameHeader, hdr: { muted: isMuted, onMute: toggleMute, lang, onLang: changeLang } };
+            const todUi = { Icons, SoundFX, AppFooter, showToast, showError: showErrorPopup, navigate, SettingSwitch, PopupModal, GameExitDialog, RoomStrip, tr, GameHeader, hdr: { muted: isMuted, onMute: toggleMute, lang, onLang: changeLang } };
             // ---- режим «Правда или действие»: партия на одном устройстве ----
             const todCardOf = (id) => todCardsRef.current.find(x => x.id === id) || (todIsMine(id) ? todMineRef.current.find(x => x.id === id) : undefined) || todExtraRef.current[id]; // null в todExtra — карточки нет в базе
             const todLevelOf = (id) => { const c = todCardOf(id); return c ? c.difficulty : null; };
@@ -2902,7 +3031,7 @@ i18nSetLang(readStoredLang());
             // страницы без сессии: «Об игре», документы, быстрое подключение. Показываем сразу, не дожидаясь загрузки вопросов
             const pageBack = () => navigate(profile ? 'app_menu' : 'onboarding');
             if (PUBLIC_SCREENS.includes(screen)) {
-                const shell = (children, links = true) => (<div className="safe-screen w-full flex flex-col items-center slide-up relative z-10">{children}<AppFooter noLinks={!links} /></div>);
+                const shell = (children, links = true) => (<div className="safe-screen selectable w-full flex flex-col items-center slide-up relative z-10">{children}<AppFooter noLinks={!links} /></div>);
                 if (screen === 'about') return shell(<AboutPage profileDb={profileDb} topicCount={CATEGORIES.length} hasProfile={!!profile} onBack={pageBack} onStart={() => navigate(profile ? 'menu' : 'onboarding')} onShare={sharePage} />);
                 if (screen === 'join') {
                     const sameSession = !!(joinInvite && profile && profile.sessionKey === joinInvite.key);
@@ -3490,7 +3619,6 @@ if (screen === 'mode_select') {
                         <main className="w-full max-w-md lg:max-w-5xl flex flex-col gap-4 pt-6 pb-8">
                             {liveInviteBanner}
                             {todInviteBanner}
-                            {lobbyStrip}
                             <div className="mode-grid">
                             <button disabled={stats.availableActive === 0} onClick={() => { SoundFX.click(); setHardMode(false); startWithMode('normal', { hard: false }); }} className="opt-card opt-brand">
                                 <span aria-hidden="true" className="w-12 h-12 rounded-xl bg-rose-500/20 flex items-center justify-center text-2xl flex-shrink-0">💬</span>
@@ -3515,7 +3643,7 @@ if (screen === 'mode_select') {
                                 </span>
                             </button>
                             </div>
-                            <p className="px-2 text-xs text-zinc-400 leading-relaxed text-center">{tf("👥 К игре можно подключить до {v0} устройств (по числу игроков): вопросы, очередь и таймер будут общими. Пригласить — кнопкой в шапке.", { v0: profile ? deviceCap(profile) : MAX_PLAYERS })}</p>
+                            <p className="px-2 text-xs text-zinc-400 leading-relaxed text-center">{tf("👥 К игре можно подключить до {v0} игроков: вопросы, очередь и таймер будут общими. Пригласить — кнопкой в шапке.", { v0: MAX_PLAYERS })}</p>
                             {isAdmin && (
                                 <button onClick={() => { SoundFX.click(); setHardMode(false); startWithMode('test'); }} className="opt-card">
                                     <span aria-hidden="true" className="w-12 h-12 rounded-xl bg-white/[0.07] flex items-center justify-center text-2xl flex-shrink-0">🧪</span>
@@ -3525,6 +3653,7 @@ if (screen === 'mode_select') {
                                     </span>
                                 </button>
                             )}
+                            {lobbyStrip}
                         </main>
                         <AppFooter divider={false} />
                     </div>
@@ -3579,18 +3708,11 @@ if (screen === 'mode_select') {
 
                             <div className="flex flex-col items-center text-center gap-3 py-1">
                                 <AskMeLogo size="lg" onClick={handleLogoSecretTap} />
-                                <p className="text-rose-400 text-xs sm:text-xs font-extrabold mt-0.5">
-                                    {!profile ? tr("Откровенные разговоры для пар и компаний") : isGroup ? tr("Откровенные разговоры для компании") : tr("Откровенные разговоры для двоих")}
-                                </p>
+                                {(() => { const subT = !profile ? tr("Откровенные разговоры для пар и компаний") : isGroup ? tr("Откровенные разговоры для компании") : tr("Откровенные разговоры для двоих"); return (
+                                    <div className="home-sub-wrap"><p className="home-sub" style={{ '--sub-em': (subT.length * 0.6).toFixed(1) }}>{subT}</p></div>
+                                ); })()}
                                 {profile ? (
-                                    <div className="flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1 text-base font-semibold text-white max-w-sm">
-                                        {profile.players.map((p, i) => (
-                                            <React.Fragment key={p.id}>
-                                                <span className="truncate max-w-[9rem]">{p.name}</span>
-                                                {i < pCount - 1 && <span aria-hidden="true" className={isGroup ? 'text-base' : 'text-rose-500 text-sm'}>{isGroup ? GROUP_EMOJIS_SHUFFLED[i % GROUP_EMOJIS_SHUFFLED.length] : '♥'}</span>}
-                                            </React.Fragment>
-                                        ))}
-                                    </div>
+                                    <HomePlayers players={profile.players} group={isGroup} emojis={GROUP_EMOJIS_SHUFFLED} onShare={() => openInvite('menu')} onChange={(players) => setProfile(prev => (prev ? { ...prev, players, updatedAt: Date.now() } : prev))} />
                                 ) : ( <p className="text-white text-sm font-semibold">{tr("Режим предпросмотра")}</p> )}
                             </div>
                             <div className="hairline-divider"></div>
@@ -3643,6 +3765,7 @@ if (screen === 'mode_select') {
                                             <div id="start-hint" aria-live="polite">{startBlock && ( <p key={startErrTick} role={startErrTick ? 'alert' : undefined} className={`inline-error ${startErrTick ? 'shake' : ''}`}><span aria-hidden="true" className="inline-error-i">!</span><span>{startBlock}{isAdmin ? tr(" Тестовый режим доступен и без выбора.") : ''}</span></p> )}</div>
                                             {profile && ( <p className="mt-3.5 text-center text-xs text-zinc-500">{tr("ID сессии:")} <span className="font-semibold text-zinc-300 select-all">{profile.sessionId}</span></p> )}
                                         </div>
+                                        {desk && <DeskTeaser />}
                                     </div>
                                 </div>
                             </div>
@@ -3748,13 +3871,13 @@ if (screen === 'mode_select') {
 
                         <div className="fixed bottom-0 left-0 right-0 p-4 sm:p-6 z-20 bg-gradient-to-t from-[#0a0710] via-[#0a0710]/90 to-transparent" style={{ paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom))' }}>
                             <div className="max-w-lg mx-auto grid grid-cols-2 gap-3.5">
-                                <button onClick={handlePrevQuestion} disabled={currentIndex === 0} className="btn-secondary w-full flex items-center justify-center gap-2"><Icons.Back /> {tr("Назад")}</button>
-                                <button onClick={handleNextQuestion} className="btn-primary w-full flex items-center justify-center gap-2">{(currentIndex === gameQuestions.length - 1 && turnDone) ? (gameMode === 'test' ? tr("В меню") : tr("Итоги")) : tr("Далее")} <Icons.Next /></button>
+                                <button onClick={() => pressSwipeBtn('left')} disabled={currentIndex === 0} className="btn-secondary w-full flex items-center justify-center gap-2"><Icons.Back /> {tr("Назад")}</button>
+                                <button onClick={() => pressSwipeBtn('right')} className="btn-primary w-full flex items-center justify-center gap-2">{(currentIndex === gameQuestions.length - 1 && turnDone) ? (gameMode === 'test' ? tr("В меню") : tr("Итоги")) : tr("Далее")} <Icons.Next /></button>
                             </div>
                         </div>
 
-                        <PopupModal isOpen={gameMode === 'normal' && turnPopup.open} onClose={handleCloseRoulettePopup}>
-                            <div className="text-center flex flex-col items-center justify-between gap-5 pt-1 min-h-[300px]">
+                        <PopupModal wide isOpen={gameMode === 'normal' && turnPopup.open} onClose={handleCloseRoulettePopup}>
+                            <div className="roulette-dlg text-center flex flex-col items-center justify-between gap-5 pt-1 min-h-[300px]">
                                 <div className="w-full flex flex-col items-center gap-4">
                                     <span className="text-xs font-bold text-zinc-500">{tr("Вопрос №")} {currentQ.num} {tr("• Очередь")}</span>
                                     <h3 className="text-lg font-bold text-white">{turnPopup.spinning ? tr("Определяем, кто отвечает…") : tr("Отвечает:")}</h3>
@@ -3821,16 +3944,12 @@ if (screen === 'mode_select') {
                             </div>
                         </PopupModal>
 
-                        <PopupModal isOpen={showEndGameConfirm} onClose={() => setShowEndGameConfirm(false)}>
-                            <div className="text-center flex flex-col items-center gap-4 pt-2">
-                                <h3 className="text-lg font-bold text-white px-8">{gameMode === 'normal' ? tr("Вы действительно хотите закончить игру?") : tr("Завершить текущую партию?")}</h3>
-                                {gameMode === 'normal' && <p className="text-xs text-zinc-300 leading-relaxed">{tr("Можно поставить игру на паузу: она сохранится, а «Продолжить игру» ждёт на главной.")}</p>}
-                                {gameMode === 'normal' && <button type="button" onClick={() => { SoundFX.click(); setShowEndGameConfirm(false); navigate('menu'); }} className="btn-primary w-full"><Icons.Pause /> {tr("Поставить на паузу")}</button>}
-                                {gameMode === 'normal' && <p className="text-xs text-zinc-400 leading-relaxed">{tr("Если закончить, пройденные вопросы (")}{maxReachedIndex + 1} {tr("шт.) перейдут в Архив сессии")} <b className="text-rose-300">{profile.sessionId}</b>.</p>}
-                                {live.room && liveCount > 1 && <p className="text-xs text-amber-200/90 leading-relaxed">{tr("Партия закончится у всех: в игре")} {liveCount} {declOfNum(liveCount, ['устройство', 'устройства', 'устройств'])}{tr(". Чтобы выйти только самому, выберите «Поставить на паузу».")}</p>}
-                                <div className="grid grid-cols-2 gap-3 w-full"> <button onClick={() => { SoundFX.click(); setShowEndGameConfirm(false); }} className="btn-secondary w-full">{tr("Отмена")}</button> <button onClick={() => handleFinishGame(false)} className="btn-secondary w-full">{live.room && liveCount > 1 ? tr("Для всех") : tr("Да")}</button> </div>
-                            </div>
-                        </PopupModal>
+                        <GameExitDialog isOpen={showEndGameConfirm} onClose={() => setShowEndGameConfirm(false)}
+                            title={gameMode === 'normal' ? tr("Вы действительно хотите закончить игру?") : tr("Завершить текущую партию?")}
+                            onPause={gameMode === 'normal' ? () => { SoundFX.click(); setShowEndGameConfirm(false); navigate('menu'); } : null}
+                            onExit={() => handleFinishGame(false)} exitLabel={live.room && liveCount > 1 ? tr("Для всех") : tr("Выйти")}
+                            note={gameMode === 'normal' ? <>{tr("Если закончить, пройденные вопросы (")}{maxReachedIndex + 1} {tr("шт.) перейдут в Архив сессии")} <b className="text-rose-300">{profile.sessionId}</b>.</> : null}
+                            warn={live.room && liveCount > 1 ? <>{tr("Партия закончится у всех: в игре")} {liveCount} {declOfNum(liveCount, ['устройство', 'устройства', 'устройств'])}{tr(". Чтобы выйти только самому, выберите «Поставить на паузу».")}</> : null} />
                     </div>
                 );
             }

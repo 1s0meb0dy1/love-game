@@ -16,7 +16,7 @@ const { joinGame, boot, waitFor, sleep, pos, who, inGame, closeRoulette, openGam
   T('в тестовом режиме значка «👥» нет', chip(A) === '');
   T('другое устройство той же сессии приглашения не получает', !B.has('Присоединиться'));
   T('и сам телефон владельца в тестовой игре не обращается к базе живой игры (обращений: ' + (aLive - before) + ')', aLive - before === 0);
-  await openGameMenu(A); const yes = A.btns().find(b => b.textContent.trim() === 'Да'); yes.dispatchEvent(new A.w.MouseEvent('click', { bubbles: true })); await sleep(1200);
+  await openGameMenu(A); const yes = A.btns().find(b => b.textContent.trim() === 'Выйти'); yes.dispatchEvent(new A.w.MouseEvent('click', { bubbles: true })); await sleep(1200);
   T('тестовую игру можно завершить: владелец на главной', onMenu(A));
 
   // обычная игра того же владельца — как у всех, синхронизируется

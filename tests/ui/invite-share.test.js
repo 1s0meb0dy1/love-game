@@ -26,6 +26,6 @@ const boot = async (hash, names = ['Макс', 'Аня']) => { const A = makeEnv
     const A = await boot('/invite', names); const { D } = A; const t = D.querySelector('.invite-page').textContent;
     T('страница приглашения: при ' + names.length + ' игроках сказано «до ' + cap + ' устройств — столько же, сколько игроков»', new RegExp('до ' + cap + ' устройств').test(t) && /сколько игроков в сессии/.test(t)); allErrors.push(...A.errors); A.w.close();
   }
-  { const A = await boot('/mode', ['Макс', 'Аня', 'Ира']); T('«Выберите режим»: подсказка про синхронизацию называет лимит по числу игроков (3) и отсылает к кнопке в шапке', /до 3 устройств/.test(A.D.body.textContent) && /кнопкой в шапке/.test(A.D.body.textContent)); allErrors.push(...A.errors); A.w.close(); }
+  { const A = await boot('/mode', ['Макс', 'Аня', 'Ира']); T('«Выберите режим»: подсказка про синхронизацию называет максимум — до 10 игроков — и отсылает к кнопке в шапке', /до 10 игроков/.test(A.D.body.textContent) && /кнопкой в шапке/.test(A.D.body.textContent)); allErrors.push(...A.errors); A.w.close(); }
   console.log(res.join('\n')); console.log('--- captured runtime errors:', allErrors.length); allErrors.slice(0, 6).forEach(e => console.log(' ', e)); process.exit(0);
  } catch (err) { console.log(res.join('\n')); console.log('TEST CRASH:', err.stack.split('\n').slice(0, 3).join(' | ')); process.exit(1); } })();
