@@ -32,6 +32,7 @@ let html = fs.readFileSync(PAGE, 'utf8');
 const MOTIF_NAMES = ['Реплика', 'Кубик', 'Вопрос', 'Пламя', 'Сердце', 'Луна', 'Реплика с точками', 'Искра', 'Бесконечность', 'Бокалы', 'Звезда', 'Два сердца'];
 html = html.replace('/*APP_CSS*/', () => css)
   .replace('<!--ICONS-->', () => icons.map(([n, s]) => `<figure class="ds-icon-cell">${s}<figcaption><code>Icons.${n}</code></figcaption></figure>`).join('\n'))
+  .replace(/<!--ICON:(\w+)-->/g, (_, n) => ((icons.find(i => i[0] === n) || [])[1] || ''))
   .replace('<!--MOTIF_DEFS-->', () => defs.replace('class="motif-defs"', 'class="ds-defs"'))
   .replace('<!--MOTIFS-->', () => motifs.map((m, i) => `<figure class="ds-motif-cell">${m.svg}<figcaption>${MOTIF_NAMES[i] || 'Мотив'}<span>${m.kind === 'контур' ? 'контур' : m.kind === 'm-glass' ? 'стекло' : 'дальний'}</span></figcaption></figure>`).join('\n'))
   .replace('<!--ROOM-->', () => room)

@@ -5,7 +5,7 @@
 // «Ценности» сюди не входять: там навіть «легкі» питання бувають про політику, релігію, секс-роботу
 const WARM_CATS = ['fun', 'future', 'life', 'past', 'family'];
 // Розминка не має зачіпати болючі теми, навіть якщо в базі питання позначене «Простые»
-const WARM_BLOCK = /секс|интим|постел|оргазм|голы|наркот|измен|бывш|смерт|умер|умр|войн|деньг|зарплат|долг|брос|развод|ревн|алкогол|пьян|насили|аборт|болезн|похорон|кредит|проститу|религ|бог|политик|оружи|тюрьм|преступ|полици|рас[аы]|национальн|ориентац|гей|лгбт|вес[аеу]? |похуд|диет|травм|депресс|самоуб|обид|разозл|дет[еяи]|ребен|2022|феврал|две мамы|два папы/i;
+const WARM_BLOCK = /секс|интим|постел|оргазм|голы|наркот|измен|бывш|смерт|умер|умр|войн|деньг|зарплат|долг|брос|развод|ревн|алкогол|пьян|насили|аборт|болезн|похорон|кредит|проститу|религ|бог|политик|оружи|тюрьм|преступ|полици|рас[аы]|национальн|ориентац|гей|лгбт|вес[аеу]? |похуд|диет|травм|депресс|самоуб|обид|разозл|дет[еяи]|ребен|2022|феврал|две мамы|два папы|тяжел|трудно|принять|стыд|сожале|жалеешь|ненавид|боишь|страх|ошибк/i;
 const WARM_MAX_LEN = 90;
 
 export const EVENING_MOODS = {
@@ -100,3 +100,28 @@ export function eveningSave(meta) { try { if (meta) localStorage.setItem(EVENING
 export function eveningLoad(deck) {
     try { const m = JSON.parse(localStorage.getItem(EVENING_KEY) || 'null'); return m && deck && m.deckKey === eveningDeckKey(deck) ? m : null; } catch (e) { return null; }
 }
+
+// «Врятувати вечір»: три легкі картки замість важкої. Якщо поточну картку ще ніхто не відповів (replace),
+// вона виходить із колоди, інакше легкі картки стають одразу після неї. Глави й поріг згоди зсуваються.
+export function rescueDeck(pool, deck, cur, { n = 3, rnd = Math.random, chapters = [], gate = -1, replace = false } = {}) {
+    if (cur < 0 || cur >= deck.length) return null;
+    const used = new Set(deck.map(keyOf));
+    const warm = pickWarmup(pool, n, rnd, used);
+    if (!warm.length) return null;
+    const delta = replace ? warm.length - 1 : warm.length;
+    const out = [...deck.slice(0, replace ? cur : cur + 1), ...warm, ...deck.slice(cur + 1)];
+    const ch = chapters.map(c => ({ ...c, from: c.from > cur ? c.from + delta : c.from, to: c.to >= cur ? c.to + delta : c.to }));
+    return { deck: out, chapters: ch, gate: gate > cur ? gate + delta : gate, added: warm.length };
+}
+
+// «Тихі межі»: теми, яких сьогодні не торкаємось. Зберігається лише об'єднання, без того, хто що обрав,
+// і лише на пристрої; через 12 годин межі зникають самі (новий вечір — нові межі).
+export const LIMITS_KEY = 'askme_limits_v1';
+const LIMITS_TTL = 12 * 3600 * 1000;
+export function limitsSave(cats, now = Date.now()) {
+    try { const list = [...new Set(cats || [])].sort(); if (list.length) localStorage.setItem(LIMITS_KEY, JSON.stringify({ cats: list, at: now })); else localStorage.removeItem(LIMITS_KEY); } catch (e) { /* приватний режим */ }
+}
+export function limitsLoad(now = Date.now()) {
+    try { const m = JSON.parse(localStorage.getItem(LIMITS_KEY) || 'null'); return m && Array.isArray(m.cats) && now - (m.at || 0) < LIMITS_TTL ? m.cats : []; } catch (e) { return []; }
+}
+export const applyLimits = (pool, cats) => (cats && cats.length ? pool.filter(q => !cats.includes(q.categoryId)) : pool);
