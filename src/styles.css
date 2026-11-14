@@ -605,9 +605,10 @@ input[aria-invalid='true'], textarea[aria-invalid='true'] { border-color: var(--
 
 /* ═══ Карточка вопроса: появление после перелистывания ═══ */
 :root .game-card { animation: slideUp 0.32s var(--ease-out) forwards; }
-:root [data-enter='right'] > .game-card { animation: cardInNext 0.42s var(--ease-out) both; }
+:root [data-enter='right'] > .game-card { animation: cardInNext 0.52s cubic-bezier(.2,.9,.25,1.08) both; }
 :root [data-enter='left'] > .game-card { animation: cardInPrev 0.42s var(--ease-out) both; }
-@keyframes cardInNext { from { opacity: 0; transform: translate3d(0, 12px, 0) scale(0.965); } to { opacity: 1; transform: none; } }
+/* Heat 2: картка «роздається» з колоди позаду — трохи знизу-справа з легким поворотом */
+@keyframes cardInNext { 0% { opacity: 0; transform: translate3d(14px, 28px, 0) rotate(2.4deg) scale(0.94); } 55% { opacity: 1; } 100% { opacity: 1; transform: none; } }
 @keyframes cardInPrev { from { opacity: 0; transform: translate3d(-30px, 6px, 0) scale(0.97) rotate(-1.4deg); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { :root [data-enter] > .game-card { animation: none; } }
 
@@ -1458,3 +1459,4 @@ html[data-theme='light'] .bg-room .veil::before { content: ''; position: absolut
 @keyframes evInterIn { 0% { opacity: 0; transform: translate3d(0, 14px, 0) scale(0.97); } 18%, 80% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translate3d(0, -8px, 0); } }
 @media (prefers-reduced-motion: reduce) { :root .ev-inter-in { animation-name: evInterBg; } }
 html.fx-lite .ev-inter { -webkit-backdrop-filter: none; backdrop-filter: none; background: rgb(var(--night-rgb) / 0.9); }
+:root .mode-ico svg { width: 26px; height: 26px; }

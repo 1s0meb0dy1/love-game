@@ -366,6 +366,18 @@ i18nSetLang(readStoredLang());
             , Sun: () => <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4" /><path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4L6 18M18 6l1.4-1.4" /></svg>
             , Moon: () => <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" /></svg>
             , AutoTheme: () => <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} aria-hidden="true"><circle cx="12" cy="12" r="8.5" /><path d="M12 3.5a8.5 8.5 0 0 1 0 17z" fill="currentColor" stroke="none" /></svg>
+            , Clock: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></svg>
+            , Chart: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 20h16" /><path d="M7 16v-4M12 16V8M17 16v-7" /></svg>
+            , Gear: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3" /><path d="M12 3.5v2.2M12 18.3v2.2M3.5 12h2.2M18.3 12h2.2M6 6l1.6 1.6M16.4 16.4 18 18M6 18l1.6-1.6M16.4 7.6 18 6" /></svg>
+            , Mask: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 6.5c2.7 1.3 5.3 1.3 8 0 2.7 1.3 5.3 1.3 8 0v4.2c0 4.6-3.6 8.3-8 8.3s-8-3.7-8-8.3z" /><path d="M8.3 11h1.4M14.3 11h1.4M9.3 15c1.7 1.2 3.7 1.2 5.4 0" /></svg>
+            , Dice: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4" /><path d="M8.5 8.5h.01M15.5 8.5h.01M12 12h.01M8.5 15.5h.01M15.5 15.5h.01" strokeWidth={2.8} /></svg>
+            , Globe: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5" /><path d="M3.5 12h17M12 3.5c2.4 2.4 3.6 5.2 3.6 8.5s-1.2 6.1-3.6 8.5c-2.4-2.4-3.6-5.2-3.6-8.5S9.6 5.9 12 3.5z" /></svg>
+            , Unlock: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2.5" /><path d="M8.5 11V8a3.5 3.5 0 0 1 6.7-1.4" /></svg>
+            , Heart: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 19.5 5 12.7a4.2 4.2 0 0 1 6-6l1 1 1-1a4.2 4.2 0 0 1 6 6z" /></svg>
+            , Chat: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 18.5V7a2.5 2.5 0 0 1 2.5-2.5h9A2.5 2.5 0 0 1 19 7v6.5a2.5 2.5 0 0 1-2.5 2.5H9z" /><path d="M9 9.5h6M9 12.5h4" /></svg>
+            , Flame: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 20.5a6 6 0 0 0 6-6c0-3.6-2.7-5.8-4-9.5-2 1.6-3 3.6-3 5.6-1-.6-1.6-1.6-1.8-2.6C7.4 9.6 6 11.8 6 14.5a6 6 0 0 0 6 6z" /></svg>
+            , Party: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4.5 19.5 8 9l7 7z" /><path d="M13 4.5c.4 1.2.1 2.3-.8 3.2M17.5 9.5c1-.6 2.1-.7 3-.2M15.5 6.5l1-1M19 13l1.2.4" /></svg>
+            , Flask: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9.5 3.5h5M10.5 3.5v5.2L5.4 17.6A2 2 0 0 0 7.1 20.5h9.8a2 2 0 0 0 1.7-2.9l-5.1-8.9V3.5" /><path d="M7.8 14h8.4" /></svg>
             , MoodEasy: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5" /><path d="M8.4 13.6c.9 1.5 2.2 2.3 3.6 2.3s2.7-.8 3.6-2.3" /><path d="M9 9.6h.01M15 9.6h.01" strokeWidth={2.6} /></svg>
             , MoodClose: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9.2 19.5 4.3 14.7a3.6 3.6 0 0 1 5.1-5.1l.3.3.3-.3a3.6 3.6 0 0 1 5.1 5.1" /><path d="M14.8 20.5l-4.2-4.1a3.1 3.1 0 0 1 4.4-4.4l.2.2.2-.2a3.1 3.1 0 0 1 4.4 4.4z" /></svg>
             , MoodDeep: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M19.5 14.6A8 8 0 0 1 9.4 4.5a8 8 0 1 0 10.1 10.1z" /><path d="M16.5 3.5v3M15 5h3M20 8.5v2M19 9.5h2" /></svg>
@@ -3371,33 +3383,33 @@ i18nSetLang(readStoredLang());
 if (screen === 'app_menu') {
                 const menuSections = [
                     { title: tr('Разделы'), items: [
-                        { id: 'players', icon: '👥', title: tr('Игроки и сессия'), desc: tr('Имена, состав и восстановление'), onClick: () => { if (profile) { setPlayersForm(profile.players); navigate('profile_page'); } } },
-                        { id: 'questions', icon: '📚', title: tr('Все вопросы'), desc: tr('Темы и список вопросов'), onClick: () => navigate('cat_list') },
-                        { id: 'history', icon: '🕑', title: tr('Прошлые игры'), desc: (profile?.history || []).length ? tf('Сыграно игр: {v0} · {v1}', { v0: profile.history.length, v1: histDayLabel(profile.history[0].t, Date.now(), lang) }) : tr('Здесь появятся ваши игры'), onClick: () => navigate('history') },
-                        { id: 'archive', icon: '🗂️', title: tr('Архив'), desc: `${tr('Пройдено вопросов:')} ${stats.archivedList.length}`, onClick: () => navigate('archive_page') },
-                        { id: 'about', icon: '✨', title: tr('Об игре'), desc: tr('Что умеет ASK ME и как играть'), onClick: () => navigate('about') },
+                        { id: 'players', icon: <Icons.Users />, title: tr('Игроки и сессия'), desc: tr('Имена, состав и восстановление'), onClick: () => { if (profile) { setPlayersForm(profile.players); navigate('profile_page'); } } },
+                        { id: 'questions', icon: <Icons.List />, title: tr('Все вопросы'), desc: tr('Темы и список вопросов'), onClick: () => navigate('cat_list') },
+                        { id: 'history', icon: <Icons.Clock />, title: tr('Прошлые игры'), desc: (profile?.history || []).length ? tf('Сыграно игр: {v0} · {v1}', { v0: profile.history.length, v1: histDayLabel(profile.history[0].t, Date.now(), lang) }) : tr('Здесь появятся ваши игры'), onClick: () => navigate('history') },
+                        { id: 'archive', icon: <Icons.Archive />, title: tr('Архив'), desc: `${tr('Пройдено вопросов:')} ${stats.archivedList.length}`, onClick: () => navigate('archive_page') },
+                        { id: 'about', icon: <Icons.Sparkles />, title: tr('Об игре'), desc: tr('Что умеет ASK ME и как играть'), onClick: () => navigate('about') },
                     ] },
                     { title: tr('Настройки'), items: [
-                        { id: 'sound', icon: isMuted ? '🔇' : '🔊', title: tr('Звук и вибрация'), desc: isMuted ? tr('Выключены') : tr('Включены'), right: <SettingSwitch on={!isMuted} onChange={toggleMute} label={tr("Звук и вибрация")} /> },
-                        { id: 'theme', icon: themePref === 'light' ? '☀️' : themePref === 'dark' ? '🌙' : '🌗', title: tr('Оформление'), desc: themePref === 'light' ? tr('Рассвет: светлая') : themePref === 'dark' ? tr('Ночь: тёмная') : tr('Как в системе'), right: (
+                        { id: 'sound', icon: isMuted ? <Icons.SoundOff /> : <Icons.SoundOn />, title: tr('Звук и вибрация'), desc: isMuted ? tr('Выключены') : tr('Включены'), right: <SettingSwitch on={!isMuted} onChange={toggleMute} label={tr("Звук и вибрация")} /> },
+                        { id: 'theme', icon: themePref === 'light' ? <Icons.Sun /> : themePref === 'dark' ? <Icons.Moon /> : <Icons.AutoTheme />, title: tr('Оформление'), desc: themePref === 'light' ? tr('Рассвет: светлая') : themePref === 'dark' ? tr('Ночь: тёмная') : tr('Как в системе'), right: (
                             <div className="seg seg-icons" role="radiogroup" aria-label={tr('Оформление')}>
                                 {[['auto', Icons.AutoTheme, tr('Как в системе')], ['dark', Icons.Moon, tr('Ночь: тёмная')], ['light', Icons.Sun, tr('Рассвет: светлая')]].map(([id, Ic, lbl]) => (
                                     <button key={id} type="button" role="radio" aria-checked={themePref === id} aria-label={lbl} title={lbl} onClick={() => changeTheme(id)} className={`seg-btn ${themePref === id ? 'is-active' : ''}`}><Ic /></button>
                                 ))}
                             </div>) },
-                        { id: 'stats', icon: '📈', title: tr('Статистика игры'), desc: analyticsOn ? tr('Включена: помогает улучшать игру') : tr('Отключена'), right: <SettingSwitch on={analyticsOn} onChange={() => { SoundFX.click(); setAnalyticsOn(v => !v); }} label={tr("Статистика игры")} /> },
-                        ...(!isStandalonePWA ? [{ id: 'install', icon: '📲', title: tr('Скачать на устройство'), desc: tr('Добавить на главный экран'), onClick: handleInstallPwaClick }] : [])
+                        { id: 'stats', icon: <Icons.Chart />, title: tr('Статистика игры'), desc: analyticsOn ? tr('Включена: помогает улучшать игру') : tr('Отключена'), right: <SettingSwitch on={analyticsOn} onChange={() => { SoundFX.click(); setAnalyticsOn(v => !v); }} label={tr("Статистика игры")} /> },
+                        ...(!isStandalonePWA ? [{ id: 'install', icon: <Icons.DownloadApp />, title: tr('Скачать на устройство'), desc: tr('Добавить на главный экран'), onClick: handleInstallPwaClick }] : [])
                     ] }
                 ];
                 // Пункты владельца: отдельная зона, которую видит только он. Обычный игрок не видит ни самой зоны, ни намёка на неё.
                 const ownerItems = isAdmin ? [
-                    { id: 'topics', icon: '⚙️', title: tr('Управление темами'), desc: tr('Добавление тем и порядок'), onClick: () => { setTopicDraft(CATEGORIES.map(c => c.id)); setTopicErr(''); navigate('topics_admin'); } },
-                    { id: 'punish', icon: '🎭', title: tr('Шаблоны наказаний'), desc: tr('Список для всех игроков'), onClick: () => { setPtEdit(null); setPtErr(''); setPtConfirmId(''); navigate('punish_admin'); } },
-                    { id: 'tod', icon: '🎲', title: tr('Правда или действие'), desc: tr('Карточки: добавить, изменить, скрыть'), onClick: () => { setTodBackTo('app_menu'); setTodEditId(''); navigate('tod_admin'); } },
-                    { id: 'analytics', icon: '📊', title: tr('Аналитика'), desc: tr('Сессии, вопросы, наказания'), onClick: () => { setAnSel(null); setAnConfirm(''); navigate('analytics'); } },
-                    { id: 'hidden', icon: '🙈', title: tr('Скрытые вопросы'), desc: `${tr('Сейчас скрыто:')} ${stats.hiddenCount}`, onClick: () => { setHqConfirmAll(false); navigate('hidden_q'); } },
-                    { id: 'translateall', icon: '🌐', title: tr('Перекласти всі питання'), desc: tr('Дозаповнити українські версії'), onClick: handleTranslateAll },
-                    { id: 'owner', icon: '🔓', title: tr('Режим владельца'), desc: tr('Выйти из режима владельца'), onClick: handleLockAdmin }
+                    { id: 'topics', icon: <Icons.Gear />, title: tr('Управление темами'), desc: tr('Добавление тем и порядок'), onClick: () => { setTopicDraft(CATEGORIES.map(c => c.id)); setTopicErr(''); navigate('topics_admin'); } },
+                    { id: 'punish', icon: <Icons.Mask />, title: tr('Шаблоны наказаний'), desc: tr('Список для всех игроков'), onClick: () => { setPtEdit(null); setPtErr(''); setPtConfirmId(''); navigate('punish_admin'); } },
+                    { id: 'tod', icon: <Icons.Dice />, title: tr('Правда или действие'), desc: tr('Карточки: добавить, изменить, скрыть'), onClick: () => { setTodBackTo('app_menu'); setTodEditId(''); navigate('tod_admin'); } },
+                    { id: 'analytics', icon: <Icons.Chart />, title: tr('Аналитика'), desc: tr('Сессии, вопросы, наказания'), onClick: () => { setAnSel(null); setAnConfirm(''); navigate('analytics'); } },
+                    { id: 'hidden', icon: <Icons.EyeOff />, title: tr('Скрытые вопросы'), desc: `${tr('Сейчас скрыто:')} ${stats.hiddenCount}`, onClick: () => { setHqConfirmAll(false); navigate('hidden_q'); } },
+                    { id: 'translateall', icon: <Icons.Globe />, title: tr('Перекласти всі питання'), desc: tr('Дозаповнити українські версії'), onClick: handleTranslateAll },
+                    { id: 'owner', icon: <Icons.Unlock />, title: tr('Режим владельца'), desc: tr('Выйти из режима владельца'), onClick: handleLockAdmin }
                 ] : [];
                 const renderMenuItems = (items) => items.map(it => {
                     const body = (<>
@@ -3834,22 +3846,22 @@ if (screen === 'mode_select') {
                             {todInviteBanner}
                             <div className="mode-grid">
                             <button disabled={stats.availableActive === 0} onClick={() => { SoundFX.click(); setHardMode(false); startWithMode('normal', { hard: false }); }} className="opt-card opt-brand">
-                                <span aria-hidden="true" className="w-12 h-12 rounded-xl bg-rose-500/20 flex items-center justify-center text-2xl flex-shrink-0">💬</span>
+                                <span aria-hidden="true" className="w-12 h-12 rounded-xl bg-rose-500/20 flex items-center justify-center text-2xl flex-shrink-0 mode-ico text-[color:var(--tint-rose)]"><Icons.Chat /></span>
                                 <span className="flex-1 min-w-0 flex flex-col gap-1.5">
                                     <span className="flex items-center justify-between gap-2"><span className="font-bold text-sm text-white">{tr("Обычный режим")}</span> <span className="flex-shrink-0 whitespace-nowrap text-xs font-bold px-2.5 py-0.5 rounded-lg bg-rose-500/25 text-rose-200">{stats.availableActive} {tr("вопр.")}</span></span>
                                     <span className="text-xs text-zinc-300 leading-relaxed">{tr("Жребий решает, кто отвечает первым. Пройденное уходит в Архив.")}</span>
                                 </span>
                             </button>
                             <button disabled={stats.availableActive === 0} onClick={() => { SoundFX.click(); navigate('game_setup'); }} className="opt-card opt-ember">
-                                <span aria-hidden="true" className="w-12 h-12 rounded-xl bg-amber-400/15 flex items-center justify-center text-2xl flex-shrink-0">🔥</span>
+                                <span aria-hidden="true" className="w-12 h-12 rounded-xl bg-amber-400/15 flex items-center justify-center text-2xl flex-shrink-0 mode-ico text-[color:var(--tint-ember)]"><Icons.Flame /></span>
                                 <span className="flex-1 min-w-0 flex flex-col gap-2">
                                     <span className="font-bold text-sm text-white">{tr("Усложнённый режим")}</span>
                                     <span className="text-xs text-zinc-300 leading-relaxed">{tr("Таймер на ответ и наказания за пропуск. Включите хотя бы одно.")}</span>
-                                    <span className="flex flex-wrap gap-1.5 text-xs font-bold text-amber-100/90"><span className="px-2.5 py-1 rounded-full bg-white/[0.07]">{tr("⏱ Таймер")}</span><span className="px-2.5 py-1 rounded-full bg-white/[0.07]">{tr("🎭 Наказания")}</span></span>
+                                    <span className="flex flex-wrap gap-1.5 text-xs font-bold text-[color:var(--tint-ember)]"><span className="px-2.5 py-1 rounded-full bg-white/[0.07]">{tr("⏱ Таймер")}</span><span className="px-2.5 py-1 rounded-full bg-white/[0.07]">{tr("🎭 Наказания")}</span></span>
                                 </span>
                             </button>
                             <button type="button" onClick={() => { SoundFX.click(); navigate('tod_lobby'); }} className="opt-card">
-                                <span aria-hidden="true" className="w-12 h-12 rounded-xl bg-white/[0.07] flex items-center justify-center text-2xl flex-shrink-0">🎲</span>
+                                <span aria-hidden="true" className="w-12 h-12 rounded-xl bg-white/[0.07] flex items-center justify-center text-2xl flex-shrink-0 mode-ico text-zinc-200"><Icons.Dice /></span>
                                 <span className="flex-1 min-w-0 flex flex-col gap-1.5">
                                     <span className="font-bold text-sm text-white">{tr("Правда или действие")}</span>
                                     <span className="text-xs text-zinc-300 leading-relaxed">{tr("Правда, действие и позор за пропуск. 18+")}</span>
@@ -3859,7 +3871,7 @@ if (screen === 'mode_select') {
                             <p className="px-2 text-xs text-zinc-400 leading-relaxed text-center">{tf("👥 К игре можно подключить до {v0} игроков: вопросы, очередь и таймер будут общими. Пригласить — кнопкой в шапке.", { v0: MAX_PLAYERS })}</p>
                             {isAdmin && (
                                 <button onClick={() => { SoundFX.click(); setHardMode(false); startWithMode('test'); }} className="opt-card">
-                                    <span aria-hidden="true" className="w-12 h-12 rounded-xl bg-white/[0.07] flex items-center justify-center text-2xl flex-shrink-0">🧪</span>
+                                    <span aria-hidden="true" className="w-12 h-12 rounded-xl bg-white/[0.07] flex items-center justify-center text-2xl flex-shrink-0 mode-ico text-zinc-200"><Icons.Flask /></span>
                                     <span className="flex-1 min-w-0 flex flex-col gap-1.5">
                                         <span className="flex items-center justify-between gap-2"><span className="font-bold text-sm text-zinc-200">{tr("Тестовый режим")}</span> <span className="flex-shrink-0 whitespace-nowrap text-xs font-bold px-2.5 py-0.5 rounded-lg bg-white/[0.10] text-zinc-300">{stats.availableTotal > 0 ? stats.availableTotal : db.length} {tr("вопр.")}</span></span>
                                         <span className="text-xs text-zinc-400 leading-relaxed">{tr("Для владельца: все вопросы (включая Архив) и редактирование карточек.")}</span>
@@ -3935,8 +3947,8 @@ if (screen === 'mode_select') {
                                     <div className="space-y-4">
                                         <h2 className="text-xs font-bold text-zinc-400">{tr("Для кого")}</h2>
                                         <div className="grid grid-cols-2 gap-2.5">
-                                            <button type="button" onClick={() => { SoundFX.toggle(true); setAudienceMode('couple'); }} aria-pressed={audienceMode === 'couple'} className={`btn-tile ${ audienceMode === 'couple' ? 'is-on' : '' }`}>❤️ {tr("Пара")}</button>
-                                            <button type="button" onClick={() => { SoundFX.toggle(true); setAudienceMode('group'); }} aria-pressed={audienceMode === 'group'} className={`btn-tile ${ audienceMode === 'group' ? 'is-on' : '' }`}>🎉 {tr("Компания")}</button>
+                                            <button type="button" onClick={() => { SoundFX.toggle(true); setAudienceMode('couple'); }} aria-pressed={audienceMode === 'couple'} className={`btn-tile ${ audienceMode === 'couple' ? 'is-on' : '' }`}><Icons.Heart /> {tr("Пара")}</button>
+                                            <button type="button" onClick={() => { SoundFX.toggle(true); setAudienceMode('group'); }} aria-pressed={audienceMode === 'group'} className={`btn-tile ${ audienceMode === 'group' ? 'is-on' : '' }`}><Icons.Party /> {tr("Компания")}</button>
                                         </div>
                                         <p className="text-xs text-zinc-500 leading-snug">{audienceMode === 'couple' ? tr("Все вопросы, в том числе самые откровенные.") : tr("Только вопросы, которые подходят для компании.")}</p>
                                     </div>
