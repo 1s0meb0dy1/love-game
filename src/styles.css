@@ -1474,6 +1474,7 @@ html[data-theme='light'] .bg-room .veil::before { content: ''; position: absolut
 :root .ev-inter .ev-dots { margin-bottom: 0.25rem; }
 @keyframes evInterBg { 0% { opacity: 0; } 14%, 82% { opacity: 1; } 100% { opacity: 0; } }
 @keyframes evInterIn { 0% { opacity: 0; transform: translate3d(0, 14px, 0) scale(0.97); } 18%, 80% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translate3d(0, -8px, 0); } }
-@media (prefers-reduced-motion: reduce) { :root .ev-inter-in { animation-name: evInterBg; } }
+/* при «менше руху» глобальне правило робить анімації миттєвими, і заставка з fill: both лишалась би прозорою, але перехоплювала б дотики: показуємо її статично */
+@media (prefers-reduced-motion: reduce) { :root .ev-inter, :root .ev-inter-in { animation: none !important; opacity: 1; transform: none; } }
 html.fx-lite .ev-inter { -webkit-backdrop-filter: none; backdrop-filter: none; background: rgb(var(--night-rgb) / 0.9); }
 :root .mode-ico svg { width: 26px; height: 26px; }
