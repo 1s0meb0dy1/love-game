@@ -113,6 +113,7 @@ main.ds-main { min-width: 0; display: flex; flex-direction: column; gap: 3.5rem;
     <a href="#desktop">Компьютер</a>
     <a href="#motion">Движение</a>
     <a href="#theme">Темы</a>
+    <a href="#evening">Вечер</a>
     <a href="#room">Фон «комната»</a>
     <a href="#icons">Иконки</a>
     <a href="#motifs">Логотип</a>
@@ -423,6 +424,17 @@ main.ds-main { min-width: 0; display: flex; flex-direction: column; gap: 3.5rem;
         <div class="ds-sw"><i style="background:#9e1238"></i><b>--rose-ink</b><span>#9e1238 · текст на розовом</span></div>
       </div>
       <p class="ds-spec">Альфа-слои пишутся через каналы: <code>rgb(var(--ink-rgb) / 0.06)</code> вместо <code>rgb(255 255 255 / 0.06)</code>, поверхности — <code>--surface-rgb</code>, <code>--night-rgb</code>. Tailwind-цвета <code>white</code>, <code>zinc-*</code>, <code>rose-50…400</code> берут значения из <code>--tw-white</code>, <code>--z-*</code>, <code>--r-*</code> и меняются вместе с темой. Светлые оттенки текста (<code>#ffd9b0</code> и т. п.) — через <code>--tint-ember|rose|orchid|ok</code>. Белый текст на розовой заливке остаётся белым. Не пишите новые цвета литералом: только токены.</p>
+    </section>
+
+    <section class="ds-sec" id="evening">
+      <h2>Вечер: настроение, главы, согласие</h2>
+      <p class="ds-lead">После онбординга — экран «Який сьогодні вечір?»: переключатель Пара / Компанія и три карточки настроения. Одно нажатие — и первая карточка. В каждом вечере три главы: разминка (короткие лёгкие вопросы без болезненных тем) → разговор → ближе / глубже. Перед глубокой главой — окно согласия.</p>
+      <div style="display:grid;gap:12px;max-width:420px">
+        <button class="mood-card mood-close" style="--i:0"><span class="mood-ico" aria-hidden="true">🫶</span><span class="mood-body"><span class="mood-t">Ближче</span><span class="mood-d">Від легкого до особистого. Глибока глава — лише якщо всі згодні.</span><span class="mood-ch"><i class="ch-warm">Розминка</i><i class="ch-talk">Розмова</i><i class="ch-deep">Глибше</i></span></span><span class="mood-go">→</span></button>
+        <div><span class="ev-chap"><span class="ev-dots" aria-hidden="true"><i class="is-done"></i><i class="is-on"></i><i></i></span>Глава 2 · Розмова</span></div>
+        <p class="skip-note">Можна пропустити. Пояснювати не треба.</p>
+      </div>
+      <p class="ds-spec"><code>.mood-card</code> (модификаторы <code>.mood-close</code>, <code>.mood-deep</code>; цвет — <code>--mc</code> из <code>--lvl-1/2/3-rgb</code>), высота ≥ 88 px, появление <code>moodIn</code> с шагом 70 мс (<code>--i</code>). На карточке вопроса вместо «Питання №» — <code>.ev-chap</code> с точками <code>.ev-dots</code> (<code>.is-done</code>, <code>.is-on</code>). Под «Пропустити» всегда <code>.skip-note</code>. Окно согласия — <code>PopupModal</code> с <code>.ev-gate-ico</code>: «Так, усі згодні» / «Ні, лишимося тут» (глубокие карточки меняются на средние; в живой комнате — «Ні, завершимо вечір»). Логика — <code>src/ui/evening.js</code>, данные вечера только на устройстве (<code>askme_evening_v1</code>).</p>
     </section>
 
     <section class="ds-sec" id="room">
