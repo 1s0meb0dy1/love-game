@@ -112,9 +112,10 @@ main.ds-main { min-width: 0; display: flex; flex-direction: column; gap: 3.5rem;
     <a href="#feedback">Уведомления и окна</a>
     <a href="#desktop">Компьютер</a>
     <a href="#motion">Движение</a>
+    <a href="#theme">Темы</a>
     <a href="#room">Фон «комната»</a>
     <a href="#icons">Иконки</a>
-    <a href="#motifs">Мотивы и логотип</a>
+    <a href="#motifs">Логотип</a>
     <a href="#rules">Правила</a>
     <a href="#changes">Что изменилось</a>
   </nav>
@@ -412,13 +413,25 @@ main.ds-main { min-width: 0; display: flex; flex-direction: column; gap: 3.5rem;
       <p class="ds-spec">При <code>prefers-reduced-motion</code> анимации сокращаются до мгновенных, мотивы и искры фона скрываются, блик свайпа пропадает.</p>
     </section>
 
+    <section class="ds-sec" id="theme">
+      <h2>Темы: Ніч, Світанок, Авто</h2>
+      <p class="ds-lead">Тема — атрибут <code>html[data-theme="dark|light"]</code>. Выбор (<code>auto</code> по умолчанию, <code>dark</code>, <code>light</code>) хранится только на устройстве в <code>askme_theme_v1</code>; ранний скрипт в <code>index.html</code> ставит тему до первого кадра, <code>src/theme.js</code> следит за системной темой. Переключатель — «Меню → Налаштування → Оформлення» (<code>.seg.seg-icons</code>, три кнопки 44 px).</p>
+      <div class="ds-swatches">
+        <div class="ds-sw"><i style="background:#fbf3ef"></i><b>--night</b><span>#fbf3ef · фон «Світанок»</span></div>
+        <div class="ds-sw"><i style="background:#2a1424"></i><b>--text</b><span>#2a1424 · текст</span></div>
+        <div class="ds-sw"><i style="background:#c8214b"></i><b>--rose</b><span>#c8214b · бренд (AA на светлом)</span></div>
+        <div class="ds-sw"><i style="background:#9e1238"></i><b>--rose-ink</b><span>#9e1238 · текст на розовом</span></div>
+      </div>
+      <p class="ds-spec">Альфа-слои пишутся через каналы: <code>rgb(var(--ink-rgb) / 0.06)</code> вместо <code>rgb(255 255 255 / 0.06)</code>, поверхности — <code>--surface-rgb</code>, <code>--night-rgb</code>. Tailwind-цвета <code>white</code>, <code>zinc-*</code>, <code>rose-50…400</code> берут значения из <code>--tw-white</code>, <code>--z-*</code>, <code>--r-*</code> и меняются вместе с темой. Светлые оттенки текста (<code>#ffd9b0</code> и т. п.) — через <code>--tint-ember|rose|orchid|ok</code>. Белый текст на розовой заливке остаётся белым. Не пишите новые цвета литералом: только токены.</p>
+    </section>
+
     <section class="ds-sec" id="room">
       <h2>Фон «комната»</h2>
-      <p class="ds-lead">Три свечения, 12 мотивов, искры, зерно и виньетка. Нажмите уровень — так фон меняется вместе с глубиной вопроса.</p>
+      <p class="ds-lead">Три размытых свечения и зерно (мотивы и искры убраны в «Heat 2»: меньше шума, дешевле для слабых телефонов). Нажмите уровень — так фон меняется вместе с глубиной вопроса. В светлой теме слой <code>.veil</code> приглушает свечения до <code>--glow-k</code> (0,62).</p>
       <div class="ds-room"><!--ROOM-->
         <div class="ds-room-ui"><button class="chip is-on" data-heat="easy">Легкі</button><button class="chip" data-heat="mid">Середні</button><button class="chip" data-heat="deep">Глибокі</button></div>
       </div>
-      <p class="ds-spec">Слабые устройства (≤ 2 ГБ памяти, ≤ 2 ядер, экономия трафика) получают <code>fx-lite</code>: без мотивов и искр. Скрытая вкладка — <code>fx-paused</code>. На экране игры мотивы приглушены до 55 %.</p>
+      <p class="ds-spec">Слабые устройства (≤ 2 ГБ памяти, ≤ 2 ядер, экономия трафика) получают <code>fx-lite</code>: без анимации свечений. Скрытая вкладка — <code>fx-paused</code>.</p>
     </section>
 
     <section class="ds-sec" id="icons">
@@ -433,12 +446,9 @@ main.ds-main { min-width: 0; display: flex; flex-direction: column; gap: 3.5rem;
     </section>
 
     <section class="ds-sec" id="motifs">
-      <h2>Мотивы фона и логотип</h2>
-      <p class="ds-lead"><!--COUNT_MOTIFS--> контурных мотивов поднимаются по фону. Обводка — градиент <code>#motif-ink</code> от светлого к цвету жара; «стекло» добавляет мягкую заливку, «дальние» мельче и размыты. Символов страны-агрессора и политических знаков нет.</p>
-      <div class="ds-motifs"><!--MOTIFS--></div>
-      <h3>Логотип</h3>
+      <h2>Логотип</h2>
       <div class="ds-board" style="gap:2rem"><!--LOGO_LG--><!--LOGO_MD--><!--LOGO_XS--></div>
-      <p class="ds-spec">Большой — экран входа и итоги; средний — шапка итогов; маленький — подвал «by yedvinn». Сердце в розовой плитке, «ASK» белым, «ME» розой, Unbounded 800 с разрядкой 0.14 em.</p>
+      <p class="ds-spec">Большой — экран входа и итоги; средний — шапка итогов; маленький — подвал «by yedvinn». Сердце в розовой плитке, «ASK» цветом текста (белый ночью, сливовый днём), «ME» розой, Unbounded 800 с разрядкой 0.14 em.</p>
     </section>
 
     <section class="ds-sec" id="rules">

@@ -19,13 +19,14 @@ export default {
         '2xl': ['1.5rem', { lineHeight: '1.22' }],
       },
       colors: {
+        // Heat 2: нейтральні й «білий» беруться зі змінних теми (src/styles.css), тож text-white, bg-white/[…] і zinc-* самі перемикаються між «Ніч» і «Світанок»
+        white: 'rgb(var(--tw-white) / <alpha-value>)',
         zinc: {
-          50: '#fbf6f5', 100: '#f3eaee', 200: '#e4d8e0', 300: '#d0c2cd', 400: '#b6a6b4',
-          500: '#9a8a9c', 600: '#75667a', 700: '#4d4153', 800: '#30263a', 900: '#1d1526', 950: '#100a17',
+          50: 'rgb(var(--z-50) / <alpha-value>)', 100: 'rgb(var(--z-100) / <alpha-value>)', 200: 'rgb(var(--z-200) / <alpha-value>)', 300: 'rgb(var(--z-300) / <alpha-value>)', 400: 'rgb(var(--z-400) / <alpha-value>)', 500: 'rgb(var(--z-500) / <alpha-value>)', 600: 'rgb(var(--z-600) / <alpha-value>)', 700: 'rgb(var(--z-700) / <alpha-value>)', 800: 'rgb(var(--z-800) / <alpha-value>)', 900: 'rgb(var(--z-900) / <alpha-value>)', 950: 'rgb(var(--z-950) / <alpha-value>)',
         },
         rose: {
-          50: '#fff1f3', 100: '#ffe1e7', 200: '#ffc4d0', 300: '#ff9fb3', 400: '#ff7993', 500: '#ff4d6d',
-          600: '#dc2a52', 700: '#b8173f', 800: '#8f1634', 900: '#5e1024', 950: '#3a0a17',
+          50: 'rgb(var(--r-50) / <alpha-value>)', 100: 'rgb(var(--r-100) / <alpha-value>)', 200: 'rgb(var(--r-200) / <alpha-value>)', 300: 'rgb(var(--r-300) / <alpha-value>)', 400: 'rgb(var(--r-400) / <alpha-value>)',
+          500: '#ff4d6d', 600: '#dc2a52', 700: '#b8173f', 800: '#8f1634', 900: '#5e1024', 950: '#3a0a17',
         },
       },
     },
