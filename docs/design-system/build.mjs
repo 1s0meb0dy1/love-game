@@ -38,5 +38,13 @@ html = html.replace('/*APP_CSS*/', () => css)
   .replace('<!--ROOM-->', () => room)
   .replace('<!--LOGO_LG-->', () => logos[2] || '').replace('<!--LOGO_MD-->', () => logos[1] || '').replace('<!--LOGO_XS-->', () => logos[0] || '')
   .replace(/<!--COUNT_ICONS-->/g, String(icons.length)).replace(/<!--COUNT_MOTIFS-->/g, String(motifs.length));
+// 4. знімки екранів: спершу node docs/design-system/shots.cjs; без них сторінка збирається, лише без картинок
+const SHOTS = path.join(import.meta.dirname, 'shots'); let shots = 0;
+html = html.replace(/<!--SHOT:([\w-]+)\|([^>]*?)-->/g, (_, n, alt) => {
+  const f = path.join(SHOTS, n + '.jpg'); if (!fs.existsSync(f)) return '';
+  shots++; return `<img class="ds-shot" src="data:image/jpeg;base64,${fs.readFileSync(f).toString('base64')}" alt="${alt}" loading="lazy" decoding="async">`;
+});
+const missing = [...html.matchAll(/<!--(ICON|SHOT):[^>]*-->/g)].map(m => m[0]); if (missing.length) console.warn('не знайдено:', missing.join(' '));
+console.log('shots', shots);
 fs.writeFileSync(OUT, html);
 console.log('icons', icons.length, 'motifs', motifs.length, 'logos', logos.length, 'room', room.length, 'bytes', html.length);
