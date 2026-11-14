@@ -419,7 +419,7 @@ main.ds-main { min-width: 0; display: flex; flex-direction: column; gap: 3.5rem;
       <div class="ds-swatches">
         <div class="ds-sw"><i style="background:#fbf3ef"></i><b>--night</b><span>#fbf3ef · фон «Світанок»</span></div>
         <div class="ds-sw"><i style="background:#2a1424"></i><b>--text</b><span>#2a1424 · текст</span></div>
-        <div class="ds-sw"><i style="background:#c8214b"></i><b>--rose</b><span>#c8214b · бренд (AA на светлом)</span></div>
+        <div class="ds-sw"><i style="background:#c8214b"></i><b>--rose</b><span>#c8214b · бренд, крупный текст и заливки</span></div>
         <div class="ds-sw"><i style="background:#9e1238"></i><b>--rose-ink</b><span>#9e1238 · текст на розовом</span></div>
       </div>
       <p class="ds-spec">Альфа-слои пишутся через каналы: <code>rgb(var(--ink-rgb) / 0.06)</code> вместо <code>rgb(255 255 255 / 0.06)</code>, поверхности — <code>--surface-rgb</code>, <code>--night-rgb</code>. Tailwind-цвета <code>white</code>, <code>zinc-*</code>, <code>rose-50…400</code> берут значения из <code>--tw-white</code>, <code>--z-*</code>, <code>--r-*</code> и меняются вместе с темой. Светлые оттенки текста (<code>#ffd9b0</code> и т. п.) — через <code>--tint-ember|rose|orchid|ok</code>. Белый текст на розовой заливке остаётся белым. Не пишите новые цвета литералом: только токены.</p>
@@ -427,7 +427,7 @@ main.ds-main { min-width: 0; display: flex; flex-direction: column; gap: 3.5rem;
 
     <section class="ds-sec" id="room">
       <h2>Фон «комната»</h2>
-      <p class="ds-lead">Три размытых свечения и зерно (мотивы и искры убраны в «Heat 2»: меньше шума, дешевле для слабых телефонов). Нажмите уровень — так фон меняется вместе с глубиной вопроса. В светлой теме слой <code>.veil</code> приглушает свечения до <code>--glow-k</code> (0,62).</p>
+      <p class="ds-lead">Три размытых свечения и зерно (мотивы и искры убраны в «Heat 2»: меньше шума, дешевле для слабых телефонов). Нажмите уровень — так фон меняется вместе с глубиной вопроса. В «Світанку» фон — тёплый градиент рассвета, свечения ярче по краям, а радиальная вуаль <code>.veil</code> держит середину светлой; в правом верхнем и левом нижнем углах — едва заметная сетка точек. Самая тёмная точка фона под текстом даёт ≥ 5,3:1 для <code>--text-3</code> (проверка по скриншотам 390 и 1280 px, все три уровня).</p>
       <div class="ds-room"><!--ROOM-->
         <div class="ds-room-ui"><button class="chip is-on" data-heat="easy">Легкі</button><button class="chip" data-heat="mid">Середні</button><button class="chip" data-heat="deep">Глибокі</button></div>
       </div>

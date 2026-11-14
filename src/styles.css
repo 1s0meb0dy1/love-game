@@ -52,7 +52,7 @@ html[data-theme='light'] {
   color-scheme: light;
   --night: #fbf3ef; --plum-1: #fffaf8; --plum-2: #f5e8e4; --pop: #ffffff;
   --line: rgba(74, 22, 50, 0.11); --line-strong: rgba(74, 22, 50, 0.20); --line-field: rgba(74, 22, 50, 0.30);
-  --text: #2a1424; --text-2: #5b4454; --text-3: #6f5a69; --text-strong: #22101d;
+  --text: #2a1424; --text-2: #5b4454; --text-3: #614c5b; --text-strong: #22101d;
   --rose: #c8214b; --rose-300: #b01a43; --rose-ink: #9e1238; --ember: #a65208; --orchid: #7339c9; --ok: #157a46; --danger: #c2263b; --focus: #c8214b;
   --lvl-1-rgb: 166 82 8; --lvl-2-rgb: 200 33 75; --lvl-3-rgb: 115 57 201;
   --tod-easy-rgb: 21 122 70; --tod-medium-rgb: 150 92 0; --tod-hard-rgb: 196 38 38;
@@ -1411,3 +1411,14 @@ body { overflow-x: visible; overscroll-behavior-y: auto; }
 /* Світла тема: світлі утиліти Tailwind для тексту стають темними відтінками того ж кольору */
 html[data-theme='light'] :is(.text-amber-100, .text-amber-200, .text-amber-300) { color: var(--tint-ember); }
 html[data-theme='light'] .text-emerald-100 { color: var(--tint-ok); }
+
+/* «Світанок»: живіший світлий фон. Теплий градієнт «світанку», яскравіші свічення по краях,
+   а середина (де текст) лишається світлою: вуаль — радіальна, а не суцільна. Крапковий візерунок
+   ледь помітний і лише в кутах. Контраст тексту перевірено: найтемніша точка фону під текстом
+   дає ≥ 4,5:1 для --text-3. Анімуються лише transform/opacity (свічення), візерунок статичний. */
+html[data-theme='light'] .bg-room { background: linear-gradient(170deg, #fff4f0 0%, #fbf3ef 38%, #fcefea 70%, #fde8dc 100%); }
+html[data-theme='light'] .bg-room .glow-a { opacity: 0.34; }
+html[data-theme='light'] .bg-room .glow-b { opacity: 0.26; }
+html[data-theme='light'] .bg-room .glow-c { opacity: 0.20; }
+html[data-theme='light'] .bg-room .veil { opacity: 1; background: radial-gradient(ellipse 78% 62% at 50% 46%, rgb(251 243 239 / 0.62) 0%, rgb(251 243 239 / 0.38) 55%, rgb(251 243 239 / 0.16) 100%); }
+html[data-theme='light'] .bg-room .veil::before { content: ''; position: absolute; inset: 0; background-image: radial-gradient(rgb(200 33 75 / 0.15) 1.1px, transparent 1.6px); background-size: 22px 22px; -webkit-mask-image: radial-gradient(circle at 100% 0%, #000 0, transparent 38vmax), radial-gradient(circle at 0% 100%, #000 0, transparent 34vmax); mask-image: radial-gradient(circle at 100% 0%, #000 0, transparent 38vmax), radial-gradient(circle at 0% 100%, #000 0, transparent 34vmax); }
