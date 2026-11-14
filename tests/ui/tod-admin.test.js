@@ -27,7 +27,7 @@ const open = async (opts) => {
   };
   E.w.eval(E.code); await sleep(1800);
   const inputs = [...E.D.querySelectorAll('input[type="text"]')]; E.setVal(inputs[0], 'Макс'); E.setVal(inputs[1], 'Аня'); await sleep(200);
-  await E.click('Создать сессию', 1200); await E.click('Перейти к игре', 900);
+  await E.click('Начать вечер', 1200); await E.click('Свои темы и режимы', 900);
   const q = (s) => E.D.querySelector(s); const qa = (s) => [...E.D.querySelectorAll(s)];
   const press = async (el, ms = 300) => { if (!el) throw new Error('нет элемента'); el.dispatchEvent(new E.w.MouseEvent('click', { bubbles: true })); await sleep(ms); };
   const byLabel = (l) => qa('button').find(b => b.getAttribute('aria-label') === l);

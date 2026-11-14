@@ -27,6 +27,7 @@ import { TodArchive, TodAdmin, TodEdit, TodLobby, TodGame, TodResults, TodAdultM
 import { todChannel, todRoomOf } from './tod/channel.js';
 import { aiAsk } from './ai/client.js';
 import { themeGetPref, themeSetPref, themeApply, themeWatch } from './ui/theme.js';
+import { EVENING_MOOD_IDS, EVENING_MOODS, buildEvening, softenTail, chapterAt, eveningSave, eveningLoad, eveningDeckKey } from './ui/evening.js';
 import { IntroStories, introShouldShow, introMarkSeen, introReplayLabel } from './intro/stories.jsx';
 const ReactDOM = { ...ReactDOMAll, createRoot };
 
@@ -275,6 +276,12 @@ i18nSetLang(readStoredLang());
         // базові теми, додані 29.10.2026: у гравців зі збереженим вибором тем вмикаються один раз автоматично (як нові власні теми)
         const NEW_BASE_TOPICS = ['trust', 'talk', 'fun', 'body'];
 
+        const EVE_CH_NAME = { warm: 'Разминка', talk: 'Разговор', close: 'Ближе', deep: 'Глубже' };
+        const EVE_MOOD_TEXT = {
+            easy: { t: 'Легко и весело', d: 'Смешные и простые вопросы. Чтобы разогреться и посмеяться.' },
+            close: { t: 'Ближе', d: 'От лёгкого к личному. Глубокая глава — только если все согласны.' },
+            deep: { t: 'Глубоко', d: 'Короткая разминка, потом честные разговоры. Глубже — по общему согласию.' }
+        };
         const DIFFICULTIES = [
             { id: "Простые", name: "Легкие", classText: "diff-text-1", classBg: "diff-pill-1" },
             { id: "Средние", name: "Средние", classText: "diff-text-2", classBg: "diff-pill-2" },
@@ -1523,7 +1530,7 @@ i18nSetLang(readStoredLang());
             // переход по ссылке-якорю (#/privacy, #/terms, …) не сбрасывает прокрутку сам: новая страница открылась бы с середины, поэтому всегда поднимаемся к шапке
             useEffect(() => { const onHashChange = () => { const h = window.location.hash || '#/', hp = hashPath(h); try { window.scrollTo(0, 0); } catch (e) {} if (hp === '#/admin') { setScreenState('admin_login'); return; } if (hp === '#/join' || (hp === '#/welcome' && profile && hasInviteParams(h))) { const inv = readInviteFromHash(); if (inv) { setJoinInvite(inv); setJoinError(''); try { window.history.replaceState(null, '', window.location.pathname + window.location.search + '#/join'); } catch (e) {} } setScreenState('join'); return; } if (hp === '#/welcome') { setScreenState('onboarding'); return; } const mapped = HASH_TO_SCREEN[hp]; if (PUBLIC_SCREENS.includes(mapped)) { setScreenState(mapped); return; } if (!profile && !isPreviewMode) { setScreenState('onboarding'); return; } if (mapped) setScreenState(mapped); }; window.addEventListener('hashchange', onHashChange); window.addEventListener('popstate', onHashChange); return () => { window.removeEventListener('hashchange', onHashChange); window.removeEventListener('popstate', onHashChange); }; }, [profile, isPreviewMode]);
 
-            const [selectedCats, setSelectedCats] = useState(CATEGORIES.map(c => c.id)); const [selectedDiffs, setSelectedDiffs] = useState(DIFFICULTIES.map(d => d.id)); const [isMuted, setIsMuted] = useState(false); const [themePref, setThemePref] = useState(themeGetPref);
+            const [selectedCats, setSelectedCats] = useState(CATEGORIES.map(c => c.id)); const [selectedDiffs, setSelectedDiffs] = useState(DIFFICULTIES.map(d => d.id)); const [isMuted, setIsMuted] = useState(false); const [themePref, setThemePref] = useState(themeGetPref); const [evening, setEvening] = useState(null); const [gateOpen, setGateOpen] = useState(false); const [eveAudience, setEveAudience] = useState(null);
             // Аудиторія колоди: 'couple' = пара (couple + both), 'group' = компанія (лише both). Гравець обирає сам.
             const [audienceMode, setAudienceMode] = useState('couple');
             const audienceAllows = (q) => audienceMode === 'group' ? (q.audience !== 'couple') : true;
@@ -1781,7 +1788,9 @@ i18nSetLang(readStoredLang());
             };
 
             const handleSaveProfileNames = async (e) => {
-                e.preventDefault(); const validPlayers = playersForm.filter(p => p.name.trim().length > 0);
+                e.preventDefault(); const filled = playersForm.filter(p => p.name.trim().length > 0);
+                // імена необов'язкові: на старті вечора порожні поля стають «Игрок 1», «Игрок 2»…
+                const validPlayers = (!profile?.sessionId || isPreviewMode) && filled.length < 2 ? playersForm.map((p, i) => p.name.trim() ? p : { ...p, name: tf("Игрок {v0}", { v0: i + 1 }) }) : filled;
                 if (validPlayers.length < 2) { SoundFX.warn(); setPlayersError(tr("Введите минимум два имени, чтобы начать игру")); return; }
                 SoundFX.success(); setPlayersError('');
                 const isNewSession = (!profile?.sessionId || isPreviewMode); const newSid = isNewSession ? generateSessionId() : profile.sessionId; const newKey = (!isNewSession && isValidAESKey(profile?.sessionKey)) ? profile.sessionKey : await generateAESKey();
@@ -3039,8 +3048,8 @@ i18nSetLang(readStoredLang());
             const handlePressStartButton = () => { SoundFX.click(); if(!profile) return; navigate('mode_select'); };
             const startWithMode = (mode, opts = {}) => {
                 SoundFX.click(); let pool = [];
-                if (mode === 'normal') { pool = profileDb.filter(q => !q.hidden && !q.archived && !q.disabled && selectedCats.includes(q.categoryId) && selectedDiffs.includes(q.level) && audienceAllows(q)); if (pool.length === 0) { showToast(tr("Нет подходящих вопросов — измените темы или сложность"), 2800, 'warn'); return; } } else { const catsToUse = selectedCats.length > 0 ? selectedCats : CATEGORIES.map(c => c.id); const diffsToUse = selectedDiffs.length > 0 ? selectedDiffs : DIFFICULTIES.map(d => d.id); pool = profileDb.filter(q => catsToUse.includes(q.categoryId) && diffsToUse.includes(q.level) && audienceAllows(q)); if (pool.length === 0) { showToast(tr("В базе нет подходящих вопросов"), 2800, 'warn'); return; } }
-                let shuffled = [...pool]; if (mode === 'normal') { shuffled = buildDeck(pool); } else { for (let i = shuffled.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]; } }
+                if (opts.deck) { pool = opts.deck; } else if (mode === 'normal') { pool = profileDb.filter(q => !q.hidden && !q.archived && !q.disabled && selectedCats.includes(q.categoryId) && selectedDiffs.includes(q.level) && audienceAllows(q)); if (pool.length === 0) { showToast(tr("Нет подходящих вопросов — измените темы или сложность"), 2800, 'warn'); return; } } else { const catsToUse = selectedCats.length > 0 ? selectedCats : CATEGORIES.map(c => c.id); const diffsToUse = selectedDiffs.length > 0 ? selectedDiffs : DIFFICULTIES.map(d => d.id); pool = profileDb.filter(q => catsToUse.includes(q.categoryId) && diffsToUse.includes(q.level) && audienceAllows(q)); if (pool.length === 0) { showToast(tr("В базе нет подходящих вопросов"), 2800, 'warn'); return; } }
+                let shuffled = [...pool]; if (opts.deck) { /* колода вечора вже розкладена по главах */ } else if (mode === 'normal') { shuffled = buildDeck(pool); } else { for (let i = shuffled.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]; } }
                 const isHard = opts.hard !== undefined ? !!opts.hard : hardMode, canLive = mode === 'normal' && !!liveRoomIdRef.current;
                 setPunDoneKey(''); setGameMode(mode); setGameQuestions(shuffled); setCurrentIndex(0); setMaxReachedIndex(0); setTurnHistory({}); setAnsweredCount(0); setCompletedAllFlag(false); setShowEndGameConfirm(false); navigate('game');
                 if (mode === 'normal') {
@@ -3050,7 +3059,33 @@ i18nSetLang(readStoredLang());
                 }
             };
 
-            const handleNextQuestion = () => { if (turnPopup.open || punish.open || showEndGameConfirm) return; if (gameMode === 'normal' && !turnHistory[currentIndex]) { triggerRouletteForIndex(currentIndex, turnHistory); return; } if (liveRoomRef.current && Date.now() - liveRef.current.appliedAt < LIVE_TAP_GUARD_MS) return; if (advanceTurn()) return; if (currentIndex < gameQuestions.length - 1) { const currentQ = gameQuestions[currentIndex]; const currentQKey = currentQ ? (currentQ.id || currentQ.dbKey) : null; const nextIdx = currentIndex + 1; const nextMax = Math.max(maxReachedIndex, nextIdx); SoundFX.flip('right'); setCurrentIndex(nextIdx); setMaxReachedIndex(nextMax); if (gameMode === 'normal') { updateSavedGameProgress(gameQuestions, nextIdx, nextMax, turnHistory, currentQKey); if (!turnHistory[nextIdx]) triggerRouletteForIndex(nextIdx, turnHistory, gameQuestions); } } else { SoundFX.click(); handleFinishGame(true); } };
+            // «Вечір»: пул без прихованих і пройдених питань; глава «Глибше» — лише після спільного «так»
+            const eveningPool = (aud) => profileDb.filter(q => !q.hidden && !q.archived && !q.disabled && (aud === 'group' ? q.audience !== 'couple' : true));
+            const startEvening = (moodId, aud) => {
+                const ev = buildEvening(eveningPool(aud), moodId, { audience: aud, buildDeck });
+                if (ev.deck.length < 6) { SoundFX.warn(); showToast(tr("Для этого вечера мало новых вопросов — выберите темы вручную"), 3200, 'warn'); navigate('menu'); return; }
+                setAudienceMode(aud); setHardMode(false);
+                eveningSave({ mood: moodId, aud, chapters: ev.chapters, gate: ev.gate, deepOk: false, deckKey: eveningDeckKey(ev.deck) });
+                startWithMode('normal', { hard: false, deck: ev.deck });
+            };
+            useEffect(() => { setEvening(gameQuestions.length ? eveningLoad(gameQuestions) : null); }, [gameQuestions]);
+            const nextRef = useRef(null);
+            const eveningGo = (deeper) => {
+                if (!evening) { setGateOpen(false); return; }
+                setGateOpen(false);
+                if (deeper) { const m = { ...evening, deepOk: true }; eveningSave(m); setEvening(m); SoundFX.success(); }
+                else if (liveRoomRef.current) { SoundFX.click(); handleFinishGame(true); return; }
+                else {
+                    const deck = softenTail(eveningPool(evening.aud), gameQuestions, evening.gate, { buildDeck, audience: evening.aud });
+                    const chapters = evening.chapters.map(c => c.gate ? { ...c, key: 'close', gate: false, to: Math.max(c.from, deck.length - 1) } : c).filter(c => c.from < deck.length);
+                    const m = { ...evening, chapters, gate: -1, deepOk: true, soft: true, deckKey: eveningDeckKey(deck) };
+                    eveningSave(m); setGameQuestions(deck); updateSavedGameProgress(deck, currentIndex, maxReachedIndex, turnHistory);
+                    if (deck.length <= currentIndex + 1) { handleFinishGame(true); return; }
+                }
+                setTimeout(() => nextRef.current && nextRef.current(), 60);
+            };
+            const handleNextQuestion = () => { if (turnPopup.open || punish.open || showEndGameConfirm) return; if (gameMode === 'normal' && !turnHistory[currentIndex]) { triggerRouletteForIndex(currentIndex, turnHistory); return; } if (liveRoomRef.current && Date.now() - liveRef.current.appliedAt < LIVE_TAP_GUARD_MS) return; if (advanceTurn()) return; if (currentIndex < gameQuestions.length - 1) { if (gameMode === 'normal' && evening && !evening.deepOk && evening.gate === currentIndex + 1) { SoundFX.click(); setGateOpen(true); return; } const currentQ = gameQuestions[currentIndex]; const currentQKey = currentQ ? (currentQ.id || currentQ.dbKey) : null; const nextIdx = currentIndex + 1; const nextMax = Math.max(maxReachedIndex, nextIdx); SoundFX.flip('right'); setCurrentIndex(nextIdx); setMaxReachedIndex(nextMax); if (gameMode === 'normal') { updateSavedGameProgress(gameQuestions, nextIdx, nextMax, turnHistory, currentQKey); if (!turnHistory[nextIdx]) triggerRouletteForIndex(nextIdx, turnHistory, gameQuestions); } } else { SoundFX.click(); handleFinishGame(true); } };
+            nextRef.current = handleNextQuestion;
             const handlePrevQuestion = () => { if (turnPopup.open || punish.open || showEndGameConfirm) return; if (currentIndex <= 0) return; if (liveRoomRef.current && Date.now() - liveRef.current.appliedAt < LIVE_TAP_GUARD_MS) return; SoundFX.flip('left'); const prevIdx = currentIndex - 1; setCurrentIndex(prevIdx); if (gameMode === 'normal') { updateSavedGameProgress(gameQuestions, prevIdx, maxReachedIndex, turnHistory); } };
             const archiveAnsweredQuestions = (questionsToArchive) => { if (!questionsToArchive || questionsToArchive.length === 0 || !profile) return; const newArchKeys = questionsToArchive.map(q => q.id || q.dbKey); setProfile(prev => { const merged = Array.from(new Set([...(prev.archivedIds || []), ...newArchKeys])); return { ...prev, archivedIds: merged, savedGame: null, updatedAt: Date.now() }; }); };
             const handleRestoreSingleFromArchive = (qObj) => { SoundFX.success(); setProfile(prev => ({ ...prev, archivedIds: (prev.archivedIds || []).filter(k => k !== qObj.id && k !== qObj.dbKey), updatedAt: Date.now() })); };
@@ -3227,15 +3262,31 @@ i18nSetLang(readStoredLang());
             }
 
             if (screen === 'session_created' && profile) {
+                // «Настрій»: один дотик — і перша картка. Тонкі налаштування — кнопкою «Свои темы и режимы».
+                const aud = eveAudience || ((profile.players || []).length > 2 ? 'group' : 'couple');
                 return (
                     <div className="safe-screen w-full flex flex-col items-center justify-between slide-up relative z-10">
                         <PwaInstallModal {...pwaModalProps} />
                         <div className="flex-1 flex items-center justify-center w-full py-6">
-                            <div className="w-full max-w-sm flex flex-col items-center text-center gap-6">
+                            <div className="w-full max-w-sm flex flex-col items-center text-center gap-5 mood-screen">
                                 <AskMeLogo size="md" />
-                                <div className="space-y-2"><h1 className="font-display text-2xl font-bold text-white">{tr("Сессия готова!")}</h1><p className="text-xs text-zinc-400 leading-relaxed">{tr("Сохраните ID сессии: по нему можно вернуться в игру с любого устройства.")}</p></div>
-                                <SessionIdBadge sessionKey={profile?.sessionKey} sessionId={profile.sessionId} onCopy={showToast} size="lg" />
-                                <button onClick={() => { SoundFX.click(); navigate('menu'); }} className="btn-primary w-full flex items-center justify-center gap-2 mt-2">{tr("Перейти к игре")} <Icons.Next /></button>
+                                <div className="space-y-1.5"><h1 className="font-display text-2xl font-bold text-white">{tr("Какой сегодня вечер?")}</h1><p className="text-sm text-zinc-400 leading-relaxed">{tr("Выберите настроение — первая карточка откроется сразу.")}</p></div>
+                                <div className="seg w-full" role="radiogroup" aria-label={tr("Кто играет")}>
+                                    <button type="button" role="radio" aria-checked={aud === 'couple'} onClick={() => { SoundFX.click(); setEveAudience('couple'); }} className={`seg-btn ${aud === 'couple' ? 'is-active' : ''}`}>{tr("Пара")}</button>
+                                    <button type="button" role="radio" aria-checked={aud === 'group'} onClick={() => { SoundFX.click(); setEveAudience('group'); }} className={`seg-btn ${aud === 'group' ? 'is-active' : ''}`}>{tr("Компания")}</button>
+                                </div>
+                                <div className="w-full flex flex-col gap-3">
+                                    {EVENING_MOOD_IDS.map((id, i) => (
+                                        <button key={id} type="button" onClick={() => startEvening(id, aud)} className={`mood-card mood-${id}`} style={{ '--i': i }}>
+                                            <span className="mood-ico" aria-hidden="true">{EVENING_MOODS[id].icon}</span>
+                                            <span className="mood-body"><span className="mood-t">{tr(EVE_MOOD_TEXT[id].t)}</span><span className="mood-d">{tr(EVE_MOOD_TEXT[id].d)}</span>
+                                                <span className="mood-ch" aria-label={tf("{v0} главы", { v0: EVENING_MOODS[id].chapters.length })}>{EVENING_MOODS[id].chapters.map(c => <i key={c.key} className={`ch-${c.key}`}>{tr(EVE_CH_NAME[c.key])}</i>)}</span></span>
+                                            <span className="mood-go" aria-hidden="true"><Icons.Next /></span>
+                                        </button>
+                                    ))}
+                                </div>
+                                <button type="button" onClick={() => { SoundFX.click(); navigate('menu'); }} className="btn-text muted">{tr("Свои темы и режимы")} <Icons.Next /></button>
+                                <p className="text-xs text-zinc-500">{tr("ID сессии всегда есть в меню.")}</p>
                             </div>
                         </div>
                         <AppFooter />
@@ -3271,7 +3322,7 @@ i18nSetLang(readStoredLang());
                                     <form noValidate onSubmit={handleSaveProfileNames} className="w-full flex flex-col gap-3 text-left fade-in">{conflictNotice}
                                         {playersForm.map((p, idx) => (
                                             <div key={p.id} className="flex gap-2 relative">
-                                                <input type="text" placeholder={tf("Игрок {v0}", { v0: idx+1 })} required value={p.name} onChange={e => { const v = sanitizeName(e.target.value); setPlayersForm(playersForm.map((pl, i) => i === idx ? {...pl, name: v} : pl)); setPlayersError(''); }} className="flex-1 h-[54px] px-5 rounded-2xl bg-white/[0.04] border border-white/[0.16] text-white outline-none focus:border-rose-500" />
+                                                <input type="text" placeholder={tf("Игрок {v0}", { v0: idx+1 })} value={p.name} onChange={e => { const v = sanitizeName(e.target.value); setPlayersForm(playersForm.map((pl, i) => i === idx ? {...pl, name: v} : pl)); setPlayersError(''); }} className="flex-1 h-[54px] px-5 rounded-2xl bg-white/[0.04] border border-white/[0.16] text-white outline-none focus:border-rose-500" />
                                                 <button type="button" onClick={() => { setPlayersForm(playersForm.map((pl, i) => i === idx ? {...pl, gender: pl.gender === 'guy' ? 'girl' : 'guy'} : pl)); SoundFX.click(); }} className="btn-icon lg"> {p.gender === 'guy' ? '👨' : '👩'} </button>
                                                 {idx > 1 && <button type="button" onClick={() => setPlayersForm(playersForm.filter((_, i) => i !== idx))} className="btn-badge absolute -left-2 -top-2"><Icons.Close /></button>}
                                             </div>
@@ -3281,7 +3332,7 @@ i18nSetLang(readStoredLang());
                                             <button type="button" onClick={addPlayerField} className="btn-dashed w-full"> <Icons.Plus /> {tr("Добавить игрока")} </button>
                                         )}
                                         {playersError && <p className="ui-error text-center">{playersError}</p>}
-                                <button type="submit" className="btn-primary w-full flex items-center justify-center gap-2 mt-2"> {tr("Создать сессию")} <Icons.Next /> </button>
+                                <button type="submit" className="btn-primary w-full flex items-center justify-center gap-2 mt-2"> {tr("Начать вечер")} <Icons.Next /> </button>
                                     </form>
                                 ) : (
                                     <form onSubmit={handleRestoreBySessionId} className="w-full flex flex-col gap-4 text-left fade-in">
@@ -3923,6 +3974,7 @@ if (screen === 'mode_select') {
             if (screen === 'game') {
                 const currentQ = gameQuestions[currentIndex];
                 if (!currentQ) return <div className="safe-screen w-full flex flex-col items-center justify-center fade-in relative z-10"><AskMeLogo size="lg" /><p className="text-zinc-500 font-semibold text-xs mt-5">{tr("Возвращаемся в игру...")}</p></div>;
+                const eveChap = gameMode === 'normal' && evening ? chapterAt(evening.chapters, currentIndex) : null;
                 const categoryInfo = CATEGORIES.find(c => c.id === currentQ.categoryId) || CATEGORIES[0]; const diffInfo = DIFFICULTIES.find(d => d.id === currentQ.level) || DIFFICULTIES[0];
                 const cleanText = qDisplay(currentQ);
                 const turnEntry = normTurn(turnHistory[currentIndex]);
@@ -3974,7 +4026,7 @@ if (screen === 'mode_select') {
                             <div ref={glowRef} aria-hidden="true" className="swipe-glow" data-side="right" data-ok="yes"><span className="swipe-shine"></span></div>
                             {swipeHint && ( <div className="absolute -top-11 left-1/2 -translate-x-1/2 z-10 px-3 py-1 rounded-full text-xs font-bold bg-white/[0.10] border border-white/[0.16] text-zinc-100 pointer-events-none fade-in">{swipeHint}</div> )}
                             <div className="game-card relative w-full flex flex-col items-center justify-center rounded-[28px] border border-white/10 bg-gradient-to-b from-[color:var(--plum-2)] to-[color:var(--plum-1)] px-6 pt-7 pb-6 sm:px-8 shadow-[0_32px_64px_-24px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.07)]" style={{ minHeight: 'min(60dvh, 540px)' }} key={currentQ.dbKey + '_' + currentIndex}>
-                                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 h-7 rounded-full bg-[color:var(--plum-2)] border border-white/[0.16] flex items-center gap-2 text-xs font-bold text-zinc-300 whitespace-nowrap">{tr("Вопрос №")} {currentQ.num} {gameMode === 'test' && currentQ.archived && ( <span className="text-xs px-1.5 rounded bg-white/[0.10] text-zinc-300">{tr("В архиве")}</span> )}</div>
+                                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 h-7 rounded-full bg-[color:var(--plum-2)] border border-white/[0.16] flex items-center gap-2 text-xs font-bold text-zinc-300 whitespace-nowrap">{eveChap ? (<span className="ev-chap"><span className="ev-dots" aria-hidden="true">{Array.from({ length: eveChap.count }, (_, i) => <i key={i} className={i < eveChap.index ? 'is-done' : i === eveChap.index ? 'is-on' : ''}></i>)}</span>{tf("Глава {v0} · {v1}", { v0: eveChap.index + 1, v1: tr(EVE_CH_NAME[eveChap.key] || 'Разговор') })}</span>) : (<>{tr("Вопрос №")} {currentQ.num}</>)} {gameMode === 'test' && currentQ.archived && ( <span className="text-xs px-1.5 rounded bg-white/[0.10] text-zinc-300">{tr("В архиве")}</span> )}</div>
                                 <div className="flex flex-col items-center gap-1.5 mb-6 pt-2">
                                     
                                     <div className="flex items-center gap-2 text-xs font-bold text-zinc-200"> <span>{categoryInfo.icon}</span> <span>{catLabel(categoryInfo.id, categoryInfo.name)}</span> <span className="text-zinc-500">•</span> <span className={diffInfo.classText}>{diffLabel(diffInfo.id, diffInfo.name)}</span> </div>
@@ -4009,6 +4061,7 @@ if (screen === 'mode_select') {
                                 {gameMode === 'normal' && turnEntry && turnEntry.cur && !turnDone && (
                                     <button type="button" onClick={() => { SoundFX.click(); setShowSkipPopup(true); }} className="btn-ghost mt-3 w-full max-w-sm"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></svg> {tr("Пропустить вопрос")}</button>
                                 )}
+                                {gameMode === 'normal' && turnEntry && turnEntry.cur && !turnDone && <p className="skip-note">{tr("Можно пропустить. Объяснять не нужно.")}</p>}
                                 {currentIndex === 0 && ( <p className="mt-6 text-xs text-zinc-500 text-center">{tr("Листайте карточки свайпами или кнопками")}</p> )}
                             </div></div></div>
                             <p className="game-count" role="status" aria-label={tf("Вопрос {v0} из {v1}", { v0: currentIndex + 1, v1: gameQuestions.length })}>{currentIndex + 1} <span aria-hidden="true">/</span> {gameQuestions.length}</p>
@@ -4069,6 +4122,17 @@ if (screen === 'mode_select') {
                             </div>
                         </PopupModal>
 
+                        <PopupModal isOpen={gateOpen && !!evening} onClose={() => setGateOpen(false)}>
+                            <div className="text-center flex flex-col items-center gap-4 pt-1 ev-gate">
+                                <span className="ev-gate-ico" aria-hidden="true">🌙</span>
+                                <h3 className="text-lg font-bold text-white">{tr("Идём глубже?")}</h3>
+                                <p className="text-sm text-zinc-400 leading-snug">{tr("Дальше личные вопросы. Решайте вместе: если хоть кто-то не готов, останемся на этом уровне. Объяснять не нужно.")}</p>
+                                <div className="w-full flex flex-col gap-3">
+                                    <button type="button" onClick={() => eveningGo(true)} className="btn-primary w-full">{tr("Да, все согласны")}</button>
+                                    <button type="button" onClick={() => eveningGo(false)} className="btn-secondary w-full">{liveRoomRef.current ? tr("Нет, завершим вечер") : tr("Нет, останемся тут")}</button>
+                                </div>
+                            </div>
+                        </PopupModal>
                         <PopupModal isOpen={showSkipPopup && gameMode === 'normal'} onClose={() => setShowSkipPopup(false)}>
                             <div className="text-center flex flex-col items-center gap-4 pt-1">
                                 <h3 className="text-lg font-bold text-white">{tr("Пропустить вопрос?")}</h3>

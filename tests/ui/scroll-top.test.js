@@ -27,7 +27,7 @@ const scrollTo = async (y) => { Object.defineProperty(w, 'scrollY', { value: y, 
 
   // ---------- «Игроки и сессия» ----------
   await go('#/welcome', 600); const inputs = [...D.querySelectorAll('input[type="text"]')]; setVal(inputs[0], 'Макс'); setVal(inputs[1], 'Аня'); await sleep(200);
-  await click('Создать сессию', 1200); await click('Перейти к игре', 900);
+  await click('Начать вечер', 1200); await click('Свои темы и режимы', 900);
   await go('#/profile', 700);
   const heads = [...D.querySelectorAll('main h2')].map(h => h.textContent.trim());
   const form = D.querySelector('form.prof-main'); const ttl = form && form.querySelector('.prof-title');

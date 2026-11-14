@@ -34,7 +34,7 @@ const finish = (E) => { allErrors.push(...E.errors); E.w.close(); };
   const store = {};
   // ---------- устройство 1 создаёт сессию ----------
   let A = await boot(store); let { w, D, sleep, c, btn } = A;
-  const inputs = [...D.querySelectorAll('input[type="text"]')]; A.setVal(inputs[0], 'Макс'); A.setVal(inputs[1], 'Аня'); await sleep(200); await c(btn('Создать сессию'), 1500);
+  const inputs = [...D.querySelectorAll('input[type="text"]')]; A.setVal(inputs[0], 'Макс'); A.setVal(inputs[1], 'Аня'); await sleep(200); await c(btn('Начать вечер'), 1500);
   const p1 = A.prof(); const SID = p1.sessionId, KEY = p1.sessionKey; const { path, lock } = joinParts(SID);
   await A.wait(() => store[path]);
   T('новая сессия: в облаке есть сама сессия (s_…) и «замок» для входа по ID (j_…)', !!store[dbKey(KEY)] && !!store[path]);

@@ -6,7 +6,7 @@ const mainEl=()=>D.querySelector('main.select-none');
 (async()=>{ try{
   w.eval(code); await sleep(1800);
   const inputs=[...D.querySelectorAll('input[type="text"]')]; setVal(inputs[0],'Макс'); setVal(inputs[1],'Аня'); await sleep(200);
-  await click('Создать сессию',1200); await click('Перейти к игре',900);
+  await click('Начать вечер',1200); await click('Свои темы и режимы',900);
   await click('Начать игру',600); await click('Обычный режим',3800); 
   await click('К вопросу',500); const q1=qnum();
   const peekN=()=>D.querySelector('[data-peek="next"]'), peekP=()=>D.querySelector('[data-peek="prev"]');

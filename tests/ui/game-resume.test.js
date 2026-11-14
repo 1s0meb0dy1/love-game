@@ -28,7 +28,7 @@ const qnum = (A) => { const m = A.D.body.textContent.match(/Вопрос № (\d
   // длинная партия: ни разу не выкидывает из игры (время ускорено — рулетка и таймеры идут в 15 раз быстрее)
   { const A = makeEnv({ bigDb: 2000 }); const { w, D, sleep, has, click, setVal, T, res } = A; const st = w.setTimeout.bind(w); w.setTimeout = (fn, ms, ...a) => st(fn, ms > 60 ? Math.round(ms / 15) : ms, ...a);
     w.eval(A.code); await sleep(2500); const inputs = [...D.querySelectorAll('input[type="text"]')]; setVal(inputs[0], 'Макс'); setVal(inputs[1], 'Аня'); await sleep(200);
-    await click('Создать сессию', 1500); await click('Перейти к игре', 900); await click('Начать игру', 700); await click('Обычный режим', 1500); await click('К вопросу', 500);
+    await click('Начать вечер', 1500); await click('Свои темы и режимы', 900); await click('Начать игру', 700); await click('Обычный режим', 1500); await click('К вопросу', 500);
     let steps = 0, seen = new Set([qnum(A)]), left = null;
     for (; steps < 160; steps++) {
       if (!has('Вопрос №') || w.location.hash !== '#/play') { left = { steps, hash: w.location.hash }; break; }

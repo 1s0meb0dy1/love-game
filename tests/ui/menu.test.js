@@ -4,7 +4,7 @@ const byLabel=(l)=>[...D.querySelectorAll('button')].find(b=>b.getAttribute('ari
 (async()=>{ try{
   w.eval(code); await sleep(1800);
   const inputs=[...D.querySelectorAll('input[type="text"]')]; setVal(inputs[0],'Макс'); setVal(inputs[1],'Аня'); await sleep(200);
-  await click('Создать сессию',1200); await click('Перейти к игре',900); await clickEl(byLabel('Открыть меню'),500);
+  await click('Начать вечер',1200); await click('Свои темы и режимы',900); await clickEl(byLabel('Открыть меню'),500);
   const root=D.querySelector('.safe-screen'), main=root.querySelector('main'), footer=root.querySelector('footer');
   T('страница «Меню»: заголовок по центру, вкладка и адрес',D.title==='Меню — ASK ME'&&w.location.hash==='#/more'&&/text-center/.test(root.querySelector('h1').className)&&root.querySelector('h1').textContent==='Меню');
   T('секции «Разделы» и «Настройки», строки-пункты со стрелкой и подписями',has('Разделы')&&has('Настройки')&&has('Игроки и сессия')&&has('Все вопросы')&&has('Архив')&&has('Звук и вибрация'));

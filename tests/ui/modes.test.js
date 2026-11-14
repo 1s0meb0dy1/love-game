@@ -7,7 +7,7 @@ const clickEl=async(el,ms=250)=>{ if(!el) throw new Error('нет элемент
 (async()=>{ try{
   w.eval(code); await sleep(1800);
   const inputs=[...D.querySelectorAll('input[type="text"]')]; setVal(inputs[0],'Макс'); setVal(inputs[1],'Аня'); await sleep(200);
-  await click('Создать сессию',1200); await click('Перейти к игре',900); await click('Начать игру',700);
+  await click('Начать вечер',1200); await click('Свои темы и режимы',900); await click('Начать игру',700);
   const h1=D.querySelector('h1'); T('страница выбора режима: заголовок по центру правее кнопки «Назад»',D.title==='Режим игры — ASK ME'&&h1&&/Выберите режим/.test(h1.textContent)&&/text-center/.test(h1.className)&&/flex-1/.test(h1.className)&&!!D.querySelector('header button[aria-label="Назад"]'));
   T('режимы: «Обычный» и «Усложнённый»'+(ADMIN?' и «Тестовый» для владельца':''),has('Обычный режим')&&has('Усложнённый режим')&&(ADMIN?has('Тестовый режим'):!has('Тестовый режим')));
   if(ADMIN){ console.log(res.join('\n')); console.log('--- captured runtime errors:',errors.length); process.exit(0); }

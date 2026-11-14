@@ -28,7 +28,7 @@ const scan = (where) => {
   w.eval(code); await sleep(1800);
   scan('#/welcome');
   const inputs = [...D.querySelectorAll('input[type="text"]')]; setVal(inputs[0], 'Max'); setVal(inputs[1], 'Anna'); await sleep(200);
-  await click(en('Создать сессию'), 1200); scan('#/session-ready'); await click(en('Перейти к игре'), 900);
+  await click(en('Начать вечер'), 1200); scan('#/session-ready'); await click(en('Свои темы и режимы'), 900);
   const pages = ['#/', '#/more', '#/profile', '#/mode', '#/setup', '#/topics', '#/questions', '#/archive', '#/invite', '#/about', '#/tod', '#/questions/hidden', '#/punishments/manage', '#/analytics', '#/privacy', '#/terms', '#/cookies', '#/age', '#/copyright'];
   if (ADMIN) pages.push('#/topics/manage', '#/tod/manage', '#/add', '#/admin', '#/analytics/sessions');
   for (const h of pages) { await go(h); scan(h); }

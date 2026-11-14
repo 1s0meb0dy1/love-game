@@ -42,13 +42,13 @@ const done = (E) => { errs.push(...E.errors); E.w.close(); };
     for (let k = 0; k < 8; k++) await A.key('ArrowRight', 60);
     T('гортання не виходить за останню історію: «Вечер начинается здесь», кнопки паузи вже немає', A.title() === 'Вечер начинается здесь' && !A.intro().querySelector('button[aria-label="Пауза"]') && !!A.D.querySelector('.intro-cta .btn-primary.is-final'));
     await A.key('Escape', 400);
-    T('Esc закриває: вікна немає, видно привітання з формою «Создать сессию», позначка «бачив» збережена', !A.intro() && A.has('Добро пожаловать') && A.has('Создать сессию') && A.seenFlag() === '1');
+    T('Esc закриває: вікна немає, видно привітання з формою «Начать вечер», позначка «бачив» збережена', !A.intro() && A.has('Добро пожаловать') && A.has('Начать вечер') && A.seenFlag() === '1');
     const replay = [...A.D.querySelectorAll('button')].find(b => A.norm(b.textContent) === 'Как играть — за 30 секунд');
     T('на привітанні є тиха кнопка «Как играть — за 30 секунд» (btn-text)', !!replay && /btn-text/.test(replay.className));
     await A.tap(replay, 300);
     T('вона знову відкриває історії з першої', !!A.intro() && A.title() === 'Разговоры, которых вам не хватало');
     await A.tap([...A.intro().querySelectorAll('button')].find(b => A.norm(b.textContent) === 'Начать'), 400);
-    T('«Начать» закриває історії й веде до створення сесії (вкладка «Новая игра»)', !A.intro() && A.has('Создать сессию') && !!A.D.querySelector('input[placeholder="Игрок 1"]'));
+    T('«Начать» закриває історії й веде до створення сесії (вкладка «Новая игра»)', !A.intro() && A.has('Начать вечер') && !!A.D.querySelector('input[placeholder="Игрок 1"]'));
     done(A);
 
     // повторний візит: уже бачив — одразу привітання

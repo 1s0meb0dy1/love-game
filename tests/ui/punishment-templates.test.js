@@ -9,7 +9,7 @@ const clickEl=async(el,ms=250)=>{ if(!el) throw new Error('нет элемент
 (async()=>{ try{
   w.eval(code); await sleep(1800);
   const inputs=[...D.querySelectorAll('input[type="text"]')]; setVal(inputs[0],'Макс'); setVal(inputs[1],'Аня'); await sleep(200);
-  await click('Создать сессию',1200); await click('Перейти к игре',900);
+  await click('Начать вечер',1200); await click('Свои темы и режимы',900);
   if(!ADMIN){
     await click('Начать игру',600); await click('Усложнённый режим',700);
     T('шаблоны из БД показаны в игре (валидные), прошлые встроенные/старые не показываются, свои сохранены',has('Шаблон из базы 1')&&has('Шаблон из базы 2')&&has('Моё наказание')&&!has('Старый шаблон')&&!has('Выпей стакан воды')&&!has('Нет уровня'));

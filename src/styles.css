@@ -1422,3 +1422,27 @@ html[data-theme='light'] .bg-room .glow-b { opacity: 0.26; }
 html[data-theme='light'] .bg-room .glow-c { opacity: 0.20; }
 html[data-theme='light'] .bg-room .veil { opacity: 1; background: radial-gradient(ellipse 78% 62% at 50% 46%, rgb(251 243 239 / 0.62) 0%, rgb(251 243 239 / 0.38) 55%, rgb(251 243 239 / 0.16) 100%); }
 html[data-theme='light'] .bg-room .veil::before { content: ''; position: absolute; inset: 0; background-image: radial-gradient(rgb(200 33 75 / 0.15) 1.1px, transparent 1.6px); background-size: 22px 22px; -webkit-mask-image: radial-gradient(circle at 100% 0%, #000 0, transparent 38vmax), radial-gradient(circle at 0% 100%, #000 0, transparent 34vmax); mask-image: radial-gradient(circle at 100% 0%, #000 0, transparent 38vmax), radial-gradient(circle at 0% 100%, #000 0, transparent 34vmax); }
+
+/* «Вечір» (Heat 2, крок 2): екран настрою, плашка глави, підпис під «Пропустити», вікно згоди */
+:root .mood-card { --mc: var(--lvl-1-rgb); position: relative; display: flex; align-items: center; gap: 0.875rem; width: 100%; min-height: 88px; padding: 0.875rem 1rem; border-radius: var(--r-surface, 22px); border: 1px solid rgb(var(--mc) / 0.45); background: linear-gradient(150deg, rgb(var(--mc) / 0.16), rgb(var(--ink-rgb) / 0.03) 70%); text-align: left; color: var(--text); cursor: pointer; transition: transform 0.18s ease, border-color 0.2s ease, background-color 0.2s ease; animation: moodIn 0.42s cubic-bezier(.2,.8,.2,1) both; animation-delay: calc(var(--i, 0) * 70ms); }
+:root .mood-card.mood-close { --mc: var(--lvl-2-rgb); }
+:root .mood-card.mood-deep { --mc: var(--lvl-3-rgb); }
+@media (hover: hover) { :root .mood-card:hover { border-color: rgb(var(--mc) / 0.8); transform: translateY(-2px); } }
+:root .mood-card:active { transform: scale(0.985); }
+:root .mood-card:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+:root .mood-ico { flex: 0 0 auto; width: 48px; height: 48px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; background: rgb(var(--mc) / 0.18); }
+:root .mood-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.25rem; }
+:root .mood-t { font-family: var(--font-display, inherit); font-weight: 700; font-size: 1.0625rem; color: var(--text-strong); }
+:root .mood-d { font-size: 0.8125rem; line-height: 1.35; color: var(--text-2); }
+:root .mood-ch { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 0.25rem; }
+:root .mood-ch i { font-style: normal; font-size: 0.6875rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; color: var(--text-2); background: rgb(var(--ink-rgb) / 0.06); }
+:root .mood-ch i.ch-deep { color: var(--text-strong); background: rgb(var(--lvl-3-rgb) / 0.22); }
+:root .mood-go { flex: 0 0 auto; color: rgb(var(--mc)); }
+@keyframes moodIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+:root .ev-chap { display: inline-flex; align-items: center; gap: 0.5rem; }
+:root .ev-dots { display: inline-flex; gap: 4px; }
+:root .ev-dots i { width: 6px; height: 6px; border-radius: 999px; background: rgb(var(--ink-rgb) / 0.22); transition: transform 0.3s ease, background-color 0.3s ease; }
+:root .ev-dots i.is-done { background: rgb(var(--ink-rgb) / 0.55); }
+:root .ev-dots i.is-on { background: var(--rose); transform: scale(1.35); }
+:root .skip-note { margin-top: 0.375rem; font-size: 0.75rem; color: var(--text-3); text-align: center; }
+:root .ev-gate-ico { width: 56px; height: 56px; border-radius: 18px; display: flex; align-items: center; justify-content: center; font-size: 1.75rem; background: rgb(var(--lvl-3-rgb) / 0.18); border: 1px solid rgb(var(--lvl-3-rgb) / 0.45); }

@@ -60,7 +60,7 @@ const startTod = async (E) => { await press(E, 'Начать игру', 600); if
     A = await reload(A, '#/tod/play');
     T('перезагрузка на #/tod/play, когда в узле нет игры: главная, адрес заменён на #/', await waitFor(() => A.w.location.hash === '#/' && /Начать игру/.test(txt(A)), 8000));
     const noProf = await reload(A, '#/tod/play', { profile: false }); A = noProf;
-    T('перезагрузка без профиля сессии на #/tod/play -> экран без сессии, без ошибок', await waitFor(() => /Создать сессию/.test(txt(A)), 8000) && !onPlay(A) && A.errors.length === 0);
+    T('перезагрузка без профиля сессии на #/tod/play -> экран без сессии, без ошибок', await waitFor(() => /Начать вечер/.test(txt(A)), 8000) && !onPlay(A) && A.errors.length === 0);
     // вернуть A сессию: профиль из B
     A.w.localStorage.setItem('askme_device_profile_v4', B.w.localStorage.getItem('askme_device_profile_v4'));
     A = await reload(A, '#/');
