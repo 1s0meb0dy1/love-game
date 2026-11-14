@@ -9,7 +9,7 @@ const game = (r) => { const e = Object.entries(r.body).find(([k]) => k.startsWit
 (async () => { try {
   w.eval(A.code); await sleep(1800);
   const inputs = [...D.querySelectorAll('input[type="text"]')]; A.setVal(inputs[0], 'Макс'); A.setVal(inputs[1], 'Аня'); await sleep(200);
-  await A.click('Создать сессию', 1200); await A.click('Перейти к игре', 900);
+  await A.click('Начать вечер', 1200); await A.click('Свои темы и режимы', 900);
   await A.click('Начать игру', 700); await A.click('Обычный режим', 3800); await A.click('К вопросу', 600);
   // подменяем сохранённую партию: 14 вопросов уже пройдены обоими игроками, мы на 15-м
   const prof = JSON.parse(w.localStorage.getItem('askme_device_profile_v4')); const sg = prof.savedGame;

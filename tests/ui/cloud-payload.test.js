@@ -13,7 +13,7 @@ const LIMIT = Number((JSON.stringify(rules).match(/payload[^}]*?length\s*<\s*(\d
   T('в копии правил базы найден предел payload: ' + LIMIT, LIMIT > 1000 && LIMIT <= 100000);
   w.eval(A.code); await sleep(1800);
   const inputs = [...D.querySelectorAll('input[type="text"]')]; A.setVal(inputs[0], 'Макс'); A.setVal(inputs[1], 'Аня'); await sleep(200);
-  await A.click('Создать сессию', 1500); await A.click('Перейти к игре', 900);
+  await A.click('Начать вечер', 1500); await A.click('Свои темы и режимы', 900);
   const prof0 = JSON.parse(w.localStorage.getItem('askme_device_profile_v4'));
   T('новая сессия записалась в облако целиком, предел не превышен (' + (puts.length && puts[puts.length - 1].len) + ' знаков)', puts.length >= 1 && puts.every(p => p.len < LIMIT));
   const key = prof0.sessionKey; const n0 = puts.length;
@@ -30,7 +30,7 @@ const LIMIT = Number((JSON.stringify(rules).match(/payload[^}]*?length\s*<\s*(\d
   const E = makeEnv(); const eb = E.w.fetch; let putsE = 0;
   E.w.fetch = async (url, init) => { if (/\/sessions\/s_[0-9a-f]+\.json/.test(String(url)) && init && init.method === 'PUT') { putsE++; return { ok: false, status: 401, json: async () => ({ error: 'Permission denied' }) }; } return eb(url, init); };
   E.w.eval(E.code); await sleep(1800); const inE = [...E.D.querySelectorAll('input[type="text"]')]; E.setVal(inE[0], 'Макс'); E.setVal(inE[1], 'Аня'); await sleep(200);
-  await E.click('Создать сессию', 1500); await sleep(800);
+  await E.click('Начать вечер', 1500); await sleep(800);
   T('если база отклонила запись — на экране «Нет связи с облаком…» (попыток записи: ' + putsE + '), прогресс на устройстве не потерян', putsE >= 1 && /Нет связи с облаком/.test(E.D.body.textContent) && JSON.parse(E.w.localStorage.getItem('askme_device_profile_v4')).players.length === 2);
   errors.push(...E.errors);
   // большой архив + большая партия: полная копия выше предела, без партии — помещается: уходит копия без партии, сообщений нет

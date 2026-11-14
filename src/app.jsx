@@ -26,6 +26,8 @@ import { todTitles } from './tod/titles.js';
 import { TodArchive, TodAdmin, TodEdit, TodLobby, TodGame, TodResults, TodAdultModal } from './tod/screens.jsx';
 import { todChannel, todRoomOf } from './tod/channel.js';
 import { aiAsk } from './ai/client.js';
+import { themeGetPref, themeSetPref, themeApply, themeWatch } from './ui/theme.js';
+import { EVENING_MOOD_IDS, EVENING_MOODS, buildEvening, softenTail, chapterAt, eveningSave, eveningLoad, eveningDeckKey, rescueDeck, limitsSave, limitsLoad, applyLimits } from './ui/evening.js';
 import { IntroStories, introShouldShow, introMarkSeen, introReplayLabel } from './intro/stories.jsx';
 const ReactDOM = { ...ReactDOMAll, createRoot };
 
@@ -274,6 +276,13 @@ i18nSetLang(readStoredLang());
         // базові теми, додані 29.10.2026: у гравців зі збереженим вибором тем вмикаються один раз автоматично (як нові власні теми)
         const NEW_BASE_TOPICS = ['trust', 'talk', 'fun', 'body'];
 
+        const EVE_CH_SUB = { talk: 'Теперь — честнее.', close: 'Ближе друг к другу.', deep: 'Тихо и по-настоящему.' };
+        const EVE_CH_NAME = { warm: 'Разминка', talk: 'Разговор', close: 'Ближе', deep: 'Глубже' };
+        const EVE_MOOD_TEXT = {
+            easy: { t: 'Легко и весело', d: 'Смешные и простые вопросы. Чтобы разогреться и посмеяться.' },
+            close: { t: 'Ближе', d: 'От лёгкого к личному. Глубокая глава — только если все согласны.' },
+            deep: { t: 'Глубоко', d: 'Короткая разминка, потом честные разговоры. Глубже — по общему согласию.' }
+        };
         const DIFFICULTIES = [
             { id: "Простые", name: "Легкие", classText: "diff-text-1", classBg: "diff-pill-1" },
             { id: "Средние", name: "Средние", classText: "diff-text-2", classBg: "diff-pill-2" },
@@ -344,6 +353,9 @@ i18nSetLang(readStoredLang());
             romanticFinale() { if (this.muted) return; this.triggerHaptic([25, 60, 25, 60, 45]); this.init(); const notes = [{ f: 440, d: 0.45, t: 0 }, { f: 554.37, d: 0.45, t: 130 }, { f: 659.25, d: 0.50, t: 260 }, { f: 830.61, d: 0.55, t: 390 }, { f: 987.77, d: 0.85, t: 530 }]; notes.forEach(n => setTimeout(() => this.playAcousticNote(n.f, n.d, 0.26), n.t)); },
             magic() { if (this.muted) return; this.triggerHaptic([12, 35, 18]); this.init(); this.playAcousticNote(493.88, 0.14, 0.2, 659.25); setTimeout(() => this.playAcousticNote(783.99, 0.22, 0.22), 90); },
             success() { if (this.muted) return; this.triggerHaptic([14, 30, 20]); this.init(); this.playAcousticNote(523.25, 0.12, 0.22); setTimeout(() => this.playAcousticNote(783.99, 0.26, 0.26), 95); },
+            // «Вечір»: пентатоніка ре-мажор — м'який акорд вибору настрою і висхідне арпеджіо на початку глави
+            evening() { if (this.muted) return; this.triggerHaptic([10, 30, 14]); this.init(); [293.66, 440, 587.33].forEach((f, k) => setTimeout(() => this.playAcousticNote(f, 0.34, 0.16), k * 70)); },
+            chapter(n = 1) { if (this.muted) return; this.triggerHaptic([12, 40, 18]); this.init(); const scale = [293.66, 329.63, 369.99, 440, 493.88, 587.33, 659.25, 739.99]; const base = Math.min(n, 3); [0, 2, 4].forEach((step, k) => setTimeout(() => this.playAcousticNote(scale[base + step], 0.42 - k * 0.04, 0.17 - k * 0.02), k * 110)); },
             warn() { if (this.muted) return; this.triggerHaptic([25, 40, 25]); this.playAcousticNote(280, 0.15, 0.22, 190); }
         };
 
@@ -351,6 +363,26 @@ i18nSetLang(readStoredLang());
 
         const Icons = {
             Play: () => <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5.14v14l11-7-11-7z" /></svg>, ArrowUp: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M12 19V5m0 0l-6.5 6.5M12 5l6.5 6.5" /></svg>, Filter: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h18l-7 8.2V19l-4 2v-7.8L3 5z" /></svg>, Pause: () => <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="5" width="4" height="14" rx="1.3" /><rect x="13.5" y="5" width="4" height="14" rx="1.3" /></svg>, Menu: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>, Back: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>, Next: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>, Sparkles: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>, List: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>, Plus: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>, Check: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>, Bulb: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>, Edit: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.9} d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg>, Resume: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.9} d="M16.023 9.348h4.992V4.356M2.985 19.644v-4.992h4.992M2.985 14.652l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" /><path d="M10.4 9.1v5.8l4.7-2.9z" fill="currentColor" stroke="none" /></svg>, Trash: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>, Restore: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>, Archive: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>, SoundOn: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>, SoundOff: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" /></svg>, Users: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M16 20v-1.2a3.8 3.8 0 00-3.8-3.8H7.8A3.8 3.8 0 004 18.8V20" /><circle cx="10" cy="8" r="3.3" /><path d="M20 20v-1.1a3.4 3.4 0 00-2.5-3.28M15.5 4.9a3.3 3.3 0 010 6.2" /></svg>, User: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>, Lock: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>, Copy: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>, Share: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>, IosShare: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>, Eye: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>, EyeOff: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>, ChevronDown: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>, DownloadApp: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>, Close: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M6 18L18 6M6 6l12 12" /></svg>, Logout: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+            , Sun: () => <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4" /><path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4L6 18M18 6l1.4-1.4" /></svg>
+            , Moon: () => <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" /></svg>
+            , AutoTheme: () => <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} aria-hidden="true"><circle cx="12" cy="12" r="8.5" /><path d="M12 3.5a8.5 8.5 0 0 1 0 17z" fill="currentColor" stroke="none" /></svg>
+            , Clock: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></svg>
+            , Chart: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 20h16" /><path d="M7 16v-4M12 16V8M17 16v-7" /></svg>
+            , Gear: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3" /><path d="M12 3.5v2.2M12 18.3v2.2M3.5 12h2.2M18.3 12h2.2M6 6l1.6 1.6M16.4 16.4 18 18M6 18l1.6-1.6M16.4 7.6 18 6" /></svg>
+            , Mask: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 6.5c2.7 1.3 5.3 1.3 8 0 2.7 1.3 5.3 1.3 8 0v4.2c0 4.6-3.6 8.3-8 8.3s-8-3.7-8-8.3z" /><path d="M8.3 11h1.4M14.3 11h1.4M9.3 15c1.7 1.2 3.7 1.2 5.4 0" /></svg>
+            , Dice: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4" /><path d="M8.5 8.5h.01M15.5 8.5h.01M12 12h.01M8.5 15.5h.01M15.5 15.5h.01" strokeWidth={2.8} /></svg>
+            , Globe: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5" /><path d="M3.5 12h17M12 3.5c2.4 2.4 3.6 5.2 3.6 8.5s-1.2 6.1-3.6 8.5c-2.4-2.4-3.6-5.2-3.6-8.5S9.6 5.9 12 3.5z" /></svg>
+            , Unlock: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2.5" /><path d="M8.5 11V8a3.5 3.5 0 0 1 6.7-1.4" /></svg>
+            , Heart: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 19.5 5 12.7a4.2 4.2 0 0 1 6-6l1 1 1-1a4.2 4.2 0 0 1 6 6z" /></svg>
+            , Chat: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 18.5V7a2.5 2.5 0 0 1 2.5-2.5h9A2.5 2.5 0 0 1 19 7v6.5a2.5 2.5 0 0 1-2.5 2.5H9z" /><path d="M9 9.5h6M9 12.5h4" /></svg>
+            , Flame: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 20.5a6 6 0 0 0 6-6c0-3.6-2.7-5.8-4-9.5-2 1.6-3 3.6-3 5.6-1-.6-1.6-1.6-1.8-2.6C7.4 9.6 6 11.8 6 14.5a6 6 0 0 0 6 6z" /></svg>
+            , Party: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4.5 19.5 8 9l7 7z" /><path d="M13 4.5c.4 1.2.1 2.3-.8 3.2M17.5 9.5c1-.6 2.1-.7 3-.2M15.5 6.5l1-1M19 13l1.2.4" /></svg>
+            , Flask: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9.5 3.5h5M10.5 3.5v5.2L5.4 17.6A2 2 0 0 0 7.1 20.5h9.8a2 2 0 0 0 1.7-2.9l-5.1-8.9V3.5" /><path d="M7.8 14h8.4" /></svg>
+            , Buoy: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="3.6" /><path d="M5.6 5.6l3.9 3.9M14.5 14.5l3.9 3.9M18.4 5.6l-3.9 3.9M9.5 14.5l-3.9 3.9" /></svg>
+            , Shield: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3l7.5 3v5.4c0 4.6-3.2 8.3-7.5 9.6-4.3-1.3-7.5-5-7.5-9.6V6z" /><path d="M9 12l2.2 2.2L15.5 10" /></svg>
+            , MoodEasy: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5" /><path d="M8.4 13.6c.9 1.5 2.2 2.3 3.6 2.3s2.7-.8 3.6-2.3" /><path d="M9 9.6h.01M15 9.6h.01" strokeWidth={2.6} /></svg>
+            , MoodClose: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9.2 19.5 4.3 14.7a3.6 3.6 0 0 1 5.1-5.1l.3.3.3-.3a3.6 3.6 0 0 1 5.1 5.1" /><path d="M14.8 20.5l-4.2-4.1a3.1 3.1 0 0 1 4.4-4.4l.2.2.2-.2a3.1 3.1 0 0 1 4.4 4.4z" /></svg>
+            , MoodDeep: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M19.5 14.6A8 8 0 0 1 9.4 4.5a8 8 0 1 0 10.1 10.1z" /><path d="M16.5 3.5v3M15 5h3M20 8.5v2M19 9.5h2" /></svg>
             , Skip: () => <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M5 5.5l9.5 6.5L5 18.5v-13z" /><path d="M19 5v14" /></svg>
         };
 
@@ -842,7 +874,7 @@ i18nSetLang(readStoredLang());
             const handleCopyClick = async (e) => { e.stopPropagation(); SoundFX.success(); await copyTextToClipboard(sessionKey ? `${window.location.origin}${window.location.pathname}#/welcome?sid=${sessionId}&key=${sessionKey}` : sessionId); setCopied(true); if (onCopy) onCopy("Ссылка для входа скопирована!"); setTimeout(() => setCopied(false), 2000); };
             if (size === "lg") {
                 return (
-                    <div className="w-full p-5 rounded-[20px] bg-[#13111a] border border-white/10 flex items-center gap-4 shadow-lg">
+                    <div className="w-full p-5 rounded-[20px] bg-[color:var(--plum-1)] border border-white/10 flex items-center gap-4 shadow-lg">
                         <div className="flex-1 min-w-0 flex flex-col gap-1">
                             <span className="text-xs font-bold text-zinc-500">{tr("ID вашей сессии")}</span>
                             <span className="font-display text-[26px] leading-tight font-bold text-white tracking-[0.06em] break-all">{sessionId}</span>
@@ -1519,7 +1551,7 @@ i18nSetLang(readStoredLang());
             // переход по ссылке-якорю (#/privacy, #/terms, …) не сбрасывает прокрутку сам: новая страница открылась бы с середины, поэтому всегда поднимаемся к шапке
             useEffect(() => { const onHashChange = () => { const h = window.location.hash || '#/', hp = hashPath(h); try { window.scrollTo(0, 0); } catch (e) {} if (hp === '#/admin') { setScreenState('admin_login'); return; } if (hp === '#/join' || (hp === '#/welcome' && profile && hasInviteParams(h))) { const inv = readInviteFromHash(); if (inv) { setJoinInvite(inv); setJoinError(''); try { window.history.replaceState(null, '', window.location.pathname + window.location.search + '#/join'); } catch (e) {} } setScreenState('join'); return; } if (hp === '#/welcome') { setScreenState('onboarding'); return; } const mapped = HASH_TO_SCREEN[hp]; if (PUBLIC_SCREENS.includes(mapped)) { setScreenState(mapped); return; } if (!profile && !isPreviewMode) { setScreenState('onboarding'); return; } if (mapped) setScreenState(mapped); }; window.addEventListener('hashchange', onHashChange); window.addEventListener('popstate', onHashChange); return () => { window.removeEventListener('hashchange', onHashChange); window.removeEventListener('popstate', onHashChange); }; }, [profile, isPreviewMode]);
 
-            const [selectedCats, setSelectedCats] = useState(CATEGORIES.map(c => c.id)); const [selectedDiffs, setSelectedDiffs] = useState(DIFFICULTIES.map(d => d.id)); const [isMuted, setIsMuted] = useState(false);
+            const [selectedCats, setSelectedCats] = useState(CATEGORIES.map(c => c.id)); const [selectedDiffs, setSelectedDiffs] = useState(DIFFICULTIES.map(d => d.id)); const [isMuted, setIsMuted] = useState(false); const [themePref, setThemePref] = useState(themeGetPref); const [evening, setEvening] = useState(null); const [gateOpen, setGateOpen] = useState(false); const [eveAudience, setEveAudience] = useState(null); const [limits, setLimits] = useState(() => limitsLoad()); const [limFlow, setLimFlow] = useState(null);
             // Аудиторія колоди: 'couple' = пара (couple + both), 'group' = компанія (лише both). Гравець обирає сам.
             const [audienceMode, setAudienceMode] = useState('couple');
             const audienceAllows = (q) => audienceMode === 'group' ? (q.audience !== 'couple') : true;
@@ -1747,6 +1779,9 @@ i18nSetLang(readStoredLang());
             }, []);
 
             const handleShareGame = async () => { SoundFX.click(); const shareUrl = `${window.location.origin}${window.location.pathname}#/welcome`; if (navigator.share) { try { await navigator.share({ title: tr("ASK ME — Игра"), text: tr("Откровенные разговоры ❤️"), url: shareUrl }); return; } catch (e) { if (e.name === 'AbortError') return; } } await copyTextToClipboard(shareUrl); showToast(tr("Ссылка на игру скопирована!")); };
+            const themePrefRef = useRef(themePref); themePrefRef.current = themePref;
+            useEffect(() => { themeApply(themePrefRef.current); return themeWatch(() => themePrefRef.current); }, []);
+            const changeTheme = (p) => { if (p === themePref) return; SoundFX.click(); setThemePref(p); themeSetPref(p); };
             const toggleMute = () => { const nextState = !isMuted; setIsMuted(nextState); SoundFX.muted = nextState; if (!nextState) SoundFX.click(); };
             const menuFromRef = useRef('menu'); // последняя страница до «Меню» (для кнопки «Меню» в верхней панели компьютера)
             useEffect(() => { if (screen !== 'app_menu') menuFromRef.current = screen; }, [screen]);
@@ -1774,7 +1809,9 @@ i18nSetLang(readStoredLang());
             };
 
             const handleSaveProfileNames = async (e) => {
-                e.preventDefault(); const validPlayers = playersForm.filter(p => p.name.trim().length > 0);
+                e.preventDefault(); const filled = playersForm.filter(p => p.name.trim().length > 0);
+                // імена необов'язкові: на старті вечора порожні поля стають «Игрок 1», «Игрок 2»…
+                const validPlayers = (!profile?.sessionId || isPreviewMode) && filled.length < 2 ? playersForm.map((p, i) => p.name.trim() ? p : { ...p, name: tf("Игрок {v0}", { v0: i + 1 }) }) : filled;
                 if (validPlayers.length < 2) { SoundFX.warn(); setPlayersError(tr("Введите минимум два имени, чтобы начать игру")); return; }
                 SoundFX.success(); setPlayersError('');
                 const isNewSession = (!profile?.sessionId || isPreviewMode); const newSid = isNewSession ? generateSessionId() : profile.sessionId; const newKey = (!isNewSession && isValidAESKey(profile?.sessionKey)) ? profile.sessionKey : await generateAESKey();
@@ -2181,7 +2218,7 @@ i18nSetLang(readStoredLang());
                                                     <input type="text" maxLength={80} value={newPunish} onChange={e => { setNewPunish(e.target.value); setPunishErr(''); }} placeholder={tr("Например: спой припев любимой песни")} aria-label={tr("Текст наказания")} className="px-4 text-sm" />
                                                     {punishErr && <span className="ui-error">{punishErr}</span>}
                                                     <select value={newPunishLevel} onChange={e => setNewPunishLevel(e.target.value)} aria-label={tr("Для какой сложности вопроса")} className="px-4 text-sm text-white">
-                                                        {LEVEL_OPTIONS.map(o => <option key={o[0]} value={o[0]} className="bg-[#0a0710]">{tr(o[1])}</option>)}
+                                                        {LEVEL_OPTIONS.map(o => <option key={o[0]} value={o[0]} className="bg-[color:var(--night)]">{tr(o[1])}</option>)}
                                                     </select>
                                                     <div className="grid grid-cols-2 gap-3">
                                                         <button type="button" onClick={() => { SoundFX.click(); setShowAddPunish(false); setNewPunish(''); setPunishErr(''); }} className="btn-secondary">{tr("Отмена")}</button>
@@ -2602,6 +2639,13 @@ i18nSetLang(readStoredLang());
                     if (pr.key) { pun = { id: Date.now(), reason: pn.reason || '', player: pn.player || '', text: pn.text || '', icon: pn.icon || '', key: pr.key }; lr.punId = pun.id; }
                     liveSend('PATCH', { ver, by: me, t: lr.t, solo: null, pl: livePlayersStr(), idx: st.idx, max: st.max, hist: hs, ...(pun ? { pun } : {}) });
                 });
+            };
+            // хазяїн поки сам: колода ще не пішла в базу — досить оновити «маячок» (n, dk) і те, що отримає гість при підключенні
+            const liveSoloDeck = (deck) => {
+                if (!liveRoomRef.current || liveSyncRef.current || liveRoleRef.current !== 'host') return;
+                const idsStr = deck.map(q => String(q.id || q.dbKey)).join(','), lr = liveRef.current, me = deviceIdRef.current, ver = liveVerNext(lr.ver, me);
+                liveDeckRef.current = idsStr; lr.ver = ver; lr.t = Date.now();
+                liveSend('PATCH', { ver, by: me, t: lr.t, n: deck.length, dk: liveDeckKey(idsStr) });
             };
             const liveSpin = (idx, cands, winner) => { if (!liveRoomRef.current) return; const id = Date.now(); liveRef.current.spinId = id; livePublish({ spin: { id, idx, winner, cands: cands.map(p => ({ id: p.id, name: p.name, gender: p.gender })) } }); };
             const livePun = (pn) => { if (!liveRoomRef.current) return; const id = Date.now(); liveRef.current.punId = id; livePublish({ pun: { id, reason: pn.reason, player: pn.player || '', text: pn.text || '', icon: pn.icon || '', key: pn.key || '' } }); };
@@ -3032,8 +3076,8 @@ i18nSetLang(readStoredLang());
             const handlePressStartButton = () => { SoundFX.click(); if(!profile) return; navigate('mode_select'); };
             const startWithMode = (mode, opts = {}) => {
                 SoundFX.click(); let pool = [];
-                if (mode === 'normal') { pool = profileDb.filter(q => !q.hidden && !q.archived && !q.disabled && selectedCats.includes(q.categoryId) && selectedDiffs.includes(q.level) && audienceAllows(q)); if (pool.length === 0) { showToast(tr("Нет подходящих вопросов — измените темы или сложность"), 2800, 'warn'); return; } } else { const catsToUse = selectedCats.length > 0 ? selectedCats : CATEGORIES.map(c => c.id); const diffsToUse = selectedDiffs.length > 0 ? selectedDiffs : DIFFICULTIES.map(d => d.id); pool = profileDb.filter(q => catsToUse.includes(q.categoryId) && diffsToUse.includes(q.level) && audienceAllows(q)); if (pool.length === 0) { showToast(tr("В базе нет подходящих вопросов"), 2800, 'warn'); return; } }
-                let shuffled = [...pool]; if (mode === 'normal') { shuffled = buildDeck(pool); } else { for (let i = shuffled.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]; } }
+                if (opts.deck) { pool = opts.deck; } else if (mode === 'normal') { pool = profileDb.filter(q => !q.hidden && !q.archived && !q.disabled && selectedCats.includes(q.categoryId) && selectedDiffs.includes(q.level) && audienceAllows(q)); if (pool.length === 0) { showToast(tr("Нет подходящих вопросов — измените темы или сложность"), 2800, 'warn'); return; } } else { const catsToUse = selectedCats.length > 0 ? selectedCats : CATEGORIES.map(c => c.id); const diffsToUse = selectedDiffs.length > 0 ? selectedDiffs : DIFFICULTIES.map(d => d.id); pool = profileDb.filter(q => catsToUse.includes(q.categoryId) && diffsToUse.includes(q.level) && audienceAllows(q)); if (pool.length === 0) { showToast(tr("В базе нет подходящих вопросов"), 2800, 'warn'); return; } }
+                let shuffled = [...pool]; if (opts.deck) { /* колода вечора вже розкладена по главах */ } else if (mode === 'normal') { shuffled = buildDeck(pool); } else { for (let i = shuffled.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]; } }
                 const isHard = opts.hard !== undefined ? !!opts.hard : hardMode, canLive = mode === 'normal' && !!liveRoomIdRef.current;
                 setPunDoneKey(''); setGameMode(mode); setGameQuestions(shuffled); setCurrentIndex(0); setMaxReachedIndex(0); setTurnHistory({}); setAnsweredCount(0); setCompletedAllFlag(false); setShowEndGameConfirm(false); navigate('game');
                 if (mode === 'normal') {
@@ -3043,7 +3087,57 @@ i18nSetLang(readStoredLang());
                 }
             };
 
-            const handleNextQuestion = () => { if (turnPopup.open || punish.open || showEndGameConfirm) return; if (gameMode === 'normal' && !turnHistory[currentIndex]) { triggerRouletteForIndex(currentIndex, turnHistory); return; } if (liveRoomRef.current && Date.now() - liveRef.current.appliedAt < LIVE_TAP_GUARD_MS) return; if (advanceTurn()) return; if (currentIndex < gameQuestions.length - 1) { const currentQ = gameQuestions[currentIndex]; const currentQKey = currentQ ? (currentQ.id || currentQ.dbKey) : null; const nextIdx = currentIndex + 1; const nextMax = Math.max(maxReachedIndex, nextIdx); SoundFX.flip('right'); setCurrentIndex(nextIdx); setMaxReachedIndex(nextMax); if (gameMode === 'normal') { updateSavedGameProgress(gameQuestions, nextIdx, nextMax, turnHistory, currentQKey); if (!turnHistory[nextIdx]) triggerRouletteForIndex(nextIdx, turnHistory, gameQuestions); } } else { SoundFX.click(); handleFinishGame(true); } };
+            // «Вечір»: пул без прихованих і пройдених питань; глава «Глибше» — лише після спільного «так»
+            const eveningPool = (aud) => applyLimits(profileDb.filter(q => !q.hidden && !q.archived && !q.disabled && (aud === 'group' ? q.audience !== 'couple' : true)), limits);
+            const startEvening = (moodId, aud) => {
+                const ev = buildEvening(eveningPool(aud), moodId, { audience: aud, buildDeck });
+                if (ev.deck.length < 6) { SoundFX.warn(); showToast(tr("Для этого вечера мало новых вопросов — выберите темы вручную"), 3200, 'warn'); navigate('menu'); return; }
+                setAudienceMode(aud); setHardMode(false); SoundFX.evening();
+                eveningSave({ mood: moodId, aud, chapters: ev.chapters, gate: ev.gate, deepOk: false, deckKey: eveningDeckKey(ev.deck) });
+                startWithMode('normal', { hard: false, deck: ev.deck });
+            };
+            useEffect(() => { setEvening(gameQuestions.length ? eveningLoad(gameQuestions) : null); }, [gameQuestions]);
+            // Заставка нової глави: коротка пауза-«вдих» між главами, лише один раз на главу
+            const [eveInter, setEveInter] = useState(null); const interSeen = useRef(''); const interTimer = useRef(null);
+            useEffect(() => {
+                if (gameMode !== 'normal' || !evening) return;
+                const ch = chapterAt(evening.chapters, currentIndex); if (!ch || ch.index === 0 || ch.from !== currentIndex) return;
+                const k = evening.deckKey + ':' + ch.index; if (interSeen.current === k) return; interSeen.current = k;
+                setEveInter({ index: ch.index, count: ch.count, key: ch.key }); SoundFX.chapter(ch.index);
+                clearTimeout(interTimer.current); interTimer.current = setTimeout(() => setEveInter(null), 1900);
+            }, [currentIndex, evening, gameMode]);
+            useEffect(() => () => clearTimeout(interTimer.current), []);
+            const nextRef = useRef(null);
+            const eveningGo = (deeper) => {
+                if (!evening) { setGateOpen(false); return; }
+                setGateOpen(false);
+                if (deeper) { const m = { ...evening, deepOk: true }; eveningSave(m); setEvening(m); SoundFX.success(); }
+                else if (liveSyncRef.current) { SoundFX.click(); handleFinishGame(true); return; }
+                else {
+                    const deck = softenTail(eveningPool(evening.aud), gameQuestions, evening.gate, { buildDeck, audience: evening.aud });
+                    const chapters = evening.chapters.map(c => c.gate ? { ...c, key: 'close', gate: false, to: Math.max(c.from, deck.length - 1) } : c).filter(c => c.from < deck.length);
+                    const m = { ...evening, chapters, gate: -1, deepOk: true, soft: true, deckKey: eveningDeckKey(deck) };
+                    eveningSave(m); setGameQuestions(deck); liveSoloDeck(deck); updateSavedGameProgress(deck, currentIndex, maxReachedIndex, turnHistory);
+                    if (deck.length <= currentIndex + 1) { handleFinishGame(true); return; }
+                }
+                setTimeout(() => nextRef.current && nextRef.current(), 60);
+            };
+            // «Врятувати вечір»: важку картку (якщо її ще ніхто не відповів) замінюють три легкі. Лише на одному
+            // пристрої й на «краю» колоди: історія ходів прив'язана до індексів, тож позаду нічого не зсуваємо.
+            const [rescuedAt, setRescuedAt] = useState(-10);
+            const canRescue = gameMode === 'normal' && !live.sync && !(evening && (chapterAt(evening.chapters, currentIndex) || {}).key === 'warm') && currentIndex === maxReachedIndex && currentIndex >= 2 && currentIndex - rescuedAt >= 4 && currentIndex < gameQuestions.length - 1;
+            const rescueEvening = () => {
+                if (!canRescue || liveSyncRef.current || turnPopup.open || punish.open) return;
+                const entry = normTurn(turnHistory[currentIndex]); const replace = !entry || !(entry.answered || []).length;
+                const res = rescueDeck(eveningPool(evening ? evening.aud : audienceMode), gameQuestions, currentIndex, { chapters: evening ? evening.chapters : [], gate: evening ? evening.gate : -1, replace });
+                if (!res) { SoundFX.warn(); showToast(tr("Лёгкие вопросы закончились — попробуйте «Пропустить»"), 3000, 'warn'); return; }
+                if (evening) { const m = { ...evening, chapters: res.chapters, gate: res.gate, deckKey: eveningDeckKey(res.deck) }; const ch = chapterAt(m.chapters, currentIndex); if (ch) interSeen.current = m.deckKey + ':' + ch.index; eveningSave(m); }
+                SoundFX.evening(); setRescuedAt(currentIndex); setGameQuestions(res.deck); liveSoloDeck(res.deck); updateSavedGameProgress(res.deck, currentIndex, maxReachedIndex, turnHistory);
+                showToast(tr("Дальше — несколько лёгких вопросов"), 2400);
+                if (!replace) setTimeout(() => nextRef.current && nextRef.current(), 60);
+            };
+            const handleNextQuestion = () => { if (turnPopup.open || punish.open || showEndGameConfirm) return; if (gameMode === 'normal' && !turnHistory[currentIndex]) { triggerRouletteForIndex(currentIndex, turnHistory); return; } if (liveRoomRef.current && Date.now() - liveRef.current.appliedAt < LIVE_TAP_GUARD_MS) return; if (advanceTurn()) return; if (currentIndex < gameQuestions.length - 1) { if (gameMode === 'normal' && evening && !evening.deepOk && evening.gate === currentIndex + 1) { SoundFX.click(); setGateOpen(true); return; } const currentQ = gameQuestions[currentIndex]; const currentQKey = currentQ ? (currentQ.id || currentQ.dbKey) : null; const nextIdx = currentIndex + 1; const nextMax = Math.max(maxReachedIndex, nextIdx); SoundFX.flip('right'); setCurrentIndex(nextIdx); setMaxReachedIndex(nextMax); if (gameMode === 'normal') { updateSavedGameProgress(gameQuestions, nextIdx, nextMax, turnHistory, currentQKey); if (!turnHistory[nextIdx]) triggerRouletteForIndex(nextIdx, turnHistory, gameQuestions); } } else { SoundFX.click(); handleFinishGame(true); } };
+            nextRef.current = handleNextQuestion;
             const handlePrevQuestion = () => { if (turnPopup.open || punish.open || showEndGameConfirm) return; if (currentIndex <= 0) return; if (liveRoomRef.current && Date.now() - liveRef.current.appliedAt < LIVE_TAP_GUARD_MS) return; SoundFX.flip('left'); const prevIdx = currentIndex - 1; setCurrentIndex(prevIdx); if (gameMode === 'normal') { updateSavedGameProgress(gameQuestions, prevIdx, maxReachedIndex, turnHistory); } };
             const archiveAnsweredQuestions = (questionsToArchive) => { if (!questionsToArchive || questionsToArchive.length === 0 || !profile) return; const newArchKeys = questionsToArchive.map(q => q.id || q.dbKey); setProfile(prev => { const merged = Array.from(new Set([...(prev.archivedIds || []), ...newArchKeys])); return { ...prev, archivedIds: merged, savedGame: null, updatedAt: Date.now() }; }); };
             const handleRestoreSingleFromArchive = (qObj) => { SoundFX.success(); setProfile(prev => ({ ...prev, archivedIds: (prev.archivedIds || []).filter(k => k !== qObj.id && k !== qObj.dbKey), updatedAt: Date.now() })); };
@@ -3220,17 +3314,87 @@ i18nSetLang(readStoredLang());
             }
 
             if (screen === 'session_created' && profile) {
+                // «Настрій»: один дотик — і перша картка. Тонкі налаштування — кнопкою «Свои темы и режимы».
+                const aud = eveAudience || ((profile.players || []).length > 2 ? 'group' : 'couple');
                 return (
                     <div className="safe-screen w-full flex flex-col items-center justify-between slide-up relative z-10">
                         <PwaInstallModal {...pwaModalProps} />
                         <div className="flex-1 flex items-center justify-center w-full py-6">
-                            <div className="w-full max-w-sm flex flex-col items-center text-center gap-6">
+                            <div className="w-full max-w-sm flex flex-col items-center text-center gap-5 mood-screen">
                                 <AskMeLogo size="md" />
-                                <div className="space-y-2"><h1 className="font-display text-2xl font-bold text-white">{tr("Сессия готова!")}</h1><p className="text-xs text-zinc-400 leading-relaxed">{tr("Сохраните ID сессии: по нему можно вернуться в игру с любого устройства.")}</p></div>
-                                <SessionIdBadge sessionKey={profile?.sessionKey} sessionId={profile.sessionId} onCopy={showToast} size="lg" />
-                                <button onClick={() => { SoundFX.click(); navigate('menu'); }} className="btn-primary w-full flex items-center justify-center gap-2 mt-2">{tr("Перейти к игре")} <Icons.Next /></button>
+                                <div className="space-y-1.5"><h1 className="font-display text-2xl font-bold text-white">{tr("Какой сегодня вечер?")}</h1><p className="text-sm text-zinc-400 leading-relaxed">{tr("Выберите настроение — первая карточка откроется сразу.")}</p></div>
+                                <div className="seg w-full" role="radiogroup" aria-label={tr("Кто играет")}>
+                                    <button type="button" role="radio" aria-checked={aud === 'couple'} onClick={() => { SoundFX.click(); setEveAudience('couple'); }} className={`seg-btn ${aud === 'couple' ? 'is-active' : ''}`}>{tr("Пара")}</button>
+                                    <button type="button" role="radio" aria-checked={aud === 'group'} onClick={() => { SoundFX.click(); setEveAudience('group'); }} className={`seg-btn ${aud === 'group' ? 'is-active' : ''}`}>{tr("Компания")}</button>
+                                </div>
+                                <button type="button" onClick={() => { SoundFX.click(); setLimFlow(limits.length ? { step: 'set' } : { step: 'pick', i: 0, picked: [], union: [] }); }} className={`limits-btn ${limits.length ? 'is-on' : ''}`}>
+                                    <Icons.Shield /><span className="limits-t">{limits.length ? tr("Тихие границы учтены") : tr("Тихие границы")}</span><span className="limits-d">{tr("каждый тайно скрывает темы")}</span>
+                                </button>
+                                <div className="w-full flex flex-col gap-3">
+                                    {EVENING_MOOD_IDS.map((id, i) => (
+                                        <button key={id} type="button" onClick={() => startEvening(id, aud)} className={`mood-card mood-${id}`} style={{ '--i': i }}>
+                                            <span className="mood-ico" aria-hidden="true">{id === 'deep' ? <Icons.MoodDeep /> : id === 'close' ? <Icons.MoodClose /> : <Icons.MoodEasy />}</span>
+                                            <span className="mood-body"><span className="mood-t">{tr(EVE_MOOD_TEXT[id].t)}</span><span className="mood-d">{tr(EVE_MOOD_TEXT[id].d)}</span>
+                                                <span className="mood-ch" aria-label={tf("{v0} главы", { v0: EVENING_MOODS[id].chapters.length })}>{EVENING_MOODS[id].chapters.map(c => <i key={c.key} className={`ch-${c.key}`}>{tr(EVE_CH_NAME[c.key])}</i>)}</span></span>
+                                            <span className="mood-go" aria-hidden="true"><Icons.Next /></span>
+                                        </button>
+                                    ))}
+                                </div>
+                                <button type="button" onClick={() => { SoundFX.click(); navigate('menu'); }} className="btn-text muted">{tr("Свои темы и режимы")} <Icons.Next /></button>
+                                <p className="text-xs text-zinc-500">{tr("ID сессии всегда есть в меню.")}</p>
                             </div>
                         </div>
+                        <PopupModal isOpen={!!limFlow} onClose={() => setLimFlow(null)}>
+                            {limFlow && (() => {
+                                const names = (profile.players || []).length >= 2 ? profile.players.map((p, k) => p.name || tf("Игрок {v0}", { v0: k + 1 })) : Array.from({ length: aud === 'group' ? 3 : 2 }, (_, k) => tf("Игрок {v0}", { v0: k + 1 }));
+                                const finish = (union) => { limitsSave(union); setLimits(limitsLoad()); SoundFX.success(); setLimFlow({ step: 'done' }); };
+                                const f = limFlow;
+                                if (f.step === 'set') return (
+                                    <div className="lim-dlg">
+                                        <span className="lim-ico" aria-hidden="true"><Icons.Shield /></span>
+                                        <h3 className="lim-t">{tr("Тихие границы уже есть")}</h3>
+                                        <p className="lim-d">{tf("Скрыто тем: {v0}. Кто их выбрал — неизвестно.", { v0: limits.length })}</p>
+                                        <div className="w-full flex flex-col gap-3">
+                                            <button type="button" onClick={() => { SoundFX.click(); setLimFlow(null); }} className="btn-primary w-full">{tr("Готово")}</button>
+                                            <button type="button" onClick={() => { SoundFX.click(); setLimFlow({ step: 'pick', i: 0, picked: [], union: [] }); }} className="btn-secondary w-full">{tr("Пройти заново")}</button>
+                                            <button type="button" onClick={() => { SoundFX.click(); limitsSave([]); setLimits([]); setLimFlow(null); }} className="btn-text muted">{tr("Снять границы")}</button>
+                                        </div>
+                                    </div>
+                                );
+                                if (f.step === 'done') return (
+                                    <div className="lim-dlg">
+                                        <span className="lim-ico" aria-hidden="true"><Icons.Check /></span>
+                                        <h3 className="lim-t">{tr("Границы учтены")}</h3>
+                                        <p className="lim-d">{tr("Вопросы на эти темы не попадут в сегодняшний вечер. Кто что отметил — нигде не сохраняется.")}</p>
+                                        <button type="button" onClick={() => { SoundFX.click(); setLimFlow(null); }} className="btn-primary w-full">{tr("Выбрать вечер")}</button>
+                                    </div>
+                                );
+                                if (f.step === 'pass') return (
+                                    <div className="lim-dlg">
+                                        <p className="lim-n">{tf("Игрок {v0} из {v1}", { v0: f.i + 1, v1: names.length })}</p>
+                                        <h3 className="lim-t">{tf("Передайте телефон: {v0}", { v0: names[f.i] })}</h3>
+                                        <p className="lim-d">{tr("Выбор предыдущего игрока уже скрыт.")}</p>
+                                        <div className="w-full flex flex-col gap-3">
+                                            <button type="button" autoFocus onClick={() => { SoundFX.click(); setLimFlow({ ...f, step: 'pick', picked: [] }); }} className="btn-primary w-full">{tr("Это я — дальше")}</button>
+                                            <button type="button" onClick={() => finish(f.union)} className="btn-text muted">{tr("Больше никого — готово")}</button>
+                                        </div>
+                                    </div>
+                                );
+                                const toggle = (id) => { SoundFX.click(); setLimFlow({ ...f, picked: f.picked.includes(id) ? f.picked.filter(x => x !== id) : [...f.picked, id] }); };
+                                const next = () => { const union = [...new Set([...f.union, ...f.picked])]; if (f.i + 1 < names.length) { SoundFX.click(); setLimFlow({ step: 'pass', i: f.i + 1, picked: [], union }); } else finish(union); };
+                                return (
+                                    <div className="lim-dlg">
+                                        <p className="lim-n">{tf("Игрок {v0} из {v1}", { v0: f.i + 1, v1: names.length })}</p>
+                                        <h3 className="lim-t">{tf("{v0}, о чём сегодня не говорим?", { v0: names[f.i] })}</h3>
+                                        <p className="lim-d">{tr("Отметьте темы — никто не узнает, кто их выбрал. Можно ничего не отмечать.")}</p>
+                                        <div className="lim-grid" role="group" aria-label={tr("Темы")}>
+                                            {CATEGORIES.map(c => <button key={c.id} type="button" aria-pressed={f.picked.includes(c.id)} onClick={() => toggle(c.id)} className={`chip ${f.picked.includes(c.id) ? 'is-on' : ''}`}>{catLabel(c.id, c.name)}</button>)}
+                                        </div>
+                                        <button type="button" onClick={next} className="btn-primary w-full">{f.i + 1 < names.length ? tr("Готово, передать дальше") : tr("Готово")}</button>
+                                    </div>
+                                );
+                            })()}
+                        </PopupModal>
                         <AppFooter />
                     </div>
                 );
@@ -3264,7 +3428,7 @@ i18nSetLang(readStoredLang());
                                     <form noValidate onSubmit={handleSaveProfileNames} className="w-full flex flex-col gap-3 text-left fade-in">{conflictNotice}
                                         {playersForm.map((p, idx) => (
                                             <div key={p.id} className="flex gap-2 relative">
-                                                <input type="text" placeholder={tf("Игрок {v0}", { v0: idx+1 })} required value={p.name} onChange={e => { const v = sanitizeName(e.target.value); setPlayersForm(playersForm.map((pl, i) => i === idx ? {...pl, name: v} : pl)); setPlayersError(''); }} className="flex-1 h-[54px] px-5 rounded-2xl bg-white/[0.04] border border-white/[0.16] text-white outline-none focus:border-rose-500" />
+                                                <input type="text" placeholder={tf("Игрок {v0}", { v0: idx+1 })} value={p.name} onChange={e => { const v = sanitizeName(e.target.value); setPlayersForm(playersForm.map((pl, i) => i === idx ? {...pl, name: v} : pl)); setPlayersError(''); }} className="flex-1 h-[54px] px-5 rounded-2xl bg-white/[0.04] border border-white/[0.16] text-white outline-none focus:border-rose-500" />
                                                 <button type="button" onClick={() => { setPlayersForm(playersForm.map((pl, i) => i === idx ? {...pl, gender: pl.gender === 'guy' ? 'girl' : 'guy'} : pl)); SoundFX.click(); }} className="btn-icon lg"> {p.gender === 'guy' ? '👨' : '👩'} </button>
                                                 {idx > 1 && <button type="button" onClick={() => setPlayersForm(playersForm.filter((_, i) => i !== idx))} className="btn-badge absolute -left-2 -top-2"><Icons.Close /></button>}
                                             </div>
@@ -3274,7 +3438,7 @@ i18nSetLang(readStoredLang());
                                             <button type="button" onClick={addPlayerField} className="btn-dashed w-full"> <Icons.Plus /> {tr("Добавить игрока")} </button>
                                         )}
                                         {playersError && <p className="ui-error text-center">{playersError}</p>}
-                                <button type="submit" className="btn-primary w-full flex items-center justify-center gap-2 mt-2"> {tr("Создать сессию")} <Icons.Next /> </button>
+                                <button type="submit" className="btn-primary w-full flex items-center justify-center gap-2 mt-2"> {tr("Начать вечер")} <Icons.Next /> </button>
                                     </form>
                                 ) : (
                                     <form onSubmit={handleRestoreBySessionId} className="w-full flex flex-col gap-4 text-left fade-in">
@@ -3296,27 +3460,33 @@ i18nSetLang(readStoredLang());
 if (screen === 'app_menu') {
                 const menuSections = [
                     { title: tr('Разделы'), items: [
-                        { id: 'players', icon: '👥', title: tr('Игроки и сессия'), desc: tr('Имена, состав и восстановление'), onClick: () => { if (profile) { setPlayersForm(profile.players); navigate('profile_page'); } } },
-                        { id: 'questions', icon: '📚', title: tr('Все вопросы'), desc: tr('Темы и список вопросов'), onClick: () => navigate('cat_list') },
-                        { id: 'history', icon: '🕑', title: tr('Прошлые игры'), desc: (profile?.history || []).length ? tf('Сыграно игр: {v0} · {v1}', { v0: profile.history.length, v1: histDayLabel(profile.history[0].t, Date.now(), lang) }) : tr('Здесь появятся ваши игры'), onClick: () => navigate('history') },
-                        { id: 'archive', icon: '🗂️', title: tr('Архив'), desc: `${tr('Пройдено вопросов:')} ${stats.archivedList.length}`, onClick: () => navigate('archive_page') },
-                        { id: 'about', icon: '✨', title: tr('Об игре'), desc: tr('Что умеет ASK ME и как играть'), onClick: () => navigate('about') },
+                        { id: 'players', icon: <Icons.Users />, title: tr('Игроки и сессия'), desc: tr('Имена, состав и восстановление'), onClick: () => { if (profile) { setPlayersForm(profile.players); navigate('profile_page'); } } },
+                        { id: 'questions', icon: <Icons.List />, title: tr('Все вопросы'), desc: tr('Темы и список вопросов'), onClick: () => navigate('cat_list') },
+                        { id: 'history', icon: <Icons.Clock />, title: tr('Прошлые игры'), desc: (profile?.history || []).length ? tf('Сыграно игр: {v0} · {v1}', { v0: profile.history.length, v1: histDayLabel(profile.history[0].t, Date.now(), lang) }) : tr('Здесь появятся ваши игры'), onClick: () => navigate('history') },
+                        { id: 'archive', icon: <Icons.Archive />, title: tr('Архив'), desc: `${tr('Пройдено вопросов:')} ${stats.archivedList.length}`, onClick: () => navigate('archive_page') },
+                        { id: 'about', icon: <Icons.Sparkles />, title: tr('Об игре'), desc: tr('Что умеет ASK ME и как играть'), onClick: () => navigate('about') },
                     ] },
                     { title: tr('Настройки'), items: [
-                        { id: 'sound', icon: isMuted ? '🔇' : '🔊', title: tr('Звук и вибрация'), desc: isMuted ? tr('Выключены') : tr('Включены'), right: <SettingSwitch on={!isMuted} onChange={toggleMute} label={tr("Звук и вибрация")} /> },
-                        { id: 'stats', icon: '📈', title: tr('Статистика игры'), desc: analyticsOn ? tr('Включена: помогает улучшать игру') : tr('Отключена'), right: <SettingSwitch on={analyticsOn} onChange={() => { SoundFX.click(); setAnalyticsOn(v => !v); }} label={tr("Статистика игры")} /> },
-                        ...(!isStandalonePWA ? [{ id: 'install', icon: '📲', title: tr('Скачать на устройство'), desc: tr('Добавить на главный экран'), onClick: handleInstallPwaClick }] : [])
+                        { id: 'sound', icon: isMuted ? <Icons.SoundOff /> : <Icons.SoundOn />, title: tr('Звук и вибрация'), desc: isMuted ? tr('Выключены') : tr('Включены'), right: <SettingSwitch on={!isMuted} onChange={toggleMute} label={tr("Звук и вибрация")} /> },
+                        { id: 'theme', icon: themePref === 'light' ? <Icons.Sun /> : themePref === 'dark' ? <Icons.Moon /> : <Icons.AutoTheme />, title: tr('Оформление'), desc: themePref === 'light' ? tr('Рассвет: светлая') : themePref === 'dark' ? tr('Ночь: тёмная') : tr('Как в системе'), right: (
+                            <div className="seg seg-icons" role="radiogroup" aria-label={tr('Оформление')}>
+                                {[['auto', Icons.AutoTheme, tr('Как в системе')], ['dark', Icons.Moon, tr('Ночь: тёмная')], ['light', Icons.Sun, tr('Рассвет: светлая')]].map(([id, Ic, lbl]) => (
+                                    <button key={id} type="button" role="radio" aria-checked={themePref === id} aria-label={lbl} title={lbl} onClick={() => changeTheme(id)} className={`seg-btn ${themePref === id ? 'is-active' : ''}`}><Ic /></button>
+                                ))}
+                            </div>) },
+                        { id: 'stats', icon: <Icons.Chart />, title: tr('Статистика игры'), desc: analyticsOn ? tr('Включена: помогает улучшать игру') : tr('Отключена'), right: <SettingSwitch on={analyticsOn} onChange={() => { SoundFX.click(); setAnalyticsOn(v => !v); }} label={tr("Статистика игры")} /> },
+                        ...(!isStandalonePWA ? [{ id: 'install', icon: <Icons.DownloadApp />, title: tr('Скачать на устройство'), desc: tr('Добавить на главный экран'), onClick: handleInstallPwaClick }] : [])
                     ] }
                 ];
                 // Пункты владельца: отдельная зона, которую видит только он. Обычный игрок не видит ни самой зоны, ни намёка на неё.
                 const ownerItems = isAdmin ? [
-                    { id: 'topics', icon: '⚙️', title: tr('Управление темами'), desc: tr('Добавление тем и порядок'), onClick: () => { setTopicDraft(CATEGORIES.map(c => c.id)); setTopicErr(''); navigate('topics_admin'); } },
-                    { id: 'punish', icon: '🎭', title: tr('Шаблоны наказаний'), desc: tr('Список для всех игроков'), onClick: () => { setPtEdit(null); setPtErr(''); setPtConfirmId(''); navigate('punish_admin'); } },
-                    { id: 'tod', icon: '🎲', title: tr('Правда или действие'), desc: tr('Карточки: добавить, изменить, скрыть'), onClick: () => { setTodBackTo('app_menu'); setTodEditId(''); navigate('tod_admin'); } },
-                    { id: 'analytics', icon: '📊', title: tr('Аналитика'), desc: tr('Сессии, вопросы, наказания'), onClick: () => { setAnSel(null); setAnConfirm(''); navigate('analytics'); } },
-                    { id: 'hidden', icon: '🙈', title: tr('Скрытые вопросы'), desc: `${tr('Сейчас скрыто:')} ${stats.hiddenCount}`, onClick: () => { setHqConfirmAll(false); navigate('hidden_q'); } },
-                    { id: 'translateall', icon: '🌐', title: tr('Перекласти всі питання'), desc: tr('Дозаповнити українські версії'), onClick: handleTranslateAll },
-                    { id: 'owner', icon: '🔓', title: tr('Режим владельца'), desc: tr('Выйти из режима владельца'), onClick: handleLockAdmin }
+                    { id: 'topics', icon: <Icons.Gear />, title: tr('Управление темами'), desc: tr('Добавление тем и порядок'), onClick: () => { setTopicDraft(CATEGORIES.map(c => c.id)); setTopicErr(''); navigate('topics_admin'); } },
+                    { id: 'punish', icon: <Icons.Mask />, title: tr('Шаблоны наказаний'), desc: tr('Список для всех игроков'), onClick: () => { setPtEdit(null); setPtErr(''); setPtConfirmId(''); navigate('punish_admin'); } },
+                    { id: 'tod', icon: <Icons.Dice />, title: tr('Правда или действие'), desc: tr('Карточки: добавить, изменить, скрыть'), onClick: () => { setTodBackTo('app_menu'); setTodEditId(''); navigate('tod_admin'); } },
+                    { id: 'analytics', icon: <Icons.Chart />, title: tr('Аналитика'), desc: tr('Сессии, вопросы, наказания'), onClick: () => { setAnSel(null); setAnConfirm(''); navigate('analytics'); } },
+                    { id: 'hidden', icon: <Icons.EyeOff />, title: tr('Скрытые вопросы'), desc: `${tr('Сейчас скрыто:')} ${stats.hiddenCount}`, onClick: () => { setHqConfirmAll(false); navigate('hidden_q'); } },
+                    { id: 'translateall', icon: <Icons.Globe />, title: tr('Перекласти всі питання'), desc: tr('Дозаповнити українські версії'), onClick: handleTranslateAll },
+                    { id: 'owner', icon: <Icons.Unlock />, title: tr('Режим владельца'), desc: tr('Выйти из режима владельца'), onClick: handleLockAdmin }
                 ] : [];
                 const renderMenuItems = (items) => items.map(it => {
                     const body = (<>
@@ -3466,7 +3636,7 @@ if (screen === 'app_menu') {
                                                 {PUNISH_EMOJIS.map(em => ( <button key={em} type="button" aria-label={tf("Иконка {v0}", { v0: em })} onClick={() => { SoundFX.click(); setPtIcon(em); setPtErr(''); }} className={`btn-icon ${ptIcon === em ? 'is-on' : ''}`}>{em}</button> ))}
                                             </div>
                                             <select value={ptLevel} onChange={e => setPtLevel(e.target.value)} aria-label={tr("Для какой сложности вопроса")} className="text-sm text-white">
-                                                {LEVEL_OPTIONS.map(o => <option key={o[0]} value={o[0]} className="bg-[#0a0710]">{tr(o[1])}</option>)}
+                                                {LEVEL_OPTIONS.map(o => <option key={o[0]} value={o[0]} className="bg-[color:var(--night)]">{tr(o[1])}</option>)}
                                             </select>
                                             {ptErr && <span className="ui-error">{ptErr}</span>}
                                             <div className="grid grid-cols-2 gap-3">
@@ -3753,22 +3923,22 @@ if (screen === 'mode_select') {
                             {todInviteBanner}
                             <div className="mode-grid">
                             <button disabled={stats.availableActive === 0} onClick={() => { SoundFX.click(); setHardMode(false); startWithMode('normal', { hard: false }); }} className="opt-card opt-brand">
-                                <span aria-hidden="true" className="w-12 h-12 rounded-xl bg-rose-500/20 flex items-center justify-center text-2xl flex-shrink-0">💬</span>
+                                <span aria-hidden="true" className="w-12 h-12 rounded-xl bg-rose-500/20 flex items-center justify-center text-2xl flex-shrink-0 mode-ico text-[color:var(--tint-rose)]"><Icons.Chat /></span>
                                 <span className="flex-1 min-w-0 flex flex-col gap-1.5">
                                     <span className="flex items-center justify-between gap-2"><span className="font-bold text-sm text-white">{tr("Обычный режим")}</span> <span className="flex-shrink-0 whitespace-nowrap text-xs font-bold px-2.5 py-0.5 rounded-lg bg-rose-500/25 text-rose-200">{stats.availableActive} {tr("вопр.")}</span></span>
                                     <span className="text-xs text-zinc-300 leading-relaxed">{tr("Жребий решает, кто отвечает первым. Пройденное уходит в Архив.")}</span>
                                 </span>
                             </button>
                             <button disabled={stats.availableActive === 0} onClick={() => { SoundFX.click(); navigate('game_setup'); }} className="opt-card opt-ember">
-                                <span aria-hidden="true" className="w-12 h-12 rounded-xl bg-amber-400/15 flex items-center justify-center text-2xl flex-shrink-0">🔥</span>
+                                <span aria-hidden="true" className="w-12 h-12 rounded-xl bg-amber-400/15 flex items-center justify-center text-2xl flex-shrink-0 mode-ico text-[color:var(--tint-ember)]"><Icons.Flame /></span>
                                 <span className="flex-1 min-w-0 flex flex-col gap-2">
                                     <span className="font-bold text-sm text-white">{tr("Усложнённый режим")}</span>
                                     <span className="text-xs text-zinc-300 leading-relaxed">{tr("Таймер на ответ и наказания за пропуск. Включите хотя бы одно.")}</span>
-                                    <span className="flex flex-wrap gap-1.5 text-xs font-bold text-amber-100/90"><span className="px-2.5 py-1 rounded-full bg-white/[0.07]">{tr("⏱ Таймер")}</span><span className="px-2.5 py-1 rounded-full bg-white/[0.07]">{tr("🎭 Наказания")}</span></span>
+                                    <span className="flex flex-wrap gap-1.5 text-xs font-bold text-[color:var(--tint-ember)]"><span className="px-2.5 py-1 rounded-full bg-white/[0.07]">{tr("⏱ Таймер")}</span><span className="px-2.5 py-1 rounded-full bg-white/[0.07]">{tr("🎭 Наказания")}</span></span>
                                 </span>
                             </button>
                             <button type="button" onClick={() => { SoundFX.click(); navigate('tod_lobby'); }} className="opt-card">
-                                <span aria-hidden="true" className="w-12 h-12 rounded-xl bg-white/[0.07] flex items-center justify-center text-2xl flex-shrink-0">🎲</span>
+                                <span aria-hidden="true" className="w-12 h-12 rounded-xl bg-white/[0.07] flex items-center justify-center text-2xl flex-shrink-0 mode-ico text-zinc-200"><Icons.Dice /></span>
                                 <span className="flex-1 min-w-0 flex flex-col gap-1.5">
                                     <span className="font-bold text-sm text-white">{tr("Правда или действие")}</span>
                                     <span className="text-xs text-zinc-300 leading-relaxed">{tr("Правда, действие и позор за пропуск. 18+")}</span>
@@ -3778,7 +3948,7 @@ if (screen === 'mode_select') {
                             <p className="px-2 text-xs text-zinc-400 leading-relaxed text-center">{tf("👥 К игре можно подключить до {v0} игроков: вопросы, очередь и таймер будут общими. Пригласить — кнопкой в шапке.", { v0: MAX_PLAYERS })}</p>
                             {isAdmin && (
                                 <button onClick={() => { SoundFX.click(); setHardMode(false); startWithMode('test'); }} className="opt-card">
-                                    <span aria-hidden="true" className="w-12 h-12 rounded-xl bg-white/[0.07] flex items-center justify-center text-2xl flex-shrink-0">🧪</span>
+                                    <span aria-hidden="true" className="w-12 h-12 rounded-xl bg-white/[0.07] flex items-center justify-center text-2xl flex-shrink-0 mode-ico text-zinc-200"><Icons.Flask /></span>
                                     <span className="flex-1 min-w-0 flex flex-col gap-1.5">
                                         <span className="flex items-center justify-between gap-2"><span className="font-bold text-sm text-zinc-200">{tr("Тестовый режим")}</span> <span className="flex-shrink-0 whitespace-nowrap text-xs font-bold px-2.5 py-0.5 rounded-lg bg-white/[0.10] text-zinc-300">{stats.availableTotal > 0 ? stats.availableTotal : db.length} {tr("вопр.")}</span></span>
                                         <span className="text-xs text-zinc-400 leading-relaxed">{tr("Для владельца: все вопросы (включая Архив) и редактирование карточек.")}</span>
@@ -3854,8 +4024,8 @@ if (screen === 'mode_select') {
                                     <div className="space-y-4">
                                         <h2 className="text-xs font-bold text-zinc-400">{tr("Для кого")}</h2>
                                         <div className="grid grid-cols-2 gap-2.5">
-                                            <button type="button" onClick={() => { SoundFX.toggle(true); setAudienceMode('couple'); }} aria-pressed={audienceMode === 'couple'} className={`btn-tile ${ audienceMode === 'couple' ? 'is-on' : '' }`}>❤️ {tr("Пара")}</button>
-                                            <button type="button" onClick={() => { SoundFX.toggle(true); setAudienceMode('group'); }} aria-pressed={audienceMode === 'group'} className={`btn-tile ${ audienceMode === 'group' ? 'is-on' : '' }`}>🎉 {tr("Компания")}</button>
+                                            <button type="button" onClick={() => { SoundFX.toggle(true); setAudienceMode('couple'); }} aria-pressed={audienceMode === 'couple'} className={`btn-tile ${ audienceMode === 'couple' ? 'is-on' : '' }`}><Icons.Heart /> {tr("Пара")}</button>
+                                            <button type="button" onClick={() => { SoundFX.toggle(true); setAudienceMode('group'); }} aria-pressed={audienceMode === 'group'} className={`btn-tile ${ audienceMode === 'group' ? 'is-on' : '' }`}><Icons.Party /> {tr("Компания")}</button>
                                         </div>
                                         <p className="text-xs text-zinc-500 leading-snug">{audienceMode === 'couple' ? tr("Все вопросы, в том числе самые откровенные.") : tr("Только вопросы, которые подходят для компании.")}</p>
                                     </div>
@@ -3910,6 +4080,7 @@ if (screen === 'mode_select') {
             if (screen === 'game') {
                 const currentQ = gameQuestions[currentIndex];
                 if (!currentQ) return <div className="safe-screen w-full flex flex-col items-center justify-center fade-in relative z-10"><AskMeLogo size="lg" /><p className="text-zinc-500 font-semibold text-xs mt-5">{tr("Возвращаемся в игру...")}</p></div>;
+                const eveChap = gameMode === 'normal' && evening ? chapterAt(evening.chapters, currentIndex) : null;
                 const categoryInfo = CATEGORIES.find(c => c.id === currentQ.categoryId) || CATEGORIES[0]; const diffInfo = DIFFICULTIES.find(d => d.id === currentQ.level) || DIFFICULTIES[0];
                 const cleanText = qDisplay(currentQ);
                 const turnEntry = normTurn(turnHistory[currentIndex]);
@@ -3953,15 +4124,15 @@ if (screen === 'mode_select') {
                             <div className="relative w-full max-w-lg lg:max-w-2xl">
                             {desk && <button type="button" onClick={() => { if (!swipeBusy() && swipeAllowed('left')) commitSwipe('left'); else SoundFX.warn(); }} aria-label={tr("Предыдущий вопрос")} title={tr("Предыдущий вопрос")} disabled={currentIndex === 0} className="desk-arrow is-left"><Icons.Back /></button>}
                             {desk && <button type="button" onClick={() => { if (!swipeBusy() && swipeAllowed('right')) commitSwipe('right'); else SoundFX.warn(); }} aria-label={tr("Следующий вопрос")} title={tr("Следующий вопрос")} className="desk-arrow is-right"><Icons.Next /></button>}
-                            <div aria-hidden="true" className="absolute inset-x-9 top-9 bottom-[-26px] rounded-[28px] border border-white/10 bg-[#0f0d15] pointer-events-none"></div>
-                            <div aria-hidden="true" className="absolute inset-x-5 top-5 bottom-[-14px] rounded-[28px] border border-white/10 bg-[#141119] pointer-events-none"></div>
-                            {showNextPeek && ( <div ref={peekNextRef} aria-hidden="true" data-peek="next" className="peek-soft absolute inset-0 z-[5] rounded-[28px] border border-white/10 bg-gradient-to-b from-[#1b1824] to-[#100e16] px-6 pt-9 pb-6 flex flex-col items-center justify-center text-center pointer-events-none select-none overflow-hidden" style={{ opacity: 0, willChange: 'transform, opacity' }}>{peekBody(nextQ)}</div> )}
-                            {showPrevPeek && ( <div ref={peekPrevRef} aria-hidden="true" data-peek="prev" className="peek-dim absolute inset-0 z-[5] rounded-[28px] border border-white/10 bg-gradient-to-b from-[#1b1824] to-[#100e16] px-6 pt-9 pb-6 flex flex-col items-center justify-center text-center pointer-events-none select-none overflow-hidden" style={{ opacity: 0, willChange: 'transform, opacity' }}>{peekBody(prevQ)}</div> )}
+                            <div aria-hidden="true" className="absolute inset-x-9 top-9 bottom-[-26px] rounded-[28px] border border-white/10 bg-[color:var(--stack-far)] pointer-events-none"></div>
+                            <div aria-hidden="true" className="absolute inset-x-5 top-5 bottom-[-14px] rounded-[28px] border border-white/10 bg-[color:var(--stack-near)] pointer-events-none"></div>
+                            {showNextPeek && ( <div ref={peekNextRef} aria-hidden="true" data-peek="next" className="peek-soft absolute inset-0 z-[5] rounded-[28px] border border-white/10 bg-gradient-to-b from-[color:var(--plum-2)] to-[color:var(--plum-1)] px-6 pt-9 pb-6 flex flex-col items-center justify-center text-center pointer-events-none select-none overflow-hidden" style={{ opacity: 0, willChange: 'transform, opacity' }}>{peekBody(nextQ)}</div> )}
+                            {showPrevPeek && ( <div ref={peekPrevRef} aria-hidden="true" data-peek="prev" className="peek-dim absolute inset-0 z-[5] rounded-[28px] border border-white/10 bg-gradient-to-b from-[color:var(--plum-2)] to-[color:var(--plum-1)] px-6 pt-9 pb-6 flex flex-col items-center justify-center text-center pointer-events-none select-none overflow-hidden" style={{ opacity: 0, willChange: 'transform, opacity' }}>{peekBody(prevQ)}</div> )}
                             <div ref={cardRef} className="relative z-10 w-full" style={{ willChange: 'transform, opacity', touchAction: 'pan-y' }}>
                             <div ref={glowRef} aria-hidden="true" className="swipe-glow" data-side="right" data-ok="yes"><span className="swipe-shine"></span></div>
                             {swipeHint && ( <div className="absolute -top-11 left-1/2 -translate-x-1/2 z-10 px-3 py-1 rounded-full text-xs font-bold bg-white/[0.10] border border-white/[0.16] text-zinc-100 pointer-events-none fade-in">{swipeHint}</div> )}
-                            <div className="game-card relative w-full flex flex-col items-center justify-center rounded-[28px] border border-white/10 bg-gradient-to-b from-[#1b1824] to-[#100e16] px-6 pt-7 pb-6 sm:px-8 shadow-[0_32px_64px_-24px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.07)]" style={{ minHeight: 'min(60dvh, 540px)' }} key={currentQ.dbKey + '_' + currentIndex}>
-                                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 h-7 rounded-full bg-[#1b1824] border border-white/[0.16] flex items-center gap-2 text-xs font-bold text-zinc-300 whitespace-nowrap">{tr("Вопрос №")} {currentQ.num} {gameMode === 'test' && currentQ.archived && ( <span className="text-xs px-1.5 rounded bg-white/[0.10] text-zinc-300">{tr("В архиве")}</span> )}</div>
+                            <div className="game-card relative w-full flex flex-col items-center justify-center rounded-[28px] border border-white/10 bg-gradient-to-b from-[color:var(--plum-2)] to-[color:var(--plum-1)] px-6 pt-7 pb-6 sm:px-8 shadow-[0_32px_64px_-24px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.07)]" style={{ minHeight: 'min(60dvh, 540px)' }} key={currentQ.dbKey + '_' + currentIndex}>
+                                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 h-7 rounded-full bg-[color:var(--plum-2)] border border-white/[0.16] flex items-center gap-2 text-xs font-bold text-zinc-300 whitespace-nowrap">{eveChap ? (<span className="ev-chap"><span className="ev-dots" aria-hidden="true">{Array.from({ length: eveChap.count }, (_, i) => <i key={i} className={i < eveChap.index ? 'is-done' : i === eveChap.index ? 'is-on' : ''}></i>)}</span>{tf("Глава {v0} · {v1}", { v0: eveChap.index + 1, v1: tr(EVE_CH_NAME[eveChap.key] || 'Разговор') })}</span>) : (<>{tr("Вопрос №")} {currentQ.num}</>)} {gameMode === 'test' && currentQ.archived && ( <span className="text-xs px-1.5 rounded bg-white/[0.10] text-zinc-300">{tr("В архиве")}</span> )}</div>
                                 <div className="flex flex-col items-center gap-1.5 mb-6 pt-2">
                                     
                                     <div className="flex items-center gap-2 text-xs font-bold text-zinc-200"> <span>{categoryInfo.icon}</span> <span>{catLabel(categoryInfo.id, categoryInfo.name)}</span> <span className="text-zinc-500">•</span> <span className={diffInfo.classText}>{diffLabel(diffInfo.id, diffInfo.name)}</span> </div>
@@ -3996,12 +4167,14 @@ if (screen === 'mode_select') {
                                 {gameMode === 'normal' && turnEntry && turnEntry.cur && !turnDone && (
                                     <button type="button" onClick={() => { SoundFX.click(); setShowSkipPopup(true); }} className="btn-ghost mt-3 w-full max-w-sm"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></svg> {tr("Пропустить вопрос")}</button>
                                 )}
+                                {gameMode === 'normal' && turnEntry && turnEntry.cur && !turnDone && <p className="skip-note">{tr("Можно пропустить. Объяснять не нужно.")}</p>}
+                                {canRescue && <button type="button" onClick={rescueEvening} className="rescue-btn"><Icons.Buoy /> <span>{tr("Стало тяжело? Спасти вечер")}</span></button>}
                                 {currentIndex === 0 && ( <p className="mt-6 text-xs text-zinc-500 text-center">{tr("Листайте карточки свайпами или кнопками")}</p> )}
                             </div></div></div>
                             <p className="game-count" role="status" aria-label={tf("Вопрос {v0} из {v1}", { v0: currentIndex + 1, v1: gameQuestions.length })}>{currentIndex + 1} <span aria-hidden="true">/</span> {gameQuestions.length}</p>
                         </main>
 
-                        <div className="fixed bottom-0 left-0 right-0 p-4 sm:p-6 z-20 bg-gradient-to-t from-[#0a0710] via-[#0a0710]/90 to-transparent" style={{ paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom))' }}>
+                        <div className="fixed bottom-0 left-0 right-0 p-4 sm:p-6 z-20 bg-gradient-to-t from-[color:var(--night)] via-[color:var(--night)]/90 to-transparent" style={{ paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom))' }}>
                             <div className="max-w-lg mx-auto grid grid-cols-2 gap-3.5">
                                 <button onClick={() => pressSwipeBtn('left')} disabled={currentIndex === 0} className="btn-secondary w-full flex items-center justify-center gap-2"><Icons.Back /> {tr("Назад")}</button>
                                 <button onClick={() => pressSwipeBtn('right')} className="btn-primary w-full flex items-center justify-center gap-2">{(currentIndex === gameQuestions.length - 1 && turnDone) ? (gameMode === 'test' ? tr("В меню") : tr("Итоги")) : tr("Далее")} <Icons.Next /></button>
@@ -4056,6 +4229,28 @@ if (screen === 'mode_select') {
                             </div>
                         </PopupModal>
 
+                        {eveInter && ReactDOM.createPortal(
+                            <div className="ev-inter" role="status" aria-live="polite" onClick={() => setEveInter(null)}>
+                                <div className="ev-inter-in">
+                                    <span className="ev-dots" aria-hidden="true">{Array.from({ length: eveInter.count }, (_, i) => <i key={i} className={i < eveInter.index ? 'is-done' : i === eveInter.index ? 'is-on' : ''}></i>)}</span>
+                                    <span className="ev-inter-n">{tf("Глава {v0}", { v0: eveInter.index + 1 })}</span>
+                                    <span className="ev-inter-t">{tr(EVE_CH_NAME[eveInter.key] || 'Разговор')}</span>
+                                    {EVE_CH_SUB[eveInter.key] && <span className="ev-inter-s">{tr(EVE_CH_SUB[eveInter.key])}</span>}
+                                </div>
+                            </div>, document.body
+                        )}
+
+                        <PopupModal isOpen={gateOpen && !!evening} onClose={() => setGateOpen(false)}>
+                            <div className="text-center flex flex-col items-center gap-4 pt-1 ev-gate">
+                                <span className="ev-gate-ico" aria-hidden="true"><Icons.MoodDeep /></span>
+                                <h3 className="text-lg font-bold text-white">{tr("Идём глубже?")}</h3>
+                                <p className="text-sm text-zinc-400 leading-snug">{tr("Дальше личные вопросы. Решайте вместе: если хоть кто-то не готов, останемся на этом уровне. Объяснять не нужно.")}</p>
+                                <div className="w-full flex flex-col gap-3">
+                                    <button type="button" onClick={() => eveningGo(true)} className="btn-primary w-full">{tr("Да, все согласны")}</button>
+                                    <button type="button" onClick={() => eveningGo(false)} className="btn-secondary w-full">{live.sync ? tr("Нет, завершим вечер") : tr("Нет, останемся тут")}</button>
+                                </div>
+                            </div>
+                        </PopupModal>
                         <PopupModal isOpen={showSkipPopup && gameMode === 'normal'} onClose={() => setShowSkipPopup(false)}>
                             <div className="text-center flex flex-col items-center gap-4 pt-1">
                                 <h3 className="text-lg font-bold text-white">{tr("Пропустить вопрос?")}</h3>
@@ -4100,7 +4295,7 @@ if (screen === 'mode_select') {
                                 {!isAiTyping && aiContent && <p className="ui-hint text-center">{tr("Текст создал искусственный интеллект. Он может ошибаться и не заменяет специалиста.")}</p>}
                             </div>
                         </main>
-                        <div className="fixed bottom-0 left-0 right-0 p-4 sm:p-6 z-20 bg-gradient-to-t from-[#0a0710] via-[#0a0710]/90 to-transparent"> <div className="max-w-xl mx-auto"> <button onClick={() => { SoundFX.click(); navigate('game'); }} className="btn-primary w-full flex items-center justify-center">{tr("К вопросу")}</button> </div> </div>
+                        <div className="fixed bottom-0 left-0 right-0 p-4 sm:p-6 z-20 bg-gradient-to-t from-[color:var(--night)] via-[color:var(--night)]/90 to-transparent"> <div className="max-w-xl mx-auto"> <button onClick={() => { SoundFX.click(); navigate('game'); }} className="btn-primary w-full flex items-center justify-center">{tr("К вопросу")}</button> </div> </div>
                         {pauseOverlay}
                     </div>
                 );

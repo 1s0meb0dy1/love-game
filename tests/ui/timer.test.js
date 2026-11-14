@@ -4,7 +4,7 @@ const ring=()=>D.querySelector('svg circle[stroke-dasharray], svg circle[style*=
 (async()=>{ try{
   w.eval(code); await sleep(1800);
   const inputs=[...D.querySelectorAll('input[type="text"]')]; setVal(inputs[0],'Макс'); setVal(inputs[1],'Аня'); await sleep(200);
-  await click('Создать сессию',1200); await click('Перейти к игре',900); await click('Начать игру',600); await click('Усложнённый режим',700);
+  await click('Начать вечер',1200); await click('Свои темы и режимы',900); await click('Начать игру',600); await click('Усложнённый режим',700);
   const sb=[...D.querySelectorAll('button')].reverse().find(b=>b.textContent.trim()==='Начать игру'); sb.dispatchEvent(new w.MouseEvent('click',{bubbles:true})); await sleep(3800);
   await click('К вопросу',600);
   T('таймер в POP-UP: показана очередь игрока',/Очередь:\s*(Макс|Аня)/.test(D.body.textContent));
