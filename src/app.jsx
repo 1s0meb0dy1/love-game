@@ -276,6 +276,7 @@ i18nSetLang(readStoredLang());
         // базові теми, додані 29.10.2026: у гравців зі збереженим вибором тем вмикаються один раз автоматично (як нові власні теми)
         const NEW_BASE_TOPICS = ['trust', 'talk', 'fun', 'body'];
 
+        const EVE_CH_SUB = { talk: 'Теперь — честнее.', close: 'Ближе друг к другу.', deep: 'Тихо и по-настоящему.' };
         const EVE_CH_NAME = { warm: 'Разминка', talk: 'Разговор', close: 'Ближе', deep: 'Глубже' };
         const EVE_MOOD_TEXT = {
             easy: { t: 'Легко и весело', d: 'Смешные и простые вопросы. Чтобы разогреться и посмеяться.' },
@@ -352,6 +353,9 @@ i18nSetLang(readStoredLang());
             romanticFinale() { if (this.muted) return; this.triggerHaptic([25, 60, 25, 60, 45]); this.init(); const notes = [{ f: 440, d: 0.45, t: 0 }, { f: 554.37, d: 0.45, t: 130 }, { f: 659.25, d: 0.50, t: 260 }, { f: 830.61, d: 0.55, t: 390 }, { f: 987.77, d: 0.85, t: 530 }]; notes.forEach(n => setTimeout(() => this.playAcousticNote(n.f, n.d, 0.26), n.t)); },
             magic() { if (this.muted) return; this.triggerHaptic([12, 35, 18]); this.init(); this.playAcousticNote(493.88, 0.14, 0.2, 659.25); setTimeout(() => this.playAcousticNote(783.99, 0.22, 0.22), 90); },
             success() { if (this.muted) return; this.triggerHaptic([14, 30, 20]); this.init(); this.playAcousticNote(523.25, 0.12, 0.22); setTimeout(() => this.playAcousticNote(783.99, 0.26, 0.26), 95); },
+            // «Вечір»: пентатоніка ре-мажор — м'який акорд вибору настрою і висхідне арпеджіо на початку глави
+            evening() { if (this.muted) return; this.triggerHaptic([10, 30, 14]); this.init(); [293.66, 440, 587.33].forEach((f, k) => setTimeout(() => this.playAcousticNote(f, 0.34, 0.16), k * 70)); },
+            chapter(n = 1) { if (this.muted) return; this.triggerHaptic([12, 40, 18]); this.init(); const scale = [293.66, 329.63, 369.99, 440, 493.88, 587.33, 659.25, 739.99]; const base = Math.min(n, 3); [0, 2, 4].forEach((step, k) => setTimeout(() => this.playAcousticNote(scale[base + step], 0.42 - k * 0.04, 0.17 - k * 0.02), k * 110)); },
             warn() { if (this.muted) return; this.triggerHaptic([25, 40, 25]); this.playAcousticNote(280, 0.15, 0.22, 190); }
         };
 
@@ -362,6 +366,9 @@ i18nSetLang(readStoredLang());
             , Sun: () => <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4" /><path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4L6 18M18 6l1.4-1.4" /></svg>
             , Moon: () => <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" /></svg>
             , AutoTheme: () => <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} aria-hidden="true"><circle cx="12" cy="12" r="8.5" /><path d="M12 3.5a8.5 8.5 0 0 1 0 17z" fill="currentColor" stroke="none" /></svg>
+            , MoodEasy: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5" /><path d="M8.4 13.6c.9 1.5 2.2 2.3 3.6 2.3s2.7-.8 3.6-2.3" /><path d="M9 9.6h.01M15 9.6h.01" strokeWidth={2.6} /></svg>
+            , MoodClose: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9.2 19.5 4.3 14.7a3.6 3.6 0 0 1 5.1-5.1l.3.3.3-.3a3.6 3.6 0 0 1 5.1 5.1" /><path d="M14.8 20.5l-4.2-4.1a3.1 3.1 0 0 1 4.4-4.4l.2.2.2-.2a3.1 3.1 0 0 1 4.4 4.4z" /></svg>
+            , MoodDeep: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M19.5 14.6A8 8 0 0 1 9.4 4.5a8 8 0 1 0 10.1 10.1z" /><path d="M16.5 3.5v3M15 5h3M20 8.5v2M19 9.5h2" /></svg>
             , Skip: () => <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M5 5.5l9.5 6.5L5 18.5v-13z" /><path d="M19 5v14" /></svg>
         };
 
@@ -3064,11 +3071,21 @@ i18nSetLang(readStoredLang());
             const startEvening = (moodId, aud) => {
                 const ev = buildEvening(eveningPool(aud), moodId, { audience: aud, buildDeck });
                 if (ev.deck.length < 6) { SoundFX.warn(); showToast(tr("Для этого вечера мало новых вопросов — выберите темы вручную"), 3200, 'warn'); navigate('menu'); return; }
-                setAudienceMode(aud); setHardMode(false);
+                setAudienceMode(aud); setHardMode(false); SoundFX.evening();
                 eveningSave({ mood: moodId, aud, chapters: ev.chapters, gate: ev.gate, deepOk: false, deckKey: eveningDeckKey(ev.deck) });
                 startWithMode('normal', { hard: false, deck: ev.deck });
             };
             useEffect(() => { setEvening(gameQuestions.length ? eveningLoad(gameQuestions) : null); }, [gameQuestions]);
+            // Заставка нової глави: коротка пауза-«вдих» між главами, лише один раз на главу
+            const [eveInter, setEveInter] = useState(null); const interSeen = useRef(''); const interTimer = useRef(null);
+            useEffect(() => {
+                if (gameMode !== 'normal' || !evening) return;
+                const ch = chapterAt(evening.chapters, currentIndex); if (!ch || ch.index === 0 || ch.from !== currentIndex) return;
+                const k = evening.deckKey + ':' + ch.index; if (interSeen.current === k) return; interSeen.current = k;
+                setEveInter({ index: ch.index, count: ch.count, key: ch.key }); SoundFX.chapter(ch.index);
+                clearTimeout(interTimer.current); interTimer.current = setTimeout(() => setEveInter(null), 1900);
+            }, [currentIndex, evening, gameMode]);
+            useEffect(() => () => clearTimeout(interTimer.current), []);
             const nextRef = useRef(null);
             const eveningGo = (deeper) => {
                 if (!evening) { setGateOpen(false); return; }
@@ -3278,7 +3295,7 @@ i18nSetLang(readStoredLang());
                                 <div className="w-full flex flex-col gap-3">
                                     {EVENING_MOOD_IDS.map((id, i) => (
                                         <button key={id} type="button" onClick={() => startEvening(id, aud)} className={`mood-card mood-${id}`} style={{ '--i': i }}>
-                                            <span className="mood-ico" aria-hidden="true">{EVENING_MOODS[id].icon}</span>
+                                            <span className="mood-ico" aria-hidden="true">{id === 'deep' ? <Icons.MoodDeep /> : id === 'close' ? <Icons.MoodClose /> : <Icons.MoodEasy />}</span>
                                             <span className="mood-body"><span className="mood-t">{tr(EVE_MOOD_TEXT[id].t)}</span><span className="mood-d">{tr(EVE_MOOD_TEXT[id].d)}</span>
                                                 <span className="mood-ch" aria-label={tf("{v0} главы", { v0: EVENING_MOODS[id].chapters.length })}>{EVENING_MOODS[id].chapters.map(c => <i key={c.key} className={`ch-${c.key}`}>{tr(EVE_CH_NAME[c.key])}</i>)}</span></span>
                                             <span className="mood-go" aria-hidden="true"><Icons.Next /></span>
@@ -4122,9 +4139,20 @@ if (screen === 'mode_select') {
                             </div>
                         </PopupModal>
 
+                        {eveInter && ReactDOM.createPortal(
+                            <div className="ev-inter" role="status" aria-live="polite" onClick={() => setEveInter(null)}>
+                                <div className="ev-inter-in">
+                                    <span className="ev-dots" aria-hidden="true">{Array.from({ length: eveInter.count }, (_, i) => <i key={i} className={i < eveInter.index ? 'is-done' : i === eveInter.index ? 'is-on' : ''}></i>)}</span>
+                                    <span className="ev-inter-n">{tf("Глава {v0}", { v0: eveInter.index + 1 })}</span>
+                                    <span className="ev-inter-t">{tr(EVE_CH_NAME[eveInter.key] || 'Разговор')}</span>
+                                    {EVE_CH_SUB[eveInter.key] && <span className="ev-inter-s">{tr(EVE_CH_SUB[eveInter.key])}</span>}
+                                </div>
+                            </div>, document.body
+                        )}
+
                         <PopupModal isOpen={gateOpen && !!evening} onClose={() => setGateOpen(false)}>
                             <div className="text-center flex flex-col items-center gap-4 pt-1 ev-gate">
-                                <span className="ev-gate-ico" aria-hidden="true">🌙</span>
+                                <span className="ev-gate-ico" aria-hidden="true"><Icons.MoodDeep /></span>
                                 <h3 className="text-lg font-bold text-white">{tr("Идём глубже?")}</h3>
                                 <p className="text-sm text-zinc-400 leading-snug">{tr("Дальше личные вопросы. Решайте вместе: если хоть кто-то не готов, останемся на этом уровне. Объяснять не нужно.")}</p>
                                 <div className="w-full flex flex-col gap-3">
